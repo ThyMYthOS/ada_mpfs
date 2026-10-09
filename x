@@ -64,10 +64,20 @@ cmd_toolchain () {
         if [ -d "$pfx/bin" ]; then echo "x: $crate $ver already installed in $pfx"
         else alr -n install --prefix="$pfx" "$crate=$ver" || die "installing $crate $ver failed"; fi
       done
-      if command -v cargo >/dev/null 2>&1; then
-        cargo install --locked svdtools --version "$SVDTOOLS_VERSION"
+      pfx="$(mpfs_opt_prefix svdtools "$SVDTOOLS_VERSION")"
+      if [ -x "$pfx/bin/svdtools" ]; then
+        echo "x: svdtools $SVDTOOLS_VERSION already installed in $pfx"
+      elif ! command -v cargo >/dev/null 2>&1; then
+        echo "x: cargo not found; skipping svdtools $SVDTOOLS_VERSION (install Rust with https://rustup.rs)" >&2
       else
-        echo "x: cargo not found; skipping svdtools $SVDTOOLS_VERSION" >&2
+        ver="$(mpfs_version_of rustc --version)"
+        if [ -n "$ver" ] && mpfs_version_ge "$ver" "$SVDTOOLS_RUSTC_MIN"; then
+          cargo install --locked --root "$pfx" svdtools --version "$SVDTOOLS_VERSION" \
+            || die "installing svdtools $SVDTOOLS_VERSION failed"
+        else
+          echo "x: rustc ${ver:-?} is older than $SVDTOOLS_RUSTC_MIN; skipping svdtools $SVDTOOLS_VERSION" >&2
+          echo "x: run 'rustup update stable' (https://rustup.rs) and repeat ./x toolchain install" >&2
+        fi
       fi
       mpfs_toolchain_on_path || true
       mpfs_toolchain_check
