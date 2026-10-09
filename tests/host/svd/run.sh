@@ -89,6 +89,20 @@ sed -i 's#^  - additions/plic.yaml#  - patches/SYSREG.yaml\n  - additions/plic.y
 ( cd "$W" && "$MPFS_PYTHON" tools/svd.py merge >/dev/null 2>&1 && grep -q '<name>TESTREG</name>' build/svd/PolarfireSoC.svd ) \
   && pass "a valid patch is applied" || fail "a valid patch is applied"
 
+# the committed patches take effect: a mask and a reset value; the ATHENA offset comes from the import
+python3 -I - "$tmp/clean/build/svd/PolarfireSoC.svd" <<'PY' && pass "the committed patches are applied" || fail "the committed patches are applied"
+import sys
+from xml.etree import ElementTree as ET
+root = ET.parse(sys.argv[1]).getroot()
+def reg(periph, name):
+    p = next(p for p in root.iter("peripheral") if p.findtext("name") == periph)
+    return next(r for r in p.iter("register") if r.findtext("name") == name)
+r = reg("SCB_REGS", "SOFT_RESET")
+assert int(r.findtext("resetMask"), 0) == 0 and int(r.findtext("resetValue"), 0) == 0
+assert int(reg("SYSREG", "MSS_BUILD").findtext("resetMask"), 0) == 0
+assert int(reg("ATHENA", "CSRMAIN").findtext("addressOffset"), 0) == 0
+PY
+
 fresh dupirq
 sed -i '0,/local: 3$/s//local: 2/' "$W/svd/additions/local_interrupts.yaml"
 expect_check "a duplicate local interrupt is rejected" fail "used twice"
