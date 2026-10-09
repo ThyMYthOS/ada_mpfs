@@ -1,0 +1,284 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  MSTIMER_LO:
+    description: MSTIMER_LO Controller
+    groupName: MSTIMER
+    baseAddress: 0x20125000
+    registers:
+      TIM1VALUE:
+        addressOffset: 0x0
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          TIM1VALUE:
+            description: Current value of timer 1. This register is read only. Writing to this register has no effect.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only
+      TIM1LOADVAL:
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TIM1LOADVAL:
+            description: Load value for timer 1. Write has no effect when timer is in 64 bit mode. Reading this register in 64 bit mode returns the reset value.When this register is written to, the value written is immediately loaded into the counter. This applies in both periodic and one-shot mode. If enabled, the counter will then continue counting down from this value. The value stored in this register is also used to reload the counter when the count reaches zero and the counter is operating in periodic mode. This register will be overwritten if the TIM1BGLOADVAL register is written to but the counter will not be updated with the new value in this case.TIM1LOADVAL always stores the value which will be loaded into the counter when it next reaches zero and periodic mode is selected.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      TIM1BGLOADVAL:
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TIM1BGLOADVAL:
+            description: Background load value for timer 1. Write has no effect when timer is in 64 bit mode.Reading this register in 64 bit mode returns the reset value. Background load value for timer 1. When this register is written to, the value written is loaded into the TIM1LOADVAL register without updating the counter itself. This allows a new load value to be put in place for the counter without interrupting the current count cycle.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      TIM1CONTROL:
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TIM1INTEN:
+            description: Timer 1 interrupt enable bit. 0 = timer 1 interrupt disabled. 1 = timer 1 interrupt enabled.
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          TIM1MODE:
+            description: This bit sets the operating mode for timer 1. 0= periodic mode. 1=one-shot mode.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          TIM1ENABLE:
+            description: 'Enable bit for timer 1: 0 = timer 1 disabled, i.e. counter decrements 1 = timer 1 enabled, i.e. counter value is static'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      TIM1RIS:
+        addressOffset: 0x10
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TIM1RIS:
+            description: Raw interrupt status bit for timer 1. This is bit is set when timer 1 reaches zero. Writing a '1' to this bit clears the bit. Writing '0' has no effect.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      TIM1MIS:
+        addressOffset: 0x14
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          TIM1MIS:
+            description: Masked interrupt status bit for timer 1. This read only bit is the logical AND of the TIM1RIS and TIM1INTEN bits. The TIMER1INT output from the timer will have the same value as this bit. Writing to this bit has no effect.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      TIM2VALUE:
+        addressOffset: 0x18
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          TIM2VALUE:
+            description: This read only register contains the current value of timer 2. Writing to this register has no effect.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only
+      TIM2LOADVAL:
+        addressOffset: 0x1C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TIM2LOADVAL:
+            description: Load value for timer 2.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      TIM2BGLOADVAL:
+        addressOffset: 0x20
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TIM2BGLOADVAL:
+            description: Background load value for timer 2. When this register is written to, the value written is loaded into the TIM2LOADVAL register without updating the counter itself. This allows a new load value to be put in place for the counter without interrupting the current count cycle.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      TIM2CONTROL:
+        addressOffset: 0x24
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TIM2INTEN:
+            description: Timer 2 interrupt enable bit. 0 = timer 2 interrupt disabled. 1 = timer 2 interrupt enabled.
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          TIM2MODE:
+            description: This bit sets the operating mode for timer 2. 0=periodic mode, and 1= one-shot mode.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          TIM2ENABLE:
+            description: 'Enable bit for timer 2: 0 = timer 2 disabled, i.e. counter decrements, 1 = timer 2 enabled, i.e. counter value is static.'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      TIM2RIS:
+        addressOffset: 0x28
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TIM2RIS:
+            description: Raw interrupt status bit for timer 2. This is bit is set when timer 2 reaches zero. Writing a '1' to this bit clears the bit. Writing '0' has no effect.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      TIM2MIS:
+        addressOffset: 0x2C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          TIM2MIS:
+            description: Masked interrupt status bit for timer 2. This read only bit is the logical AND of the TIM2RIS and TIM2INTEN bits.The TIMER2INT output from the timer will have the same value as this bit. Writing to this bit has no effect.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      TIM64VALUEU:
+        addressOffset: 0x30
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          TIM64VALUEU:
+            description: 'This read only register contains the current value of the upper 32 bit word of the 64 bit timer. Reading this register returns the value of : TIM64TEMPVALU which is set when the lower 32 bits of the 64-bit timer is read.Writing to this register has no effect.'
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only
+      TIM64VALUEL:
+        addressOffset: 0x34
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          TIM64VALUEL:
+            description: This read only register contains the current value of the lower 32 bit word of the 64 bit timer. Reading this register has the side effect of storing the upper 32 bits of the counter value in TIMTEMPVALU, which is accessed when the TIM64VALUEU register is read. Writing to this register has no effect.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only
+      TIM64LOADVALU:
+        addressOffset: 0x38
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TIM64LOADVALU:
+            description: Load value for upper 32 bits of 64 bit timer. When this register is written to, the value written is immediately loaded into a temporary register. The value in the temporary register is only written to the timer when the lower 32 bit word (TIM64LOADVALL) is written.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      TIM64LOADVALL:
+        addressOffset: 0x3C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TIM64LOADVALL:
+            description: Load value for lower 32 bits of 64 bit timer. When this register is written to, the value written is immediately loaded into the lower 32 bits of the 64 bit counter along with the value in register TIM64LOADVALU. This applies in both periodic and one-shot mode. The value stored in this register is also used to reload the counter when the count reaches zero and the counter is operating in periodic mode. This register will be overwritten if the TIM64BGLOADVAL register is written to but the counter will not be updated with the new value in this case. TIM64LOADVALL always stores the lower 32 bits of the value which will be loaded into the counter when it next reaches zero and periodic mode is selected.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      TIM64BGLOADVALU:
+        addressOffset: 0x40
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TIM64BGLOADVALU:
+            description: Background load value for upper 32 bits of 64 bit mode timer. This value only propagates the to the TIM64BGLOADVAL when the lower 32 bits is written.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      TIM64BGLOADVALL:
+        addressOffset: 0x44
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TIM64BGLOADVALL:
+            description: Background load value for lower 32 bits of 64 bit mode timer. When this register is written to, the both the upper and lower words are written into the TIM64BGLOADVALL register without updating the counter itself. This allows a new load value to be put in place for the counter without interrupting the current count cycle.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      TIM64CONTROL:
+        addressOffset: 0x48
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TIM64INTEN:
+            description: Timer 64 interrupt enable bit. 0 = timer 64 interrupt disabled. 1 = timer 2 interrupt enabled
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          TIM64MODECONTROL:
+            description: This bit sets the operating mode for timer 64. 0=periodic mode and 1= one-shot mode.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          TIM64ENABLE:
+            description: 'Enable bit for 64 bit mode timer: 0 = timer 64 disabled, i.e. counter decrements 1 = timer 64 enabled, i.e. counter value is static'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      TIM64RIS:
+        addressOffset: 0x4C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TIM64RIS:
+            description: Raw interrupt status bit for 64 bit mode timer. This is bit is set when 64 bit mode timer reaches zero. Writing a '1' to this bit clears the bit. Writing '0' has no effect.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      TIM64MIS:
+        addressOffset: 0x50
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          TIM64MIS:
+            description: Masked interrupt status bit for 64 bit mode timer. This read only bit is the logical AND of the TIM64RIS and TIM64INTEN bits. The TIMER64INT output from the timer will have the same value as this bit. Writing to this bit has no effect.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      TIM64MODE:
+        addressOffset: 0x54
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TIM64MODE:
+            description: Writing a 1 to this register forces the timers 1 and 2 to be used to implement a 64 bit mode timing. Writing a 0 forces the timers operate independently.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+  MSTIMER_HI:
+    derivedFrom: MSTIMER_LO
+    description: MSTIMER_HI Controller
+    baseAddress: 0x28125000

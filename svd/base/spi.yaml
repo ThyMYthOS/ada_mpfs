@@ -1,0 +1,597 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  SPI_A_LO:
+    description: SPI_A_LO Controller
+    groupName: SPI
+    baseAddress: 0x20108000
+    registers:
+      CONTROL:
+        description: Control register
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x80000102
+        fields:
+          RESET:
+            description: '0: SPI is enabled 1: SPI is held in Power reset state.'
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          OENOFF:
+            description: '0: SPI output enable active as required 1: SPI output enable is not asserted. Allows multiple slaves to share a single slave select signal with a single master.'
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          BIGFIFO:
+            description: 'Alters FIFO depth. 0: FIFO depth is 4 frames. 1: when frame size is [4-8] bits: FIFO depth is 32 frames. when frame size is [9-16] bits: FIFO depth is 16; and when frame size is [17-32] bits: FIFO depth is 8.'
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          CLK_MODE:
+            description: 'Specifies the methodology used to calculate the SPICLK divider. 0: SPICLK = 1 / (2 ^ (CLK_GEN + 1)) where CLK_GEN = 0 to 15. 1: SPICLK = 1 / (2 * (CLK_GEN + 1)) where CLK_GEN = 0 to 255'
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          FRAMEURUN:
+            description: '0: The under-runs are generated whenever a read is attempted from an empty transmit FIFO. 1: The under-run condition will be ignored for the complete frame.. if the first data frame read resulted in a potential overflow; that is.. the slave was not ready to transmit any data. If the first data frame is read from the FIFO and transmitted.. an under-run will be generated.. when the FIFO becomes empty for any of the remaining packet frames (that is.. while SSEL is active). Master operation does not create a transmit FIFO under-run condition.'
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          SPS:
+            description: Defines slave select behavior.
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          SPH:
+            description: Clock phase
+            bitOffset: 25
+            bitWidth: 1
+            access: read-write
+          SPO:
+            description: Clock polarity
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          FRAMECNT:
+            description: Number of data frames to be sent or received. Counts from 1. Maximum value is 64K. This register once set will not change, an internal frame counter counts the frames until it reaches the limit set by this register When this register is return, the internal frame counter also reset. When that counter reaches FRAMECNT, interrupts are generated and idle cycles are inserted on the SPI bus. The core will transmit data whenever the transmit FIFO is loaded, the counter is used to count frames, terminate bursts and generate interrupts
+            bitOffset: 8
+            bitWidth: 16
+            access: read-write
+          INTTXTURUN:
+            description: 'Interrupt on transmit the under-run 0: Interrupt disabled 1: Interrupt enabled'
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          INTRXOVRFLO:
+            description: 'Interrupt on receive overflow 0: Interrupt disable 1: Interrupt enabled'
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          INTTXDATA:
+            description: 'Interrupt on transmit data 0: Interrupt disabled 1: Interrupt enabled'
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          INTRXDATA:
+            description: 'Interrupt on receive data 0: Interrupt disabled 1: Interrupt enabled'
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          TRANSFPRTL:
+            description: 'Transfer protocol Decode: 0b00: Motorola SPI 0b01: TI synchronous serial 0b10: National Semiconductor MICROWIRE 0b11: Reserved Note: The transfer protocol cannot be changed while the SPI is enabled.'
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          MODE:
+            description: 'SPI implementation 0: Slave 1: Master (default)'
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          ENABLE:
+            description: 'Core enable 0: Disable (default) 1: Enable The core will not respond to external signals (SPI_X_DI..SPI_X_DO) until this bit is enabled. SPI_X_CLK is driven low and SPI_X_OEN and SPI_X_SS (slave select) are driven inactive.'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      FRAMESIZE:
+        description: Transmit and receive data frame size
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x4
+        fields:
+          FRAMESIZE:
+            description: 'Transmit and receive data size. Default:4 Maximum value is 32. Number of bits shifted out and received per frame (count starts from 1 to 32). In National Semiconductor MICROWIRE mode.. this is the number of shifts to be done after the control byte is sent. Note: This register must be set before SPI is enabled. Writes to this register are ignored after the SPI is enabled.'
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      STATUS:
+        description: Status register
+        addressOffset: 0x8
+        size: 32
+        access: read-only
+        resetValue: 0x2440
+        fields:
+          ACTIVE:
+            description: SPI is still transmitting or receiving data.
+            bitOffset: 14
+            bitWidth: 1
+            access: read-only
+          SSEL:
+            description: Current state of SPI_X_SS[0]
+            bitOffset: 13
+            bitWidth: 1
+            access: read-only
+          FRAMESTART:
+            description: Indicates that the next frame in the receive FIFO was the first received after SSEL went active, i.e. the start of a packet of frames
+            bitOffset: 12
+            bitWidth: 1
+            access: read-only
+          TXFIFOEMPNXT:
+            description: Transmit FIFO will be empty after next transmission
+            bitOffset: 11
+            bitWidth: 1
+            access: read-only
+          TXFIFOEMP:
+            description: Transmit FIFO is empty
+            bitOffset: 10
+            bitWidth: 1
+            access: read-only
+          TXFIFOFULNXT:
+            description: Transmit FIFO full on next write
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          TXFIFOFUL:
+            description: Transmit FIFO is full
+            bitOffset: 8
+            bitWidth: 1
+            access: read-only
+          RXFIFOEMPNXT:
+            description: Receive FIFO empty on next read
+            bitOffset: 7
+            bitWidth: 1
+            access: read-only
+          RXFIFOEMP:
+            description: Receive FIFO empty
+            bitOffset: 6
+            bitWidth: 1
+            access: read-only
+          RXFIFOFULNXT:
+            description: Receive FIFO will be full after next frame received
+            bitOffset: 5
+            bitWidth: 1
+            access: read-only
+          RXFIFOFUL:
+            description: Receive FIFO is full
+            bitOffset: 4
+            bitWidth: 1
+            access: read-only
+          TXUNDERRUN:
+            description: No data available for transmission. The channel cannot read data from the transmit FIFO because the transmit FIFO is empty. Certainly this can only be raised in Slave mode because the master will not attempt to transmit unless there is data in FIFO.
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          RXOVERFLOW:
+            description: Channel is unable to write to receive FIFO as it is full. Applies to Master and Slave modes.
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          RXDATRCED:
+            description: When set.. it indicates that the number of frames specified by TxRXDFCOUNT has been received and can be read. Applies to Master and Slave modes.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          TXDATSENT:
+            description: When set.. it indicates that the numbers of frames specified by TxRXDFCOUNT has been sent. Applies to Master and Slave modes.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      INT_CLEAR:
+        description: Interrupt clear register
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SSEND:
+            description: Write one to clear the interrupt
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          CMDINT:
+            description: Write one to clear the interrupt
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          TXCHUNDRUN:
+            description: Transmit channel under-run
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RXCHOVRFLW:
+            description: Receive channel over flow
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RXRDONECLR:
+            description: Clears receive ready (RX_RDY)
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          TXDONECLR:
+            description: Clears transmit done (TX_DONE) by writing '1'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RX_DATA:
+        description: Receive data register
+        addressOffset: 0x10
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          RXDATA:
+            description: Received data. Reading this clears the register of the received data.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only
+      TX_DATA:
+        description: Transmit data register
+        addressOffset: 0x14
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          TXDATA:
+            description: Data to be transmitted. Writing to this clears the last data transmitted.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      CLK_GEN:
+        description: Output clock generator (Master mode)
+        addressOffset: 0x18
+        size: 32
+        access: read-write
+        resetValue: 0x7
+        fields:
+          CLK_GEN:
+            description: 'Specifies the methodology used to calculate the SPICLK divider. CLK_MODE = 0: SPICLK = 1 / (2^(CLK_GEN + 1)) where CLK_GEN = 0 to 15. CLK_MODE = 1: SPICLK = 1 / (2 * (CLK_GEN + 1)) where CLK_GEN = 0 to 255.'
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      SLAVE_SELECT:
+        description: Specifies slave selected (Master mode)
+        addressOffset: 0x1C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SSELOUT:
+            description: '0: SSEL is inactive (Driven to 1) 1: SSEL is active (Driven to 0)'
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          DIRECT:
+            description: '0: SSEL is driven by the FSM''s 1: SSEL is driven by bit 9 in this register'
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          SLAVESELECT:
+            description: 'Specifies the slave selected. Writing one to a bit position selects the corresponding slave. One SLAVESELECT[1] is available at the FPGA fabric interface.. while SLAVESELECT[0] is available at the SPI_X_SS[0] pin. Note: The slave select output signal is active low.'
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      INTMASK:
+        description: Masked interrupt status
+        addressOffset: 0x20
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SSEND:
+            description: Equals RIS[5] and CONTROL2[5]. When this is high.. the interrupt is active.
+            bitOffset: 5
+            bitWidth: 1
+            access: read-only
+          CMDINT:
+            description: Equals RIS[4] and CONTROL2[4]. When this is high.. the interrupt is active.
+            bitOffset: 4
+            bitWidth: 1
+            access: read-only
+          TXCHUNDDMSKINT:
+            description: Masked interrupt status. Reading this returns interrupt status. Masked interrupt status = Raw interrupt status and interrupt mask (Control Register). MIS = RIS and CONTROL[7:4]. Masked status of transmit channel under-run TXCHUNDMSKINT=TXCHUNDRINT and INTTXUNRRUN
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          RXCHOVRFMSKINT:
+            description: Masked status of receive channel overflow. RXCHOVRFMSKINT = RXCHOVRFINT and INTRXOVRFLO
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          RXRDYMSKINT:
+            description: Masked status of receive data ready (data received in FIFO). RXRDYMSKINT = RXRDY and INTTXDATA
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          TXDONEMSKINT:
+            description: Masked status of transmit done (data shifted out) TXDONEMSKINT = TXDONE and INTRXDATA
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      INTRAW:
+        description: Raw interrupt status
+        addressOffset: 0x24
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SSEND:
+            description: Indicates that SPI_X_SS[x] has gone inactive.
+            bitOffset: 5
+            bitWidth: 1
+            access: read-only
+          CMDINT:
+            description: Indicates that the number of frames set by the CMDSIZE register has been received as a single packet of frames (SPI_X_SS[x] held active).
+            bitOffset: 4
+            bitWidth: 1
+            access: read-only
+          TXCHUNDR:
+            description: RAW interrupt status. Reading this returns raw interrupt status. Raw status of transmit channel under-run. Indicates in slave mode that data was not availiable when required in the transmit FIFO
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          RXOVRFLW:
+            description: Raw status of receive FIFO overflowed
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          RXRDY:
+            description: Receive data ready (data received in FIFO)
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          TXDONE:
+            description: Raw status of transmit done (data shifted out)
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      CONTROL2:
+        description: Control bits for enhanced modes
+        addressOffset: 0x28
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          INTEN_SSEND:
+            description: '0:No effect 1: Enables the interrupt as SPI_X_SS[x] has gone inactive.'
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          INTEN_CMD:
+            description: '0: No effect. 1: Enables the interrupt after the number of frames set by the CMDSIZE register have been received as a single packet of frames (SPI_X_SS[x] held active).'
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          DISFRMCNT:
+            description: '0: The internal frame counter is active. When the counter reaches the programmed limit.. it will pause the current SPI transfer inserting idle cycles and generate the appropriate interrupts. 1: The internal frame counter is not active.The core transmits data until the transmit FIFO empties. The FRAMECNT (CONTROL register) should also be programmed to zero.'
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          AUTOPOLL:
+            description: '0: No effect 1: The first receive frame after SPI_X_SS[0] is active. It is discarded (not written to the FIFO) and supports the POLL function.'
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          AUTOSTATUS:
+            description: '0: No effect 1: The first transmitted frame (Slave mode) contains the hardware status.. not data from the transmit FIFO.'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      COMMAND:
+        description: Command register
+        addressOffset: 0x2C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXNOW:
+            description: '0: No effect 1: Writing 1 clears the TxBUSY bit in Slave mode immediately rather than waiting for PKTSIZE frames to be available.. telling the master that there is data available. This is intended to use when less than the programmed PKTSIZE data frames are being transmitted.. removing the requirement to transmit PKTSIZE frames. This bit stays set until the first data frame is transmitted.'
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          AUTOSTALL:
+            description: '0: No effect 1: Writing 1 will cause the master to delay transmission until the transmit FIFO contains the number of frames specified by the PKTSIZE register. This guarantee that the frames are transmitted with no idle cycles or time gaps between them. This bit will be automatically cleared as soon as the core starts transmitting the frames.'
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          CLRFRAMECNT:
+            description: '0: No effect 1: Writing 1 clears the internal frame counter. This bit always reads as zero. The counter is also cleared when the core is disabled.. CTL1.. or CTL2 are written (that is.. the frame count limit changed).'
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          TXFIFORST:
+            description: '0: No effect 1: Writing 1 resets the Tx FIFO. This bit always reads as zero.'
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RXFIFORST:
+            description: '0: No effect Writing 1 resets the Rx FIFO. This bit always reads as zero.'
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          AUTOEMPTY:
+            description: '0: No effect 1: Writing 1 causes the SPI core to automatically discard any further received data until the number of frames requested in the FRAMECNT register has been received or (in Slave mode) SSEL goes inactive. This bit will stay set until all the frames are complete or it is cleared.'
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          AUTOFILL:
+            description: '0: No effect 1: Writing 1 causes the SPI core to automatically fill the transmit FIFO with zeros to match the number of frames requested in the FRAMECNT register. Typically.. the five command bytes must be written to the TxDATA register and then this bit must be set. Data can be read from the receive FIFO until the complete set of frames has been read. This bit will stay set until all the frames are complete or it is cleared.'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PKTSIZE:
+        description: Packet size
+        addressOffset: 0x30
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PKTSIZE:
+            description: Sets the size of the SPI CMD/data frame. PKTSIZE cannot be greater than the FIFO size.
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      CMD_SIZE:
+        description: Command size
+        addressOffset: 0x34
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CMDSIZE:
+            description: 'Number of frames after SPI_SS[0] going active that the CMD interrupt should be generated. Note: This controls the RxCMD interrupt. The internal counters count frames from SPI_SS[0] going low. It automatically resets and starts counting again once SSEL goes inactive. In TI mode.. back- to-back frames are counted.. any gaps in data causes the counter to start counting again.'
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      HWSTATUS:
+        description: Slave hardware status
+        addressOffset: 0x38
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          USER:
+            description: These bits are set by the CPU. Their function is undefined but could be used to send additional status or request information to the master.
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          TXBUSY:
+            description: '0: Master may request the requested data. There are PKTSIZE frames of data in the transmit FIFO (when AUTOPOLL is set to PKTSIZE - 1) 1: Indicates not ready to transmit data.'
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          RXBUSY:
+            description: '1: Indicates that the receive buffer is busy (not empty). 0: Indicates that up to PKTSIZE frames of command followed by data may be sent to the slave.'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      STAT8:
+        description: Status register
+        addressOffset: 0x3C
+        size: 32
+        access: read-write
+        resetValue: 0x44
+        fields:
+          ACTIVE:
+            description: SPI is still transmitting the data
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          SSEL:
+            description: Current state of SPI_X_SS[0]
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          TXUNDERRUN:
+            description: Transmit FIFO underflowed
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RXOVERFLOW:
+            description: Receive FIFO overflowed
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          TXFIFOFUL:
+            description: Transmit FIFO is full
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RXFIFOEMP:
+            description: Receive FIFO is empty
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          DONE:
+            description: The number of request frames have been transmitted and received.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          FRAMESTART:
+            description: Next frame in receive FIFO was received after SPI_X_SS[x] went active (command frame).
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CTRL0:
+        addressOffset: 0x40
+        size: 32
+        access: read-write
+        resetValue: 0x2
+        fields:
+          CTRL0:
+            description: Aliased CONTROL register bits 7:0. This register allows byte operations from an 8-bit processor in the fabric. It is not intended for access from internal MSS masters.
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      CTRL1:
+        addressOffset: 0x44
+        size: 32
+        access: read-write
+        resetValue: 0x1
+        fields:
+          CTRL1:
+            description: Aliased CONTROL register bits 15:8. This register allows byte operations from an 8-bit processor in the fabric. It is not intended for access from internal MSS masters.
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      CTRL2:
+        addressOffset: 0x48
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CTRL2:
+            description: Aliased CONTROL register bits 23:16. This register allows byte operations from an 8-bit processor in the fabric. It is not intended for access from internal MSS masters.
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      CTRL3:
+        addressOffset: 0x4C
+        size: 32
+        access: read-write
+        resetValue: 0x80
+        fields:
+          CTRL3:
+            description: Aliased CONTROL register bits 31:24. This register allows byte operations from an 8-bit processor in the fabric. It is not intended for access from internal MSS masters.
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      FRAMESUP:
+        addressOffset: 0x50
+        size: 32
+        access: read-write
+        resetValue: 0x1
+        fields:
+          BYTESUPPER:
+            description: 'W: Writes the upper 16 bits of the number of bytes to be transmitted. R: Returns the written value.'
+            bitOffset: 16
+            bitWidth: 16
+            access: read-write
+          BYTESLOWER:
+            description: 'W: No operation. R: Resturns the lower 16 bits of the byte count from the FRAMES register.'
+            bitOffset: 0
+            bitWidth: 16
+            access: read-write
+  SPI_B_LO:
+    derivedFrom: SPI_A_LO
+    description: SPI_B_LO Controller
+    baseAddress: 0x20109000
+  SPI_A_HI:
+    derivedFrom: SPI_A_LO
+    description: SPI_A_HI Controller
+    baseAddress: 0x28108000
+  SPI_B_HI:
+    derivedFrom: SPI_A_LO
+    description: SPI_B_HI Controller
+    baseAddress: 0x28109000

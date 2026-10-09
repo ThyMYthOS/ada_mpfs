@@ -1,0 +1,5823 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  SYSREG:
+    description: SYSREG Controller
+    baseAddress: 0x20002000
+    registers:
+      TEMP0:
+        description: Register for software use
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0xAC7E1
+        fields:
+          DATA:
+            description: Scratch register for CPUS
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      TEMP1:
+        description: Register for software use
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: Scratch register for CPUS
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      CLOCK_CONFIG_CR:
+        description: Master clock configuration
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x10
+        fields:
+          ENABLE_1MHZ:
+            description: When '1' requests pfsoc_control to enable the 1mHz (2MHz) on-chip oscillator
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          DIVIDER:
+            description: Sets the master synchronous clock divider bits [1:0] CPU clock divider (Reset=/1 =0) bits [3:2] AXI clock divider (Reset=/1 =0) bits [5:4] AHB/APB clock divider (Reset=/2 =1) 00=/1 01=/2 10=/4 11=/8 (AHB/APB divider may not be set to /1) Note at reset MSS corner clock is 80MHz, therefore divider is set to divide by 1
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      RTC_CLOCK_CR:
+        description: RTC clock divider
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x10064
+        fields:
+          ENABLE:
+            description: RTC Clock enable. When chaning the divider the enable should be trurned off first, the divider changed and the enable turned back on.
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          PERIOD:
+            description: Sets the division ratio to create the internal RTC clock from the reference clock. The defaults sets the reference clock to 1MHz assuming the reference clock is 100Mhz. If the reference clock is 125MHz then 125 will create a 1MHz clock Max divider value is 4095 and value must be an integer. RTC clock must be less 2X the AXI clock rate.
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      FABRIC_RESET_CR:
+        description: Fabric Reset mask
+        addressOffset: 0x10
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ENABLE:
+            description: This bitfield has no affect if changed
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      BOOT_FAIL_CR:
+        addressOffset: 0x14
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BOOT:
+            description: Written by firmware to indicate that the boot process failed, drives the fab_boot_fail signal to the fabric. Is cleared by the fabric asserting fab_boot_fail_clear
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSS_RESET_CR:
+        description: Allows the CPU to fully reset the MSS
+        addressOffset: 0x18
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RESET_VALUE:
+            description: When written to 16'hDEAD will cause a full MSS reset. The Reset wil clear this register. The register may be writtent to any value but only a value off 16'hDEAD will cause the reset to happen
+            bitOffset: 0
+            bitWidth: 16
+            access: read-write
+      CONFIG_LOCK_CR:
+        description: Configuration lock
+        addressOffset: 0x1C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LOCK:
+            description: When written to '1' will cause all RWC registers to lock until a master reset occurs.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RESET_SR:
+        description: Indicates which reset caused the last reset. After a reset occurs register should be read and then zero written to allow the next reset event to be correctly captured.
+        addressOffset: 0x20
+        size: 32
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          CPU_SOFT_RESET:
+            description: Indicates that the CPU reset ths MSS using the soft reset register
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          SCB_BUS_RESET:
+            description: Indicates that SCB bus reset occurred (which causes warm reset of MSS)
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          GPIO_RESET:
+            description: Indicates that fabric asserted the GPIO reset inputs
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          WDOG_RESET:
+            description: Reset was caused by the watchdog
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          FABRIC_RESET:
+            description: Reset was caused by the fabric
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          DEBUGER_RESET:
+            description: Reset was caused by the Risc-V Debugger
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          SCB_CPU_RESET:
+            description: Reset was caused by the SCB CPU reset register
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          SCB_MSS_RESET:
+            description: Reset was caused by the SCB MSS reset register
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          SCB_PERIPH_RESET:
+            description: Reset was caused by the SCB periphery reset signal
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DEVICE_STATUS:
+        description: Indicates the device status, in particular the state of the FPGA fabric and the MSS IO banks
+        addressOffset: 0x24
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          IO_EN:
+            description: Indicates the status of the io_en input from G5 Control.
+            bitOffset: 12
+            bitWidth: 1
+            access: read-only
+          IO_BANK_B6_STATUS:
+            description: Power status of IO bank 6
+            bitOffset: 11
+            bitWidth: 1
+            access: read-only
+          IO_BANK_B5_STATUS:
+            description: Power status of IO bank 5
+            bitOffset: 10
+            bitWidth: 1
+            access: read-only
+          IO_BANK_B4_STATUS:
+            description: Power status of IO bank 4
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          IO_BANK_B2_STATUS:
+            description: Power status of IO bank 2
+            bitOffset: 8
+            bitWidth: 1
+            access: read-only
+          FLASH_VALID:
+            description: Indicates the status of the flash_valid input from G5 Control.
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          FF_IN_PROGRESS:
+            description: Indicates the status of the ff_in_progress input from G5 Control.
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          LP_STATE:
+            description: Indicates the status of the lp_state input from G5 Control.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          CORE_UP:
+            description: Indicates the status of the core_up input from G5 Control.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      MSS_BUILD:
+        description: MSS Build Info
+        addressOffset: 0x28
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          REVISION:
+            description: Set to the SVN revision of the pfsoc_mss_main.sv file
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only
+      FAB_INTEN_U54_1:
+        description: U54-1 Fabric interrupt enable
+        addressOffset: 0x40
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ENABLE:
+            description: Enables the F2H_interrupts[31:0] to interrupt U54_1 directly
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      FAB_INTEN_U54_2:
+        description: U54-2 Fabric interrupt enable
+        addressOffset: 0x44
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ENABLE:
+            description: Enables the F2H_interrupts[31:0] to interrupt U54_1 directly
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      FAB_INTEN_U54_3:
+        description: U54-3 Fabric interrupt enable
+        addressOffset: 0x48
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ENABLE:
+            description: Enables the F2H_interrupts[31:0] to interrupt U54_1 directly
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      FAB_INTEN_U54_4:
+        description: U54-4 Fabric interrupt enable
+        addressOffset: 0x4C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ENABLE:
+            description: Enables the F2H_interrupts[31:0] to interrupt U54_1 directly
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      FAB_INTEN_MISC:
+        description: Allows the Ethernat interrupts to be directly routed to the U54 CPUS.
+        addressOffset: 0x50
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MAC1_U54_4:
+            description: Enables the Ethernet MAC1 to interrupt U54_1 directly
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          MAC1_U54_3:
+            description: Enables the Ethernet MAC1 to interrupt U54_1 directly
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          MAC0_U54_2:
+            description: Enables the Ethernet MAC0 to interrupt U54_1 directly
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          MAC0_U54_1:
+            description: Enables the Ethernet MAC0 to interrupt U54_1 directly
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      GPIO_INTERRUPT_FAB_CR:
+        description: Switches GPIO interrupt from PAD to Fabric GPIO
+        addressOffset: 0x54
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SELECT:
+            description: Setting these bits will disable the Pad interrupt, and enable the fabric GPIO interrupt for bits 31:0. When the bit is set the Pad interrupt will be ORED into the GPIO0 & GPIO1 non-direct interrupts. When the bit is not set the Fabric interrupt is ORED into the GPIO2 non-direct interrupt. To prevent ORING then the interrupt should not be enabled in the GPIO block
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      APBBUS_CR:
+        description: AMP Mode peripheral mapping register. When the register bit is '0' the peripheral is mapped into the 0x2000000 address range using AXI bus 5 from the Coreplex. When the register bit is '1' the peripheral is mapped into the 0x28000000 address range using AXI bus 6 from the Coreplex.
+        addressOffset: 0x80
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          H2FINT:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RTC:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          GPIO2:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          GPIO1:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          GPIO0:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          TIMER:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          GEM1:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          GEM0:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          CAN1:
+            description: ''
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          CAN0:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          I2C1:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          I2C0:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          SPI1:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          SPI0:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          WDOG4:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          WDOG3:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          WDOG2:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          WDOG1:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          WDOG0:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          MMUART4:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          MMUART3:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          MMUART2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          MMUART1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          MMUART0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SUBBLK_CLOCK_CR:
+        description: Enables the clock to the MSS peripheral. By turning clocks off dynamic power can be saved. When the clock is off the peripheral should not be accessed, the acess may be ignored, return unspecified data or result in bus response error.
+        addressOffset: 0x84
+        size: 32
+        access: read-write
+        resetValue: 0x1
+        fields:
+          CFM:
+            description: ''
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          ATHENA:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          FIC3:
+            description: ''
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          FIC2:
+            description: ''
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          FIC1:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-write
+          FIC0:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          DDRC:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          GPIO2:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          GPIO1:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          GPIO0:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          QSPI:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RTC:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          USB:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          CAN1:
+            description: ''
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          CAN0:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          I2C1:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          I2C0:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          SPI1:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          SPI0:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          MMUART4:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          MMUART3:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          MMUART2:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          MMUART1:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          MMUART0:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          TIMER:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          MMC:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          MAC1:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          MAC0:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          ENVM:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SOFT_RESET_CR:
+        description: Holds the MSS peripherals in reset. Whenin reset the peripheral should not be accessed, the acess may be ignored, return unspecified data or result in bus response error.
+        addressOffset: 0x88
+        size: 32
+        access: read-write
+        resetValue: 0x3FFFFFFE
+        fields:
+          CFM:
+            description: ''
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          ATHENA:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          FIC3:
+            description: ''
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          FIC2:
+            description: ''
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          FIC1:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-write
+          FIC0:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          DDRC:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          GPIO2:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          GPIO1:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          GPIO0:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          QSPI:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RTC:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          FPGA:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          USB:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          CAN1:
+            description: ''
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          CAN0:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          I2C1:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          I2C0:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          SPI1:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          SPI0:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          MMUART4:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          MMUART3:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          MMUART2:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          MMUART1:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          MMUART0:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          TIMER:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          MMC:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          MAC1:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          MAC0:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          ENVM:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      AHBAXI_CR:
+        description: Configures how many outstanding transfers the AXI-AHB bridges in front off the USB and Crypto blocks should allow. (See Synopsys AXI-AHB bridge documentation)
+        addressOffset: 0x8C
+        size: 32
+        access: read-write
+        resetValue: 0xFFFF
+        fields:
+          ATHENA_RBCNT:
+            description: Number of outstanding read transactions to Athena block
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          ATHENA_WBCNT:
+            description: Number of outstanding write transactions to Athena block
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          USB_RBCNT:
+            description: Number of outstanding read transactions to USB block
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          USB_WBCNT:
+            description: Number of outstanding write transactions to USB block
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      AHBAPB_CR:
+        description: Configures the two AHB-APB bridges on S5 and S6
+        addressOffset: 0x90
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          APB1_POSTED:
+            description: Enables posted mode on the AHB-APB bridge, when set the AHB write cycle will complete before the APB write cycle completes.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          APB0_POSTED:
+            description: Enables posted mode on the AHB-APB bridge, when set the AHB write cycle will complete before the APB write cycle completes.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DFIAPB_CR:
+        description: MSS Corner APB interface controls
+        addressOffset: 0x98
+        size: 32
+        access: read-write
+        resetValue: 0x2
+        fields:
+          RESET:
+            description: Asserts the APB reset to the MSS corner, is asserted at MSS reset.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          CLOCKON:
+            description: Turns on the APB clock to the MSS Corner, is off at reset. Once corner blocks is configured the firmware may turn off the clock, but periodically should turn back on to allow refresh of TMR registers inside the corner block.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      GPIO_CR:
+        description: GPIO Blocks reset control
+        addressOffset: 0x9C
+        size: 32
+        access: read-write
+        resetValue: 0xF0703
+        fields:
+          GPIO2_DEFAULT:
+            description: Sets the reset value off the GPIO0 per byte Bit 0 controls GPIO0 [7:0] ,bit 1 GPIO[15:8] and bit 1 GPIO[23:16], and bit 3 GPIO[31:24]
+            bitOffset: 20
+            bitWidth: 4
+            access: read-write
+          GPIO2_SOFT_RESET_SELECT:
+            description: 'This signal selects whether the associated byte is reset by soft reset or the the MSS_GPIO_RESET_N signal from the FPGA fabric. The allowed values are: • 0: Selects MSS_GPIO_RESET_N signal from the FPGA fabric. • 1: Selects the GPIO to be reset by the GPIO block soft reset signal . Bit 0 controls GPIO0 [7:0] ,bit 1 GPIO[15:8] and bit 1 GPIO[23:16], and bit 3 GPIO[31:24] The master MSS reset will also reset the GPIO register if not configured to use fabric reset.'
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          GPIO1_DEFAULT:
+            description: Sets the reset value off the GPIO0 per byte Bit 0 controls GPIO0 [7:0] ,bit 1 GPIO[15:8] and bit 2 GPIO[23:16]
+            bitOffset: 12
+            bitWidth: 3
+            access: read-write
+          GPIO1_SOFT_RESET_SELECT:
+            description: 'This signal selects whether the associated byte is reset by soft reset or the the MSS_GPIO_RESET_N signal from the FPGA fabric. The allowed values are: • 0: Selects MSS_GPIO_RESET_N signal from the FPGA fabric. • 1: Selects the GPIO to be reset by the GPIO block soft reset signal . Bit 0 controls GPIO0 [7:0] ,bit 1 GPIO[15:8] and bit 2 GPIO[23:16] The master MSS reset will also reset the GPIO register if not configured to use fabric reset.'
+            bitOffset: 8
+            bitWidth: 3
+            access: read-write
+          GPIO0_DEFAULT:
+            description: Sets the reset value off the GPIO0 per byte Bit 0 controls GPIO0 [7:0] , and bit 1 GPIO[15:8]
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          GPIO0_SOFT_RESET_SELECT:
+            description: 'This signal selects whether the associated byte is reset by soft reset or the the MSS_GPIO_RESET_N signal from the FPGA fabric. The allowed values are: • 0: Selects MSS_GPIO_RESET_N signal from the FPGA fabric. • 1: Selects the GPIO to be reset by the GPIO block soft reset signal . Bit 0 controls GPIO0 [7:0] , and bit 1 GPIO[15:8] The master MSS reset will also reset the GPIO register if not configured to use fabric reset.'
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      MAC0_CR:
+        description: MAC0 configuration register
+        addressOffset: 0xA4
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SPEED_MODE:
+            description: Current speed mode on the MAC
+            bitOffset: 0
+            bitWidth: 4
+            access: read-only
+      MAC1_CR:
+        description: MAC1 configuration register
+        addressOffset: 0xA8
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SPEED_MODE:
+            description: Current speed mode on the MAC
+            bitOffset: 0
+            bitWidth: 4
+            access: read-only
+      USB_CR:
+        description: USB Configuration register
+        addressOffset: 0xAC
+        size: 32
+        access: read-write
+        resetValue: 0x4
+        fields:
+          LPI_CARKIT_EN:
+            description: Set when entry is made into CarKit mode and cleared on exit from CarKit mode.
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          POWERDOWN:
+            description: Indicates that the USB CLK may be stopped to save power. Derived from combination of signals from CLK & XCLK flip-flops, AVALID, VBUSVALID and LINESTATE. When asserted the USB clock into the core is stopped.
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          POWERDOWN_ENABLE:
+            description: When '1' will stops the clock to the USB core when the core asserts its POWERDOWN output. For G4 compatability this bit defaults to 0.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          DDR_SELECT:
+            description: Configures USB for Single-Data Rate(SDR) mode or Double-Data Rate(DDR) mode. 0 - SDR Mode is selected 1 - DDR Mode is selected (Not supported in G5 or G5)
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      MESH_CR:
+        description: Crypto Mesh control and status register
+        addressOffset: 0xB0
+        size: 32
+        access: read-write
+        resetValue: 0x4E
+        fields:
+          OKAY:
+            description: Indicates that the Mesh is functioning correctly. Will be set approximately 520 clock cycles after mesh started and stay set as long as the mesh is not detecting any errors.
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          MESH_ERROR:
+            description: Indicates that Mesh detected an error. Cleared by writing a '1'
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          INJECT_ERROR:
+            description: When set will inject an error in the mesh
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          HOLD:
+            description: Sets the amount of time that the mesh is held active for, actual hold time includes up to 256 us of random variation. Minimum Time = 1 + 256 * value us Maximum Time = 1 + 256 * (1+value) us Value must be greater than 0
+            bitOffset: 1
+            bitWidth: 12
+            access: read-write
+          START:
+            description: Writing a 1 will start the Mesh System
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MESH_SEED_CR:
+        description: Crypto mesh seed and update rate
+        addressOffset: 0xB4
+        size: 32
+        access: read-write
+        resetValue: 0xC7005EED
+        fields:
+          CLKRATE:
+            description: Sets the rate that the mesh value is changed. Rate = AHBCLK/(clkrate+1). Rate must be less than 1MHz, setting slower will reduce power consumption.
+            bitOffset: 24
+            bitWidth: 8
+            access: read-write
+          SEED:
+            description: Sets the mesh seed value, any value may be used, zero should be avoided
+            bitOffset: 0
+            bitWidth: 23
+            access: read-write
+      ENVM_CR:
+        description: ENVM AHB Controller setup
+        addressOffset: 0xB8
+        size: 32
+        access: read-write
+        resetValue: 0x4005004F
+        fields:
+          TIMER:
+            description: 'Sets the duration of the timer used to detect a non response of slow response from the PNVM on C and R bus accesses. Timer Duration = Value * (1000/AHBFREQMHZ) 0x00: Timer dissabled. If the timer expires the AHB cycle is terminates using the HRESP protocol'
+            bitOffset: 24
+            bitWidth: 8
+            access: read-write
+          INTERRUPT_ENABLE:
+            description: Enable the ENVM interrupt
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          SLOWREAD:
+            description: When '1' the controller will initate separate ENVM reads for all reads. No buffering or speculative operations will be carried out. When performing word reads incrementing through PNVM each location will be read twice (intended for test use)
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          READAHEAD:
+            description: Enables "readahead" on the ENVM controller. The controller will automatically read the next PNVM location as soon as possible ahead of the AHB request. This will improve read performance when incrementing though memory as the NVM reads and AHB cycles are pipelined. When set non incrementing accesses will take longer as the controller may be in the process of reading the next address and the PNVM cycle needs to complete prior to starting the required read
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          CLOCK_SUPPRESS:
+            description: When set suppresses clock edge between C-Bus access cycles so that they appear as consecutive access cycles.
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          CLOCK_CONTINUOUS:
+            description: When '1' the PNVM clock will be always generated, and not stopped between access cycles. Setting this will increase access latency but mean that the PNVM clock operates at a stable rate.
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          CLOCK_OKAY:
+            description: Indicates the eNVM is running at the configured divider rate.
+            bitOffset: 6
+            bitWidth: 1
+            access: read-only
+          CLOCK_PERIOD:
+            description: Sets the number of AHB cycles used to generate the PNVM clock, Clock period = (Value+1) * (1000/AHBFREQMHZ) Value must be 1 to 63 (0 defaults to 15) e.g. 11 will generate a 40ns period 25MHz clock if the AHB clock is 250MHz 15 will generate a 40ns period 25MHz clock if the AHB clock is 400MHz
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      RESERVED_BC:
+        description: Reserved
+        addressOffset: 0xBC
+        size: 32
+        access: read-only
+        resetValue: 0x0
+      QOS_PERIPHERAL_CR:
+        description: QOS Athena, USB & MMC Configuration
+        addressOffset: 0xC0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TRACE_WRITE:
+            description: Sets the QOS value from the specified device into the switch
+            bitOffset: 28
+            bitWidth: 4
+            access: read-write
+          TRACE_READ:
+            description: Sets the QOS value from the specified device into the switch
+            bitOffset: 24
+            bitWidth: 4
+            access: read-write
+          MMC_WRITE:
+            description: Sets the QOS value from the specified device into the switch
+            bitOffset: 20
+            bitWidth: 4
+            access: read-write
+          MMC_READ:
+            description: Sets the QOS value from the specified device into the switch
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          USB_WRITE:
+            description: Sets the QOS value from the specified device into the switch
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          USB_READ:
+            description: Sets the QOS value from the specified device into the switch
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          ATHENA_WRITE:
+            description: Sets the QOS value from the specified device into the switch
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          ATHENA_READ:
+            description: Sets the QOS value from the specified device into the switch
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      QOS_CPLEXIO_CR:
+        description: QOS Configuration Coreplex
+        addressOffset: 0xC4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FABRIC1_WRITE:
+            description: Sets the QOS value from the specified device into the switch
+            bitOffset: 28
+            bitWidth: 4
+            access: read-write
+          FABRIC1_READ:
+            description: Sets the QOS value from the specified device into the switch
+            bitOffset: 24
+            bitWidth: 4
+            access: read-write
+          FABRIC0_WRITE:
+            description: Sets the QOS value from the specified device into the switch
+            bitOffset: 20
+            bitWidth: 4
+            access: read-write
+          FABRIC0_READ:
+            description: Sets the QOS value from the specified device into the switch
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          DEVICE1_WRITE:
+            description: Sets the QOS value from the specified device into the switch
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          DEVICE1_READ:
+            description: Sets the QOS value from the specified device into the switch
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          DEVICE0_WRITE:
+            description: Sets the QOS value from the specified device into the switch
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          DEVICE0_READ:
+            description: Sets the QOS value from the specified device into the switch
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      QOS_CPLEXDDR_CR:
+        description: QOS configuration DDRC
+        addressOffset: 0xC8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          NCACHE_WRITE:
+            description: Sets the QOS value from the specified device into the switch
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          NCACHE_READ:
+            description: Sets the QOS value from the specified device into the switch
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          CACHE_WRITE:
+            description: Sets the QOS value from the specified device into the switch
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          CACHE_READ:
+            description: Sets the QOS value from the specified device into the switch
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      MPU_VIOLATION_SR:
+        description: Indicates that a master caused a MPU violation. Interrupts via maintenance interrupt.
+        addressOffset: 0xF0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TRACE:
+            description: Bit is set on violation. Cleared by writing '1'
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          SCB:
+            description: Bit is set on violation. Cleared by writing '1'
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          MMC:
+            description: Bit is set on violation. Cleared by writing '1'
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          USB:
+            description: Bit is set on violation. Cleared by writing '1'
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          GEM1:
+            description: Bit is set on violation. Cleared by writing '1'
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          GEM0:
+            description: Bit is set on violation. Cleared by writing '1'
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          ATHENA:
+            description: Bit is set on violation. Cleared by writing '1'
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          FIC2:
+            description: Bit is set on violation. Cleared by writing '1'
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          FIC1:
+            description: Bit is set on violation. Cleared by writing '1'
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          FIC0:
+            description: Bit is set on violation. Cleared by writing '1'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MPU_VIOLATION_INTEN_CR:
+        description: Enables interrupts on MPU violations
+        addressOffset: 0xF4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TRACE:
+            description: Enables the interrupt
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          SCB:
+            description: Enables the interrupt
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          MMC:
+            description: Enables the interrupt
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          USB:
+            description: Enables the interrupt
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          GEM1:
+            description: Enables the interrupt
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          GEM0:
+            description: Enables the interrupt
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          ATHENA:
+            description: Enables the interrupt
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          FIC2:
+            description: Enables the interrupt
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          FIC1:
+            description: Enables the interrupt
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          FIC0:
+            description: Enables the interrupt
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SW_FAIL_ADDR0_CR:
+        description: AXI switch decode fail
+        addressOffset: 0xF8
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          ADDR:
+            description: The address (bits 31:0) that failed. Redaing this address as 64-bits will return the 38-bit address in assingle read combined with additional information in the next register
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only
+      SW_FAIL_ADDR1_CR:
+        description: AXI switch decode fail
+        addressOffset: 0xFC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FAILED:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          WRITE:
+            description: AXI write=1 or read=0
+            bitOffset: 16
+            bitWidth: 1
+            access: read-only
+          ID:
+            description: AXI ID off failure
+            bitOffset: 8
+            bitWidth: 8
+            access: read-only
+          ADDR:
+            description: Upper 6 bits off address [37:32]
+            bitOffset: 0
+            bitWidth: 6
+            access: read-only
+      EDAC_SR:
+        description: Set when an ECC event happens
+        addressOffset: 0x100
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CAN1_2E:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          CAN1_1E:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          CAN0_2E:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          CAN0_1E:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          USB_2E:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          USB_1E:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          MAC1_2E:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          MAC1_1E:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          MAC0_2E:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          MAC0_1E:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          DDRC_2E:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          DDRC_1E:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          MMC_2E:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          MMC_1E:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      EDAC_INTEN_CR:
+        description: Enables ECC interrupt on event
+        addressOffset: 0x104
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CAN1_2E:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          CAN1_1E:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          CAN0_2E:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          CAN0_1E:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          USB_2E:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          USB_1E:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          MAC1_2E:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          MAC1_1E:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          MAC0_2E:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          MAC0_1E:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          DDRC_2E:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          DDRC_1E:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          MMC_2E:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          MMC_1E:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      EDAC_CNT_MMC:
+        description: Count off single bit errors
+        addressOffset: 0x108
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          COUNT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 10
+            access: read-write
+      EDAC_CNT_DDRC:
+        description: Count off single bit errors
+        addressOffset: 0x10C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          COUNT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 10
+            access: read-write
+      EDAC_CNT_MAC0:
+        description: Count off single bit errors
+        addressOffset: 0x110
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          COUNT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 10
+            access: read-write
+      EDAC_CNT_MAC1:
+        description: Count off single bit errors
+        addressOffset: 0x114
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          COUNT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 10
+            access: read-write
+      EDAC_CNT_USB:
+        description: Count off single bit errors
+        addressOffset: 0x118
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          COUNT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 10
+            access: read-write
+      EDAC_CNT_CAN0:
+        description: Count off single bit errors
+        addressOffset: 0x11C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          COUNT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 10
+            access: read-write
+      EDAC_CNT_CAN1:
+        description: Count off single bit errors
+        addressOffset: 0x120
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          COUNT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 10
+            access: read-write
+      EDAC_INJECT_CR:
+        description: Will Corrupt write data to rams, 1E corrupts bit 0, 2E bits 1 and 2. Injects Errors into all RAMS in the block as long as the bits are set. Setting 1E and 2E will inject a 3-bit error
+        addressOffset: 0x124
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CAN1_2E:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          CAN1_1E:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          CAN0_2E:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          CAN0_1E:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          USB_2E:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          USB_1E:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          MAC1_2E:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          MAC1_1E:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          MAC0_2E:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          MAC0_1E:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          DDRC_2E:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          DDRC_1E:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          MMC_2E:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          MMC_1E:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MAINTENANCE_INTEN_CR:
+        description: Maintenance Interrupt Enable.
+        addressOffset: 0x140
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DLL:
+            description: Enables interrupt on a DLL event, DLL_STATUS_INTEN_CR should also be set
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          IO_BANK_B6_OFF:
+            description: Enables interrupt on bank6 powered off
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          IO_BANK_B5_OFF:
+            description: Enables interrupt on bank5 powered off
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          IO_BANK_B4_OFF:
+            description: Enables interrupt on bank4 powered off
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          IO_BANK_B2_OFF:
+            description: Enables interrupt on bank2 powered off
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          IO_BANK_B6_ON:
+            description: Enables interrupt on bank6 powered on
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          IO_BANK_B5_ON:
+            description: Enables interrupt on bank5 powered on
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          IO_BANK_B4_ON:
+            description: Enables interrupt on bank4 powered on
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          IO_BANK_B2_ON:
+            description: Enables interrupt on bank2 powered on
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          MESH_ERROR:
+            description: Enables interrupt on Mesh violation detection
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          SCB_FAULT:
+            description: Enables interrupt on SCB failure
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          SCB_ERROR:
+            description: Enables interrupt on SCB error
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          FPGA_OFF:
+            description: Enables interrupt when FPGA turned off
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          FPGA_ON:
+            description: Enables interrupt when FPGA turned on
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          FF_END:
+            description: Enables interrupt as flash_freeze goes low
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          FF_START:
+            description: Enables interrupt as flash_freeze goes high
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          LP_STATE_EXIT:
+            description: Enables interrupt as lp_state goes low
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          LP_STATE_ENTER:
+            description: Enables interrupt as lp_state goes high
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          DECODE:
+            description: Enables interrupt on a AXI switch decode error
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          MPU:
+            description: Enables interrupt on a MPU access violation
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          PLL:
+            description: Enables interrupt on a PLL event, PLL_STATUS_INTEN_CR should also be set
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PLL_STATUS_INTEN_CR:
+        description: PLL Status interrupt enables
+        addressOffset: 0x144
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SGMII_UNLOCK:
+            description: Enables interrupt on SGMII PLL unlocking
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          DFI_UNLOCK:
+            description: Enables interrupt on DFT PLL unlocking
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          CPU_UNLOCK:
+            description: Enables interrupt on CPU PLL unlocking
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          SGMII_LOCK:
+            description: Enables interrupt on SGMII PLL locking
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          DFI_LOCK:
+            description: Enables interrupt on DFT PLL locking
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          CPU_LOCK:
+            description: Enables interrupt on CPU PLL locking
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MAINTENANCE_INT_SR:
+        description: Maintenace interrupt, indicates fault and status events.
+        addressOffset: 0x148
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DLL:
+            description: Indicates that IO bank 6 has turned off, cleared by writing a '1'
+            bitOffset: 20
+            bitWidth: 1
+            access: read-only
+          IO_BANK_B6_OFF:
+            description: Indicates that one off the DLLs whent into the lock or unlock state. Cleared via DLL status register
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          IO_BANK_B5_OFF:
+            description: Indicates that IO bank 5 has turned off, cleared by writing a '1'
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          IO_BANK_B4_OFF:
+            description: Indicates that IO bank 4 has turned off, cleared by writing a '1'
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          IO_BANK_B2_OFF:
+            description: Indicates that IO bank 2 has turned off, cleared by writing a '1'
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          IO_BANK_B6_ON:
+            description: Indicates that IO bank 6 has turned on, cleared by writing a '1'
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          IO_BANK_B5_ON:
+            description: Indicates that IO bank 5 has turned on, cleared by writing a '1'
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          IO_BANK_B4_ON:
+            description: Indicates that IO bank 4 has turned on, cleared by writing a '1'
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          IO_BANK_B2_ON:
+            description: Indicates that IO bank 2 has turned on, cleared by writing a '1'
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          MESH_ERROR:
+            description: Indicates that the mesh over the Crypto triggered, cleared via Mesh system error
+            bitOffset: 11
+            bitWidth: 1
+            access: read-only
+          SCB_FAULT:
+            description: Indicates that the SCB bus fault occurred, cleared via SCB controller
+            bitOffset: 10
+            bitWidth: 1
+            access: read-only
+          SCB_ERROR:
+            description: Indicates that the SCB slave reported an error, cleared via SCB controller
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          FPGA_OFF:
+            description: Indicates that the FPGA array has been turned off, cleared by writing a '1'
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          FPGA_ON:
+            description: Indicates that the FPGA array has been turned on, cleared by writing a '1'
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          FF_END:
+            description: Indicates the device has exited the flash freezer state, cleared by writing '1'
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          FF_START:
+            description: Indicates the device has entered the flash freezer state, cleared by writing '1'
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          LP_STATE_EXIT:
+            description: Indicates the device has exited the lower power state, cleared by writing '1'
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          LP_STATE_ENTER:
+            description: Indicates the device has entered the lower power state, cleared by writing '1'
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          DECODE:
+            description: Indicates that the AXI switch detected an illegal address. Cleared when SREG.SW_FAIL.ADDR1_CR_FAILED is cleared.
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          MPU:
+            description: Indicates that one off the MPUS signaled a MPU violation. Cleared via MPU Violation Register
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          PLL:
+            description: Indicates that one off the PLLs whent into the lock or unlock state. Cleared via PLL status register
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      PLL_STATUS_SR:
+        description: PLL interrupt register
+        addressOffset: 0x14C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SGMII_LOCK_NOW:
+            description: Current state off SGMII PLL locked signal
+            bitOffset: 10
+            bitWidth: 1
+            access: read-only
+          DFI_LOCK_NOW:
+            description: Current state off DFI PLL locked signal
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          CPU_LOCK_NOW:
+            description: Current state off CPU PLL locked signal
+            bitOffset: 8
+            bitWidth: 1
+            access: read-only
+          SGMII_UNLOCK:
+            description: Indicates that the SGMII PLL has unlocked, cleared by writing a '1'
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          DFI_UNLOCK:
+            description: Indicates that the DFI PLL has unlocked, cleared by writing a '1'
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          CPU_UNLOCK:
+            description: Indicates that the CPU PLL has unlocked, cleared by writing a '1'
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          SGMII_LOCK:
+            description: Indicates that the SGMII PLL has locked, cleared by writing a '1'
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          DFI_LOCK:
+            description: Indicates that the DFI PLL has locked, cleared by writing a '1'
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          CPU_LOCK:
+            description: Indicates that the CPU PLL has locked, cleared by writing a '1'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CFM_TIMER_CR:
+        description: Enable to CFM Timer
+        addressOffset: 0x150
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ENABLE:
+            description: When set and the CFM channel is in timer mode and CFM channel is set to 2 (Group C) this register allows the timet to count. Allows software to start and stop the timers.
+            bitOffset: 0
+            bitWidth: 5
+            access: read-write
+      MISC_SR:
+        description: Miscellanous Register
+        addressOffset: 0x154
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          VOLT_TEMP_ALARM:
+            description: Indicates that the user voltage or temperature detectors are signalling an alarm condition.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          CONT_SPI_INTERRUPT:
+            description: Indicates that Interrupt from the PFC MSS SCB SPI controller is active
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      DLL_STATUS_CR:
+        description: DLL Interrupt enables
+        addressOffset: 0x158
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FIC4_UNLOCK:
+            description: Enables the DLL4 (crypto) unlock interrupt
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          FIC3_UNLOCK:
+            description: Enables the DLL3 unlock interrupt
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          FIC2_UNLOCK:
+            description: Enables the DLL2 unlock interrupt
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          FIC1_UNLOCK:
+            description: Enables the DLL1 unlock interrupt
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          FIC0_UNLOCK:
+            description: Enables the DLL0 unlock interrupt
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          FIC4_LOCK:
+            description: Enables the DLL4 (Crypto) lock interrupt
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          FIC3_LOCK:
+            description: Enables the DLL3 lock interrupt
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          FIC2_LOCK:
+            description: Enables the DLL2 lock interrupt
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          FIC1_LOCK:
+            description: Enables the DLL1 lock interrupt
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          FIC0_LOCK:
+            description: Enables the DLL0 lock interrupt
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DLL_STATUS_SR:
+        description: DLL interrupt register
+        addressOffset: 0x15C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FIC4_LOCK_NOW:
+            description: Current state off FIC4 DLL locked signal
+            bitOffset: 20
+            bitWidth: 1
+            access: read-only
+          FIC3_LOCK_NOW:
+            description: Current state off FIC3 DLL locked signal
+            bitOffset: 19
+            bitWidth: 1
+            access: read-only
+          FIC2_LOCK_NOW:
+            description: Current state off FIC2 DLL locked signal
+            bitOffset: 18
+            bitWidth: 1
+            access: read-only
+          FIC1_LOCK_NOW:
+            description: Current state off FIC1 DLL locked signal
+            bitOffset: 17
+            bitWidth: 1
+            access: read-only
+          FIC0_LOCK_NOW:
+            description: Current state off FIC0 DLL locked signal
+            bitOffset: 16
+            bitWidth: 1
+            access: read-only
+          FIC4_UNLOCK:
+            description: Indicates that the FIC4 (Crypto) DLL has unlocked, cleared by writing a '1'
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          FIC3_UNLOCK:
+            description: Indicates that the FIC3 DLL has unlocked, cleared by writing a '1'
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          FIC2_UNLOCK:
+            description: Indicates that the FIC2 DLL has unlocked, cleared by writing a '1'
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          FIC1_UNLOCK:
+            description: Indicates that the FIC1 DLL has unlocked, cleared by writing a '1'
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          FIC0_UNLOCK:
+            description: Indicates that the FIC0 DLL has unlocked, cleared by writing a '1'
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          FIC4_LOCK:
+            description: Indicates that the FIC4 (Crypto) DLL has locked, cleared by writing a '1'
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          FIC3_LOCK:
+            description: Indicates that the FIC3 DLL has locked, cleared by writing a '1'
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          FIC2_LOCK:
+            description: Indicates that the FIC2 DLL has locked, cleared by writing a '1'
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          FIC1_LOCK:
+            description: Indicates that the FIC1 DLL has locked, cleared by writing a '1'
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          FIC0_LOCK:
+            description: Indicates that the FIC0 DLL has locked, cleared by writing a '1'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RAM_LIGHTSLEEP_CR:
+        description: Puts all the RAMS in that block into low leakage mode. RAM contents and Q value preserved.
+        addressOffset: 0x168
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          L2:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          U54_4:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          U54_3:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          U54_2:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          U54_1:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          E51:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          DDRC:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          ATHENA:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          MMC:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          GEM1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          GEM0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          USB:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          CAN1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          CAN0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RAM_DEEPSLEEP_CR:
+        description: Puts all the RAMS in that block into deep sleep mode. RAM contents preserved. Powers down the periphery circuits.
+        addressOffset: 0x16C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          L2:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          U54_4:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          U54_3:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          U54_2:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          U54_1:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          E51:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          DDRC:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          ATHENA:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          MMC:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          GEM1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          GEM0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          USB:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          CAN1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          CAN0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RAM_SHUTDOWN_CR:
+        description: Puts all the RAMS in that block into shut down mode. RAM contents not preserved. Powers down the RAM and periphery circuits.
+        addressOffset: 0x170
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          L2:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          U54_4:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          U54_3:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          U54_2:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          U54_1:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          E51:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          DDRC:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          ATHENA:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          MMC:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          GEM1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          GEM0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          USB:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          CAN1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          CAN0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      L2_SHUTDOWN_CR:
+        description: Allows each bank of the L2 Cache to be powered down, orded with global shutdown
+        addressOffset: 0x174
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          L2_RAMS:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      IOMUX0_CR:
+        description: Selects whether the peripheral is connected to the Fabric or IOMUX structure.
+        addressOffset: 0x200
+        size: 32
+        access: read-write
+        resetValue: 0x3FFF
+        fields:
+          MDIO1_FABRIC:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          MDIO0_FABRIC:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          MMUART4_FABRIC:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          MMUART3_FABRIC:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          MMUART2_FABRIC:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          MMUART1_FABRIC:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          MMUART0_FABRIC:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          QSPI_FABRIC:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          CAN1_FABRIC:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          CAN0_FABRIC:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          I2C1_FABRIC:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          I2C0_FABRIC:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          SPI1_FABRIC:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          SPI0_FABRIC:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      IOMUX1_CR:
+        description: Configures the IO Mux structure for each IO pad. See the MSS MAS specification for for description.
+        addressOffset: 0x204
+        size: 32
+        access: read-write
+        resetValue: 0xFFFFFFFF
+        fields:
+          PAD7:
+            description: ''
+            bitOffset: 28
+            bitWidth: 4
+            access: read-write
+          PAD6:
+            description: ''
+            bitOffset: 24
+            bitWidth: 4
+            access: read-write
+          PAD5:
+            description: ''
+            bitOffset: 20
+            bitWidth: 4
+            access: read-write
+          PAD4:
+            description: ''
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          PAD3:
+            description: ''
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          PAD2:
+            description: ''
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          PAD1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          PAD0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      IOMUX2_CR:
+        description: Configures the IO Mux structure for each IO pad. See the MSS MAS specification for for description.
+        addressOffset: 0x208
+        size: 32
+        access: read-write
+        resetValue: 0xFFFFFF
+        fields:
+          PAD13:
+            description: ''
+            bitOffset: 20
+            bitWidth: 4
+            access: read-write
+          PAD12:
+            description: ''
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          PAD11:
+            description: ''
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          PAD10:
+            description: ''
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          PAD9:
+            description: ''
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          PAD8:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      IOMUX3_CR:
+        description: Configures the IO Mux structure for each IO pad. See the MSS MAS specification for for description.
+        addressOffset: 0x20C
+        size: 32
+        access: read-write
+        resetValue: 0xFFFFFFFF
+        fields:
+          PAD21:
+            description: ''
+            bitOffset: 28
+            bitWidth: 4
+            access: read-write
+          PAD20:
+            description: ''
+            bitOffset: 24
+            bitWidth: 4
+            access: read-write
+          PAD19:
+            description: ''
+            bitOffset: 20
+            bitWidth: 4
+            access: read-write
+          PAD18:
+            description: ''
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          PAD17:
+            description: ''
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          PAD16:
+            description: ''
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          PAD15:
+            description: ''
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          PAD14:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      IOMUX4_CR:
+        description: Configures the IO Mux structure for each IO pad. See the MSS MAS specification for for description.
+        addressOffset: 0x210
+        size: 32
+        access: read-write
+        resetValue: 0xFFFFFFFF
+        fields:
+          PAD29:
+            description: ''
+            bitOffset: 28
+            bitWidth: 4
+            access: read-write
+          PAD28:
+            description: ''
+            bitOffset: 24
+            bitWidth: 4
+            access: read-write
+          PAD27:
+            description: ''
+            bitOffset: 20
+            bitWidth: 4
+            access: read-write
+          PAD26:
+            description: ''
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          PAD25:
+            description: ''
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          PAD24:
+            description: ''
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          PAD23:
+            description: ''
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          PAD22:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      IOMUX5_CR:
+        description: Configures the IO Mux structure for each IO pad. See the MSS MAS specification for for description.
+        addressOffset: 0x214
+        size: 32
+        access: read-write
+        resetValue: 0xFFFFFFFF
+        fields:
+          PAD37:
+            description: ''
+            bitOffset: 28
+            bitWidth: 4
+            access: read-write
+          PAD36:
+            description: ''
+            bitOffset: 24
+            bitWidth: 4
+            access: read-write
+          PAD35:
+            description: ''
+            bitOffset: 20
+            bitWidth: 4
+            access: read-write
+          PAD34:
+            description: ''
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          PAD33:
+            description: ''
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          PAD32:
+            description: ''
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          PAD31:
+            description: ''
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          PAD30:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      IOMUX6_CR:
+        description: Sets whether the MMC/SD Voltage select lines are inverted on entry to the IOMUX structure
+        addressOffset: 0x218
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SD_VOLT_2:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          SD_VOLT_1:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          SD_VOLT_0:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          SD_LED:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          VLT_DIR_1_3:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          VLT_DIR_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          VLT_CMD_DIR:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          VLT_EN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          VLT_SEL:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_BANK4_IO_CFG_0_1_CR:
+        description: IO electrical configuration for MSSIO pad
+        addressOffset: 0x234
+        size: 32
+        access: read-write
+        resetValue: 0x8280828
+        fields:
+          RPC_IO_CFG_1_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_ATP_EN:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_WPU:
+            description: ''
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_WPD:
+            description: ''
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_LOCKDN_EN:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_1_ENHYST:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_CLAMP:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_DRV_3:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_DRV_2:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_DRV_1:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_DRV_0:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_IBUFMD_2:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_IBUFMD_1:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_IBUFMD_0:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_ATP_EN:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_WPU:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_WPD:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_LOCKDN_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_0_ENHYST:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_CLAMP:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_DRV_3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_DRV_2:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_DRV_1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_DRV_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_IBUFMD_2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_IBUFMD_1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_IBUFMD_0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_BANK4_IO_CFG_2_3_CR:
+        description: IO electrical configuration for MSSIO pad
+        addressOffset: 0x238
+        size: 32
+        access: read-write
+        resetValue: 0x8280828
+        fields:
+          RPC_IO_CFG_3_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_ATP_EN:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_WPU:
+            description: ''
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_WPD:
+            description: ''
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_LOCKDN_EN:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_3_ENHYST:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_CLAMP:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_DRV_3:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_DRV_2:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_DRV_1:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_DRV_0:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_IBUFMD_2:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_IBUFMD_1:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_IBUFMD_0:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_ATP_EN:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_WPU:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_WPD:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_LOCKDN_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_2_ENHYST:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_CLAMP:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_DRV_3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_DRV_2:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_DRV_1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_DRV_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_IBUFMD_2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_IBUFMD_1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_IBUFMD_0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_BANK4_IO_CFG_4_5_CR:
+        description: IO electrical configuration for MSSIO pad
+        addressOffset: 0x23C
+        size: 32
+        access: read-write
+        resetValue: 0x8280828
+        fields:
+          RPC_IO_CFG_5_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_ATP_EN:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_WPU:
+            description: ''
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_WPD:
+            description: ''
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_LOCKDN_EN:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_5_ENHYST:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_CLAMP:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_DRV_3:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_DRV_2:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_DRV_1:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_DRV_0:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_IBUFMD_2:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_IBUFMD_1:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_IBUFMD_0:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_ATP_EN:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_WPU:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_WPD:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_LOCKDN_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_4_ENHYST:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_CLAMP:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_DRV_3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_DRV_2:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_DRV_1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_DRV_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_IBUFMD_2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_IBUFMD_1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_IBUFMD_0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_BANK4_IO_CFG_6_7_CR:
+        description: IO electrical configuration for MSSIO pad
+        addressOffset: 0x240
+        size: 32
+        access: read-write
+        resetValue: 0x8280828
+        fields:
+          RPC_IO_CFG_7_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_ATP_EN:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_WPU:
+            description: ''
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_WPD:
+            description: ''
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_LOCKDN_EN:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_7_ENHYST:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_CLAMP:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_DRV_3:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_DRV_2:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_DRV_1:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_DRV_0:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_IBUFMD_2:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_IBUFMD_1:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_IBUFMD_0:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_ATP_EN:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_WPU:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_WPD:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_LOCKDN_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_6_ENHYST:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_CLAMP:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_DRV_3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_DRV_2:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_DRV_1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_DRV_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_IBUFMD_2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_IBUFMD_1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_IBUFMD_0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_BANK4_IO_CFG_8_9_CR:
+        description: IO electrical configuration for MSSIO pad
+        addressOffset: 0x244
+        size: 32
+        access: read-write
+        resetValue: 0x8280828
+        fields:
+          RPC_IO_CFG_9_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_ATP_EN:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_WPU:
+            description: ''
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_WPD:
+            description: ''
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_LOCKDN_EN:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_9_ENHYST:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_CLAMP:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_DRV_3:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_DRV_2:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_DRV_1:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_DRV_0:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_IBUFMD_2:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_IBUFMD_1:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_IBUFMD_0:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_ATP_EN:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_WPU:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_WPD:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_LOCKDN_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_8_ENHYST:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_CLAMP:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_DRV_3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_DRV_2:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_DRV_1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_DRV_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_IBUFMD_2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_IBUFMD_1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_IBUFMD_0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_BANK4_IO_CFG_10_11_CR:
+        description: IO electrical configuration for MSSIO pad
+        addressOffset: 0x248
+        size: 32
+        access: read-write
+        resetValue: 0x8280828
+        fields:
+          RPC_IO_CFG_11_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_ATP_EN:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_WPU:
+            description: ''
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_WPD:
+            description: ''
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_LOCKDN_EN:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_11_ENHYST:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_CLAMP:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_DRV_3:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_DRV_2:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_DRV_1:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_DRV_0:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_IBUFMD_2:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_IBUFMD_1:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_IBUFMD_0:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_ATP_EN:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_WPU:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_WPD:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_LOCKDN_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_10_ENHYST:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_CLAMP:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_DRV_3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_DRV_2:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_DRV_1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_DRV_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_IBUFMD_2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_IBUFMD_1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_IBUFMD_0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_BANK4_IO_CFG_12_13_CR:
+        description: IO electrical configuration for MSSIO pad
+        addressOffset: 0x24C
+        size: 32
+        access: read-write
+        resetValue: 0x8280828
+        fields:
+          RPC_IO_CFG_13_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_ATP_EN:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_WPU:
+            description: ''
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_WPD:
+            description: ''
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_LOCKDN_EN:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_13_ENHYST:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_CLAMP:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_DRV_3:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_DRV_2:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_DRV_1:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_DRV_0:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_IBUFMD_2:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_IBUFMD_1:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_IBUFMD_0:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_ATP_EN:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_WPU:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_WPD:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_LOCKDN_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_12_ENHYST:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_CLAMP:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_DRV_3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_DRV_2:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_DRV_1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_DRV_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_IBUFMD_2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_IBUFMD_1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_IBUFMD_0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_BANK2_IO_CFG_0_1_CR:
+        description: IO electrical configuration for MSSIO pad
+        addressOffset: 0x254
+        size: 32
+        access: read-write
+        resetValue: 0x8280828
+        fields:
+          RPC_IO_CFG_1_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_ATP_EN:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_WPU:
+            description: ''
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_WPD:
+            description: ''
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_LOCKDN_EN:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_1_ENHYST:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_CLAMP:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_DRV_3:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_DRV_2:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_DRV_1:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_DRV_0:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_IBUFMD_2:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_IBUFMD_1:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_1_IBUFMD_0:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_ATP_EN:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_WPU:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_WPD:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_LOCKDN_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_0_ENHYST:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_CLAMP:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_DRV_3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_DRV_2:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_DRV_1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_DRV_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_IBUFMD_2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_IBUFMD_1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_0_IBUFMD_0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_BANK2_IO_CFG_2_3_CR:
+        description: IO electrical configuration for MSSIO pad
+        addressOffset: 0x258
+        size: 32
+        access: read-write
+        resetValue: 0x8280828
+        fields:
+          RPC_IO_CFG_3_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_ATP_EN:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_WPU:
+            description: ''
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_WPD:
+            description: ''
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_LOCKDN_EN:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_3_ENHYST:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_CLAMP:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_DRV_3:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_DRV_2:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_DRV_1:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_DRV_0:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_IBUFMD_2:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_IBUFMD_1:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_3_IBUFMD_0:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_ATP_EN:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_WPU:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_WPD:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_LOCKDN_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_2_ENHYST:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_CLAMP:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_DRV_3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_DRV_2:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_DRV_1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_DRV_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_IBUFMD_2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_IBUFMD_1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_2_IBUFMD_0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_BANK2_IO_CFG_4_5_CR:
+        description: IO electrical configuration for MSSIO pad
+        addressOffset: 0x25C
+        size: 32
+        access: read-write
+        resetValue: 0x8280828
+        fields:
+          RPC_IO_CFG_5_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_ATP_EN:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_WPU:
+            description: ''
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_WPD:
+            description: ''
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_LOCKDN_EN:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_5_ENHYST:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_CLAMP:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_DRV_3:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_DRV_2:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_DRV_1:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_DRV_0:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_IBUFMD_2:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_IBUFMD_1:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_5_IBUFMD_0:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_ATP_EN:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_WPU:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_WPD:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_LOCKDN_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_4_ENHYST:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_CLAMP:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_DRV_3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_DRV_2:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_DRV_1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_DRV_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_IBUFMD_2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_IBUFMD_1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_4_IBUFMD_0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_BANK2_IO_CFG_6_7_CR:
+        description: IO electrical configuration for MSSIO pad
+        addressOffset: 0x260
+        size: 32
+        access: read-write
+        resetValue: 0x8280828
+        fields:
+          RPC_IO_CFG_7_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_ATP_EN:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_WPU:
+            description: ''
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_WPD:
+            description: ''
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_LOCKDN_EN:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_7_ENHYST:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_CLAMP:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_DRV_3:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_DRV_2:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_DRV_1:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_DRV_0:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_IBUFMD_2:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_IBUFMD_1:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_7_IBUFMD_0:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_ATP_EN:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_WPU:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_WPD:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_LOCKDN_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_6_ENHYST:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_CLAMP:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_DRV_3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_DRV_2:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_DRV_1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_DRV_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_IBUFMD_2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_IBUFMD_1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_6_IBUFMD_0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_BANK2_IO_CFG_8_9_CR:
+        description: IO electrical configuration for MSSIO pad
+        addressOffset: 0x264
+        size: 32
+        access: read-write
+        resetValue: 0x8280828
+        fields:
+          RPC_IO_CFG_9_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_ATP_EN:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_WPU:
+            description: ''
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_WPD:
+            description: ''
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_LOCKDN_EN:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_9_ENHYST:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_CLAMP:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_DRV_3:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_DRV_2:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_DRV_1:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_DRV_0:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_IBUFMD_2:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_IBUFMD_1:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_9_IBUFMD_0:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_ATP_EN:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_WPU:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_WPD:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_LOCKDN_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_8_ENHYST:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_CLAMP:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_DRV_3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_DRV_2:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_DRV_1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_DRV_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_IBUFMD_2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_IBUFMD_1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_8_IBUFMD_0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_BANK2_IO_CFG_10_11_CR:
+        description: IO electrical configuration for MSSIO pad
+        addressOffset: 0x268
+        size: 32
+        access: read-write
+        resetValue: 0x8280828
+        fields:
+          RPC_IO_CFG_11_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_ATP_EN:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_WPU:
+            description: ''
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_WPD:
+            description: ''
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_LOCKDN_EN:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_11_ENHYST:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_CLAMP:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_DRV_3:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_DRV_2:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_DRV_1:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_DRV_0:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_IBUFMD_2:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_IBUFMD_1:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_11_IBUFMD_0:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_ATP_EN:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_WPU:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_WPD:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_LOCKDN_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_10_ENHYST:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_CLAMP:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_DRV_3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_DRV_2:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_DRV_1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_DRV_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_IBUFMD_2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_IBUFMD_1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_10_IBUFMD_0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_BANK2_IO_CFG_12_13_CR:
+        description: IO electrical configuration for MSSIO pad
+        addressOffset: 0x26C
+        size: 32
+        access: read-write
+        resetValue: 0x8280828
+        fields:
+          RPC_IO_CFG_13_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_ATP_EN:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_WPU:
+            description: ''
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_WPD:
+            description: ''
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_LOCKDN_EN:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_13_ENHYST:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_CLAMP:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_DRV_3:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_DRV_2:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_DRV_1:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_DRV_0:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_IBUFMD_2:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_IBUFMD_1:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_13_IBUFMD_0:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_ATP_EN:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_WPU:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_WPD:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_LOCKDN_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_12_ENHYST:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_CLAMP:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_DRV_3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_DRV_2:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_DRV_1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_DRV_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_IBUFMD_2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_IBUFMD_1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_12_IBUFMD_0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_BANK2_IO_CFG_14_15_CR:
+        description: IO electrical configuration for MSSIO pad
+        addressOffset: 0x270
+        size: 32
+        access: read-write
+        resetValue: 0x8280828
+        fields:
+          RPC_IO_CFG_15_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_15_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_15_ATP_EN:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_15_WPU:
+            description: ''
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_15_WPD:
+            description: ''
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_15_LOCKDN_EN:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_15_ENHYST:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_15_CLAMP:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_15_DRV_3:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_15_DRV_2:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_15_DRV_1:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_15_DRV_0:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_15_IBUFMD_2:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_15_IBUFMD_1:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_15_IBUFMD_0:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_14_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_14_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_14_ATP_EN:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_14_WPU:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_14_WPD:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_14_LOCKDN_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_14_ENHYST:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_14_CLAMP:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_14_DRV_3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_14_DRV_2:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_14_DRV_1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_14_DRV_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_14_IBUFMD_2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_14_IBUFMD_1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_14_IBUFMD_0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_BANK2_IO_CFG_16_17_CR:
+        description: IO electrical configuration for MSSIO pad
+        addressOffset: 0x274
+        size: 32
+        access: read-write
+        resetValue: 0x8280828
+        fields:
+          RPC_IO_CFG_17_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_17_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_17_ATP_EN:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_17_WPU:
+            description: ''
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_17_WPD:
+            description: ''
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_17_LOCKDN_EN:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_17_ENHYST:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_17_CLAMP:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_17_DRV_3:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_17_DRV_2:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_17_DRV_1:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_17_DRV_0:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_17_IBUFMD_2:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_17_IBUFMD_1:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_17_IBUFMD_0:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_16_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_16_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_16_ATP_EN:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_16_WPU:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_16_WPD:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_16_LOCKDN_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_16_ENHYST:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_16_CLAMP:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_16_DRV_3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_16_DRV_2:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_16_DRV_1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_16_DRV_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_16_IBUFMD_2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_16_IBUFMD_1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_16_IBUFMD_0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_BANK2_IO_CFG_18_19_CR:
+        description: IO electrical configuration for MSSIO pad
+        addressOffset: 0x278
+        size: 32
+        access: read-write
+        resetValue: 0x8280828
+        fields:
+          RPC_IO_CFG_19_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_19_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_19_ATP_EN:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_19_WPU:
+            description: ''
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_19_WPD:
+            description: ''
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_19_LOCKDN_EN:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_19_ENHYST:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_19_CLAMP:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_19_DRV_3:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_19_DRV_2:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_19_DRV_1:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_19_DRV_0:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_19_IBUFMD_2:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_19_IBUFMD_1:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_19_IBUFMD_0:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_18_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_18_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_18_ATP_EN:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_18_WPU:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_18_WPD:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_18_LOCKDN_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_18_ENHYST:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_18_CLAMP:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_18_DRV_3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_18_DRV_2:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_18_DRV_1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_18_DRV_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_18_IBUFMD_2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_18_IBUFMD_1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_18_IBUFMD_0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_BANK2_IO_CFG_20_21_CR:
+        description: IO electrical configuration for MSSIO pad
+        addressOffset: 0x27C
+        size: 32
+        access: read-write
+        resetValue: 0x8280828
+        fields:
+          RPC_IO_CFG_21_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_21_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_21_ATP_EN:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_21_WPU:
+            description: ''
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_21_WPD:
+            description: ''
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_21_LOCKDN_EN:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_21_ENHYST:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_21_CLAMP:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_21_DRV_3:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_21_DRV_2:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_21_DRV_1:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_21_DRV_0:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_21_IBUFMD_2:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_21_IBUFMD_1:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_21_IBUFMD_0:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_20_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_20_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_20_ATP_EN:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_20_WPU:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_20_WPD:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_20_LOCKDN_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_20_ENHYST:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_20_CLAMP:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_20_DRV_3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_20_DRV_2:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_20_DRV_1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_20_DRV_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_20_IBUFMD_2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_20_IBUFMD_1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_20_IBUFMD_0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_BANK2_IO_CFG_22_23_CR:
+        description: IO electrical configuration for MSSIO pad
+        addressOffset: 0x280
+        size: 32
+        access: read-write
+        resetValue: 0x8280828
+        fields:
+          RPC_IO_CFG_23_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_23_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_23_ATP_EN:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_23_WPU:
+            description: ''
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_23_WPD:
+            description: ''
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_23_LOCKDN_EN:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_23_ENHYST:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_23_CLAMP:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_23_DRV_3:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_23_DRV_2:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_23_DRV_1:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_23_DRV_0:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_23_IBUFMD_2:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_23_IBUFMD_1:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_23_IBUFMD_0:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_22_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_22_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_22_ATP_EN:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_22_WPU:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_22_WPD:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_22_LOCKDN_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          RPC_IO_CFG_22_ENHYST:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_22_CLAMP:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_22_DRV_3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_22_DRV_2:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_22_DRV_1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_22_DRV_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_22_IBUFMD_2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_22_IBUFMD_1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RPC_IO_CFG_22_IBUFMD_0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSS_SPARE0_CR:
+        description: Sets H2F [31:0] Spares out signals
+        addressOffset: 0x2A8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: See MSS MAS specification for full description
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      MSS_SPARE1_CR:
+        description: Sets H2F [37:32] Spares out signals
+        addressOffset: 0x2AC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: See MSS MAS specification for full description
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      MSS_SPARE0_SR:
+        description: Read H2F [31:0] Spares out signals
+        addressOffset: 0x2B0
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: See MSS MAS specification for full description
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only
+      MSS_SPARE1_SR:
+        description: Read H2F [37:32] Spares out signals
+        addressOffset: 0x2B4
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: See MSS MAS specification for full description
+            bitOffset: 0
+            bitWidth: 6
+            access: read-only
+      MSS_SPARE2_SR:
+        description: Read F2H [31:0] Spares in1 signals
+        addressOffset: 0x2B8
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: See MSS MAS specification for full description
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only
+      MSS_SPARE3_SR:
+        description: Read F2H [37:32] Spares in1 signals
+        addressOffset: 0x2BC
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: See MSS MAS specification for full description
+            bitOffset: 0
+            bitWidth: 6
+            access: read-only
+      MSS_SPARE4_SR:
+        description: Read F2H [31:0] Spares in2 signals
+        addressOffset: 0x2C0
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: See MSS MAS specification for full description
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only
+      MSS_SPARE5_SR:
+        description: Read F2H [37:32] Spares in2 signals
+        addressOffset: 0x2C4
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: See MSS MAS specification for full description
+            bitOffset: 0
+            bitWidth: 6
+            access: read-only
+      SPARE_REGISTER_RW:
+        description: Register for ECO usage
+        addressOffset: 0x2D0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: No function, provided for future ECO use
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      SPARE_REGISTER_W1P:
+        description: Register for ECO usage
+        addressOffset: 0x2D4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: No function, provided for future ECO use
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      SPARE_REGISTER_RO:
+        description: Register for ECO usage
+        addressOffset: 0x2D8
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: Provides readback of { W1P, RW } registers. No function, provided for future ECO use.
+            bitOffset: 0
+            bitWidth: 16
+            access: read-only
+      SPARE_PERIM_RW:
+        description: Spare signal back to PFC
+        addressOffset: 0x2DC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MMUART0_RXD:
+            description: When set MMUART0 RXD is received on perimeter 5 from PFC. When enabled in PFC it the SPI SDI input is drives this connection. When enabled the PFC QSPI interrupt is disabled. (This function intended for manufacturing use only)
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          MMUART0_TXD:
+            description: When set MMUART0 TXD is sent on Perimeter 2 to PFC, when enabled in PFC it will be output on the SPI SDO pin. (This function intended for manufacturing use only)
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          DATA:
+            description: Controls perim_spare_out bits 5 7 & 9 when the ENABLE bits set
+            bitOffset: 4
+            bitWidth: 3
+            access: read-write
+          ENABLE:
+            description: Allows the MSS to control the perim_spare_out bits 5 7 & 9. No function, provided for future ECO use.
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      SPARE_FIC:
+        description: Unused FIC resets
+        addressOffset: 0x2E0
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          RESET:
+            description: Connected to spare FIC 0-3 Reset inputs to provide simple RO bits. No defined use
+            bitOffset: 0
+            bitWidth: 4
+            access: read-only

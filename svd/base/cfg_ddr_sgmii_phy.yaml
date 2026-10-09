@@ -1,0 +1,6531 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  CFG_DDR_SGMII_PHY:
+    description: CFG_DDR_SGMII_PHY Controller
+    baseAddress: 0x20007000
+    registers:
+      SOFT_RESET_DDR_PHY:
+        description: Compulsory register for all SCB slaves, facilitating global soft reset.
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID_DDR_PHY:
+            description: This returns the block type and chip location. The form of BLOCKID = {4'h0, SLVTYPE, CHIPID, SUBID}. SLVTYPE=4'h2 for PCIESS MAIN. CHIPID=4'h0 for PCIESS. SUBID=4'h4 for the MAIN page.
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH_DDR_PHY:
+            description: This asserts functional reset of the peripheral block. It is asserted and left asserted at power-up. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP_DDR_PHY:
+            description: Resets all the volatile register bits. Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP_DDR_PHY:
+            description: Resets all the non-volatile register bits (e.g. RW-P bits). Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DDRPHY_MODE:
+        description: DDRPHY MODE Register
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x2
+        fields:
+          COMMAND_ADDRESS_PIPE:
+            description: Added Command/Address pipelining
+            bitOffset: 27
+            bitWidth: 2
+            access: read-write
+          RANK:
+            description: select rank
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          POWER_DOWN:
+            description: Power down DDR PHY
+            bitOffset: 25
+            bitWidth: 1
+            access: read-write
+          PRESET_ODT_CLK:
+            description: Default, +1,+2, -1 increment settings
+            bitOffset: 23
+            bitWidth: 2
+            access: read-write
+          ADD_CMD_INPUT_PIN_TERMINATION:
+            description: Default, +1,+2, -1 increment settings
+            bitOffset: 21
+            bitWidth: 2
+            access: read-write
+          DQS_TERMINATION:
+            description: Default, +1,+2, -1 increment settings
+            bitOffset: 19
+            bitWidth: 2
+            access: read-write
+          DQ_TERMINATION:
+            description: Default, +1,+2, -1 increment settings
+            bitOffset: 17
+            bitWidth: 2
+            access: read-write
+          CLOCK_OUT_DRIVE:
+            description: Default, +1,+2, -1 increment settings
+            bitOffset: 15
+            bitWidth: 2
+            access: read-write
+          ADD_CMD_DRIVE:
+            description: Default, +1,+2, -1 increment settings
+            bitOffset: 13
+            bitWidth: 2
+            access: read-write
+          DQS_DRIVE:
+            description: Default, +1,+2, -1 increment settings
+            bitOffset: 11
+            bitWidth: 2
+            access: read-write
+          DQ_DRIVE:
+            description: Default, +1,+2, -1 increment settings
+            bitOffset: 9
+            bitWidth: 2
+            access: read-write
+          DMI_DBI:
+            description: Data mask or Data bus inversion on/off
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          BUS_WIDTH:
+            description: DDR bus width (16 or 32)
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          CRC:
+            description: CRC on/off
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          ECC:
+            description: ECC on/off
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          DDRMODE:
+            description: DDR3, DDR3L, DDR4, LPDDR3, LPDDR4 decode. "000 ddr3 001 ddr33L 010 ddr4 011 LPDDR3 100 LPDDR4"
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      DDRPHY_STARTUP:
+        description: DDRPHY STARTUP register
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x200000
+        fields:
+          RESERVED3:
+            description: Reserved
+            bitOffset: 22
+            bitWidth: 10
+            access: read-write
+          DYNEN_APB_DECODER_PRESETS:
+            description: Enable APB DECODER PRESET bit over rides
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          DYNEN_APB_BANKCNTL:
+            description: Enable APB BANKCNTL bit over rides
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          DYNEN_APB_IO_CALIB:
+            description: Enable APB IO CALIB bit over rides
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          DYNEN_APB_CFM:
+            description: Enable APB CFM bit over rides
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          DYNEN_APB_PLL1:
+            description: Enable APB PLL1 bit over rides
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          DYNEN_APB_PLL0:
+            description: Enable APB PLL0 bit over rides
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          DYNEN_SCB_BANKCNTL:
+            description: Enable SCB BANKCNTL bit over rides
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          DYNEN_SCB_IO_CALIB:
+            description: Enable SCB IO CALIB bit over rides
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          DYNEN_SCB_CFM:
+            description: Enable SCB CFM bit over rides
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          DYNEN_SCB_PLL1:
+            description: Enable SCB PLL1 bit over rides
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          DYNEN_SCB_PLL0:
+            description: Enable SCB PLL0 bit over rides
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          PERSIST_DATA:
+            description: 'Persist all DATA Dqa dn DQS bits. When 1: write RPC_lp_persist_dqs to 1 write RPC_lp_persist_dqsp to 1 write RPC_lp_persist_dqsn to 1 else 0'
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          PERSIST_CLKOUT:
+            description: 'Persist all clkout bits. When 1: write RPC_lp_persist_clkp to 1 write RPC_lp_persist_clkn to 1 else 0'
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          PERSIST_ADD_CMD:
+            description: 'Persit all Addcmd bits . When 1: write RPC_lp_persist_addcmd to 1 else 0'
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          DATA_LOCKDN:
+            description: Data bits honor Lockdn clobal signal
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          ADD_CMD_LOCKDN:
+            description: Addcmd bits honor Lockdn global signal
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SPARE_0:
+        description: spare logic
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SPARE_0:
+            description: Spare register bits
+            bitOffset: 0
+            bitWidth: 16
+            access: read-write
+      SOFT_RESET_MAIN_PLL:
+        description: This is a compulsory register for all SCB slaves and must be at the same offset in all slaves to facilitate global soft reset of all SCB registers with a single broadcast write from the SCB master.
+        addressOffset: 0x80
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID_MAIN_PLL:
+            description: This returns the block type and chip location. (IO SCB bus only) Read 0x0000
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH_MAIN_PLL:
+            description: This asserts the functional reset of the block. It is asserted at power up. When written is stays asserted until written to 0. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP_MAIN_PLL:
+            description: This when asserted resets all the register bits apart from the non-volatile registers@ the bit self clears. i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP_MAIN_PLL:
+            description: This when asserted resets all the non-volatile register bits e.g. RW-P bits@ the bit self clears i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PLL_CTRL_MAIN:
+        description: PLL control register
+        addressOffset: 0x84
+        size: 32
+        access: read-write
+        resetValue: 0x3E
+        fields:
+          LOCK:
+            description: Status of PLL lock
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          LP_REQUIRES_LOCK:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          REG_RFCLK_SEL:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          REG_DIVQ3_EN:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          REG_DIVQ2_EN:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          REG_DIVQ1_EN:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          REG_DIVQ0_EN:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          REG_RFDIV_EN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          REG_POWERDOWN_B:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PLL_REF_FB_MAIN:
+        description: PLL reference and feedback registers
+        addressOffset: 0x88
+        size: 32
+        access: read-write
+        resetValue: 0x100
+        fields:
+          RFDIV:
+            description: ''
+            bitOffset: 8
+            bitWidth: 6
+            access: read-write
+      PLL_FRACN_MAIN:
+        description: PLL fractional register
+        addressOffset: 0x8C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+      PLL_DIV_0_1_MAIN:
+        description: PLL 0/1 division registers
+        addressOffset: 0x90
+        size: 32
+        access: read-write
+        resetValue: 0x8000200
+        fields:
+          POST1DIV:
+            description: ''
+            bitOffset: 24
+            bitWidth: 7
+            access: read-write
+          VCO1PH_SEL:
+            description: ''
+            bitOffset: 16
+            bitWidth: 3
+            access: read-only
+          POST0DIV:
+            description: ''
+            bitOffset: 8
+            bitWidth: 7
+            access: read-write
+          VCO0PH_SEL:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-only
+      PLL_DIV_2_3_MAIN:
+        description: PLL 2/3 division registers
+        addressOffset: 0x94
+        size: 32
+        access: read-write
+        resetValue: 0x14000800
+        fields:
+          POST3DIV:
+            description: ''
+            bitOffset: 24
+            bitWidth: 7
+            access: read-write
+          VCO3PH_SEL:
+            description: ''
+            bitOffset: 16
+            bitWidth: 3
+            access: read-only
+          POST2DIV:
+            description: ''
+            bitOffset: 8
+            bitWidth: 7
+            access: read-write
+          VCO2PH_SEL:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-only
+      PLL_CTRL2_MAIN:
+        description: PLL control register
+        addressOffset: 0x98
+        size: 32
+        access: read-write
+        resetValue: 0x8
+        fields:
+          BWP:
+            description: ''
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          BWI:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      PLL_CAL_MAIN:
+        description: PLL calibration register
+        addressOffset: 0x9C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+      PLL_PHADJ_MAIN:
+        description: PLL phase registers
+        addressOffset: 0xA0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          REG_LOADPHS_B:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          REG_OUT3_PHSINIT:
+            description: ''
+            bitOffset: 11
+            bitWidth: 3
+            access: read-write
+          REG_OUT2_PHSINIT:
+            description: ''
+            bitOffset: 8
+            bitWidth: 3
+            access: read-write
+          REG_OUT1_PHSINIT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          REG_OUT0_PHSINIT:
+            description: ''
+            bitOffset: 2
+            bitWidth: 3
+            access: read-write
+      SSCG_REG_0_MAIN:
+        description: SSCG registers 0
+        addressOffset: 0xA4
+        size: 32
+        access: read-only
+        resetValue: 0x0
+      SSCG_REG_1_MAIN:
+        description: SSCG registers 1
+        addressOffset: 0xA8
+        size: 32
+        access: read-only
+        resetValue: 0x0
+      SSCG_REG_2_MAIN:
+        description: SSCG registers 2
+        addressOffset: 0xAC
+        size: 32
+        access: read-write
+        resetValue: 0x30
+        fields:
+          INTIN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      SSCG_REG_3_MAIN:
+        description: SSCG registers 3
+        addressOffset: 0xB0
+        size: 32
+        access: read-only
+        resetValue: 0x0
+      RPC_RESET_MAIN_PLL:
+        addressOffset: 0xB4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SOFT_RESET_PERIPH_MAIN_PLL:
+            description: RPC reset register
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SOFT_RESET_IOSCB_PLL:
+        description: This is a compulsory register for all SCB slaves and must be at the same offset in all slaves to facilitate global soft reset of all SCB registers with a single broadcast write from the SCB master.
+        addressOffset: 0x100
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID_IOSCB_PLL:
+            description: This returns the block type and chip location. (IO SCB bus only) Read 0x0000
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH_IOSCB_PLL:
+            description: This asserts the functional reset of the block. It is asserted at power up. When written is stays asserted until written to 0. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP_IOSCB_PLL:
+            description: This when asserted resets all the register bits apart from the non-volatile registers@ the bit self clears. i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP_IOSCB_PLL:
+            description: This when asserted resets all the non-volatile register bits e.g. RW-P bits@ the bit self clears i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PLL_CTRL_IOSCB:
+        description: PLL control register
+        addressOffset: 0x104
+        size: 32
+        access: read-write
+        resetValue: 0x3E
+        fields:
+          LOCK:
+            description: Status of PLL lock
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          LP_REQUIRES_LOCK:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          REG_RFCLK_SEL:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          REG_DIVQ3_EN:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          REG_DIVQ2_EN:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          REG_DIVQ1_EN:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          REG_DIVQ0_EN:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          REG_RFDIV_EN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          REG_POWERDOWN_B:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PLL_REF_FB_IOSCB:
+        description: PLL reference and feedback registers
+        addressOffset: 0x108
+        size: 32
+        access: read-write
+        resetValue: 0x100
+        fields:
+          RFDIV:
+            description: ''
+            bitOffset: 8
+            bitWidth: 6
+            access: read-write
+      PLL_FRACN_IOSCB:
+        description: PLL fractional register
+        addressOffset: 0x10C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+      PLL_DIV_0_1_IOSCB:
+        description: PLL 0/1 division registers
+        addressOffset: 0x110
+        size: 32
+        access: read-write
+        resetValue: 0x2000100
+        fields:
+          POST1DIV:
+            description: ''
+            bitOffset: 24
+            bitWidth: 7
+            access: read-write
+          VCO1PH_SEL:
+            description: ''
+            bitOffset: 16
+            bitWidth: 3
+            access: read-only
+          POST0DIV:
+            description: ''
+            bitOffset: 8
+            bitWidth: 7
+            access: read-write
+          VCO0PH_SEL:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-only
+      PLL_DIV_2_3_IOSCB:
+        description: PLL 2/3 division registers
+        addressOffset: 0x114
+        size: 32
+        access: read-write
+        resetValue: 0x1000100
+        fields:
+          POST3DIV:
+            description: ''
+            bitOffset: 24
+            bitWidth: 7
+            access: read-write
+          VCO3PH_SEL:
+            description: ''
+            bitOffset: 16
+            bitWidth: 3
+            access: read-only
+          POST2DIV:
+            description: ''
+            bitOffset: 8
+            bitWidth: 7
+            access: read-write
+          VCO2PH_SEL:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-only
+      PLL_CTRL2_IOSCB:
+        description: PLL control register
+        addressOffset: 0x118
+        size: 32
+        access: read-write
+        resetValue: 0x8
+        fields:
+          BWP:
+            description: ''
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          BWI:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      PLL_CAL_IOSCB:
+        description: PLL calibration register
+        addressOffset: 0x11C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+      PLL_PHADJ_IOSCB:
+        description: PLL phase registers
+        addressOffset: 0x120
+        size: 32
+        access: read-write
+        resetValue: 0x4000
+        fields:
+          REG_LOADPHS_B:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          REG_OUT3_PHSINIT:
+            description: ''
+            bitOffset: 11
+            bitWidth: 3
+            access: read-write
+          REG_OUT2_PHSINIT:
+            description: ''
+            bitOffset: 8
+            bitWidth: 3
+            access: read-write
+          REG_OUT1_PHSINIT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          REG_OUT0_PHSINIT:
+            description: ''
+            bitOffset: 2
+            bitWidth: 3
+            access: read-write
+      SSCG_REG_0_IOSCB:
+        description: SSCG registers 0
+        addressOffset: 0x124
+        size: 32
+        access: read-only
+        resetValue: 0x0
+      SSCG_REG_1_IOSCB:
+        description: SSCG registers 1
+        addressOffset: 0x128
+        size: 32
+        access: read-only
+        resetValue: 0x0
+      SSCG_REG_2_IOSCB:
+        description: SSCG registers 2
+        addressOffset: 0x12C
+        size: 32
+        access: read-write
+        resetValue: 0x20
+        fields:
+          INTIN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      SSCG_REG_3_IOSCB:
+        description: SSCG registers 3
+        addressOffset: 0x130
+        size: 32
+        access: read-only
+        resetValue: 0x0
+      RPC_RESET_IOSCB:
+        addressOffset: 0x134
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SOFT_RESET_PERIPH_IOSCB:
+            description: RPC reset register
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SOFT_RESET_BANK_CTRL:
+        description: This is a compulsory register for all SCB slaves and must be at the same offset in all slaves to facilitate global soft reset of all SCB registers with a single broadcast write from the SCB master.
+        addressOffset: 0x180
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID_BANK_CTRL:
+            description: This returns the block type and chip location. (IO SCB bus only) Read 0x0000
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH_BANK_CTRL:
+            description: This asserts the functional reset of the block. It is asserted at power up. When written is stays asserted until written to 0. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP_BANK_CTRL:
+            description: This when asserted resets all the register bits apart from the non-volatile registers@ the bit self clears. i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP_BANK_CTRL:
+            description: This when asserted resets all the non-volatile register bits e.g. RW-P bits@ the bit self clears i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DPC_BITS:
+        description: DPC Bits Register
+        addressOffset: 0x184
+        size: 32
+        access: read-write
+        resetValue: 0x5C5C3
+        fields:
+          DPC_MOVE_EN_V:
+            description: enable dynamic control of vrgen circuit for ADDCMD pins
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          DPC_VRGEN_EN_V:
+            description: enable vref generator for ADDCMD pins
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          DPC_VRGEN_V:
+            description: reference voltage ratio setting for ADDCMD pins
+            bitOffset: 12
+            bitWidth: 6
+            access: read-write
+          DPC_MOVE_EN_H:
+            description: enable dynamic control of vrgen circuit for DQ/DQS pins
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          DPC_VRGEN_EN_H:
+            description: enable vref generator for DQ/DQS pins
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          DPC_VRGEN_H:
+            description: reference voltage ratio setting for DQ/DQS pins
+            bitOffset: 4
+            bitWidth: 6
+            access: read-write
+          DPC_VS:
+            description: bank voltage select for pvt calibration
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      BANK_STATUS:
+        description: Bank Complete Registers
+        addressOffset: 0x188
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SRO_IOEN_BNK_B:
+            description: Bank power on complete (active low for polling)
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          SRO_CALIB_STATUS_B:
+            description: Bank calibration complete (active low for polling)
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      RPC_RESET_BANK_CTRL:
+        addressOffset: 0x18C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SOFT_RESET_PERIPH_BANK_CTRL:
+            description: RPC reset register
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SOFT_RESET_IOCALIB:
+        description: This is a compulsory register for all SCB slaves and must be at the same offset in all slaves to facilitate global soft reset of all SCB registers with a single broadcast write from the SCB master.
+        addressOffset: 0x200
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID_IOCALIB:
+            description: This returns the block type and chip location. (IO SCB bus only) Read 0x0000
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH_IOCALIB:
+            description: This asserts the functional reset of the block. It is asserted at power up. When written is stays asserted until written to 0. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP_IOCALIB:
+            description: This when asserted resets all the register bits apart from the non-volatile registers@ the bit self clears. i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP_IOCALIB:
+            description: This when asserted resets all the non-volatile register bits e.g. RW-P bits@ the bit self clears i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      IOC_REG0:
+        description: IO calib control register0
+        addressOffset: 0x204
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          REG_CALIB_LOCK:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          REG_CALIB_START:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+      IOC_REG1:
+        description: IO calib control register1
+        addressOffset: 0x208
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SRO_IOEN_OUT:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-only
+          SRO_CALIB_INTRPT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          SRO_CALIB_STATUS:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+      IOC_REG2:
+        description: IO calib control register2
+        addressOffset: 0x20C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SRO_REF_NCODE:
+            description: ''
+            bitOffset: 21
+            bitWidth: 7
+            access: read-only
+          SRO_REF_PCODE:
+            description: ''
+            bitOffset: 14
+            bitWidth: 7
+            access: read-only
+          SRO_NCODE:
+            description: ''
+            bitOffset: 7
+            bitWidth: 7
+            access: read-only
+          SRO_PCODE:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-only
+      IOC_REG3:
+        description: IO calib control register3
+        addressOffset: 0x210
+        size: 32
+        access: read-only
+        resetValue: 0x0
+      IOC_REG4:
+        description: IO calib control register4
+        addressOffset: 0x214
+        size: 32
+        access: read-only
+        resetValue: 0x0
+      IOC_REG5:
+        description: IO calib control register5
+        addressOffset: 0x218
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SRO_SLEWF:
+            description: ''
+            bitOffset: 24
+            bitWidth: 6
+            access: read-only
+          SRO_SLEWR:
+            description: ''
+            bitOffset: 18
+            bitWidth: 6
+            access: read-only
+          SRO_REF_SLEWF:
+            description: ''
+            bitOffset: 6
+            bitWidth: 12
+            access: read-only
+          SRO_REF_SLEWR:
+            description: ''
+            bitOffset: 0
+            bitWidth: 6
+            access: read-only
+      IOC_REG6:
+        description: IO calibr control resgister6
+        addressOffset: 0x21C
+        size: 32
+        access: read-write
+        resetValue: 0x5
+        fields:
+          REG_CALIB_CLKDIV:
+            description: ''
+            bitOffset: 1
+            bitWidth: 2
+            access: read-write
+          REG_CALIB_RESET:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC_RESET_IOCALIB:
+        addressOffset: 0x220
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SOFT_RESET_PERIPH_IOCALIB:
+            description: RPC reset register
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC_calib:
+        description: RPC calib register
+        addressOffset: 0x224
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LOCK_PVT:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          START_PVT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SOFT_RESET_CFM:
+        description: This is a compulsory register for all SCB slaves and must be at the same offset in all slaves to facilitate global soft reset of all SCB registers with a single broadcast write from the SCB master.
+        addressOffset: 0x280
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID_CFM:
+            description: This returns the block type and chip location. (IO SCB bus only) Read 0x0000
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH_CFM:
+            description: This asserts the functional reset of the block. It is asserted at power up. When written is stays asserted until written to 0. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP_CFM:
+            description: This when asserted resets all the register bits apart from the non-volatile registers@ the bit self clears. i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP_CFM:
+            description: This when asserted resets all the non-volatile register bits e.g. RW-P bits@ the bit self clears i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      BCLKMUX:
+        description: BCLK mux selections
+        addressOffset: 0x284
+        size: 32
+        access: read-write
+        resetValue: 0x208
+        fields:
+          BCLK5_SEL:
+            description: ''
+            bitOffset: 25
+            bitWidth: 5
+            access: read-write
+          BCLK4_SEL:
+            description: ''
+            bitOffset: 20
+            bitWidth: 5
+            access: read-write
+          BCLK3_SEL:
+            description: ''
+            bitOffset: 15
+            bitWidth: 5
+            access: read-write
+          BCLK2_SEL:
+            description: ''
+            bitOffset: 10
+            bitWidth: 5
+            access: read-write
+          BCLK1_SEL:
+            description: ''
+            bitOffset: 5
+            bitWidth: 5
+            access: read-write
+          BCLK0_SEL:
+            description: ''
+            bitOffset: 0
+            bitWidth: 5
+            access: read-write
+      PLL_CKMUX:
+        description: PLL RF clk mux selections
+        addressOffset: 0x288
+        size: 32
+        access: read-write
+        resetValue: 0x5
+        fields:
+          PLL1_FDR_SEL:
+            description: ''
+            bitOffset: 10
+            bitWidth: 5
+            access: read-write
+          PLL1_RFCLK1_SEL:
+            description: ''
+            bitOffset: 8
+            bitWidth: 2
+            access: read-write
+          PLL1_RFCLK0_SEL:
+            description: ''
+            bitOffset: 6
+            bitWidth: 2
+            access: read-write
+          PLL0_RFCLK1_SEL:
+            description: ''
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          PLL0_RFCLK0_SEL:
+            description: ''
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          CLK_IN_MAC_TSU:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      MSSCLKMUX:
+        description: MSS Clock mux selections
+        addressOffset: 0x28C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CLK_STANDBY_SEL:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          MSSCLK_MUX_MD:
+            description: ''
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          MSSCLK_MUX_SEL:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      SPARE0:
+        description: spare logic
+        addressOffset: 0x290
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SPARE0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      FMETER_ADDR:
+        description: Frequency_meter_address_selections
+        addressOffset: 0x294
+        size: 32
+        access: read-only
+        resetValue: 0x0
+      FMETER_DATAW:
+        description: Frequency_meter_data_write
+        addressOffset: 0x298
+        size: 32
+        access: read-only
+        resetValue: 0x0
+      FMETER_DATAR:
+        description: Frequency_meter_data_read
+        addressOffset: 0x29C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+      TEST_CTRL:
+        description: Test MUX Controls
+        addressOffset: 0x2A0
+        size: 32
+        access: read-only
+        resetValue: 0x0
+      RPC_RESET_CFM:
+        addressOffset: 0x2A4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SOFT_RESET_PERIPH_CFM:
+            description: RPC reset register
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SOFT_RESET_DECODER_DRIVER:
+        description: This is a compulsory register for all SCB slaves and must be at the same offset in all slaves to facilitate global soft reset of all SCB registers with a single broadcast write from the SCB master.
+        addressOffset: 0x300
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID_DECODER_DRIVER:
+            description: This returns the block type and chip location. (IO SCB bus only) Read 0x0000
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH_DECODER_DRIVER:
+            description: This asserts the functional reset of the block. It is asserted at power up. When written is stays asserted until written to 0. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP_DECODER_DRIVER:
+            description: This when asserted resets all the register bits apart from the non-volatile registers, the bit self clears. i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP_DECODER_DRIVER:
+            description: This when asserted resets all the non-volatile register bits e.g. RW-P bits, the bit self clears i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC1_DRV:
+        description: '-'
+        addressOffset: 0x304
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DRV_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      RPC2_DRV:
+        description: '-'
+        addressOffset: 0x308
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DRV_CLK:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      RPC3_DRV:
+        description: '-'
+        addressOffset: 0x30C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DRV_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      RPC4_DRV:
+        description: '-'
+        addressOffset: 0x310
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DRV_DQS:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      SOFT_RESET_DECODER_ODT:
+        description: This is a compulsory register for all SCB slaves and must be at the same offset in all slaves to facilitate global soft reset of all SCB registers with a single broadcast write from the SCB master.
+        addressOffset: 0x380
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID_DECODER_ODT:
+            description: This returns the block type and chip location. (IO SCB bus only) Read 0x0000
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH_DECODER_ODT:
+            description: This asserts the functional reset of the block. It is asserted at power up. When written is stays asserted until written to 0. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP_DECODER_ODT:
+            description: This when asserted resets all the register bits apart from the non-volatile registers, the bit self clears. i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP_DECODER_ODT:
+            description: This when asserted resets all the non-volatile register bits e.g. RW-P bits, the bit self clears i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC1_ODT:
+        description: '-'
+        addressOffset: 0x384
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ODT_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      RPC2_ODT:
+        description: '-'
+        addressOffset: 0x388
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ODT_CLK:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      RPC3_ODT:
+        description: '-'
+        addressOffset: 0x38C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ODT_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      RPC4_ODT:
+        description: '-'
+        addressOffset: 0x390
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ODT_DQS:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      RPC5_ODT:
+        description: '-'
+        addressOffset: 0x394
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ODT_DYN_SEL_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC6_ODT:
+        description: '-'
+        addressOffset: 0x398
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ODT_DYN_SEL_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC7_ODT:
+        description: '-'
+        addressOffset: 0x39C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ODT_STATIC_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC8_ODT:
+        description: '-'
+        addressOffset: 0x3A0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ODT_STATIC_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC9_ODT:
+        description: '-'
+        addressOffset: 0x3A4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ODT_STATIC_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC10_ODT:
+        description: '-'
+        addressOffset: 0x3A8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ODT_STATIC_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC11_ODT:
+        description: '-'
+        addressOffset: 0x3AC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ODT_STATIC_DQS:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      SOFT_RESET_DECODER_IO:
+        description: This is a compulsory register for all SCB slaves and must be at the same offset in all slaves to facilitate global soft reset of all SCB registers with a single broadcast write from the SCB master.
+        addressOffset: 0x400
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID_DECODER_IO:
+            description: This returns the block type and chip location. (IO SCB bus only) Read 0x0000
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH_DECODER_IO:
+            description: This asserts the functional reset of the block. It is asserted at power up. When written is stays asserted until written to 0. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP_DECODER_IO:
+            description: This when asserted resets all the register bits apart from the non-volatile registers, the bit self clears. i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP_DECODER_IO:
+            description: This when asserted resets all the non-volatile register bits e.g. RW-P bits, the bit self clears i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      OVRT1:
+        description: '-'
+        addressOffset: 0x404
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DRV_ADDCMD0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      OVRT2:
+        description: '-'
+        addressOffset: 0x408
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DRV_ADDCMD1:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      OVRT3:
+        description: '-'
+        addressOffset: 0x40C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DRV_ADDCMD2:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      OVRT4:
+        description: '-'
+        addressOffset: 0x410
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DRV_DATA0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      OVRT5:
+        description: '-'
+        addressOffset: 0x414
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DRV_DATA1:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      OVRT6:
+        description: '-'
+        addressOffset: 0x418
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DRV_DATA2:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      OVRT7:
+        description: '-'
+        addressOffset: 0x41C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DRV_DATA3:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      OVRT8:
+        description: '-'
+        addressOffset: 0x420
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DRV_ECC:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      OVRT9:
+        description: '-'
+        addressOffset: 0x424
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EN_ADDCMD0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      OVRT10:
+        description: '-'
+        addressOffset: 0x428
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EN_ADDCMD1:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      OVRT11:
+        description: '-'
+        addressOffset: 0x42C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EN_ADDCMD2:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      OVRT12:
+        description: '-'
+        addressOffset: 0x430
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EN_DATA0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      OVRT13:
+        description: '-'
+        addressOffset: 0x434
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EN_DATA1:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      OVRT14:
+        description: '-'
+        addressOffset: 0x438
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EN_DATA2:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      OVRT15:
+        description: '-'
+        addressOffset: 0x43C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EN_DATA3:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      OVRT16:
+        description: '-'
+        addressOffset: 0x440
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EN_ECC:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      RPC17:
+        description: '-'
+        addressOffset: 0x444
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BCLK_SEL_AC:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC18:
+        description: '-'
+        addressOffset: 0x448
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BCLK_SEL_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 9
+            access: read-write
+      RPC19:
+        description: '-'
+        addressOffset: 0x44C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BCLK_SEL_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC20:
+        description: '-'
+        addressOffset: 0x450
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BCLK_SEL_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC21:
+        description: '-'
+        addressOffset: 0x454
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BCLK_SEL_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 9
+            access: read-write
+      RPC22:
+        description: '-'
+        addressOffset: 0x458
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BCLK_SEL_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC23:
+        description: '-'
+        addressOffset: 0x45C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BCLK_SEL_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC24:
+        description: '-'
+        addressOffset: 0x460
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BCLK_SEL_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC25:
+        description: '-'
+        addressOffset: 0x464
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CDR_MD_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC26:
+        description: '-'
+        addressOffset: 0x468
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CDR_MD_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC27:
+        description: '-'
+        addressOffset: 0x46C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CLK_MD_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC28:
+        description: '-'
+        addressOffset: 0x470
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CLK_SEL_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      RPC29:
+        description: '-'
+        addressOffset: 0x474
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CLK_SEL_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      RPC30:
+        description: '-'
+        addressOffset: 0x478
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CODE_SEL_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC31:
+        description: '-'
+        addressOffset: 0x47C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CODE_SEL_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC32:
+        description: '-'
+        addressOffset: 0x480
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          COMP_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC33:
+        description: '-'
+        addressOffset: 0x484
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          COMP_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC34:
+        description: '-'
+        addressOffset: 0x488
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          COMP_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC35:
+        description: '-'
+        addressOffset: 0x48C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          COMP_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC36:
+        description: '-'
+        addressOffset: 0x490
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          COMP_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC37:
+        description: '-'
+        addressOffset: 0x494
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          COMP_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC38:
+        description: '-'
+        addressOffset: 0x498
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DIVCLK_SEL_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC39:
+        description: '-'
+        addressOffset: 0x49C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DIVCLK_SEL_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC40:
+        description: '-'
+        addressOffset: 0x4A0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DIV_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC41:
+        description: '-'
+        addressOffset: 0x4A4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DIV_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC42:
+        description: '-'
+        addressOffset: 0x4A8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DLY_MD_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC43:
+        description: '-'
+        addressOffset: 0x4AC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DLY_MD_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC44:
+        description: '-'
+        addressOffset: 0x4B0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DLY_MD_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC45:
+        description: '-'
+        addressOffset: 0x4B4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DLY_MD_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC46:
+        description: '-'
+        addressOffset: 0x4B8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DLY_MD_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC47:
+        description: '-'
+        addressOffset: 0x4BC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DLY_MD_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC48:
+        description: '-'
+        addressOffset: 0x4C0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DQS_MD_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC49:
+        description: '-'
+        addressOffset: 0x4C4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DYNEN_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC50:
+        description: '-'
+        addressOffset: 0x4C8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DYNEN_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC51:
+        description: '-'
+        addressOffset: 0x4CC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DYNEN_SOFT_RESET_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC52:
+        description: '-'
+        addressOffset: 0x4D0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DYNEN_SOFT_RESET_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC53:
+        description: '-'
+        addressOffset: 0x4D4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EDGEDET_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC54:
+        description: '-'
+        addressOffset: 0x4D8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EDGEDET_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC55:
+        description: '-'
+        addressOffset: 0x4DC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EDGEDET_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC56:
+        description: '-'
+        addressOffset: 0x4E0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EDGEDET_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC57:
+        description: '-'
+        addressOffset: 0x4E4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EDGEDET_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC58:
+        description: '-'
+        addressOffset: 0x4E8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EDGEDET_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC59:
+        description: '-'
+        addressOffset: 0x4EC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYEWIDTH_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC60:
+        description: '-'
+        addressOffset: 0x4F0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYEWIDTH_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC61:
+        description: '-'
+        addressOffset: 0x4F4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYEWIDTH_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC62:
+        description: '-'
+        addressOffset: 0x4F8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYEWIDTH_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC63:
+        description: '-'
+        addressOffset: 0x4FC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYEWIDTH_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC64:
+        description: '-'
+        addressOffset: 0x500
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYEWIDTH_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC65:
+        description: '-'
+        addressOffset: 0x504
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYEWIDTH_SEL_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC66:
+        description: '-'
+        addressOffset: 0x508
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYEWIDTH_SEL_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC67:
+        description: '-'
+        addressOffset: 0x50C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYEWIDTH_SEL_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC68:
+        description: '-'
+        addressOffset: 0x510
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYEWIDTH_SEL_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC69:
+        description: '-'
+        addressOffset: 0x514
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYEWIDTH_SEL_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC70:
+        description: '-'
+        addressOffset: 0x518
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYEWIDTH_SEL_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC71:
+        description: '-'
+        addressOffset: 0x51C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYE_EN_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC72:
+        description: '-'
+        addressOffset: 0x520
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYE_EN_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC73:
+        description: '-'
+        addressOffset: 0x524
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYE_EN_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC74:
+        description: '-'
+        addressOffset: 0x528
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYE_EN_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC75:
+        description: '-'
+        addressOffset: 0x52C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYE_EN_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC76:
+        description: '-'
+        addressOffset: 0x530
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYE_EN_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC77:
+        description: '-'
+        addressOffset: 0x534
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYE_SDR_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC78:
+        description: '-'
+        addressOffset: 0x538
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYE_SDR_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC79:
+        description: '-'
+        addressOffset: 0x53C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYE_SDR_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC80:
+        description: '-'
+        addressOffset: 0x540
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYE_SDR_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC81:
+        description: '-'
+        addressOffset: 0x544
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYE_SDR_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC82:
+        description: '-'
+        addressOffset: 0x548
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYE_SDR_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC83:
+        description: '-'
+        addressOffset: 0x54C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FIFOWE_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC84:
+        description: '-'
+        addressOffset: 0x550
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FIFOWE_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC85:
+        description: '-'
+        addressOffset: 0x554
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FIFOWE_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC86:
+        description: '-'
+        addressOffset: 0x558
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FIFOWE_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC87:
+        description: '-'
+        addressOffset: 0x55C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FIFOWE_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC88:
+        description: '-'
+        addressOffset: 0x560
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FIFOWE_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC89:
+        description: '-'
+        addressOffset: 0x564
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FIFO_EN_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC90:
+        description: '-'
+        addressOffset: 0x568
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FIFO_EN_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC91:
+        description: '-'
+        addressOffset: 0x56C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FIFO_RUN_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC92:
+        description: '-'
+        addressOffset: 0x570
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FIFO_RUN_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC93:
+        description: '-'
+        addressOffset: 0x574
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          GSR_DISABLE_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC94:
+        description: '-'
+        addressOffset: 0x578
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          GSR_DISABLE_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC95:
+        description: '-'
+        addressOffset: 0x57C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          IBUFMD_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC96:
+        description: '-'
+        addressOffset: 0x580
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          IBUFMD_CLK:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC97:
+        description: '-'
+        addressOffset: 0x584
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          IBUFMD_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC98:
+        description: '-'
+        addressOffset: 0x588
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          IBUFMD_DQS:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC99:
+        description: '-'
+        addressOffset: 0x58C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          INDLY_SEL_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC100:
+        description: '-'
+        addressOffset: 0x590
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          INDLY_SEL_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC101:
+        description: '-'
+        addressOffset: 0x594
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          INDLY_SEL_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC102:
+        description: '-'
+        addressOffset: 0x598
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          INDLY_SEL_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC103:
+        description: '-'
+        addressOffset: 0x59C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          INDLY_SEL_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC104:
+        description: '-'
+        addressOffset: 0x5A0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          INDLY_SEL_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC105:
+        description: '-'
+        addressOffset: 0x5A4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LANE_PVT_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC106:
+        description: '-'
+        addressOffset: 0x5A8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LANE_PVT_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC107:
+        description: '-'
+        addressOffset: 0x5AC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LSR_DISABLE_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC108:
+        description: '-'
+        addressOffset: 0x5B0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LSR_DISABLE_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC109:
+        description: '-'
+        addressOffset: 0x5B4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LSR_DISABLE_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC110:
+        description: '-'
+        addressOffset: 0x5B8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LSR_DISABLE_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC111:
+        description: '-'
+        addressOffset: 0x5BC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LSR_DISABLE_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC112:
+        description: '-'
+        addressOffset: 0x5C0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LSR_DISABLE_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC113:
+        description: '-'
+        addressOffset: 0x5C4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MVDLY_EN_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC114:
+        description: '-'
+        addressOffset: 0x5C8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MVDLY_EN_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC115:
+        description: '-'
+        addressOffset: 0x5CC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MVDLY_EN_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC116:
+        description: '-'
+        addressOffset: 0x5D0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MVDLY_EN_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC117:
+        description: '-'
+        addressOffset: 0x5D4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MVDLY_EN_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC118:
+        description: '-'
+        addressOffset: 0x5D8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MVDLY_EN_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC119:
+        description: '-'
+        addressOffset: 0x5DC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          OECLK_INV_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC120:
+        description: '-'
+        addressOffset: 0x5E0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          OECLK_INV_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC121:
+        description: '-'
+        addressOffset: 0x5E4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          OECLK_INV_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC122:
+        description: '-'
+        addressOffset: 0x5E8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          OECLK_INV_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC123:
+        description: '-'
+        addressOffset: 0x5EC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          OECLK_INV_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC124:
+        description: '-'
+        addressOffset: 0x5F0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          OECLK_INV_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC125:
+        description: '-'
+        addressOffset: 0x5F4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          OE_MD_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC126:
+        description: '-'
+        addressOffset: 0x5F8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          OE_MD_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC127:
+        description: '-'
+        addressOffset: 0x5FC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          OE_MD_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC128:
+        description: '-'
+        addressOffset: 0x600
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          OE_MD_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC129:
+        description: '-'
+        addressOffset: 0x604
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          OE_MD_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC130:
+        description: '-'
+        addressOffset: 0x608
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          OE_MD_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC131:
+        description: '-'
+        addressOffset: 0x60C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PAUSE_EN_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC132:
+        description: '-'
+        addressOffset: 0x610
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PAUSE_EN_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC133:
+        description: '-'
+        addressOffset: 0x614
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          QDR_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC134:
+        description: '-'
+        addressOffset: 0x618
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          QDR_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC135:
+        description: '-'
+        addressOffset: 0x61C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          QDR_MD_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC136:
+        description: '-'
+        addressOffset: 0x620
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          QDR_MD_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC137:
+        description: '-'
+        addressOffset: 0x624
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          QDR_MD_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC138:
+        description: '-'
+        addressOffset: 0x628
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          QDR_MD_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC139:
+        description: '-'
+        addressOffset: 0x62C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          QDR_MD_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC140:
+        description: '-'
+        addressOffset: 0x630
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          QDR_MD_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC141:
+        description: '-'
+        addressOffset: 0x634
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RANK2_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC142:
+        description: '-'
+        addressOffset: 0x638
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RANK2_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC143:
+        description: '-'
+        addressOffset: 0x63C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RST_INV_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC144:
+        description: '-'
+        addressOffset: 0x640
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RST_INV_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC145:
+        description: '-'
+        addressOffset: 0x644
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXDLY_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      RPC146:
+        description: '-'
+        addressOffset: 0x648
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXDLY_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      RPC147:
+        description: '-'
+        addressOffset: 0x64C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXDLY_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      RPC148:
+        description: '-'
+        addressOffset: 0x650
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXDLY_DIR_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC149:
+        description: '-'
+        addressOffset: 0x654
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXDLY_DIR_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC150:
+        description: '-'
+        addressOffset: 0x658
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXDLY_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      RPC151:
+        description: '-'
+        addressOffset: 0x65C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXDLY_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      RPC152:
+        description: '-'
+        addressOffset: 0x660
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXDLY_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      RPC153:
+        description: '-'
+        addressOffset: 0x664
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXDLY_EN_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC154:
+        description: '-'
+        addressOffset: 0x668
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXDLY_EN_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC155:
+        description: '-'
+        addressOffset: 0x66C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXDLY_OFFSET_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      RPC156:
+        description: '-'
+        addressOffset: 0x670
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXDLY_OFFSET_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      RPC157:
+        description: '-'
+        addressOffset: 0x674
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXDLY_WIDE_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC158:
+        description: '-'
+        addressOffset: 0x678
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXDLY_WIDE_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC159:
+        description: '-'
+        addressOffset: 0x67C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXDLY_WIDE_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC160:
+        description: '-'
+        addressOffset: 0x680
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXDLY_WIDE_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC161:
+        description: '-'
+        addressOffset: 0x684
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXDLY_WIDE_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC162:
+        description: '-'
+        addressOffset: 0x688
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXDLY_WIDE_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC163:
+        description: '-'
+        addressOffset: 0x68C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXMVDLY_EN_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC164:
+        description: '-'
+        addressOffset: 0x690
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXMVDLY_EN_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC165:
+        description: '-'
+        addressOffset: 0x694
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXPTR_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC166:
+        description: '-'
+        addressOffset: 0x698
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXPTR_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RPC167:
+        description: '-'
+        addressOffset: 0x69C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RX_MD_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      RPC168:
+        description: '-'
+        addressOffset: 0x6A0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RX_MD_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      RPC169:
+        description: '-'
+        addressOffset: 0x6A4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RX_MD_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      RPC170:
+        description: '-'
+        addressOffset: 0x6A8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RX_MD_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      RPC171:
+        description: '-'
+        addressOffset: 0x6AC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RX_MD_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      RPC172:
+        description: '-'
+        addressOffset: 0x6B0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RX_MD_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      RPC173:
+        description: '-'
+        addressOffset: 0x6B4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK0_EN_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC174:
+        description: '-'
+        addressOffset: 0x6B8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK0_EN_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC175:
+        description: '-'
+        addressOffset: 0x6BC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK0_EN_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC176:
+        description: '-'
+        addressOffset: 0x6C0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK0_EN_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC177:
+        description: '-'
+        addressOffset: 0x6C4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK0_EN_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC178:
+        description: '-'
+        addressOffset: 0x6C8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK0_EN_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC179:
+        description: '-'
+        addressOffset: 0x6CC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK0_INV_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC180:
+        description: '-'
+        addressOffset: 0x6D0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK0_INV_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC181:
+        description: '-'
+        addressOffset: 0x6D4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK0_INV_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC182:
+        description: '-'
+        addressOffset: 0x6D8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK0_INV_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC183:
+        description: '-'
+        addressOffset: 0x6DC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK0_INV_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC184:
+        description: '-'
+        addressOffset: 0x6E0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK0_INV_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC185:
+        description: '-'
+        addressOffset: 0x6E4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK1_EN_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC186:
+        description: '-'
+        addressOffset: 0x6E8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK1_EN_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC187:
+        description: '-'
+        addressOffset: 0x6EC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK1_EN_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC188:
+        description: '-'
+        addressOffset: 0x6F0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK1_EN_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC189:
+        description: '-'
+        addressOffset: 0x6F4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK1_EN_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC190:
+        description: '-'
+        addressOffset: 0x6F8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK1_EN_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC191:
+        description: '-'
+        addressOffset: 0x6FC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK1_INV_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC192:
+        description: '-'
+        addressOffset: 0x700
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK1_INV_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC193:
+        description: '-'
+        addressOffset: 0x704
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK1_INV_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC194:
+        description: '-'
+        addressOffset: 0x708
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK1_INV_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC195:
+        description: '-'
+        addressOffset: 0x70C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK1_INV_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC196:
+        description: '-'
+        addressOffset: 0x710
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCLK1_INV_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC197:
+        description: '-'
+        addressOffset: 0x714
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SOFT_RESET_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC198:
+        description: '-'
+        addressOffset: 0x718
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SOFT_RESET_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC199:
+        description: '-'
+        addressOffset: 0x71C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SPARE_IOG_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC200:
+        description: '-'
+        addressOffset: 0x720
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SPARE_IOG_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC201:
+        description: '-'
+        addressOffset: 0x724
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SPARE_IOG_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC202:
+        description: '-'
+        addressOffset: 0x728
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SPARE_IOG_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC203:
+        description: '-'
+        addressOffset: 0x72C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SPARE_IOG_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC204:
+        description: '-'
+        addressOffset: 0x730
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SPARE_IOG_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC205:
+        description: '-'
+        addressOffset: 0x734
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SPIO_SEL_DI_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC206:
+        description: '-'
+        addressOffset: 0x738
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SPIO_SEL_DI_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC207:
+        description: '-'
+        addressOffset: 0x73C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          STOP_SEL_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC208:
+        description: '-'
+        addressOffset: 0x740
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          STOP_SEL_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC209:
+        description: '-'
+        addressOffset: 0x744
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXCLK_SEL_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC210:
+        description: '-'
+        addressOffset: 0x748
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXCLK_SEL_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC211:
+        description: '-'
+        addressOffset: 0x74C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXCLK_SEL_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC212:
+        description: '-'
+        addressOffset: 0x750
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXCLK_SEL_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC213:
+        description: '-'
+        addressOffset: 0x754
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXCLK_SEL_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC214:
+        description: '-'
+        addressOffset: 0x758
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXCLK_SEL_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      RPC215:
+        description: '-'
+        addressOffset: 0x75C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXDLY_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      RPC216:
+        description: '-'
+        addressOffset: 0x760
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXDLY_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      RPC217:
+        description: '-'
+        addressOffset: 0x764
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXDLY_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      RPC218:
+        description: '-'
+        addressOffset: 0x768
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXDLY_DIR_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC219:
+        description: '-'
+        addressOffset: 0x76C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXDLY_DIR_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC220:
+        description: '-'
+        addressOffset: 0x770
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXDLY_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      RPC221:
+        description: '-'
+        addressOffset: 0x774
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXDLY_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      RPC222:
+        description: '-'
+        addressOffset: 0x778
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXDLY_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      RPC223:
+        description: '-'
+        addressOffset: 0x77C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXDLY_EN_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC224:
+        description: '-'
+        addressOffset: 0x780
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXDLY_EN_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC225:
+        description: '-'
+        addressOffset: 0x784
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXDLY_OFFSET_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      RPC226:
+        description: '-'
+        addressOffset: 0x788
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXDLY_OFFSET_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      RPC227:
+        description: '-'
+        addressOffset: 0x78C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXMVDLY_EN_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC228:
+        description: '-'
+        addressOffset: 0x790
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXMVDLY_EN_DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RPC229:
+        description: '-'
+        addressOffset: 0x794
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TX_MD_ADDCMD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      RPC230:
+        description: '-'
+        addressOffset: 0x798
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TX_MD_CLKN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      RPC231:
+        description: '-'
+        addressOffset: 0x79C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TX_MD_CLKP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      RPC232:
+        description: '-'
+        addressOffset: 0x7A0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TX_MD_DQ:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      RPC233:
+        description: '-'
+        addressOffset: 0x7A4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TX_MD_DQSN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      RPC234:
+        description: '-'
+        addressOffset: 0x7A8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TX_MD_DQSP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      RPC235:
+        description: '-'
+        addressOffset: 0x7AC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WPD_ADDCMD0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      RPC236:
+        description: '-'
+        addressOffset: 0x7B0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WPD_ADDCMD1:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      RPC237:
+        description: '-'
+        addressOffset: 0x7B4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WPD_ADDCMD2:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      RPC238:
+        description: '-'
+        addressOffset: 0x7B8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WPD_DATA0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      RPC239:
+        description: '-'
+        addressOffset: 0x7BC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WPD_DATA1:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      RPC240:
+        description: '-'
+        addressOffset: 0x7C0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WPD_DATA2:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      RPC241:
+        description: '-'
+        addressOffset: 0x7C4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WPD_DATA3:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      RPC242:
+        description: '-'
+        addressOffset: 0x7C8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WPD_ECC:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      RPC243:
+        description: '-'
+        addressOffset: 0x7CC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WPU_ADDCMD0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      RPC244:
+        description: '-'
+        addressOffset: 0x7D0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WPU_ADDCMD1:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      RPC245:
+        description: '-'
+        addressOffset: 0x7D4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WPU_ADDCMD2:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      RPC246:
+        description: '-'
+        addressOffset: 0x7D8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WPU_DATA0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      RPC247:
+        description: '-'
+        addressOffset: 0x7DC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WPU_DATA1:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      RPC248:
+        description: '-'
+        addressOffset: 0x7E0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WPU_DATA2:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      RPC249:
+        description: '-'
+        addressOffset: 0x7E4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WPU_DATA3:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      RPC250:
+        description: '-'
+        addressOffset: 0x7E8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WPU_ECC:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      SPIO251:
+        description: '-'
+        addressOffset: 0x7EC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SEL_REFCLK0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SPIO252:
+        description: '-'
+        addressOffset: 0x7F0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SEL_REFCLK1:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SPIO253:
+        description: '-'
+        addressOffset: 0x7F4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SEL_REFCLK2:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SOFT_RESET_TIP:
+        description: Compulsory register for all SCB slaves, facilitating global soft reset.
+        addressOffset: 0x800
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID_TIP:
+            description: This returns the block type and chip location. The form of BLOCKID = {4'h0, SLVTYPE, CHIPID, SUBID}. SLVTYPE=4'h2 for PCIESS MAIN. CHIPID=4'h0 for PCIESS. SUBID=4'h4 for the MAIN page.
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH_TIP:
+            description: This asserts functional reset of the peripheral block. It is asserted and left asserted at power-up. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP_TIP:
+            description: Resets all the volatile register bits. Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP_TIP:
+            description: Resets all the non-volatile register bits (e.g. RW-P bits). Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      rank_select:
+        description: select rank 0 or 1
+        addressOffset: 0x804
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RANK:
+            description: TIP readback rank select
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      LANE_SELECT:
+        description: select lane 0, 1, 2, 3 or 4
+        addressOffset: 0x808
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LANE:
+            description: TIP readback lane select
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      TRAINING_SKIP:
+        description: skip
+        addressOffset: 0x80C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          STEP7:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          SKIP_VREF_MR6:
+            description: 0 -> do not skip SET VREF 1 -> skip SET VREF
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          SKIP_WRITE_CALIBRATION:
+            description: 0 -> do not skip WRITE CALIBRATION 1 -> skip WRITE CALIBRATION
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          SKIP_DQ_DQS_OPT:
+            description: 0 -> do not skip DQ/DQS Optimization 1 -> skip DQ/DQS Optimization
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          SKIP_RDGATE:
+            description: 0 -> do not skip READ GATE TRAINING 1 -> skip READ GATE TRAINING
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          SKIP_WRLVL:
+            description: 0 -> do not skip WRITE LEVELING 1 -> skip WRITE LEVELING
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          SKIP_ADDCMD:
+            description: 0 -> do not skip ADDRESS/CMD training 1 -> skip ADDRESS/CMD training
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          SKIP_BCLKSCLK:
+            description: 0 -> do not skip BCLK/SCLK training 1 -> skip BCLK/SCLK training
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      TRAINING_START:
+        description: start
+        addressOffset: 0x810
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          START:
+            description: Starts training on 0->1 transition
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      TRAINING_STATUS:
+        description: status
+        addressOffset: 0x814
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          STATUS:
+            description: Returns 1 on completion of non-skipped trainings.
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      TRAINING_RESET:
+        description: reset
+        addressOffset: 0x818
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RESET:
+            description: Resets the TIP state machines.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      GT_ERR_COMB:
+        description: set lane register
+        addressOffset: 0x81C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          ERROR_COMB_LANEX:
+            description: TIP readback gate training error flags bit 0 = initial burst error rank0 bit 1 = initial burst error rank1 bit 2 = Out of Range error rank0 bit 3 = Out of Range error rank1 bit 4 = no burst error rank0 bit 5 = no burst error rank1
+            bitOffset: 0
+            bitWidth: 6
+            access: read-only
+      GT_CLK_SEL:
+        description: set lane/rank register
+        addressOffset: 0x820
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          CLK_SEL_LANEX_RANKX:
+            description: TIP readback gate training clk_sel result
+            bitOffset: 0
+            bitWidth: 3
+            access: read-only
+      GT_TXDLY:
+        addressOffset: 0x824
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          TXDLY3_LANEX:
+            description: TIP readback gate training txdly @ clk_sel=3
+            bitOffset: 24
+            bitWidth: 8
+            access: read-only
+          TXDLY2_LANEX:
+            description: TIP readback gate training txdly @ clk_sel=2
+            bitOffset: 16
+            bitWidth: 8
+            access: read-only
+          TXDLY1_LANEX:
+            description: TIP readback gate training txdly @ clk_sel=1
+            bitOffset: 8
+            bitWidth: 8
+            access: read-only
+          TXDLY0_LANEX:
+            description: TIP readback gate training txdly @ clk_sel=0
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      GT_STEPS_180:
+        description: set lane/rank register
+        addressOffset: 0x828
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          STEPS_180_LANEX_RANKX:
+            description: TIP readback gate training steps_180
+            bitOffset: 0
+            bitWidth: 4
+            access: read-only
+      GT_STATE:
+        description: set lane register
+        addressOffset: 0x82C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          GT_STATE_LANEX:
+            description: TIP readback gate training state
+            bitOffset: 0
+            bitWidth: 4
+            access: read-only
+      wl_delay_0:
+        description: set lane/rank register
+        addressOffset: 0x830
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          WLDELAY_LANEX_RANKX:
+            description: TIP readback write leveling delay
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      DQ_DQS_ERR_DONE:
+        description: set lane/rank register
+        addressOffset: 0x834
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          DQ_DQS_ERROR_DONE_LANEX_RANKX:
+            description: TIP readback DQ/DQS optimization error flags
+            bitOffset: 0
+            bitWidth: 4
+            access: read-only
+      DQDQS_WINDOW:
+        description: set rank register
+        addressOffset: 0x838
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          IRS_LANEX_RANKX:
+            description: TIP readback DQ/DQS optimization state
+            bitOffset: 8
+            bitWidth: 8
+            access: read-only
+          ILS_LANEX_RANKX:
+            description: TIP readback DQ/DQS optimization initial->left side of window delay
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      DQDQS_STATE:
+        description: set lane/rank register
+        addressOffset: 0x83C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          STATE_LANEX_RANKX:
+            description: TIP readback DQ/DQS optimization bit 0 (in lane) RX delay
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      DELTA0:
+        description: set lane register
+        addressOffset: 0x840
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          DELAY3_LANEX:
+            description: TIP readback DQ/DQS optimization bit 3 (in lane) RX delay
+            bitOffset: 24
+            bitWidth: 8
+            access: read-only
+          DELAY2_LANEX:
+            description: TIP readback DQ/DQS optimization bit 2 (in lane) RX delay
+            bitOffset: 16
+            bitWidth: 8
+            access: read-only
+          DELAY1_LANEX:
+            description: TIP readback DQ/DQS optimization bit 1 (in lane) RX delay
+            bitOffset: 8
+            bitWidth: 8
+            access: read-only
+          DELAY0_LANEX:
+            description: TIP readback DQ/DQS optimization bit 0 (in lane) RX delay
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      DELTA1:
+        description: set lane register
+        addressOffset: 0x844
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          DELAY7_LANEX:
+            description: TIP readback DQ/DQS optimization bit 7 (in lane) RX delay
+            bitOffset: 24
+            bitWidth: 8
+            access: read-only
+          DELAY6_LANEX:
+            description: TIP readback DQ/DQS optimization bit 6 (in lane) RX delay
+            bitOffset: 16
+            bitWidth: 8
+            access: read-only
+          DELAY5_LANEX:
+            description: TIP readback DQ/DQS optimization bit 5 (in lane) RX delay
+            bitOffset: 8
+            bitWidth: 8
+            access: read-only
+          DELAY4_LANEX:
+            description: TIP readback DQ/DQS optimization bit 4 (in lane) RX delay
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      DQDQS_STATUS0:
+        description: set lane register
+        addressOffset: 0x848
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          INIT_DLY_LANEX:
+            description: Initial delay for right side of window
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      DQDQS_STATUS1:
+        description: set lane/rank register
+        addressOffset: 0x84C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          DQS_DLY_LANEX_RANKX:
+            description: DQS delay
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      DQDQS_STATUS2:
+        description: set lane register
+        addressOffset: 0x850
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          BIT_WIDTH_LANEX:
+            description: Data window width
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      DQDQS_STATUS3:
+        description: set lane/rank register
+        addressOffset: 0x854
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          INITLDQS_2_MID_LANEX_RANKX:
+            description: Distance between the DQS start possition to the middle of data window
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      DQDQS_STATUS4:
+        description: set lane/rank register
+        addressOffset: 0x858
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          MID_2_INITLDQS_LANEX_RANKX:
+            description: Distance between the calculated middle of the data window and DQS starting on the RHS
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      DQDQS_STATUS5:
+        description: set lane/rank register
+        addressOffset: 0x85C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          STW_2_INITLDQS_LANEX_RANKX:
+            description: Distance from the start of the data window to the initial DQS position
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      DQDQS_STATUS6:
+        description: set lane/rank register
+        addressOffset: 0x860
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          INITLDQS_2_STW_LANEX_RANKX:
+            description: Distance between the DQS start position and the start of the data window
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      ADDCMD_STATUS0:
+        description: Output delays at VCOPHS offset values
+        addressOffset: 0x864
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          DELAY_VCOPHS_SEL3:
+            description: Output delay @ VCOPHS=135 degrees
+            bitOffset: 24
+            bitWidth: 8
+            access: read-only
+          DELAY_VCOPHS_SEL2:
+            description: Output delay @ VCOPHS=90 degrees
+            bitOffset: 16
+            bitWidth: 8
+            access: read-only
+          DELAY_VCOPHS_SEL1:
+            description: Output delay @ VCOPHS=45 degrees
+            bitOffset: 8
+            bitWidth: 8
+            access: read-only
+          DELAY_VCOPHS_SEL0:
+            description: Output delay @ VCOPHS=0 degrees
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      ADDCMD_STATUS1:
+        description: Output delays at VCOPHS offset values
+        addressOffset: 0x868
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          DELAY_VCOPHS_SEL7:
+            description: Output delay @ VCOPHS=315 degrees
+            bitOffset: 24
+            bitWidth: 8
+            access: read-only
+          DELAY_VCOPHS_SEL6:
+            description: Output delay @ VCOPHS=270 degrees
+            bitOffset: 16
+            bitWidth: 8
+            access: read-only
+          DELAY_VCOPHS_SEL5:
+            description: Output delay @ VCOPHS=225 degrees
+            bitOffset: 8
+            bitWidth: 8
+            access: read-only
+          DELAY_VCOPHS_SEL4:
+            description: Output delay @ VCOPHS=180 degrees
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      ADDCMD_ANSWER:
+        description: ADDCMD training result
+        addressOffset: 0x86C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          VCOPHS_SEL_AFTER_TRAINING:
+            description: Chosen VCOPHS = value * 45 degrees
+            bitOffset: 0
+            bitWidth: 4
+            access: read-only
+      BCLKSCLK_ANSWER:
+        description: BCLK/SCLK trainng result
+        addressOffset: 0x870
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          BCLK0_VCOPHS_SEL:
+            description: BCLK/SCLK training result (45 degree offset count)
+            bitOffset: 0
+            bitWidth: 4
+            access: read-only
+      DQDQS_WRCALIB_OFFSET:
+        description: set lane register
+        addressOffset: 0x874
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          WRCALIB_OFFSET_LANEX:
+            description: WRITE CALIBRATION OFFSET RESULT
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      EXPERT_MODE_EN:
+        description: enable override of dynamic delay control signals
+        addressOffset: 0x878
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DYN_OVR_DFI_SHIM_EN:
+            description: 1 -> enable MSS overide, 0 -> disable MSS override
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_CALIF_EN:
+            description: 1 -> enable MSS overide, 0 -> disable MSS override
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_WRCALIB_EN:
+            description: 1 -> enable MSS overide, 0 -> disable MSS override
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_RDGATE_EN:
+            description: 1 -> enable MSS overide, 0 -> disable MSS override
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_PLLCNT_EN:
+            description: 1 -> enable MSS overide, 0 -> disable MSS override
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_EN:
+            description: 1 -> enable MSS overide, 0 -> disable MSS override
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      EXPERT_DLYCNT_MOVE_REG0:
+        description: delayline control
+        addressOffset: 0x87C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DYN_OVR_DLYCNT_DQ_MOVE3:
+            description: DQ[31:24] MOVE
+            bitOffset: 24
+            bitWidth: 8
+            access: read-write
+          DYN_OVR_DLYCNT_DQ_MOVE2:
+            description: DQ[23:16] MOVE
+            bitOffset: 16
+            bitWidth: 8
+            access: read-write
+          DYN_OVR_DLYCNT_DQ_MOVE1:
+            description: DQ[15:8] move
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          DYN_OVR_DLYCNT_DQ_MOVE0:
+            description: DQ[7:0] move
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      EXPERT_DLYCNT_MOVE_REG1:
+        description: delayline control
+        addressOffset: 0x880
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DYN_OVR_DLYCNT_CA_MOVE:
+            description: Command/Address IOG move
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_CATRN_MOVE:
+            description: Command/Address IOG move (training site)
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW_MOVE4:
+            description: dqsw lane 4 move
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW_MOVE3:
+            description: dqsw lane 3 move
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW_MOVE2:
+            description: dqsw lane 2 move
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW_MOVE1:
+            description: dqsw lane 1 move
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW_MOVE0:
+            description: dqsw lane 0 move
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW270_MOVE4:
+            description: dqsw270 lane 4 move
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW270_MOVE3:
+            description: dqsw270 lane 3 move
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW270_MOVE2:
+            description: dqsw270 lane 2 move
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW270_MOVE1:
+            description: dqsw270 lane 1 move
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW270_MOVE0:
+            description: dqsw270 lane 0 move
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_MOVE4:
+            description: lanectrl lane 4 move
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_MOVE3:
+            description: lanectrl lane 3 move
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_MOVE2:
+            description: lanectrl lane 2 move
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_MOVE1:
+            description: lanectrl lane 1 move
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_MOVE0:
+            description: lanectrl lane 0 move
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQ_MOVE4:
+            description: DQ[35:32] MOVE
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      EXPERT_DLYCNT_DIRECTION_REG0:
+        description: delayline control
+        addressOffset: 0x884
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DYN_OVR_DLYCNT_DQ_DIRECTION3:
+            description: DQ[31:24] direction
+            bitOffset: 24
+            bitWidth: 8
+            access: read-write
+          DYN_OVR_DLYCNT_DQ_DIRECTION2:
+            description: DQ[23:16] direction
+            bitOffset: 16
+            bitWidth: 8
+            access: read-write
+          DYN_OVR_DLYCNT_DQ_DIRECTION1:
+            description: DQ[15:8] direction
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          DYN_OVR_DLYCNT_DQ_DIRECTION0:
+            description: DQ[7:0] direction
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      EXPERT_DLYCNT_DIRECTION_REG1:
+        description: delayline control
+        addressOffset: 0x888
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DYN_OVR_DLYCNT_CA_DIRECTION:
+            description: Command/Address IOG direction
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_CATRN_DIRECTION:
+            description: Command/Address IOG direction (training site)
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW_DIRECTION4:
+            description: dqsw lane 4 direction
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW_DIRECTION3:
+            description: dqsw lane 3 direction
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW_DIRECTION2:
+            description: dqsw lane 2 direction
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW_DIRECTION1:
+            description: dqsw lane 1 direction
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW_DIRECTION0:
+            description: dqsw lane 0 direction
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW270_DIRECTION4:
+            description: dqsw270 lane 4 direction
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW270_DIRECTION3:
+            description: dqsw270 lane 3 direction
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW270_DIRECTION2:
+            description: dqsw270 lane 2 direction
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW270_DIRECTION1:
+            description: dqsw270 lane 1 direction
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW270_DIRECTION0:
+            description: dqsw270 lane 0 direction
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_DIRECTION4:
+            description: lanectrl lane 4 direction
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_DIRECTION3:
+            description: lanectrl lane 3 direction
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_DIRECTION2:
+            description: lanectrl lane 2 direction
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_DIRECTION1:
+            description: lanectrl lane 1 direction
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_DIRECTION0:
+            description: lanectrl lane 0 direction
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQ_DIRECTION4:
+            description: DQ[35:32] direction
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      EXPERT_DLYCNT_LOAD_REG0:
+        description: delayline control
+        addressOffset: 0x88C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DYN_OVR_DLYCNT_DQ_LOAD3:
+            description: DQ[31:24] load
+            bitOffset: 24
+            bitWidth: 8
+            access: read-write
+          DYN_OVR_DLYCNT_DQ_LOAD2:
+            description: DQ[23:16] load
+            bitOffset: 16
+            bitWidth: 8
+            access: read-write
+          DYN_OVR_DLYCNT_DQ_LOAD1:
+            description: DQ[15:8] load
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          DYN_OVR_DLYCNT_DQ_LOAD0:
+            description: DQ[7:0] load
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      EXPERT_DLYCNT_LOAD_REG1:
+        description: delayline control
+        addressOffset: 0x890
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DYN_OVR_DLYCNT_CA_LOAD:
+            description: Command/Address IOG load
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_CATRN_LOAD:
+            description: Command/Address IOG load (training site)
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW_LOAD4:
+            description: dqsw lane 4 load
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW_LOAD3:
+            description: dqsw lane 3 load
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW_LOAD2:
+            description: dqsw lane 2 load
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW_LOAD1:
+            description: dqsw lane 1 load
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW_LOAD0:
+            description: dqsw lane 0 load
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW270_LOAD4:
+            description: dqsw270 lane 4 load
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW270_LOAD3:
+            description: dqsw270 lane 3 load
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW270_LOAD2:
+            description: dqsw270 lane 2 load
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW270_LOAD1:
+            description: dqsw270 lane 1 load
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQSW270_LOAD0:
+            description: dqsw270 lane 0 load
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_LOAD4:
+            description: lanectrl lane 4 load
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_LOAD3:
+            description: lanectrl lane 3 load
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_LOAD2:
+            description: lanectrl lane 2 load
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_LOAD1:
+            description: lanectrl lane 1 load
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_LOAD0:
+            description: lanectrl lane 0 load
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DQ_LOAD4:
+            description: DQ[35:32] load
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      EXPERT_DLYCNT_OOR_REG0:
+        description: delayline control
+        addressOffset: 0x894
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          DYN_OVR_DLYCNT_DQ_OOR3:
+            description: DQ[31:24] oor
+            bitOffset: 24
+            bitWidth: 8
+            access: read-only
+          DYN_OVR_DLYCNT_DQ_OOR2:
+            description: DQ[23:16] oor
+            bitOffset: 16
+            bitWidth: 8
+            access: read-only
+          DYN_OVR_DLYCNT_DQ_OOR1:
+            description: DQ[15:8] oor
+            bitOffset: 8
+            bitWidth: 8
+            access: read-only
+          DYN_OVR_DLYCNT_DQ_OOR0:
+            description: DQ[7:0] oor
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      EXPERT_DLYCNT_OOR_REG1:
+        description: delayline control
+        addressOffset: 0x898
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          DYN_OVR_DLYCNT_CA_OOR:
+            description: Command/Address IOG oor
+            bitOffset: 20
+            bitWidth: 1
+            access: read-only
+          DYN_OVR_DLYCNT_CATRN_OOR:
+            description: Command/Address IOG oor (training site)
+            bitOffset: 19
+            bitWidth: 1
+            access: read-only
+          DYN_OVR_DLYCNT_DQSW_OOR4:
+            description: dqsw lane 4 oor
+            bitOffset: 18
+            bitWidth: 1
+            access: read-only
+          DYN_OVR_DLYCNT_DQSW_OOR3:
+            description: dqsw lane 3 oor
+            bitOffset: 17
+            bitWidth: 1
+            access: read-only
+          DYN_OVR_DLYCNT_DQSW_OOR2:
+            description: dqsw lane 2 oor
+            bitOffset: 16
+            bitWidth: 1
+            access: read-only
+          DYN_OVR_DLYCNT_DQSW_OOR1:
+            description: dqsw lane 1 oor
+            bitOffset: 15
+            bitWidth: 1
+            access: read-only
+          DYN_OVR_DLYCNT_DQSW_OOR0:
+            description: dqsw lane 0 oor
+            bitOffset: 14
+            bitWidth: 1
+            access: read-only
+          DYN_OVR_DLYCNT_DQSW270_OOR4:
+            description: dqsw270 lane 4 oor
+            bitOffset: 13
+            bitWidth: 1
+            access: read-only
+          DYN_OVR_DLYCNT_DQSW270_OOR3:
+            description: dqsw270 lane 3 oor
+            bitOffset: 12
+            bitWidth: 1
+            access: read-only
+          DYN_OVR_DLYCNT_DQSW270_OOR2:
+            description: dqsw270 lane 2 oor
+            bitOffset: 11
+            bitWidth: 1
+            access: read-only
+          DYN_OVR_DLYCNT_DQSW270_OOR1:
+            description: dqsw270 lane 1 oor
+            bitOffset: 10
+            bitWidth: 1
+            access: read-only
+          DYN_OVR_DLYCNT_DQSW270_OOR0:
+            description: dqsw270 lane 0 oor
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          DYN_OVR_DLYCNT_LANECTRL_OOR4:
+            description: lanectrl lane 4 oor
+            bitOffset: 8
+            bitWidth: 1
+            access: read-only
+          DYN_OVR_DLYCNT_LANECTRL_OOR3:
+            description: lanectrl lane 3 oor
+            bitOffset: 7
+            bitWidth: 1
+            access: read-only
+          DYN_OVR_DLYCNT_LANECTRL_OOR2:
+            description: lanectrl lane 2 oor
+            bitOffset: 6
+            bitWidth: 1
+            access: read-only
+          DYN_OVR_DLYCNT_LANECTRL_OOR1:
+            description: lanectrl lane 1 oor
+            bitOffset: 5
+            bitWidth: 1
+            access: read-only
+          DYN_OVR_DLYCNT_LANECTRL_OOR0:
+            description: lanectrl lane 0 oor
+            bitOffset: 4
+            bitWidth: 1
+            access: read-only
+          DYN_OVR_DLYCNT_DQ_OOR4:
+            description: DQ[35:32] oor
+            bitOffset: 0
+            bitWidth: 4
+            access: read-only
+      EXPERT_DLYCNT_MV_RD_DLY_REG:
+        description: delayline control
+        addressOffset: 0x89C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DYN_OVR_DLYCNT_LANECTRL_MV_RD_DLY4:
+            description: lanectrl lane 4 mv_rd_dly
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_MV_RD_DLY3:
+            description: lanectrl lane 3 mv_rd_dly
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_MV_RD_DLY2:
+            description: lanectrl lane 2 mv_rd_dly
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_MV_RD_DLY1:
+            description: lanectrl lane 1 mv_rd_dly
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_MV_RD_DLY0:
+            description: lanectrl lane 0 mv_rd_dly
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      EXPERT_DLYCNT_PAUSE:
+        description: lane pause
+        addressOffset: 0x8A0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DYN_OVR_DLYCNT_LANECTRL_PAUSE_DATA4:
+            description: pause data lane 4
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_PAUSE_DATA3:
+            description: pause data lane 3
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_PAUSE_DATA2:
+            description: pause data lane 2
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_PAUSE_DATA1:
+            description: pause data lane 1
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_PAUSE_DATA0:
+            description: pause data lane 0
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_LANECTRL_PAUSE_ADDCMD:
+            description: addcmd lane pause
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      EXPERT_PLLCNT:
+        description: dynamic PLL controls
+        addressOffset: 0x8A4
+        size: 32
+        access: read-write
+        resetValue: 0x4
+        fields:
+          DYN_OVR_DLYCNT_PHSEL:
+            description: '[0] -> BCLK VCOPHS_SEL [1] -> BCLK90 VCOPHS_SEL [2] -> REFCLK VCOPHS_SEL [3] -> SCLK VCOPHS_SEL'
+            bitOffset: 3
+            bitWidth: 4
+            access: read-write
+          DYN_OVR_DLYCNT_LOADPHS_B:
+            description: PLL LOADPHS_B (asynchronous load on 0)
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_DIRECTION:
+            description: PLL ROTATE DIRECTION (1-> add, 0-> subtract)
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_DLYCNT_ROTATE:
+            description: PLL PHASE ROTATE (rotates on 0->1 edge)
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      EXPERT_DQLANE_READBACK:
+        description: DQ/DQS lane read back signals
+        addressOffset: 0x8A8
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          BURST_VALID:
+            description: '[0] -> valid burst detected (lane0) [1] -> valid burst detected (lane1) [2] -> valid burst detected (lane2) [3] -> valid burst detected (lane3) [4] -> valid burst detected (lane4)'
+            bitOffset: 10
+            bitWidth: 5
+            access: read-only
+          DQ_AND:
+            description: '[0] -> AND of all DQ bits (lane0) [1] -> AND of all DQ bits (lane1) [2] -> AND of all DQ bits (lane2) [3] -> AND of all DQ bits (lane3) [4] -> AND of all DQ bits (lane4)'
+            bitOffset: 5
+            bitWidth: 5
+            access: read-only
+          DQ_OR:
+            description: '[0] -> OR of all DQ bits (lane0) [1] -> OR of all DQ bits (lane1) [2] -> OR of all DQ bits (lane2) [3] -> OR of all DQ bits (lane3) [4] -> OR of all DQ bits (lane4)'
+            bitOffset: 0
+            bitWidth: 5
+            access: read-only
+      EXPERT_ADDCMD_LN_READBACK:
+        description: ADDRESS/COMMAND LANE READBACK
+        addressOffset: 0x8AC
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          RX_BCLKSCLK:
+            description: RX from BCLK/SCLK training site
+            bitOffset: 12
+            bitWidth: 2
+            access: read-only
+          RX_ADDCMD:
+            description: RX from ADDCMD training site
+            bitOffset: 8
+            bitWidth: 4
+            access: read-only
+          RX_REFCLK:
+            description: '[3:0] -> RX from CK0 training site [7:4] -> RX from CK1 training site'
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      EXPERT_READ_GATE_CONTROLS:
+        description: READ GATE TRAINING OVERRIDES
+        addressOffset: 0x8B0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DYN_OVR_RDGATE_STEPS180:
+            description: '[3:0] lane 0 read gate steps_180 [7:4] lane 1 read gate steps_180 [11:8] lane 2 read gate steps_180 [15:12] lane 3 read gate steps_180 [19:16] lane 4 read gate steps_180'
+            bitOffset: 10
+            bitWidth: 20
+            access: read-write
+          DYN_OVR_RDGATE_CLKSEL:
+            description: '[1:0] lane 0 read gate clk_sel [3:2] lane 1 read gate clk_sel [5:4] lane 2 read gate clk_sel [7:6] lane 3 read gate clk_sel [9:8] lane 4 read gate clk_sel'
+            bitOffset: 0
+            bitWidth: 10
+            access: read-write
+      EXPERT_DQ_DQS_OPTIMIZATION0:
+        description: DQ/DQS OPTIMIZATION READBACK REG 0
+        addressOffset: 0x8B4
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          DYN_OVR_DQDQS_DATA_MATCH_LANE3:
+            description: '[n] -> bit n in lane matches read training pattern'
+            bitOffset: 24
+            bitWidth: 8
+            access: read-only
+          DYN_OVR_DQDQS_DATA_MATCH_LANE2:
+            description: '[n] -> bit n in lane matches read training pattern'
+            bitOffset: 16
+            bitWidth: 8
+            access: read-only
+          DYN_OVR_DQDQS_DATA_MATCH_LANE1:
+            description: '[n] -> bit n in lane matches read training pattern'
+            bitOffset: 8
+            bitWidth: 8
+            access: read-only
+          DYN_OVR_DQDQS_DATA_MATCH_LANE0:
+            description: '[n] -> bit n in lane matches read training pattern'
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      EXPERT_DQ_DQS_OPTIMIZATION1:
+        description: DQ/DQS OPTIMIZATION READBACK REG 1
+        addressOffset: 0x8B8
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          DYN_OVR_DQDQS_DATA_MATCH_LANE4:
+            description: '[n] -> bit n in lane matches read training pattern'
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      EXPERT_WRCALIB:
+        description: WRCALIB OFFSET
+        addressOffset: 0x8BC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DYN_OVR_WRCALIB_OFFSET_LANE4:
+            description: write calibration offset lane 4
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          DYN_OVR_WRCALIB_OFFSET_LANE3:
+            description: write calibration offset lane 3
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          DYN_OVR_WRCALIB_OFFSET_LANE2:
+            description: write calibration offset lane 2
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          DYN_OVR_WRCALIB_OFFSET_LANE1:
+            description: write calibration offset lane 1
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          DYN_OVR_WRCALIB_OFFSET_LANE0:
+            description: write calibration offset lane 0
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      EXPERT_CALIF:
+        description: CAL INTERFACE CONTROL
+        addressOffset: 0x8C0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DYN_OVR_PATTERN_SEL:
+            description: CAL IF pattern select
+            bitOffset: 2
+            bitWidth: 4
+            access: read-write
+          DYN_OVR_CALIF_WRITE:
+            description: initiate CAL IF write
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          DYN_OVR_CALIF_READ:
+            description: initiate CAL IF read
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      EXPERT_CALIF_READBACK:
+        description: CAL INTERFACE READBACK0
+        addressOffset: 0x8C4
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          WRCALIB_PATTERN_MATCH_LANE3:
+            description: '[n] -> bit n in lane matches selected pattern'
+            bitOffset: 24
+            bitWidth: 8
+            access: read-only
+          WRCALIB_PATTERN_MATCH_LANE2:
+            description: '[n] -> bit n in lane matches selected pattern'
+            bitOffset: 16
+            bitWidth: 8
+            access: read-only
+          WRCALIB_PATTERN_MATCH_LANE1:
+            description: '[n] -> bit n in lane matches selected pattern'
+            bitOffset: 8
+            bitWidth: 8
+            access: read-only
+          WRCALIB_PATTERN_MATCH_LANE0:
+            description: '[n] -> bit n in lane matches selected pattern'
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      EXPERT_CALIF_READBACK1:
+        description: CAL INTERFACE READBACK1
+        addressOffset: 0x8C8
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          WRCALIB_PATTERN_MATCH_LANE4:
+            description: '[n] -> bit n in lane matches selected pattern'
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      EXPERT_DFI_STATUS_OVERRIDE_TO_SHIM:
+        description: DFI signals are used by the SHIM to put signalling in special training modes
+        addressOffset: 0x8CC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DFI_RDLVL_GATE_EN_SHIM:
+            description: dfi_rdlvl_en override in shim
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          DFI_RDLVL_EN_SHIM:
+            description: dfi_wrlvl_en override in shim
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          DFI_WRLVL_EN_SHIM:
+            description: dfi_training_complete override in shim
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          DFI_TRAINING_COMPLETE_SHIM:
+            description: dfi_init_complete override in shim
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          DFI_INIT_COMPLETE_SHIM:
+            description: dfi status signals to shim override
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      TIP_CFG_PARAMS:
+        description: TIP STATIC PARAMETERS 0
+        addressOffset: 0x8D0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ADDRCMD_WAIT_COUNT:
+            description: Number of VCO Phase offsets between BCLK and SCLK
+            bitOffset: 22
+            bitWidth: 9
+            access: read-write
+          READ_GATE_MIN_READS:
+            description: Number of VCO Phase offsets between BCLK and SCLK
+            bitOffset: 13
+            bitWidth: 9
+            access: read-write
+          WRCALIB_WRITE_COUNT:
+            description: Number of VCO Phase offsets between BCLK and SCLK
+            bitOffset: 6
+            bitWidth: 7
+            access: read-write
+          BCKLSCLK_OFFSET:
+            description: Number of VCO Phase offsets between BCLK and SCLK
+            bitOffset: 3
+            bitWidth: 3
+            access: read-write
+          ADDCMD_OFFSET:
+            description: Number of VCO Phase offsets between REFCLK and ADDCMD bits
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      TIP_VREF_PARAM:
+        description: TIP STATIC PARAMETERS 1
+        addressOffset: 0x8D4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CA_VREF:
+            description: COMMAND/ADDRESS memory VREF
+            bitOffset: 9
+            bitWidth: 8
+            access: read-write
+          DATA_VREF:
+            description: DATA memory VREF
+            bitOffset: 1
+            bitWidth: 8
+            access: read-write
+          VREF_OVERRIDE:
+            description: Override VREF default value
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      LANE_ALIGNMENT_FIFO_CONTROL:
+        description: Control signals for lane alignment FIFO
+        addressOffset: 0x8D8
+        size: 32
+        access: read-write
+        resetValue: 0x2
+        fields:
+          FIFO_RESET_N:
+            description: Reset lane alignment FIFO
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          BLOCK_FIFO:
+            description: Block FIFO from receiving data valid pulses
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SOFT_RESET_SGMII:
+        description: SGMII Reset control (SEU)
+        addressOffset: 0xC00
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID_SGMII:
+            description: not used
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH_SGMII:
+            description: assert peripheral block resets
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP_SGMII:
+            description: not used
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP_SGMII:
+            description: reset all the RW-P register bits in this map
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SGMII_MODE:
+        description: SGMII mode control (SEU)
+        addressOffset: 0xC04
+        size: 32
+        access: read-write
+        resetValue: 0x40E60C
+        fields:
+          REG_REFCLK_EN_INS_HYST_N:
+            description: REFCLK N input hysterisis enable
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          REG_REFCLK_EN_UDRIVE_N:
+            description: REFCLK N input drive enable
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          REG_REFCLK_EN_INS_HYST_P:
+            description: REFCLK P input hysterisis enable
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          REG_REFCLK_EN_UDRIVE_P:
+            description: REFCLK P input drive enable
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          REG_BC_VS:
+            description: GPIO Calibrator modes for normal IOs
+            bitOffset: 24
+            bitWidth: 4
+            access: read-write
+          REG_REFCLK_EN_RDIFF:
+            description: REFCLK input pad enable differential mode
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          REG_CDR_MOVE_STEP:
+            description: CDR jump step 3 or 2, default 3
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          REG_BC_VRGEN:
+            description: Bank controller voltage reference modes
+            bitOffset: 16
+            bitWidth: 6
+            access: read-write
+          REG_RX1_CDR_RESET_B:
+            description: RX1 CDR data input start if 1
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          REG_RX0_CDR_RESET_B:
+            description: RX0 CDR data input start if 1
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          REG_DLL_ADJ_CODE:
+            description: Add 9 taps to DLL delay code to compensate for generic mux delay
+            bitOffset: 10
+            bitWidth: 4
+            access: read-write
+          REG_DLL_LOCK_FLT:
+            description: DLL phase lock tolerance of gitter
+            bitOffset: 8
+            bitWidth: 2
+            access: read-write
+          REG_RX1_EN:
+            description: enable RX1 channel
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          REG_TX1_EN:
+            description: enable TX1 channel
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          REG_RX0_EN:
+            description: enable RX0 channel
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          REG_TX0_EN:
+            description: enable TX0 channel
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          REG_BC_VRGEN_EN:
+            description: enable Bank Controller Vref
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          REG_PVT_EN:
+            description: enable GPIO PVT calibrator by releasing calib_reset
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          REG_DLL_EN:
+            description: enable DLL
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          REG_PLL_EN:
+            description: enable PLL
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PLL_CNTL:
+        description: PLL control register (SEU)
+        addressOffset: 0xC08
+        size: 32
+        access: read-write
+        resetValue: 0x80140101
+        fields:
+          REG_PLL_BWP:
+            description: PLL proportional path loop bandwidth control
+            bitOffset: 30
+            bitWidth: 2
+            access: read-write
+          REG_PLL_BWI:
+            description: PLL integral path loop bandwidth control
+            bitOffset: 28
+            bitWidth: 2
+            access: read-write
+          REG_PLL_INTIN:
+            description: PLL feedback multiplier (multiplied by 20)
+            bitOffset: 16
+            bitWidth: 12
+            access: read-write
+          REG_PLL_LP_REQUIRES_LOCK:
+            description: PLL lock to exit flash-freeze
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          REG_PLL_REG_RFCLK_SEL:
+            description: PLL select refclk0 by default
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          REG_PLL_RFDIV:
+            description: PLL reference clock division
+            bitOffset: 8
+            bitWidth: 6
+            access: read-write
+          ARO_PLL0_LOCK:
+            description: PLL lock from SCB
+            bitOffset: 7
+            bitWidth: 1
+            access: read-only
+          REG_PLL_POSTDIV:
+            description: PLL post-division for all four outputs (divided by 4)
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      CH0_CNTL:
+        description: Channel0 control register
+        addressOffset: 0xC0C
+        size: 32
+        access: read-write
+        resetValue: 0x9C0000
+        fields:
+          REG_RX0_ODT_STATIC_P:
+            description: RX0 termination modes
+            bitOffset: 28
+            bitWidth: 3
+            access: read-write
+          REG_RX0_ODT_P:
+            description: RX0 termination modes
+            bitOffset: 24
+            bitWidth: 4
+            access: read-write
+          REG_RX0_EYEWIDTH_P:
+            description: RX0 eye monitor width
+            bitOffset: 21
+            bitWidth: 3
+            access: read-write
+          REG_RX0_IBUFMD_P:
+            description: RX0 pad input buffer mode
+            bitOffset: 18
+            bitWidth: 3
+            access: read-write
+          REG_RX0_WPD_P:
+            description: RX0 pad weak pull-down
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          REG_RX0_WPU_P:
+            description: RX0 pad weak pull-up
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          REG_RX0_TIM_LONG:
+            description: RX0 comma detection timeout long (1) or short (0), 8ms or 1ms
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          REG_TX0_ODT_STATIC_P:
+            description: TX0 termination modes
+            bitOffset: 12
+            bitWidth: 3
+            access: read-write
+          REG_TX0_ODT_P:
+            description: TX0 termination modes
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          REG_TX0_DRV_P:
+            description: TX0 drive strength
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          REG_TX0_SLEW_P:
+            description: TX0 pad slew mode
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          REG_TX0_WPD_P:
+            description: TX0 pad weak pull-down
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          REG_TX0_WPU_P:
+            description: TX0 pad weak pull-up
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CH1_CNTL:
+        description: Channel1 control register
+        addressOffset: 0xC10
+        size: 32
+        access: read-write
+        resetValue: 0x9C0000
+        fields:
+          REG_RX1_ODT_STATIC_P:
+            description: RX1 termination modes
+            bitOffset: 28
+            bitWidth: 3
+            access: read-write
+          REG_RX1_ODT_P:
+            description: RX1 termination modes
+            bitOffset: 24
+            bitWidth: 4
+            access: read-write
+          REG_RX1_EYEWIDTH_P:
+            description: RX1 eye monitor width
+            bitOffset: 21
+            bitWidth: 3
+            access: read-write
+          REG_RX1_IBUFMD_P:
+            description: RX1 pad input buffer mode
+            bitOffset: 18
+            bitWidth: 3
+            access: read-write
+          REG_RX1_WPD_P:
+            description: RX1 pad weak pull-down
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          REG_RX1_WPU_P:
+            description: RX1 pad weak pull-up
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          REG_RX1_TIM_LONG:
+            description: RX1 comma detection timeout long (1) or short (0), 8ms or 1ms
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          REG_TX1_ODT_STATIC_P:
+            description: TX1 termination modes
+            bitOffset: 12
+            bitWidth: 3
+            access: read-write
+          REG_TX1_ODT_P:
+            description: TX1 termination modes
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          REG_TX1_DRV_P:
+            description: TX1 drive strength
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          REG_TX1_SLEW_P:
+            description: TX1 pad slew mode
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          REG_TX1_WPD_P:
+            description: TX1 pad weak pull-down
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          REG_TX1_WPU_P:
+            description: TX1 pad weak pull-up
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RECAL_CNTL:
+        description: Recalibration control register
+        addressOffset: 0xC14
+        size: 32
+        access: read-write
+        resetValue: 0x8
+        fields:
+          SRO_RECAL_START:
+            description: recalibration interrupt when difference range is exceeded
+            bitOffset: 31
+            bitWidth: 1
+            access: read-only
+          SRO_DLL_ST_CODE:
+            description: stored DLL code since the last recalibration
+            bitOffset: 24
+            bitWidth: 7
+            access: read-only
+          SRO_DLL_LOCK:
+            description: DLL lock
+            bitOffset: 23
+            bitWidth: 1
+            access: read-only
+          SRO_DLL_90_CODE:
+            description: DLL delay code for 90 degree
+            bitOffset: 16
+            bitWidth: 7
+            access: read-only
+          REG_PVT_REG_CALIB_DIFFR_VSEL:
+            description: GPIO Calibrator modes for differential IOs
+            bitOffset: 14
+            bitWidth: 2
+            access: read-write
+          REG_PVT_REG_CALIB_CLKDIV:
+            description: GPIO Calibrator clock divider after power-up
+            bitOffset: 12
+            bitWidth: 2
+            access: read-write
+          BC_VRGEN_MOVE:
+            description: Bank Controller voltage reference move
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          BC_VRGEN_LOAD:
+            description: Bank Controller voltage reference load
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          BC_VRGEN_DIRECTION:
+            description: Bank Controller voltage reference move direction
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          REG_RECAL_UPD:
+            description: update dll_st_code when written 1 after recalibration
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          REG_PVT_CALIB_LOCK:
+            description: PVT calibration lock in new code
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          REG_PVT_CALIB_START:
+            description: PVT calibration start new run
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          REG_RECAL_START_EN:
+            description: recalibration interrupt enable
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          REG_RECAL_DIFF_RANGE:
+            description: recalibration difference range between dll_90_code and dll_st_code
+            bitOffset: 0
+            bitWidth: 5
+            access: read-write
+      CLK_CNTL:
+        description: Clock input and routing control registers
+        addressOffset: 0xC18
+        size: 32
+        access: read-write
+        resetValue: 0xF0000000
+        fields:
+          REG_CLKMUX_SPARE0:
+            description: spare SEU registers
+            bitOffset: 16
+            bitWidth: 16
+            access: read-write
+          REG_CLKMUX_PLL0_RFCLK1_SEL:
+            description: PLL reference clock input1 selection
+            bitOffset: 14
+            bitWidth: 2
+            access: read-write
+          REG_CLKMUX_PLL0_RFCLK0_SEL:
+            description: PLL reference clock input0 selection
+            bitOffset: 12
+            bitWidth: 2
+            access: read-write
+          REG_CLKMUX_FCLK_SEL:
+            description: SGMII clock selection for fabric
+            bitOffset: 9
+            bitWidth: 3
+            access: read-write
+          REG_REFCLK_CLKBUF_EN_PULLUP:
+            description: REFCLK input pad enable pullup
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          REG_REFCLK_EN_RXMODE_N:
+            description: REFCLK N input mode enable
+            bitOffset: 6
+            bitWidth: 2
+            access: read-write
+          REG_REFCLK_EN_TERM_N:
+            description: REFCLK N input termination enable
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          REG_REFCLK_EN_RXMODE_P:
+            description: REFCLK P input mode enable
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          REG_REFCLK_EN_TERM_P:
+            description: REFCLK P input termination enable
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      DYN_CNTL:
+        description: Dynamic control registers
+        addressOffset: 0xC1C
+        size: 32
+        access: read-write
+        resetValue: 0x400
+        fields:
+          ARO_REF_DIFFR:
+            description: PVT DIFFR calibration code from SCB
+            bitOffset: 28
+            bitWidth: 4
+            access: read-only
+          ARO_PLL0_VCO3PH_SEL:
+            description: PLL VCO phase3 selection
+            bitOffset: 25
+            bitWidth: 3
+            access: read-only
+          ARO_PLL0_VCO2PH_SEL:
+            description: PLL VCO phase2 selection
+            bitOffset: 22
+            bitWidth: 3
+            access: read-only
+          ARO_PLL0_VCO1PH_SEL:
+            description: PLL VCO phase1 selection
+            bitOffset: 19
+            bitWidth: 3
+            access: read-only
+          ARO_PLL0_VCO0PH_SEL:
+            description: PLL VCO phase0 selection
+            bitOffset: 16
+            bitWidth: 3
+            access: read-only
+          PVT_CALIB_STATUS:
+            description: PVT calibration status
+            bitOffset: 15
+            bitWidth: 1
+            access: read-only
+          REG_LANE1_SOFT_RESET_PERIPH:
+            description: Lane1 soft reset
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          REG_LANE0_SOFT_RESET_PERIPH:
+            description: Lane0 soft reset
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          REG_CLKMUX_SOFT_RESET_PERIPH:
+            description: CLKMUX soft reset
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          REG_BC_SOFT_RESET_PERIPH:
+            description: Bank controller soft reset
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          REG_PVT_SOFT_RESET_PERIPH:
+            description: PVT soft reset
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          REG_DLL_SOFT_RESET_PERIPH:
+            description: DLL soft reset
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          REG_PLL_SOFT_RESET_PERIPH:
+            description: PLL soft reset
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          BC_VRGEN_OOR:
+            description: Bank controller voltage reference out of range
+            bitOffset: 7
+            bitWidth: 1
+            access: read-only
+          REG_LANE1_DYNEN:
+            description: Lane1 dynamic control enable
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          REG_LANE0_DYNEN:
+            description: Lane0 dynamic control enable
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          REG_CLKMUX_DYNEN:
+            description: CLKMUX dynamic control enable
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          REG_BC_DYNEN:
+            description: Bank controller dynamic control enable
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          REG_PVT_DYNEN:
+            description: PVT calibrator dynamic control enable
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          REG_DLL_DYNEN:
+            description: DLL dynamic control enable
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          REG_PLL_DYNEN:
+            description: PLL dynamic control enable
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PVT_STAT:
+        description: PVT calibrator status registers
+        addressOffset: 0xC20
+        size: 32
+        access: read-write
+        resetValue: 0x80000000
+        fields:
+          PVT_CALIB_START:
+            description: PVT calibration start new run
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          PVT_CALIB_LOCK:
+            description: PVT calibration lock in new code
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          ARO_NCODE:
+            description: PVT calibrator N-code to IO lane
+            bitOffset: 24
+            bitWidth: 6
+            access: read-only
+          PVT_CALIB_INTRPT:
+            description: PVT calibration interrupt
+            bitOffset: 23
+            bitWidth: 1
+            access: read-only
+          ARO_CALIB_INTRPT:
+            description: PVT calibration interrupt
+            bitOffset: 22
+            bitWidth: 1
+            access: read-only
+          ARO_PCODE:
+            description: PVT calibrator P-code to IO lane
+            bitOffset: 16
+            bitWidth: 6
+            access: read-only
+          ARO_CALIB_STATUS_B:
+            description: PVT calibration status_b
+            bitOffset: 15
+            bitWidth: 1
+            access: read-only
+          ARO_CALIB_STATUS:
+            description: PVT calibration status
+            bitOffset: 14
+            bitWidth: 1
+            access: read-only
+          ARO_REF_NCODE:
+            description: PVT calibrator N-code to reference
+            bitOffset: 8
+            bitWidth: 6
+            access: read-only
+          ARO_IOEN_BNK_B:
+            description: PVT calibrator IOEN_B
+            bitOffset: 7
+            bitWidth: 1
+            access: read-only
+          ARO_IOEN_BNK:
+            description: PVT calibrator IOEN
+            bitOffset: 6
+            bitWidth: 1
+            access: read-only
+          ARO_REF_PCODE:
+            description: PVT calibrator P-code to reference
+            bitOffset: 0
+            bitWidth: 6
+            access: read-only
+      SPARE_CNTL:
+        description: Spare control register
+        addressOffset: 0xC24
+        size: 32
+        access: read-write
+        resetValue: 0xFF000000
+        fields:
+          REG_SPARE:
+            description: spare SEU registers
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      SPARE_STAT:
+        description: Spare status register
+        addressOffset: 0xC28
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SRO_SPARE:
+            description: spare status bits
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only

@@ -1,0 +1,1150 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  GPIO_IOBANK0_LO:
+    description: GPIO_IOBANK0_LO Controller
+    groupName: GPIO
+    baseAddress: 0x20120000
+    registers:
+      CONFIG_0:
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: 'Interrupt Types. 000: Level High, 001: Level Low, 010: Edge Positive, 011: Edge Negative, 100: Edge Both'
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: Interrupt Enable
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: Output Buffer Enable
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: Input reg enable
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: Output reg enable
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_1:
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: Same as CONFIG_0
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: Same as CONFIG_0
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: Same as CONFIG_0
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: Same as CONFIG_0
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: Same as CONFIG_0
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_2:
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: Same as CONFIG_0
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: Same as CONFIG_0
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: Same as CONFIG_0
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: Same as CONFIG_0
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: Same as CONFIG_0
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_3:
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: Same as CONFIG_0
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: Same as CONFIG_0
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: Same as CONFIG_0
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: Same as CONFIG_0
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: Same as CONFIG_0
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_4:
+        addressOffset: 0x10
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: Same as CONFIG_0
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: Same as CONFIG_0
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: Same as CONFIG_0
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: Same as CONFIG_0
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: Same as CONFIG_0
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_5:
+        addressOffset: 0x14
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: Same as CONFIG_0
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: Same as CONFIG_0
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: Same as CONFIG_0
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: Same as CONFIG_0
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: Same as CONFIG_0
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_6:
+        addressOffset: 0x18
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: Same as CONFIG_0
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: Same as CONFIG_0
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: Same as CONFIG_0
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: Same as CONFIG_0
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: Same as CONFIG_0
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_7:
+        addressOffset: 0x1C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: Same as CONFIG_0
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: Same as CONFIG_0
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: Same as CONFIG_0
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: Same as CONFIG_0
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: Same as CONFIG_0
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_8:
+        addressOffset: 0x20
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: Same as CONFIG_0
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: Same as CONFIG_0
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: Same as CONFIG_0
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: Same as CONFIG_0
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: Same as CONFIG_0
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_9:
+        addressOffset: 0x24
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: Same as CONFIG_0
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: Same as CONFIG_0
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: Same as CONFIG_0
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: Same as CONFIG_0
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: Same as CONFIG_0
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_10:
+        addressOffset: 0x28
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: Same as CONFIG_0
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: Same as CONFIG_0
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: Same as CONFIG_0
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: Same as CONFIG_0
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: Same as CONFIG_0
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_11:
+        description: Same as CONFIG_0
+        addressOffset: 0x2C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_12:
+        description: Same as CONFIG_0
+        addressOffset: 0x30
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_13:
+        description: Same as CONFIG_0
+        addressOffset: 0x34
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_14:
+        description: Same as CONFIG_0
+        addressOffset: 0x38
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_15:
+        description: Same as CONFIG_0
+        addressOffset: 0x3C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_16:
+        description: Same as CONFIG_0
+        addressOffset: 0x40
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_17:
+        description: Same as CONFIG_0
+        addressOffset: 0x44
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_18:
+        description: Same as CONFIG_0
+        addressOffset: 0x48
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_19:
+        description: Same as CONFIG_0
+        addressOffset: 0x4C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_20:
+        description: Same as CONFIG_0
+        addressOffset: 0x50
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_21:
+        description: Same as CONFIG_0
+        addressOffset: 0x54
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_22:
+        description: Same as CONFIG_0
+        addressOffset: 0x58
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_23:
+        description: Same as CONFIG_0
+        addressOffset: 0x5C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_24:
+        description: Same as CONFIG_0
+        addressOffset: 0x60
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_25:
+        description: Same as CONFIG_0
+        addressOffset: 0x64
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_26:
+        description: Same as CONFIG_0
+        addressOffset: 0x68
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_27:
+        description: Same as CONFIG_0
+        addressOffset: 0x6C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_28:
+        description: Same as CONFIG_0
+        addressOffset: 0x70
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_29:
+        addressOffset: 0x74
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_30:
+        description: Same as CONFIG_0
+        addressOffset: 0x78
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_31:
+        description: Same as CONFIG_0
+        addressOffset: 0x7C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TYPES_INT:
+            description: Same as CONFIG_0
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EN_INT:
+            description: Same as CONFIG_0
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_OE_BUF:
+            description: Same as CONFIG_0
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          EN_IN:
+            description: Same as CONFIG_0
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_OUT:
+            description: Same as CONFIG_0
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      INTR:
+        addressOffset: 0x80
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          NO_FIELD_NAMES_OR_BIT_RANGES_ASSIGNED_YET:
+            description: Per bit interrupt, ; Read Modify Write. To clear an interrtupt the bit is written with '1'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      GPIN:
+        addressOffset: 0x84
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          NO_FIELD_NAMES_OR_BIT_RANGES_ASSIGNED_YET:
+            description: Read-only for input configured ports.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only
+      GPOUT:
+        addressOffset: 0x88
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          NO_FIELD_NAMES_OR_BIT_RANGES_ASSIGNED_YET:
+            description: Writeable/Readable for output configured ports; don't care for input configured ports
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      CONFIG_ALL:
+        addressOffset: 0x8C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CONFIG_ALL:
+            description: set all configs
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_BYTE0:
+        addressOffset: 0x90
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CONFIG_BYTE0:
+            description: Set all configs in byte 0
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_BYTE1:
+        addressOffset: 0x94
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CONFIG_BYTE1:
+            description: Set all configs in byte 0
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_BYTE2:
+        addressOffset: 0x98
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CONFIG_BYTE2:
+            description: Set all configs in byte 0
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONFIG_BYTE3:
+        addressOffset: 0x9C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CONFIG_BYTE3:
+            description: Set all configs in byte 0
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CLEAR_BITS:
+        addressOffset: 0xA0
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          CLEAR_BITS:
+            description: Writing a '1' to a bit will clear that bit in the GPIO register. Other bits hold value.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      SET_BITS:
+        addressOffset: 0xA4
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SET_BITS:
+            description: Writing a '1' to a bit will set that bit in the GPIO register. Other bits hold value.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+  GPIO_IOBANK1_LO:
+    derivedFrom: GPIO_IOBANK0_LO
+    description: GPIO_IOBANK1_LO Controller
+    baseAddress: 0x20121000
+  GPIO_FAB_LO:
+    derivedFrom: GPIO_IOBANK0_LO
+    description: GPIO_FAB_LO Controller
+    baseAddress: 0x20122000
+  GPIO_IOBANK0_HI:
+    derivedFrom: GPIO_IOBANK0_LO
+    description: GPIO_IOBANK0_HI Controller
+    baseAddress: 0x28120000
+  GPIO_IOBANK1_HI:
+    derivedFrom: GPIO_IOBANK0_LO
+    description: GPIO_IOBANK1_HI Controller
+    baseAddress: 0x28121000
+  GPIO_FAB_HI:
+    derivedFrom: GPIO_IOBANK0_LO
+    description: GPIO_FAB_HI Controller
+    baseAddress: 0x28122000

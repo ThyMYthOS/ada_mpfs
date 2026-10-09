@@ -1,0 +1,85 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  IOSCBCFG:
+    description: IOSCBCFG Controller
+    baseAddress: 0x37080000
+    registers:
+      CONTROL__1:
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCBCLOCK_ON:
+            description: Setting this requests PFC to turn on the SCB clock permanently
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RESET_CYCLE:
+            description: Writing a '1' to the bit will cause a reset off the internal FSMS. Once set it will stay asserted until the reset cycle completes when it will be cleared. This may take several clock cycles depending on relative speeds of the SCB and AHB clocks.
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          INTEN_BUSERR:
+            description: Enables interrupt when SCB bus error detected
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          INTEN_TIMEOUT:
+            description: Enables interrupt when timeout occurs
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          INTEN_ERROR:
+            description: Enables interrupt when SCB error asserted
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          INTEN_SCB:
+            description: Enables interrupt when SCB Interrupt asserted
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      STATUS:
+        addressOffset: 0x4
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SCB_BUSERR:
+            description: Indicated that an SCB bus error (parity) was detected. Is cleared by initiating FSM reset cycle (Control register bit 16)
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          TIMEOUT:
+            description: Indicated that the SCB access timed out. Is cleared by initiating FSM reset cycle (Control register bit 16)
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          SCB_ERROR:
+            description: Indicates that the SCB error was asserted. Is cleared by initiating FSM reset cycle (Control register bit 16)
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          SCB_INTERRUPT:
+            description: Indicated SCB interrupt active. Is cleared by clearing the SCB interrupt source
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      TIMER:
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x2080
+        fields:
+          REQUEST_TIME:
+            description: Sets how long SCB request is held active after SCB bus granted. Allows SCB bus mastership to maintained across multiple SCB access cycles
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          TIMEOUT:
+            description: Set the timeout for an SCB access in CPU cycles.
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write

@@ -1,0 +1,166 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  WDOG0_LO:
+    description: WDOG0_LO Controller
+    groupName: WDOG
+    baseAddress: 0x20001000
+    registers:
+      WDOG_REFRESH:
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0xFFFFF0
+        fields:
+          WDOGREFRESH:
+            description: Writing pwdata=0xdeadc0de resets the watchdog timer to start counting down again when in the permitted refresh window. Writes of any other value will have no effect whilst in the permitted refresh window. Reads return the current timer value. A write to this will start the watchdog once started the watchdog cannot be stopped.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      WDOG_CONTROL:
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x2
+        fields:
+          ENABLE_FORBIDDEN:
+            description: When set if a write occurs in the forbidden region the watchdog will trigger
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          ACTIVE_SLEEP:
+            description: When set the watchdog is operational, when the CPU is sleeping.
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          INTEN_SLEEP:
+            description: Enables the MVRP interrupt when the MVRP level is passed and the M3 is sleeping
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          INTEN_TRIG:
+            description: 'Enables the NMI interrupt when the TRIGGER level is passed. NOTE: This bit is permanently set and cannot be changed.'
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          INTEN_MSVP:
+            description: Enables the MVRP interrupt when the MVRP level is passed
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      WDOG_STATUS:
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DEVRST:
+            description: Indicates that the DEVRST caused the NMI. Will be cleared when the system resets
+            bitOffset: 5
+            bitWidth: 1
+            access: read-only
+          LOCKED:
+            description: Indicates that the following three registers are locked and cannot be changed
+            bitOffset: 4
+            bitWidth: 1
+            access: read-only
+          TRIGGERED:
+            description: Indicates that the watchdog has triggered. Will be cleared when the system resets
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          FORBIDDEN:
+            description: Indicates that the watchdog is currently in the forbidden range
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          WDOG_TRIPPED:
+            description: Indicates that the TRIGGER level has passed and that the NMI is asserted, Cleared by writing a '1'
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          MVRP_TRIPPED:
+            description: Indicates that the MVRP level has passed. Cleared by writing a '1'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      WDOG_TIME:
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0xFFFFF0
+        fields:
+          WDOGTIME:
+            description: Sets the watchdog time value. Once written locks this and the following two registers
+            bitOffset: 0
+            bitWidth: 24
+            access: read-write
+      MSVP:
+        addressOffset: 0x10
+        size: 32
+        access: read-write
+        resetValue: 0x989680
+        fields:
+          WDOGMVRP:
+            description: Sets the watchdog MVRP value.
+            bitOffset: 0
+            bitWidth: 24
+            access: read-write
+      TRIGGER:
+        addressOffset: 0x14
+        size: 32
+        access: read-write
+        resetValue: 0x3E8
+        fields:
+          WDOGTRIG:
+            description: Sets the watchdog trigger value, 0-4095 u seconds
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      FORCE:
+        addressOffset: 0x18
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WDOGVALUE:
+            description: If the watchdog has triggered writing 0x0c will cause an immediate reset, any other value or write at other times will trigger the watchdog NMI sequence.
+            bitOffset: 0
+            bitWidth: 16
+            access: read-write
+  WDOG1_LO:
+    derivedFrom: WDOG0_LO
+    description: WDOG1_LO Controller
+    baseAddress: 0x20101000
+  WDOG2_LO:
+    derivedFrom: WDOG0_LO
+    description: WDOG2_LO Controller
+    baseAddress: 0x20103000
+  WDOG3_LO:
+    derivedFrom: WDOG0_LO
+    description: WDOG3_LO Controller
+    baseAddress: 0x20105000
+  WDOG4_LO:
+    derivedFrom: WDOG0_LO
+    description: WDOG4_LO Controller
+    baseAddress: 0x20107000
+  WDOG0_HI:
+    derivedFrom: WDOG0_LO
+    description: WDOG0_HI Controller
+    baseAddress: 0x28001000
+  WDOG1_HI:
+    derivedFrom: WDOG0_LO
+    description: WDOG1_HI Controller
+    baseAddress: 0x28101000
+  WDOG2_HI:
+    derivedFrom: WDOG0_LO
+    description: WDOG2_HI Controller
+    baseAddress: 0x28103000
+  WDOG3_HI:
+    derivedFrom: WDOG0_LO
+    description: WDOG3_HI Controller
+    baseAddress: 0x28105000
+  WDOG4_HI:
+    derivedFrom: WDOG0_LO
+    description: WDOG4_HI Controller
+    baseAddress: 0x28107000

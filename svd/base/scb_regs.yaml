@@ -1,0 +1,2079 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  SCB_REGS:
+    description: SCB_REGS Controller
+    baseAddress: 0x20003000
+    registers:
+      SOFT_RESET:
+        description: System Reset Register. This MSS soft reset register is not readable or writeable by the MSS or user or DRI.
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x7200000
+        fields:
+          BLOCKID:
+            description: This returns the block type and chip location.
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH:
+            description: This asserts the functional reset of the block. It is asserted at power up, the bit self clears i.e. is similar to a W1P bit. This bit is activated global_periph_reset
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP:
+            description: This when asserted resets all the register bits apart from the non-volatile registers, the bit self clears i.e. is similar to a W1P bit. This bit is activated global_map_reset.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP:
+            description: This when asserted resets all the non-volatile register bits e.g. RW-P bits, the bit self clears i.e. is similar to a W1P bit. This bit is activated global_map_reset.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      AXI_WSETUP:
+        description: Axi Write Setup. Not accesible from MSS or user or DRI.
+        addressOffset: 0x10
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SYSTEM:
+            description: '0: AXI transaction uses ID 0 and passes through MPU block 1: AXI transaction uses ID 1 and bypasses the MPU block'
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          QOS:
+            description: Sets the AXI QOS value, higher values have higher priority in the switch
+            bitOffset: 27
+            bitWidth: 4
+            access: read-write
+          PROT:
+            description: Sets the AXI protection value
+            bitOffset: 24
+            bitWidth: 3
+            access: read-write
+          CACHE:
+            description: Sets the AXI Cache value
+            bitOffset: 20
+            bitWidth: 4
+            access: read-write
+          LOCK:
+            description: Sets the AXI lock
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          SIZE:
+            description: Set the AXI size (width)
+            bitOffset: 16
+            bitWidth: 3
+            access: read-write
+          LENGTH:
+            description: Sets the AXI burst length
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          BURST:
+            description: Sets the AXi burst type
+            bitOffset: 6
+            bitWidth: 2
+            access: read-write
+          ADDR:
+            description: Sets the upper 6-bits of the address bus
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      AXI_WADDR:
+        description: AXI Write Address. Not accesible from MSS or user or DRI.
+        addressOffset: 0x14
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ADDR:
+            description: This sets the AXI write address. A write to this register triggers the AXI AW cycle
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      AXI_WDATA:
+        description: AXI Write Data. This is write only register, reads will return zero. Not accesible from MSS or user or DRI.
+        addressOffset: 0x18
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: Write Data, when written will initiate a AHB write transfer through the write data FIFO.Data must be written using word operations. If AWSIZE<=2 then a AXI Write data cycle will be started every cycle, if AWSIZE=3 a AXI Write data cycle will be started every other cycle.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      AXI_RSETUP:
+        description: AXI Read Setup. Not accesible from MSS or user or DRI.
+        addressOffset: 0x1C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SYSTEM:
+            description: '0: AXI transaction uses ID 0 and passes through MPU block 1: AXI transaction uses ID 1 and bypasses the MPU block'
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          QOS:
+            description: Sets the AXI QOS value, higher values have higher priority in the switch
+            bitOffset: 27
+            bitWidth: 4
+            access: read-write
+          PROT:
+            description: Sets the AXI protection value
+            bitOffset: 24
+            bitWidth: 3
+            access: read-write
+          CACHE:
+            description: Sets the AXI Cache value
+            bitOffset: 20
+            bitWidth: 4
+            access: read-write
+          LOCK:
+            description: Sets the AXI lock
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          SIZE:
+            description: Set the AXI size (width)
+            bitOffset: 16
+            bitWidth: 3
+            access: read-write
+          LENGTH:
+            description: Sets the AXI burst length
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          BURST:
+            description: Sets the AXi burst type
+            bitOffset: 6
+            bitWidth: 2
+            access: read-write
+          ADDR:
+            description: Sets the upper 6-bits of the address bus
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      AXI_RADDR:
+        description: AXI Read Address. Not accesible from MSS or user or DRI.
+        addressOffset: 0x20
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ADDR:
+            description: This sets the AXI read address. A write to this register triggers the AXI AR cycle
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      AXI_RDATA:
+        description: AHB Read data. This is a read only register, writes will be have no effect.
+        addressOffset: 0x24
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: Read data from the AXI read FIFO
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      AXI_STATUS:
+        description: AXI Master Status. Not accessible from MSS or user or DRI. This register provides status information and writes only supported on bits 28:24
+        addressOffset: 0x28
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          INT_ENABLE_SYSREG:
+            description: Enable SCB interrupt from the SCB Interrupt register
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          INT_ENABLE_WRESP:
+            description: Enable SCB interrupt on write response error
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          INT_ENABLE_RRESP:
+            description: Enable SCB interrupt on read response error
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          INT_ENABLE_WRITE_ORUN:
+            description: Enable SCB interrupt on write overrun
+            bitOffset: 25
+            bitWidth: 1
+            access: read-write
+          INT_ENABLE_READ_ORUN:
+            description: Enable SCB interrupt on read overrun
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          MSS_RESET:
+            description: Indicates that the MSS has been reset and the SCB transfer may have failed. Is the internal MSS sticky_reset signal
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          READ_RESPONSE:
+            description: Indicates the read response. When a non-zero value is detected the register will hold the value until the read_error bit is cleared or abort asserted
+            bitOffset: 18
+            bitWidth: 2
+            access: read-write
+          WRITE_RESPONSE:
+            description: Indicates the write response. When a non-zero value is detected the register will hold the value until the write_error bit is cleared or abort asserted
+            bitOffset: 16
+            bitWidth: 2
+            access: read-write
+          WRITE_OVERRUN:
+            description: Indicates the SCB bus wrote the write FIFO when empty. Is cleared by writing a ‘1’
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          READ_OVERRUN:
+            description: Indicates the SCB bus read the read FIFO when empty. Is cleared by writing a ‘1’
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          READ_COUNT:
+            description: Indicates how many 32-bit words are stored in the read FIFO
+            bitOffset: 9
+            bitWidth: 5
+            access: read-write
+          WRITE_COUNT:
+            description: Indicates how many 32-bit words are stored in the write FIFO
+            bitOffset: 4
+            bitWidth: 5
+            access: read-write
+          READ_ERROR:
+            description: Set when a read error response is received. Is cleared by writing a ‘1’
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          WRITE_ERROR:
+            description: Set when a write error response is received. Is cleared by writing a ‘1’
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          READ_BUSY:
+            description: Set during arvalid cycle and cleared on the last read response
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          WRITE_BUSY:
+            description: Set during awvalid cycle and cleared on the write response
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      AXI_CONTROL:
+        description: AXI Cycle Controls. Not accesible from MSS or user or DRI.
+        addressOffset: 0x2C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          START_WRITE:
+            description: Starts AXI transfer when STALL_WRITE is set, reads as zero
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          STALL_WRITE:
+            description: When set prevents the logic initiating AW cycle automatically. Write is started by START_WRITE. Allows up to 16 words (32-bits) of data to be queued allowing AXI to run more efficiently.
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          ABORT:
+            description: Abort current transfer and reset the FSMS. May cause AXI protocol violations
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      REDUNDANCY:
+        description: Used to program MSS RAM redundancy system during system startup
+        addressOffset: 0x30
+        size: 32
+        access: read-write
+        resetValue: 0x2
+        fields:
+          NOCLOCK:
+            description: When set stops the SCB clock creating the Redundancy clock. To allow for large recovery times on the redundancy ISOLATE and RESET inputs this bit should be set prior to toggling the reset/isolate bits and cleared afterwards.
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          ISOLATE:
+            description: Asserts the Redundacy isolate, interface isolated when 1 (can be accessed by MSS in factory mode)
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RESET:
+            description: Asserts the Redundacy reset (can be accessed by MSS in factory mode)
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      BIST_CONFIG:
+        description: Used to access the BIST systems
+        addressOffset: 0x50
+        size: 32
+        access: read-write
+        resetValue: 0x1
+        fields:
+          MARGIN:
+            description: Set the BIST memory margin, factory mode only
+            bitOffset: 16
+            bitWidth: 3
+            access: read-write
+          SELECT:
+            description: Select the BIST engine 0-15
+            bitOffset: 8
+            bitWidth: 5
+            access: read-write
+          DIAG_SELECT:
+            description: Assert the DIAG select
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RESET:
+            description: Assert the BIST reset
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          ENABLE:
+            description: Enable the CPU BIST system
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          ENABLED:
+            description: Indicates that CPU may use BIST system, UFS bit may disable this interface, available when factory mode set
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      BIST_DATA:
+        description: Data value to be shifted into BIST system
+        addressOffset: 0x54
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: Writes sets the data value to shifted, LSB shifted out first. Reads returns the shifted in value, MSB is last bit shifted in.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      BIST_COMMAND:
+        description: BIST Shift Controls
+        addressOffset: 0x58
+        size: 32
+        access: read-write
+        resetValue: 0x2000
+        fields:
+          LENGTH:
+            description: Number of bits to shift 1-127. If set to >32 the outgoing shift data for bits 33 upwards will be zero. This allows MBIST with CSR registers greater than 32 to be started with valid data loaded into bits 23:0 off the CSR register as specified in the data register. When >32 incoming data is not captured in the shift register, if the read data is to extracted then each shift operation should be <=32 bits. To read a 88 bit register will require 3 shift operatiosn of 32, 32 and 24 bits
+            bitOffset: 8
+            bitWidth: 7
+            access: read-write
+          BUSY:
+            description: Indicates that the shift is in progress.
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          SHIFT:
+            description: Perform the specified number off shift cycles.
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          CAPTURE:
+            description: Do a shift cycle, may be asserted at the same time as shift, capture is asserted before shift operations start.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          UPDATE:
+            description: Do an update cycle
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSS_RESET_CR:
+        description: MSS reset Controls
+        addressOffset: 0x100
+        size: 32
+        access: read-write
+        resetValue: 0x107
+        fields:
+          REASON:
+            description: This provides a read off the main SYSREG reset reason register
+            bitOffset: 16
+            bitWidth: 9
+            access: read-only
+          SGMII:
+            description: Asserts a reset the SGMII block containing the MSS reference clock input. Warning that setting this bit causes the external reference clock input to the MSS PLL to disappear. It is advisable to use the SGMII channel soft resets in the PHY instead of this bit. However if E51 software wants to set this bit, the MSS clock source should be switched over to the standby source in advance.
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          REBOOT_REQUEST:
+            description: Reading returns the value of reboot_request. Writing 1 clears the reboot request and the fabric reset enable register
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          CPUINRESET:
+            description: Indicates that the CPU's are being help in reset. Will stay active for sixteen CPU clocks after the CPU resets are released
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          MSS:
+            description: Holds the MSS system (i.e. AXI/AHB/APB resets) in reset. When asserted the CPU's are also held in reset. The Trace UDB reset is not asserted by this bit.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          CPU:
+            description: Holds the CPUS (corplex) in reset.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSS_STATUS:
+        description: MSS Status
+        addressOffset: 0x104
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ECC_ERROR_OTHER:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-only
+          ECC_ERROR_L2:
+            description: ''
+            bitOffset: 15
+            bitWidth: 1
+            access: read-only
+          HALT_CPU4:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-only
+          HALT_CPU3:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-only
+          HALT_CPU2:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-only
+          HALT_CPU1:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-only
+          HALT_CPU0:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-only
+          DEBUG_ACTIVE:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          WATCHDOG:
+            description: ''
+            bitOffset: 4
+            bitWidth: 5
+            access: read-only
+          BOOT_STATUS:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      BOOT_ADDR0:
+        addressOffset: 0x108
+        size: 32
+        access: read-write
+        resetValue: 0x20003120
+        fields:
+          ADDRESS:
+            description: Boot Address i.e. reset vector for the coreplex
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      BOOT_ADDR1:
+        addressOffset: 0x10C
+        size: 32
+        access: read-write
+        resetValue: 0x20003120
+        fields:
+          ADDRESS:
+            description: Boot Address i.e. reset vector for the coreplex
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      BOOT_ADDR2:
+        addressOffset: 0x110
+        size: 32
+        access: read-write
+        resetValue: 0x20003120
+        fields:
+          ADDRESS:
+            description: Boot Address i.e. reset vector for the coreplex
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      BOOT_ADDR3:
+        addressOffset: 0x114
+        size: 32
+        access: read-write
+        resetValue: 0x20003120
+        fields:
+          ADDRESS:
+            description: Boot Address i.e. reset vector for the coreplex
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      BOOT_ADDR4:
+        addressOffset: 0x118
+        size: 32
+        access: read-write
+        resetValue: 0x20003120
+        fields:
+          ADDRESS:
+            description: Boot Address i.e. reset vector for the coreplex
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      BOOT_ROM0:
+        description: 32-byte ROM for CPU booting Holds eight 32-bit Instructions
+        addressOffset: 0x120
+        size: 32
+        access: read-write
+        resetValue: 0x513
+        fields:
+          DATA:
+            description: li a0,0
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      BOOT_ROM1:
+        addressOffset: 0x124
+        size: 32
+        access: read-write
+        resetValue: 0x34451073
+        fields:
+          DATA:
+            description: csrw mip,a0
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      BOOT_ROM2:
+        addressOffset: 0x128
+        size: 32
+        access: read-write
+        resetValue: 0x10500073
+        fields:
+          DATA:
+            description: wfi
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      BOOT_ROM3:
+        addressOffset: 0x12C
+        size: 32
+        access: read-write
+        resetValue: 0xFF5FF06F
+        fields:
+          DATA:
+            description: j 20003120 <_start>
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      BOOT_ROM4:
+        addressOffset: 0x130
+        size: 32
+        access: read-write
+        resetValue: 0xFF1FF06F
+        fields:
+          DATA:
+            description: j 20003120 <_start>
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      BOOT_ROM5:
+        addressOffset: 0x134
+        size: 32
+        access: read-write
+        resetValue: 0xFEDFF06F
+        fields:
+          DATA:
+            description: j 20003120 <_start>
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      BOOT_ROM6:
+        addressOffset: 0x138
+        size: 32
+        access: read-write
+        resetValue: 0xFE9FF06F
+        fields:
+          DATA:
+            description: j 20003120 <_start>
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      BOOT_ROM7:
+        addressOffset: 0x13C
+        size: 32
+        access: read-write
+        resetValue: 0xFE5FF06F
+        fields:
+          DATA:
+            description: j 20003120 <_start>
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      FLASH_FREEZE:
+        addressOffset: 0x180
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          IN_PROGRESS:
+            description: Set by PFC when FF in progress
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PFCIO:
+        description: Register bit that may drive IOMUX
+        addressOffset: 0x184
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          IOOUT:
+            description: Allows PFC to drive an IO pad[4] when IOMUX is configured in MISC mode. This is provided to aid device validation alloing an IO to be easily controlleed by PF-control.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DEVICE_ID:
+        addressOffset: 0x188
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          IDV:
+            description: ''
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          IDP:
+            description: ''
+            bitOffset: 0
+            bitWidth: 16
+            access: read-write
+      MESSAGE_INT:
+        addressOffset: 0x18C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ACTIVE:
+            description: Writing to this bit sets the PFc_message interrupt to the Coreplex, interrupt is cleared by coreplex writing a '0'. It is required that the MSS clears this bit proir to requesting a system service from PFC, on completion PFC will set the MESSAGE register and this bit casuing an interrupt to the MSS indicating the system service is complete.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MESSAGE:
+        addressOffset: 0x190
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: Data value associated with Message interrupt, used for system service return status
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      DEVRST_INT:
+        addressOffset: 0x194
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ACTIVE:
+            description: Writing to this bit sets the DEVRST interrupt to the Coreplex via the maintence register, interrupt is cleared by coreplex writing a '0' to this bit
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SCB_INTERRUPT:
+        addressOffset: 0x198
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ACTIVE:
+            description: Writing to this bit sets the SCB interrupt signal, interrupt is cleared by PFC writing a '0' to this bit
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSS_INTERRUPT:
+        addressOffset: 0x19C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ACTIVE:
+            description: Writing to this bit sets the MSS to PFC interrupt, interrupt is cleared by PFC writing a '0' to this bit
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DEVICE_CONFIG_CR:
+        description: This register configures the
+        addressOffset: 0x1A0
+        size: 32
+        access: read-write
+        resetValue: 0x4
+        fields:
+          DISABLE_XIP:
+            description: When set prevents the QSPI module from operating in XIP mode preventinmg direct execution from the QSPI device
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          CPU_BIST_DISABLE:
+            description: When set the CPU's may not initiate MBIST of the RAMS
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          CPU_DISABLE:
+            description: When '1' dissables the SIFIVE CPUs and holds them in reset.
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          CPU_ALLOWED:
+            description: When '1' allows the SIFIVE CPUs to operate. When '0' the CPUS (E51 and U54s) are held in reset. This bit is intended to be set via a factory configuration bit by PF-Control allowing the RiscV cores to be de-featured
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          CAN_ALLOWED:
+            description: When '1' indicates CAN is enabled When '0' the CAN block is held in reset. This bit is intended to be set via a factory configuration bit by PF-Control allowing the CAN core to be de-featured
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          CRYPTO_DISABLE:
+            description: When '1' disables the Crypto block and the Athena block is held in reset. This bit is intended to be set via a factory configuration bit by PF-Control allowing the CAN core to be de-featured
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          FACTORY_TEST_MODE:
+            description: Indicates the device is in manufacturing test mode.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      ATHENA_CR:
+        description: Sets the Athena owners. Not writeable by the MSS or user
+        addressOffset: 0x1A4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          STREAM_ENABLE:
+            description: Allow Streaming Interface to operate
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          MSS_MODE:
+            description: '0xx: Crypto block not available to fabric or MSS 100: Only available to MSS 101: Only avaliable to fabric 110: Available to both, starts with MSS 111: Available to both, starts with fabric If changed during operation then initial change must be to 3''b000.'
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      ENVM_CR:
+        description: Applies to AHB Controllers when NVM override set
+        addressOffset: 0x1A8
+        size: 32
+        access: read-write
+        resetValue: 0x40050003
+        fields:
+          TIMER:
+            description: 'Sets the duration of the timer used to detect a non response of slow response from the PNVM on C and R bus accesses. Timer Duration = Value * 4ns. 0x00: Timer dissabled. If the timer expires the AHB cycle is terminates using the HRESP protocol. This field must be set before the PFC override is set and should not be changed whilst it is set.'
+            bitOffset: 24
+            bitWidth: 8
+            access: read-write
+          INTERRUPT_ENABLE:
+            description: Enable the PNVM interrupt
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          SLOWREAD:
+            description: When '1' the controller will initate separate PNVM reads for all reads. No buffering or speculative operations will be carried out. When performing word reads incrementing through PNVM each location will be read twice (intended for test use)
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          READAHEAD:
+            description: Enables "readahead" on the PNVM controller. The controller will automatically read the next PNVM location as soon as possible ahead of the AHB request. This will improve read performance when incrementing though memory as the NVM reads and AHB cycles are pipelined. When set non incrementing accesses will take longer as the controller may be in the process of reading the next address and the PNVM cycle needs to complete prior to starting the required read
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          CLOCK_SUPPRESS:
+            description: When set suppresses clock edge between C-Bus access cycles so that they appear as consecutive access cycles.
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          CLOCK_CONTINUOUS:
+            description: When '1' the PNVM clock will be always generated, and not stopped between access cycles. Setting this will increase access latency but mean that the PNVM clock operates at a stable rate.
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          CLOCK_PERIOD:
+            description: Sets the number of AHB cycles used to generate the PNVM clock, Clock period = (Value+1) * 4ns (AHB clock at 250MHz) Value must be 1 to 63 (0 defaults to 3) e.g. 9 will generate a 40ns period 25MHz clock if the AHB clock is 250MHz This field must be set before the PFC override is set and should not be changed whilst it is set.
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      ENVM_POWER_CR:
+        description: Applies to the eNVM controller
+        addressOffset: 0x1AC
+        size: 32
+        access: read-write
+        resetValue: 0x7F
+        fields:
+          OVERRIDE:
+            description: Enable PFC overrides
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          SLEEP:
+            description: Controls the PNVM sleep input
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          ISO:
+            description: Controls the PNVM iso (isolate) input
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          PD4:
+            description: Controls the PNVM pd4 (powerdown) input
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          PD3:
+            description: Controls the PNVM pd3 (powerdown) input
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          PD2:
+            description: Controls the PNVM pd2 (powerdown) input
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          PD1:
+            description: Controls the PNVM pd1 (powerdown) input
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RESET:
+            description: Asserts the PNVM reset input (inverted version to PNVM)
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RAM_SHUTDOWN_CR:
+        description: Puts all the RAMS in that block into shut down mode. RAM contents not preserved. Powers down the RAM and periphery circuits. At reset all RAMS powered down
+        addressOffset: 0x1B0
+        size: 32
+        access: read-write
+        resetValue: 0x3FFF
+        fields:
+          L2:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          U54_4:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          U54_3:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          U54_2:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          U54_1:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          E51:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          DDRC:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          ATHENA:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          MMC:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          GEM1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          GEM0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          USB:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          CAN1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          CAN0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RAM_MARGIN_CR:
+        description: Controls the RAM margin inputs on the RAMS. Should not be changeld without explicity guidance from Silicon Engineering
+        addressOffset: 0x1B4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          L2:
+            description: ''
+            bitOffset: 25
+            bitWidth: 2
+            access: read-write
+          U54_4:
+            description: ''
+            bitOffset: 23
+            bitWidth: 2
+            access: read-write
+          U54_3:
+            description: ''
+            bitOffset: 21
+            bitWidth: 2
+            access: read-write
+          U54_2:
+            description: ''
+            bitOffset: 19
+            bitWidth: 2
+            access: read-write
+          U54_1:
+            description: ''
+            bitOffset: 17
+            bitWidth: 2
+            access: read-write
+          E51:
+            description: ''
+            bitOffset: 15
+            bitWidth: 2
+            access: read-write
+          DDRC:
+            description: ''
+            bitOffset: 13
+            bitWidth: 2
+            access: read-write
+          MMC:
+            description: ''
+            bitOffset: 11
+            bitWidth: 2
+            access: read-write
+          GEM1:
+            description: ''
+            bitOffset: 9
+            bitWidth: 2
+            access: read-write
+          GEM0:
+            description: ''
+            bitOffset: 7
+            bitWidth: 2
+            access: read-write
+          USB:
+            description: ''
+            bitOffset: 5
+            bitWidth: 2
+            access: read-write
+          CAN1:
+            description: ''
+            bitOffset: 3
+            bitWidth: 2
+            access: read-write
+          CAN0:
+            description: ''
+            bitOffset: 1
+            bitWidth: 2
+            access: read-write
+          ENABLE:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      TRACE_CR:
+        description: Configures the trace and debug connectivity
+        addressOffset: 0x1B8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ULTRASOC_FABRIC:
+            description: When set the Utrasoc JTAG interface is connected to fabric EIP connections allowing the JTAG to be directly accessed through fabric IO pins. This also connects the RiscV debugger to the fabric as it passed through the UltraSoc JPAM module
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          ULTRASOC_DISABLE_AXI:
+            description: When set the Utrasoc module is dissabled and will not respond to AXI accesses from PF-Control or the fabric. The JTAG end point will be in bypass mode.
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          ULTRASOC_DISABLE_JTAG:
+            description: When set the Utrasoc module is dissabled and will not respond to JTAG accesses from PF-Control or the fabric. The JTAG end point will be in bypass mode.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          CPU_DEBUG_DISABLE:
+            description: When set the RiscV debug module is dissabled and will not respond to JTAG accesses from either PF-Control or the fabric. The JTAG end point will be in bypass mode.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_CONTROL_CR:
+        description: Controls the MSS Corner IO control signals
+        addressOffset: 0x1BC
+        size: 32
+        access: read-write
+        resetValue: 0x720
+        fields:
+          MSS_SEL_HW_DEF:
+            description: Sets the value driven out on mss_sel_hw_def_out
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          MSS_SEL_HW_DYN:
+            description: Sets the value driven out on mss_sel_hw_dyn_out
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          MSS_IO_EN:
+            description: Sets the value driven out on mss_io_en (before gating)
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          MSS_FLASH_VALID:
+            description: Sets the value driven out on mss_flash_valid_out
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          MSS_CORE_UP:
+            description: Sets the value driven out on mss_core_up_out
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          MSS_DCE:
+            description: Sets the value driven out on mss_dce_out unless PFC asserts its overrides
+            bitOffset: 8
+            bitWidth: 3
+            access: read-write
+          LP_STOP_CLOCKS_DONE_MSS:
+            description: Read back of lp_stop_clocks_done input of MSS Corner LP state control
+            bitOffset: 7
+            bitWidth: 1
+            access: read-only
+          LP_STOP_CLOCKS_OUT_MSS:
+            description: Direct control of MSS Corner LP state control
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          LP_PLL_LOCKED_MSS:
+            description: Direct control of MSS Corner LP state control
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          LP_STATE_BYPASS_MSS:
+            description: Direct control of MSS Corner LP state control
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          LP_STATE_PERSIST_MSS:
+            description: Direct control of MSS Corner LP state control
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          LP_STATE_OP_MSS:
+            description: Direct control of MSS Corner LP state control
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          LP_STATE_IP_MSS:
+            description: Direct control of MSS Corner LP state control
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          LP_STATE_MSS:
+            description: Direct control of MSS Corner LP state control (before gating)
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSS_IO_LOCKDOWN_CR:
+        description: Controls the lockdown enable for the MSS-related IO banks
+        addressOffset: 0x1C0
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          DDR_IO_LOCKDN_EN:
+            description: Enable lockdown of DDR-related IO if global lockdown asserted
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          SGMII_IO_LOCKDN_EN:
+            description: Enable lockdown of SGMII-related IO if global lockdown asserted
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          MSSIO_B4_LOCKDN_EN:
+            description: Enable lockdown of MSSIO bank 4 if global lockdown asserted
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          MSSIO_B2_LOCKDN_EN:
+            description: Enable lockdown of MSSIO bank 2 if global lockdown asserted
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      MSSIO_BANK2_CFG_CR:
+        description: Configures the MSSIO block
+        addressOffset: 0x1C4
+        size: 32
+        access: read-write
+        resetValue: 0x3F3F
+        fields:
+          VS:
+            description: Sets the voltage controls for bank 2
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          BANK_NCODE:
+            description: Sets the NCODE value for bank 2
+            bitOffset: 8
+            bitWidth: 6
+            access: read-write
+          BANK_PCODE:
+            description: Sets the PCODE value for bank 2
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      MSSIO_BANK4_CFG_CR:
+        description: Configures the MSSIO block
+        addressOffset: 0x1C8
+        size: 32
+        access: read-write
+        resetValue: 0x3F3F
+        fields:
+          VS:
+            description: Sets the voltage controls for bank 4
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          BANK_NCODE:
+            description: Sets the NCODE value for bank 4
+            bitOffset: 8
+            bitWidth: 6
+            access: read-write
+          BANK_PCODE:
+            description: Sets the PCODE value for bank 4
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      DLL0_CTRL0:
+        description: DLL control register 0
+        addressOffset: 0x200
+        size: 32
+        access: read-write
+        resetValue: 0x8800000F
+        fields:
+          LOCK_LOW:
+            description: ''
+            bitOffset: 28
+            bitWidth: 4
+            access: read-write
+          LOCK_HIGH:
+            description: ''
+            bitOffset: 24
+            bitWidth: 4
+            access: read-write
+          LOCK_FLT:
+            description: ''
+            bitOffset: 20
+            bitWidth: 2
+            access: read-write
+          LOCK_FRC:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          ALU_UPD:
+            description: ''
+            bitOffset: 14
+            bitWidth: 2
+            access: read-write
+          DIV_SEL:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          FB_SEL:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          REF_SEL:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          SEL_S:
+            description: ''
+            bitOffset: 6
+            bitWidth: 2
+            access: read-write
+          SEL_P:
+            description: ''
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          PHASE_S:
+            description: ''
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          PHASE_P:
+            description: All thes eregisters follow the standard allocation for DLL blocks used in PF. Please refer to the DLL SAC specification for details of register functions.
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      DLL0_CTRL1:
+        description: DLL control register 1
+        addressOffset: 0x204
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RELOCK_FAST:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          INIT_CODE:
+            description: ''
+            bitOffset: 24
+            bitWidth: 6
+            access: read-write
+          TEST_RING:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          TEST_S:
+            description: ''
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          ADJ_DEL4:
+            description: ''
+            bitOffset: 8
+            bitWidth: 7
+            access: read-write
+          SET_ALU:
+            description: ''
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      DLL0_STAT0:
+        description: DLL status register 0
+        addressOffset: 0x208
+        size: 32
+        access: read-write
+        resetValue: 0x1003
+        fields:
+          PHASE_MOVE_CLK:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          BYPASS:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RESET:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DLL0_STAT1:
+        description: DLL status register 1
+        addressOffset: 0x20C
+        size: 32
+        access: read-only
+        resetValue: 0x10000
+        fields:
+          SRO_ALU_CNT:
+            description: ''
+            bitOffset: 16
+            bitWidth: 9
+            access: read-only
+          SRO_DEL4:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-only
+      DLL0_STAT2:
+        description: DLL status register 2
+        addressOffset: 0x210
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SRO_LOCK:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+      DLL0_TEST:
+        description: Enables test modes on the DLL
+        addressOffset: 0x214
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          REF_SELECT:
+            description: When '1' the sb clock input is fed to the DLL reference
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          CFM_SELECT:
+            description: Feeds the MBIST clock rather than DLL clock to the CFM block
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          CFM_ENABLE:
+            description: When set enables the DLL output to the frequency meter inside the PF-Controller for test use
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DLL1_CTRL0:
+        description: DLL control register 0
+        addressOffset: 0x220
+        size: 32
+        access: read-write
+        resetValue: 0x8800000F
+        fields:
+          LOCK_LOW:
+            description: ''
+            bitOffset: 28
+            bitWidth: 4
+            access: read-write
+          LOCK_HIGH:
+            description: ''
+            bitOffset: 24
+            bitWidth: 4
+            access: read-write
+          LOCK_FLT:
+            description: ''
+            bitOffset: 20
+            bitWidth: 2
+            access: read-write
+          LOCK_FRC:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          ALU_UPD:
+            description: ''
+            bitOffset: 14
+            bitWidth: 2
+            access: read-write
+          DIV_SEL:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          FB_SEL:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          REF_SEL:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          SEL_S:
+            description: ''
+            bitOffset: 6
+            bitWidth: 2
+            access: read-write
+          SEL_P:
+            description: ''
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          PHASE_S:
+            description: ''
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          PHASE_P:
+            description: All these registers follow the standard allocation for DLL blocks used in PF. Please refer to the DLL SAC specification for details of register functions.
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      DLL1_CTRL1:
+        description: DLL control register 1
+        addressOffset: 0x224
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RELOCK_FAST:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          INIT_CODE:
+            description: ''
+            bitOffset: 24
+            bitWidth: 6
+            access: read-write
+          TEST_RING:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          TEST_S:
+            description: ''
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          ADJ_DEL4:
+            description: ''
+            bitOffset: 8
+            bitWidth: 7
+            access: read-write
+          SET_ALU:
+            description: ''
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      DLL1_STAT0:
+        description: DLL status register 0
+        addressOffset: 0x228
+        size: 32
+        access: read-write
+        resetValue: 0x1003
+        fields:
+          PHASE_MOVE_CLK:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          BYPASS:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RESET:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DLL1_STAT1:
+        description: DLL status register 1
+        addressOffset: 0x22C
+        size: 32
+        access: read-only
+        resetValue: 0x10000
+        fields:
+          SRO_ALU_CNT:
+            description: ''
+            bitOffset: 16
+            bitWidth: 9
+            access: read-only
+          SRO_DEL4:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-only
+      DLL1_STAT2:
+        description: DLL status register 2
+        addressOffset: 0x230
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SRO_LOCK:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+      DLL1_TEST:
+        description: Enables test modes on the DLL
+        addressOffset: 0x234
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          REF_SELECT:
+            description: When '1' the sb clock input is fed to the DLL reference
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          CFM_SELECT:
+            description: Feeds the MBIST clock rather than DLL clock to the CFM block
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          CFM_ENABLE:
+            description: When set enables the DLL output to the frequency meter inside the PF-Controller for test use
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DLL2_CTRL0:
+        description: DLL control register 0
+        addressOffset: 0x240
+        size: 32
+        access: read-write
+        resetValue: 0x8800000F
+        fields:
+          LOCK_LOW:
+            description: ''
+            bitOffset: 28
+            bitWidth: 4
+            access: read-write
+          LOCK_HIGH:
+            description: ''
+            bitOffset: 24
+            bitWidth: 4
+            access: read-write
+          LOCK_FLT:
+            description: ''
+            bitOffset: 20
+            bitWidth: 2
+            access: read-write
+          LOCK_FRC:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          ALU_UPD:
+            description: ''
+            bitOffset: 14
+            bitWidth: 2
+            access: read-write
+          DIV_SEL:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          FB_SEL:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          REF_SEL:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          SEL_S:
+            description: ''
+            bitOffset: 6
+            bitWidth: 2
+            access: read-write
+          SEL_P:
+            description: ''
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          PHASE_S:
+            description: ''
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          PHASE_P:
+            description: All these registers follow the standard allocation for DLL blocks used in PF. Please refer to the DLL SAC specification for details of register functions.
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      DLL2_CTRL1:
+        description: DLL control register 1
+        addressOffset: 0x244
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RELOCK_FAST:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          INIT_CODE:
+            description: ''
+            bitOffset: 24
+            bitWidth: 6
+            access: read-write
+          TEST_RING:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          TEST_S:
+            description: ''
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          ADJ_DEL4:
+            description: ''
+            bitOffset: 8
+            bitWidth: 7
+            access: read-write
+          SET_ALU:
+            description: ''
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      DLL2_STAT0:
+        description: DLL status register 0
+        addressOffset: 0x248
+        size: 32
+        access: read-write
+        resetValue: 0x1003
+        fields:
+          PHASE_MOVE_CLK:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          BYPASS:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RESET:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DLL2_STAT1:
+        description: DLL status register 1
+        addressOffset: 0x24C
+        size: 32
+        access: read-only
+        resetValue: 0x10000
+        fields:
+          SRO_ALU_CNT:
+            description: ''
+            bitOffset: 16
+            bitWidth: 9
+            access: read-only
+          SRO_DEL4:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-only
+      DLL2_STAT2:
+        description: DLL status register 2
+        addressOffset: 0x250
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SRO_LOCK:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+      DLL2_TEST:
+        description: Enables test modes on the DLL
+        addressOffset: 0x254
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          REF_SELECT:
+            description: When '1' the sb clock input is fed to the DLL reference
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          CFM_SELECT:
+            description: Feeds the MBIST clock rather than DLL clock to the CFM block
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          CFM_ENABLE:
+            description: When set enables the DLL output to the frequency meter inside the PF-Controller for test use
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DLL3_CTRL0:
+        description: DLL control register 0
+        addressOffset: 0x260
+        size: 32
+        access: read-write
+        resetValue: 0x8800000F
+        fields:
+          LOCK_LOW:
+            description: ''
+            bitOffset: 28
+            bitWidth: 4
+            access: read-write
+          LOCK_HIGH:
+            description: ''
+            bitOffset: 24
+            bitWidth: 4
+            access: read-write
+          LOCK_FLT:
+            description: ''
+            bitOffset: 20
+            bitWidth: 2
+            access: read-write
+          LOCK_FRC:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          ALU_UPD:
+            description: ''
+            bitOffset: 14
+            bitWidth: 2
+            access: read-write
+          DIV_SEL:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          FB_SEL:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          REF_SEL:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          SEL_S:
+            description: ''
+            bitOffset: 6
+            bitWidth: 2
+            access: read-write
+          SEL_P:
+            description: ''
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          PHASE_S:
+            description: ''
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          PHASE_P:
+            description: All these registers follow the standard allocation for DLL blocks used in PF. Please refer to the DLL SAC specification for details of register functions.
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      DLL3_CTRL1:
+        description: DLL control register 1
+        addressOffset: 0x264
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RELOCK_FAST:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          INIT_CODE:
+            description: ''
+            bitOffset: 24
+            bitWidth: 6
+            access: read-write
+          TEST_RING:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          TEST_S:
+            description: ''
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          ADJ_DEL4:
+            description: ''
+            bitOffset: 8
+            bitWidth: 7
+            access: read-write
+          SET_ALU:
+            description: ''
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      DLL3_STAT0:
+        description: DLL status register 0
+        addressOffset: 0x268
+        size: 32
+        access: read-write
+        resetValue: 0x1003
+        fields:
+          PHASE_MOVE_CLK:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          BYPASS:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RESET:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DLL3_STAT1:
+        description: DLL status register 1
+        addressOffset: 0x26C
+        size: 32
+        access: read-only
+        resetValue: 0x10000
+        fields:
+          SRO_ALU_CNT:
+            description: ''
+            bitOffset: 16
+            bitWidth: 9
+            access: read-only
+          SRO_DEL4:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-only
+      DLL3_STAT2:
+        description: DLL status register 2
+        addressOffset: 0x270
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SRO_LOCK:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+      DLL3_TEST:
+        description: Enables test modes on the DLL
+        addressOffset: 0x274
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          REF_SELECT:
+            description: When '1' the sb clock input is fed to the DLL reference
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          CFM_SELECT:
+            description: Feeds the MBIST clock rather than DLL clock to the CFM block
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          CFM_ENABLE:
+            description: When set enables the DLL output to the frequency meter inside the PF-Controller for test use
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_VB2_CFG:
+        description: dpc values for MSSIO bank 2
+        addressOffset: 0x278
+        size: 32
+        access: read-write
+        resetValue: 0x828
+        fields:
+          DPC_IO_CFG_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_ATP_EN:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_WPU:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_WPD:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_LOCKDN_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_ENHYST:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_CLAMP:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_DRV_3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_DRV_2:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_DRV_1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_DRV_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_IBUFMD_2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_IBUFMD_1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_IBUFMD_0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSSIO_VB4_CFG:
+        description: dpc values for MSSIO bank 4
+        addressOffset: 0x27C
+        size: 32
+        access: read-write
+        resetValue: 0x828
+        fields:
+          DPC_IO_CFG_LP_BYPASS_EN:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_LP_PERSIST_EN:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_ATP_EN:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_WPU:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_WPD:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_LOCKDN_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_ENHYST:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_CLAMP:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_DRV_3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_DRV_2:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_DRV_1:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_DRV_0:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_IBUFMD_2:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_IBUFMD_1:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          DPC_IO_CFG_IBUFMD_0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write

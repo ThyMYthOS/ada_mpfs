@@ -1,0 +1,327 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  QSPIXIP:
+    description: QSPIXIP Controller
+    baseAddress: 0x21000000
+    registers:
+      CONTROL:
+        description: Control register
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x1000400
+        fields:
+          CLKRATE:
+            description: 'Sets the SPI clock rate (master mode) 0: Not Supported N: SPICLK = HCLK/(2*N) No. can vary from 2-15 allowing rates from HCLK/4(Max) to HCLK/30(Min)'
+            bitOffset: 24
+            bitWidth: 4
+            access: read-write
+          FLAGSX4:
+            description: This register bits should be set before x4 are used to read and write data. It modifies the FIFO status signals to indicate that four bytes may be read or written.
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          QSPIMODE21:
+            description: 'Sets whether multiple bit SPI operates in normal extended or full modes: 00: Normal (single DQ0 TX and single DQ1 RX lines) 01: Extended RO (command and address bytes on DQ0 only) 10: Extended RW (command byte on DQ0 only) 11: Full. (command and address bytes are on all DQ lines)'
+            bitOffset: 14
+            bitWidth: 2
+            access: read-write
+          QSPIMODE0:
+            description: 'Sets whether multiple bit SPI uses 2 or 4 bits of data 0: 2-bits (BSPI) 1: 4-bits (QSPI)'
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          SAMPLE:
+            description: 'Sets when the core samples SDI in master mode 00: At the rising edge off SPI CLOCK allowing half a SPI clock period round trip delay Other values are not supported.'
+            bitOffset: 11
+            bitWidth: 2
+            access: read-write
+          CLKIDLE:
+            description: Sets the clock IDLE to low (0) or high (1).Allows the core to support SPI memory operation in mode 0 or mode 3. When CLKRATE=0 this bit has no effect; the clock IDLE state will always be 1
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          XIPADDR:
+            description: Sets the number of bytes used for the address in XIP mode (1'b0 = 3 bytes 1'b1 = 4 Bytes)
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          XIP:
+            description: '0: Normal operation 1: XIP mode'
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          ENABLE:
+            description: '0: Core will not respond to external signals until this bit enabled 1: Core is active'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      FRAMES:
+        description: This register is only functional in master mode. It is used to start a master transfer.
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FLAGWORD:
+            description: If set then the FIFO flags are set to word mode.This sets the FLAGX4 bit in the control register.This bit always reads as zero
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          FLAGBYTE:
+            description: If set then the FIFO flags are set to byte mode This clears the FLAGX4 bit in the control register.This bit always reads as zero
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          IDLE:
+            description: This sets the number of IDLE cycles to be inserted between the TX and RX SPI phases 0 to 15
+            bitOffset: 26
+            bitWidth: 4
+            access: read-write
+          QSPI:
+            description: '0: Normal Operation 1: QSPI Mode (2 or 4-bits data as set in control register)'
+            bitOffset: 25
+            bitWidth: 1
+            access: read-write
+          CMDBYTES:
+            description: Sets the number of bytes that create the SPI command 0- 511. When zero the SPI simply transmits a byte when written to the transmit FIFO and writes the received byte to the receive FIFO. When non zero the logic will transmit data from the receive FIFO and discard receive data until CMDBYTES have been transmitted It will the automatically transmit the remaining number of bytes (TOTLABYTES) writing the received data into the receive FIFO
+            bitOffset: 16
+            bitWidth: 9
+            access: read-write
+          TOTALBYTES:
+            description: Number of bytes to be sent/received, 1 to 65535. This register once set will not change an internal counter counts until it reaches the limit set by this register When this register is written the internal counter is also reset. When that counter reaches TOTALBYTES interrupts are generated and idle cycles inserted on the SPI bus (SSEL deactivated). The core will transmit data whenever the transmit FIFO is loaded the counter is used to count bytes terminate bursts and generate interrupts
+            bitOffset: 0
+            bitWidth: 16
+            access: read-write
+      Reserved:
+        description: Reserved register
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+      InterruptEnableRegister:
+        description: This is interrupt enable register for external register.
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXFIFOFUL:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RXFIFOEMPTY:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          TXAVAILABLE:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RXAVAILABLE:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RXDONE:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          TXDONE:
+            description: Enables the external interrupt for the corresponding interrupt.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      StatusRegister:
+        description: Indicates the status of the SPI core.
+        addressOffset: 0x10
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          FLAGSX4:
+            description: Read of CONTROL registers FLAGSX4. Allows Firmware to check the value at the same time as the status.
+            bitOffset: 8
+            bitWidth: 1
+            access: read-only
+          READY:
+            description: Indicates that the SPI master is IDLE and a new transmission may be started.
+            bitOffset: 7
+            bitWidth: 1
+            access: read-only
+          TXFIFOFULL:
+            description: Indicates that the TX Fifo is full or contains less than 4-empty locations when FLAGSX4 set.
+            bitOffset: 5
+            bitWidth: 1
+            access: read-only
+          RXFIFOEMPTY:
+            description: Indicates that the RX Fifo is empty or contains less than 4-bytes when FLAGSX4 set.
+            bitOffset: 4
+            bitWidth: 1
+            access: read-only
+          TXAVAILABLE:
+            description: Indicates that there is room for at least one or four (FLAGSX4 set) bytes in the transmit FIFO.
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          RXAVAILABLE:
+            description: Indicates that there is at least one or four (FLAGSX4 set) received bytes available in the receive FIFO.
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          RXDONE:
+            description: Indicates that all the frames have been received and the RX FIFO is empty Is cleared by writing 1 or when the FRAMES register is written.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          TXDONE:
+            description: Indicates that all the frames have been transmitted.Is cleared by writing 1 or when the FRAMES register is written.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      DirectAccess:
+        description: This register allows direct access to the QSPI interface pins to support access to non-standard SPI devices via direct CPU control.
+        addressOffset: 0x14
+        size: 32
+        access: read-write
+        resetValue: 0x800000
+        fields:
+          IDLE:
+            description: Master SPI FSM is stalled/idle
+            bitOffset: 23
+            bitWidth: 1
+            access: read-only
+          IP_SSEL:
+            description: Current SSEL value
+            bitOffset: 22
+            bitWidth: 1
+            access: read-only
+          IP_SCLK:
+            description: Current SCLK value
+            bitOffset: 21
+            bitWidth: 1
+            access: read-only
+          RESERVED1:
+            description: Reads as Zero
+            bitOffset: 20
+            bitWidth: 1
+            access: read-only
+          IP_SDI:
+            description: Input data on SDI
+            bitOffset: 16
+            bitWidth: 4
+            access: read-only
+          OP_SDOE:
+            description: Output enables for SDATA
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          OP_SDO:
+            description: Output value for SDATA
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          EN_SDO:
+            description: Enable this register to drive SDATA data and output enable
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          OP_SCLK:
+            description: Value driven on SCLK
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_SCLK:
+            description: Enable this register to drive SCLK
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          OP_SSEL:
+            description: Value driven on SSEL
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EN_SSEL:
+            description: Enable this register to drive SSEL
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      UpperAddress:
+        description: This register set the upper 8-bits of the address [31:24] when four byte addressing is being used in XIP mode.
+        addressOffset: 0x18
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ADDRUP:
+            description: Sets the upper address bits [31:24] in XIP mode.
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      ReceiveData:
+        addressOffset: 0x40
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          RXDATA:
+            description: Received data - single byte
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      TransmitData:
+        addressOffset: 0x44
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXDATA:
+            description: Data to send - single byte
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      X4ReceiveData:
+        description: Allows the processor to read 4-bytes from the SPI FIFO in a single transaction. Reads will return 4-bytes as APB reads are always words (PSTRB only used on writes)
+        addressOffset: 0x48
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          RXDATA4:
+            description: Returns 4-bytes off receive data
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only
+      X4TransmitData:
+        description: Allows the processor to write 4-bytes from the SPI FIFO in a single transaction. Writes to this register must use word operations i.e. write 4-bytes at a time.
+        addressOffset: 0x4C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          TXDATA4:
+            description: Writes 4-bytes of data to send;
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      FRAMESUP:
+        addressOffset: 0x50
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BYTESUPPER:
+            description: ''
+            bitOffset: 16
+            bitWidth: 16
+            access: read-write
+          BYTESLOWER:
+            description: 'W: NO operation R: Return the lower 16 - bits of the byte count from the FRAMES register'
+            bitOffset: 0
+            bitWidth: 16
+            access: read-write

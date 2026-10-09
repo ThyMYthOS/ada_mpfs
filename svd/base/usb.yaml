@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  USB:
+    description: USB Controller
+    baseAddress: 0x202010EC
+    registers:
+      Warning:
+        addressOffset: 0x0
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          WARNING:
+            description: ''
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write

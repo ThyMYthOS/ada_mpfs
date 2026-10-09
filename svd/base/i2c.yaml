@@ -1,0 +1,284 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  I2C_A_LO:
+    description: I2C_A_LO Controller
+    groupName: I2C
+    baseAddress: 0x2010A000
+    registers:
+      I2C0_CTRL:
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CR2:
+            description: Clock rate bit 2; refer to bit 0.
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          ENS1:
+            description: Enable bit. When ens1='0', the sda and scl outputs are in a high impedance and sda and scl input signals are ignored. When ens1='1', the Core is enabled
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          STA:
+            description: The START Flag. When sta='1', the Core checks the status of the serial bus and generates a START condition if the bus is free.
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          STO:
+            description: The STOP Flag. When sto='1' and the Core is in a master mode, a STOP condition is transmitted to the serial bus.
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          SI:
+            description: 'The Serial Interrupt Flag. The SI flag is set by the Core whenever there is a service-able change in the Status Register. After the register has been updated, the "si" bit must be cleared by software. NOTE: The si bit is directly readable via the APB INTERRUPT signal.'
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          AA:
+            description: 'The Assert Acknowledge Flag. When aa=''1'' an acknowledge will be returned when: The "own slave address" has been received. The general call address has been received while the gc bit in the Address register is set . A data byte has been received while the Core is in the master receiver mode . A data byte has been received while the Core is in the slave receiver mode. When aa=''0'', a not acknowledge will be returned when: A data byte has been received while the Core is in the master receiver mode .A data byte has been received while F2DSS_I2C is in the slave receiver mode'
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          CR1:
+            description: Serial Clock rate bit 1; refer to bit 0.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          CR0:
+            description: 'Serial Clock rate bit 0 ; Clock Rate is defined as follows: 000: PCLK frequency/256, 001: PCLK frequency/224, 010:PCLK frequency/192, 011: PCLK frequency/160, 100: PCLK frequency/960, 101: PCLK frequency/120, 110: PCLK frequency/60, 111:BCLK frequency/8. Note: BCLK is synchronized to PCLK and hence must be PCLKFREQ/2 or less.'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      I2C0_STATUS:
+        description: 1. Master Transmitter Mode, 2. Master Receiver Mode, 3. Slave Transmitter Mode, 4. Slave Receiver Mode.
+        addressOffset: 0x4
+        size: 32
+        access: read-only
+        resetValue: 0xF8
+        fields:
+          STATUS_REGISTER:
+            description: 'Read-only value yields the current state of the I2C Status Registers dependent on Mode. Master Transmitter Mode: 08H: A START condition has been transmitted. 10H: A repeated START condition has been transmitted 18H: SLA+W has been transmitted; ACK has been received 20H: SLA+W has been transmitted; not ACK has been received. 28H: Data byte in Data Register has been transmitted; ACK has been received. 30H: Data byte in Data Register has been transmitted; NACK has been received. 38H: Arbitration lost in SLA+R/W or data bytes. D0H: SMBus Master Reset has been activated. Master Receiver Mode: 08H: A START condition has been transmitted 10H: A repeated START condition has been transmitted 38H: Arbitration lost in not ACK bit 40H: SLA+R has been transmitted; ACK has been received 48H: SLA+R has been transmitted; not ACK has been received 50H: Data byte has been received; ACK has been returned 58H: Data byte has been received; not ACK has been returned D0H: SMBus Master Reset has been activated Slave Receiver Mode: 60H: Own SLA+W has been received; ACK has been returned 68H: Arbitration lost in SLA+R/W as master; own SLA+W has been received, ACK returned 70H: General call address (00H) has been received; ACK has been returned 78H: Arbitration lost in SLA+R/W as master; general call address has been received, ACK returned 80H: Previously addressed with own SLV address; DATA has been received; ACK returned 88H: Previously addressed with own SLA; DATA byte has been received; not ACK returned 90H: Previously addressed with general call address; DATA has been received; ACK returned 98H: Previously addressed with general call address; DATA has been received; NACK returned A0H: A STOP condition or repeated START condition has been received while still addressed as SLV/REC or SLV/TRX D8H: 25 ms SCL low time has been reached; device must be reset Slave Transmitter Mode: A8H: Own SLA+R has been received; ACK has been returned B0H: Arbitration lost in SLA+R/W as master; own SLA+R has been received; ACK has been returned B8H: Data byte has been transmitted; ACK has been received C0H: Data byte has been transmitted; not ACK has been received C8H: Last data byte has transmitted; ACK has received D8H: 25 ms SCL low time has been reached; device must be reset Miscellaneous States: 38H: Arbitration lost F8H: No relevant state information available; si=0 00H: Bus error during MST or selected slave modes'
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      I2C0_DATA:
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SD7:
+            description: Serial data bit 7 (MSB), Serial address bit 6 (MSB)
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          SD6:
+            description: Serial data bit 6, Serial address bit 5
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          SD5:
+            description: Serial data bit 5, Serial address bit 4
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          SD4:
+            description: Serial data bit 4, Serial address bit 3.
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          SD3:
+            description: Serial data bit 3, Serial address bit 2
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          SD2:
+            description: Serial data bit 2, Serial address bit 1.
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          SD1:
+            description: Serial data bit 1, Serial address bit 0 (LSB)
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          SD0:
+            description: 'Serial data bit 0 (LSB). Direction Bit: ''0'' = Write; ''1'' = Read'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      I2C0_SLAVE0ADR:
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ADR6:
+            description: Own slave0 address bit 6
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          ADR5:
+            description: Own slave0 address bit 5
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          ADR4:
+            description: Own slave0 address bit 4
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          ADR3:
+            description: Own slave0 address bit 3
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          ADR2:
+            description: Own slave0 address bit 2
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          ADR1:
+            description: Own slave0 address bit 1
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          ADR0:
+            description: Own slave0 address bit 0
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          GC:
+            description: General Call Address Acknowledge. If the gc bit is set, the general call address is recognized; otherwise it is ignored.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      I2C0_SMBUS:
+        addressOffset: 0x10
+        size: 32
+        access: read-write
+        resetValue: 0x50
+        fields:
+          SMBUS_RESET:
+            description: Writing a one to this bit will force the clock line low until 35 ms has been exceeded, thus resetting the entire bus as per the SMBus Specification Version 2.0
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          SMBSUS_NO_CONTROL:
+            description: SMBSUS_NO control; used in master/host mode to force other devices into power down / suspend mode. Active low.
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          SMBSUS_NI_STATUS:
+            description: Status of SMBSUS_NI signal.
+            bitOffset: 5
+            bitWidth: 1
+            access: read-only
+          SMBALERT_NO_CONTROL:
+            description: SMBALERT_NO control; used in slave/device mode to force communication with the master/host. Wired-AND.
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          SMBALERT_NI_STATUS:
+            description: Status of SMBALERT_NI signal. Wired-AND.
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          SMBUS_ENABLE:
+            description: '0: SMBus timeouts and status logic disabled, i.e., standard I2C bus operation; 1: SMBus timeouts and status logic enabled'
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          SMBSUS_INTERRUPT_ENABLE:
+            description: '0: SMBSUS Interrupt signal (SMBS) disabled. 1: SMBSUS Interrupt signal (SMBS) enabled.'
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          SMBALERT_INTERRUPT_ENABLE:
+            description: '0: SMBALERT Interrupt signal (SMBA) disabled. 1: SMBALERT Interrupt signal (SMBA) enabled.'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      I2C0_FREQ:
+        addressOffset: 0x14
+        size: 32
+        access: read-write
+        resetValue: 0x8
+        fields:
+          FREQUENCY:
+            description: PCLK Frequency in Mhz, from 1 to 255. Necessary for configuring Real-time Timeout Logic. Can be set to the PCLK Frequency for 25 ms SMBus timeouts, or may be changed to increase/decrease the timeout value.
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      I2C0_GLITCHREG:
+        addressOffset: 0x18
+        size: 32
+        access: read-write
+        resetValue: 0x3
+        fields:
+          GLITCHREG_NUM:
+            description: This read/write register is used to adjust the input glitch filter length. Depending on the application, the glitch filter may be used to suppress spikes between 3 and 21 PCLK cycles. If GlitchReg_Fixed=0, then this register can be set from a length of 3 to 21
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      I2C0_SLAVE1ADR:
+        addressOffset: 0x1C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ADR6:
+            description: Own slave1 address bit 6
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          ADR5:
+            description: Own slave1 address bit 5
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          ADR4:
+            description: Own slave1 address bit 4
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          ADR3:
+            description: Own slave1 address bit 3
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          ADR2:
+            description: Own slave1 address bit 2
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          ADR1:
+            description: Own slave1 address bit 1
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          ADR0:
+            description: Own slave1 address bit 0
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          ENADR:
+            description: '1: Enable the SLAVE1 Address comparisons. 0: Disable SLAVE1 Address comparisons.'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+  I2C_B_LO:
+    derivedFrom: I2C_A_LO
+    description: I2C_B_LO Controller
+    baseAddress: 0x2010B000
+  I2C_A_HI:
+    derivedFrom: I2C_A_LO
+    description: I2C_A_HI Controller
+    baseAddress: 0x2810A000
+  I2C_B_HI:
+    derivedFrom: I2C_A_LO
+    description: I2C_B_HI Controller
+    baseAddress: 0x2810B000

@@ -1,0 +1,94 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  ENVM:
+    description: ENVM Controller
+    baseAddress: 0x20200000
+    registers:
+      ENVM_Control_register:
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x4005000F
+        fields:
+          TIMER:
+            description: 'Sets the duration of the timer used to detect a non-response of slow response from the ENVM on C and R bus accesses. Timer Duration = (Value+1) * (128 * AHB Clock Period) 0x00: Timer disabled. If the timer expires the AHB cycle is terminates using the HRESP protocol. The time should be set.'
+            bitOffset: 24
+            bitWidth: 8
+            access: read-write
+          INTERRUPT_ENABLE:
+            description: Enable the ENVM interrupt
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          SLOWREAD:
+            description: When '1' the controller will initiate separate ENVM reads for all reads. No buffering or speculative operations will be carried out. When performing word reads incrementing through ENVM each location will be read twice
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          READAHEAD:
+            description: Enables "readahead" on the ENVM controller. The controller will automatically read the next ENVM location as soon as possible ahead of the AHB request. This will improve read performance when incrementing though memory as the NVM reads and AHB cycles are pipelined. When set non incrementing accesses will take longer as the controller may be in the process of reading the next address and the ENVM cycle needs to complete prior to starting the required read
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          CLOCK_SUPPRESS:
+            description: When set suppresses clock edge between C-Bus access cycles so that they appear as consecutive access cycles.
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          CLOCK_CONTINUOUS:
+            description: When '1' the ENVM clock will be always generated, and not stopped between access cycles. Setting this will increase access latency but mean that the ENVM clock operates at a stable rate.
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          CLOCK_PERIOD:
+            description: Sets the number of AHB cycles used to generate the ENVM clock, Clock period = (Value+1) * 2.5ns (AHB clock at 400MHz). Value must be 1 to 63 (0 defaults to 15) e.g.15 will generate a 40ns period if the AHB clock is 400MHz
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      ENVM_Power_control_register:
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x7F
+        fields:
+          OVERRIDE:
+            description: Use the ENVM_CR here rather than the SYSREG one
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          SLEEP:
+            description: sleep
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          ISO:
+            description: iso (isolate)
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          PD4:
+            description: pd4 (powerdown)
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          PD3:
+            description: pd3 (powerdown)
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          PD2:
+            description: pd2 (powerdown)
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          PD1:
+            description: pd1 (powerdown)
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RESET:
+            description: reset
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write

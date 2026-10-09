@@ -1,0 +1,202 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  FRQMETER:
+    description: FRQMETER Controller
+    baseAddress: 0x20006000
+    registers:
+      CONTROL:
+        description: control register
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          STOP:
+            description: Writing a '1' will cause the current measurement to be stopped. This bit is used to terminate a time measurement activity, or abort a frequency measurement The abort process may take several clock cycles and when complete the BUSY bit will return to '0'
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          START:
+            description: Writing a '1' to this bit causes the measurement circuitry to start This bit will go back to a '0' when the measurement is complete
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CLKSEL:
+        description: clock select register
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MONEN:
+            description: Enables the clock monitor output
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          MONSEL:
+            description: Selects which channel drives the clock monitor output 0 to 7.
+            bitOffset: 8
+            bitWidth: 3
+            access: read-write
+          REFSEL1:
+            description: When in timer mode allows the ATPG (Corners) / clkref3 (controller) clock input to clock the channel counters. This clock input is expected to be sourced from an on-chip PLL to support at-speed testing. This allows the timer to clocked off a much higher clock frequency than the reference counter that is limited to 100MHz.
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          REFSEL0:
+            description: 'Selects the reference input 0: clkref1 1: clkref2'
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          CLKSEL:
+            description: Selects which group of clock inputs are selected by the channels, controls the input multiplexer
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RUNTIME:
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x2710
+        fields:
+          REFCOUNT:
+            description: Sets the reference count. When set to 0x000000 the timer will run forever i.e. until stopped by the CPU. This setting should not be used for frequency measurement.
+            bitOffset: 0
+            bitWidth: 24
+            access: read-write
+      MODE:
+        description: 'Sets the measurement mode of channel: 2''b00: Disabled 2''b01: Frequency Mode 2''b11: Time Mode 2''b10: Reserved When N is less than 8 unimplemented channels will return disabled and cannot be enabled'
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CHANNEL7:
+            description: ''
+            bitOffset: 14
+            bitWidth: 2
+            access: read-write
+          CHANNEL6:
+            description: ''
+            bitOffset: 12
+            bitWidth: 2
+            access: read-write
+          CHANNEL5:
+            description: ''
+            bitOffset: 10
+            bitWidth: 2
+            access: read-write
+          CHANNEL4:
+            description: ''
+            bitOffset: 8
+            bitWidth: 2
+            access: read-write
+          CHANNEL3:
+            description: ''
+            bitOffset: 6
+            bitWidth: 2
+            access: read-write
+          CHANNEL2:
+            description: ''
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          CHANNEL1:
+            description: ''
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          CHANNEL0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      COUNT0:
+        addressOffset: 0x10
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          COUNT:
+            description: Returns the count value
+            bitOffset: 0
+            bitWidth: 24
+            access: read-only
+      COUNT1:
+        addressOffset: 0x14
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          COUNT:
+            description: Returns the count value
+            bitOffset: 0
+            bitWidth: 24
+            access: read-only
+      COUNT2:
+        addressOffset: 0x18
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          COUNT:
+            description: Returns the count value
+            bitOffset: 0
+            bitWidth: 24
+            access: read-only
+      COUNT3:
+        addressOffset: 0x1C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          COUNT:
+            description: Returns the count value
+            bitOffset: 0
+            bitWidth: 24
+            access: read-only
+      COUNT4:
+        addressOffset: 0x20
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          COUNT:
+            description: Returns the count value
+            bitOffset: 0
+            bitWidth: 24
+            access: read-only
+      COUNT5:
+        addressOffset: 0x24
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          COUNT:
+            description: Returns the count value
+            bitOffset: 0
+            bitWidth: 24
+            access: read-only
+      COUNT6:
+        addressOffset: 0x28
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          COUNT:
+            description: Returns the count value
+            bitOffset: 0
+            bitWidth: 24
+            access: read-only
+      COUNT7:
+        addressOffset: 0x2C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          COUNT:
+            description: Returns the count value
+            bitOffset: 0
+            bitWidth: 24
+            access: read-only

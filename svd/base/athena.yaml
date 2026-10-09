@@ -1,0 +1,132 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  ATHENA:
+    description: ATHENA Controller
+    baseAddress: 0x22006000
+    registers:
+      CSRMAIN:
+        description: Main CSR
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LIRA:
+            description: LIR start address
+            bitOffset: 8
+            bitWidth: 11
+            access: read-write
+          PARITYE:
+            description: Parity error
+            bitOffset: 7
+            bitWidth: 1
+            access: read-only
+          ECDIS:
+            description: Elliptic curve instruction disable bit (E5200/6400 only)
+            bitOffset: 6
+            bitWidth: 1
+            access: read-only
+          PURGE:
+            description: Soft purge command bit
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          GO:
+            description: Start computation command bit
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          BUSY:
+            description: Busy status bit
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          CMPLT:
+            description: Computation complete status bit
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          CCMPLT:
+            description: Write-only clear CMPLT flag bit
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RESET:
+            description: Soft reset command bit
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      Reserved:
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+      Reserved1:
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+      CSRMERRS:
+        description: Memory error status register
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PARITY:
+            description: Parity capability field
+            bitOffset: 30
+            bitWidth: 2
+            access: read-only
+          SEC:
+            description: LIR/FPR/TSR/MMR/BER single error correct status flag
+            bitOffset: 25
+            bitWidth: 1
+            access: read-write
+          DED:
+            description: LIR/FPR/TSR/MMR/BER double error detect status flag
+            bitOffset: 24
+            bitWidth: 1
+            access: read-only
+          MERRA:
+            description: Memory error word address
+            bitOffset: 0
+            bitWidth: 14
+            access: read-only
+      CSRMERRV:
+        description: Memory error value register
+        addressOffset: 0x10
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          CSRMERRV:
+            description: The CSRMERRV is a single 32-bit read-only register that provides the error correction mask output of the ECC logic when either SEC or DED is asserted by the ECC logic if present (PARITYC equal to 102 or 112). If ECC logic is not present (PARITYC equal to 012 or 002), then this field will always be zero.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only
+      CSRMERRT0:
+        description: Memory Error Handling Test Register
+        addressOffset: 0x14
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CSRMERRT0:
+            description: The CSRMERRT0-1 memory error handling test register is a read-write register that is used to inject errors into memory writes in order to enable testing of error detection and/or correction logic
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      CSRMERRT1:
+        description: Memory Error Handling Test Register
+        addressOffset: 0x18
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CSRMERRT1:
+            description: The CSRMERRT0-1 memory error handling test register is a read-write register that is used to inject errors into memory writes in order to enable testing of error detection and/or correction logic
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write

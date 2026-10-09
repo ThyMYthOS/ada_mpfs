@@ -1,0 +1,127 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  H2FINT_LO:
+    description: H2FINT_LO Controller
+    groupName: H2FINT
+    baseAddress: 0x20126000
+    registers:
+      H2FINT_ENABLE:
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          HENABLE:
+            description: Enables individual H2F outputs
+            bitOffset: 16
+            bitWidth: 16
+            access: read-write
+          GENABLE:
+            description: Enables all the H2FINT outputs
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      H2FSTATUS:
+        addressOffset: 0x4
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          H2FSTATUS:
+            description: Read back of the 16-bit H2F Interrupts before the H2F and global enable
+            bitOffset: 0
+            bitWidth: 16
+            access: read-only
+      PLSTATUS0:
+        addressOffset: 0x10
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          PLSTATUS0:
+            description: Indicates that the PLINT interrupt is active before the PLINT enable i.e. direct read of the PLINT inputs [31:0]
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only
+      PLSTATUS1:
+        addressOffset: 0x14
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          PLSTATUS1:
+            description: Indicates that the PLIT interrupt is active before the PLINT enable i.e. direct read of the PLINT inputs [63:32]
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only
+      PLSTATUS2:
+        addressOffset: 0x18
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          PLSTATUS2:
+            description: Indicates that the PLIT interrupt is active before the PLINT enable i.e. direct read of the PLINT inputs [95:64]
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only
+      PLSTATUS3:
+        addressOffset: 0x1C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          PLSTATUS3:
+            description: Indicates that the PLINT interrupt is active before the PLINT enable i.e. direct read of the PLINT inputs [127:96]
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only
+      PLENABLE0:
+        addressOffset: 0x20
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PLENABLE0:
+            description: Enables PLINT interrupts 31:0
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      PLENABLE1:
+        addressOffset: 0x24
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PLENABLE1:
+            description: Enables PLINT interrupts 63:32
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      PLENABLE2:
+        addressOffset: 0x28
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PLENABLE2:
+            description: Enables PLINT interrupts 95:64
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      PLENABLE3:
+        addressOffset: 0x2C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PLENABLE3:
+            description: Enables PLINT interrupts 127:96
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+  H2FINT_HI:
+    derivedFrom: H2FINT_LO
+    description: H2FINT_HI Controller
+    baseAddress: 0x28126000

@@ -1,0 +1,1784 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  TRACE:
+    description: TRACE Controller
+    baseAddress: 0x23000000
+    registers:
+      US_CTL:
+        description: Upstream general control
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          INT_POLARITY:
+            description: Upstream interrupt output is active high when this bit is 1. or active low when 0. Initial value at reset is set according to an instantiation parameter. so it should not be necessary to change the value of this bit.
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          INT_TYPE:
+            description: Upstream interrupt output is a pulse when this bit is 1. or a level when it is 0
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          INT_EN:
+            description: Upstream master interrupt enable
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          FLUSH:
+            description: Flush the message currently being written from upstream message buffer. Must be applied before the last write of a message. Selfclearing. so always reads as zero
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          CLEAR:
+            description: Clear upstream message buffer. Debug option; do not set without consulting UltraSoC
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          ENABLE:
+            description: Upstream enable.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      US_INT_CTL:
+        description: control of upstream interrupt behaviour
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EMPTY:
+            description: Enable buffer empty interrupt
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          NOT_FULL:
+            description: Enable buffer not full interrupt
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          ERR:
+            description: Enable upstream error interrupt
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      US_INT_STS:
+        description: upstream interrupt status
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EMPTY:
+            description: Enable buffer empty interrupt. The upstream message buffer is empty. and there is therefore sufficient space to write an entire message via us_data.
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          NOT_FULL:
+            description: Enable buffer not full interrupt. The upstream message buffer is no longer full. and further message data can be written via us_data
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          ERR:
+            description: Enable upstream error interrupt. This indicates us_data was written when there was no space available in the upstream message buffer (us_buf_sts full bit set).
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      US_DATA:
+        description: Upstream message data
+        addressOffset: 0xC
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: Upstream message data
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      US_BUF_STS:
+        description: upstream buffer status
+        addressOffset: 0x10
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          MESSAGES:
+            description: Number of whole messages contained in the upstream buffer.
+            bitOffset: 16
+            bitWidth: 11
+            access: read-only
+          WR_ONGOING:
+            description: Write ongoing. Part of a message has been written in to the buffer via us_data.
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          RD_ONGOING:
+            description: Read ongoing. Part of a message has been output from the message interface
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          EMPTY:
+            description: Upstream buffer is empty
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          FULL:
+            description: Upstream buffer is full
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      US_WR_STS:
+        description: Upstream write status
+        addressOffset: 0x14
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          HEADER:
+            description: Header (byte 0) of the message being written into upstream message buffer (only valid if wr_ongoing is 1).
+            bitOffset: 8
+            bitWidth: 8
+            access: read-only
+          ENTRIES:
+            description: Number of 32-bit words of an incomplete message written into the upstream buffer (only valid if wr_ongoing is 1).
+            bitOffset: 4
+            bitWidth: 4
+            access: read-only
+          WR_ONGOING:
+            description: Write ongoing. Part of a message has been written in to the buffer via us_data
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          DONE:
+            description: Upstream buffer contains a complete message
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      US_GP:
+        description: Upstream general purpose
+        addressOffset: 0x18
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          GP:
+            description: General purpose location
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      US_EVT:
+        description: Upstream event
+        addressOffset: 0x1C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EVENT:
+            description: Event number to send
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      DS_CTL:
+        description: Downstream general control
+        addressOffset: 0x80
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          INT_POLARITY:
+            description: Downstream interrupt output is active high when this bit is 1. or active low when 0. Initial value at reset is set according to an instantiation parameter. so it should not be necessary to change the value of this bit
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          INT_TYPE:
+            description: Downstream interrupt output is a pulse when this bit is 1. or a level when it is 0.
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          INT_EN:
+            description: Downstream master interrupt enable.
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          MSG_STALL:
+            description: Stall the downstream message interface to prevent new downstream data accumulating in the downstream buffer. Debug option; do not set without consulting UltraSoC.
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          CLEAR:
+            description: Clear downstream message buffer. Debug option; do not set without consulting UltraSoC
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          ENABLE:
+            description: Downstream enable
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DS_INT_CTL:
+        description: control of downstream interrupt behaviour
+        addressOffset: 0x84
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EVT_OVERFLOW:
+            description: Enable event FIFO overflow interrupt
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          EVT_AVAIL:
+            description: Enable event available interrupt
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          NOT_EMPTY:
+            description: Enable buffer not empty interrupt
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          FULL:
+            description: Enable buffer full interrupt.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          ERR:
+            description: Enable downstream error interrupt
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DS_INT_STS:
+        description: downstream interrupt status
+        addressOffset: 0x88
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EVT_OVERFLOW:
+            description: Event FIFO overflow interrupt. A downstream event was lost because there was no room to store it in the downstream event FIFO
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          EVT_AVAIL:
+            description: Event available interrupt. The downstream event FIFO is no longer empty
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          NOT_EMPTY:
+            description: Downstream buffer not empty interrupt. A new message is available and can be read from ds_data.
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          FULL:
+            description: Downstream buffer full interrupt. The downstream message buffer is full. indicating that no further messages can be accepted and backpressure is being applied to the downstream message interface
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          ERR:
+            description: Downstream error interrupt. This indicates ds_data was read when there was no message data available
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DS_DATA:
+        description: Downstream message data
+        addressOffset: 0x8C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: Downstream message data
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only
+      DS_BUF_STS:
+        description: Downstream buffer status
+        addressOffset: 0x90
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          MESSAGES:
+            description: Number of whole messages contained in the downstream buffer
+            bitOffset: 16
+            bitWidth: 11
+            access: read-only
+          TOTAL_ENTRIES:
+            description: Number of buffer entries containing valid message data
+            bitOffset: 4
+            bitWidth: 12
+            access: read-only
+          WR_ONGOING:
+            description: Write ongoing. Part of a message has been received from the message interface.
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          RD_ONGOING:
+            description: Read ongoing. Part of a message has been read out of the buffer via ds_data
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          EMPTY:
+            description: Downstream buffer is empty
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          FULL:
+            description: Downstream buffer is full
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      DS_RD_STS:
+        description: downstream read status
+        addressOffset: 0x94
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          HEADER:
+            description: Header (byte 0) of the message being read from the downstream message buffer (only valid if rd_ongoing is 1).
+            bitOffset: 8
+            bitWidth: 8
+            access: read-only
+          ENTRIES:
+            description: Number of 32-bit words of a message yet to be read out of the downstream buffer (only valid if rd_ongoing is 1).
+            bitOffset: 4
+            bitWidth: 4
+            access: read-only
+          RD_ONGOING:
+            description: Read ongoing. Part of a message has been read out of the buffer via ds_data
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          READY:
+            description: Downstream buffer contains a complete message ready for reading.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      DS_EVT:
+        description: Downstream event
+        addressOffset: 0x9C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          VALID:
+            description: Event valid
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          EVENT:
+            description: Event number received (when valid is 1).
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      DS_EVT_CTL:
+        description: control of downstream real-time events
+        addressOffset: 0xA0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FLUSH:
+            description: Flush the downstream event FIFO. Once set. all events will be discarded until a zero is written to this bit
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          ENABLE:
+            description: Event FIFO enable. Must be set in order to receive events via ds_evt
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DS_EVT_STS:
+        description: status of downstream real-time events
+        addressOffset: 0xA4
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          FULL:
+            description: Indicates that the downstream event FIFO is full
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          EMPTY:
+            description: Indicates that the downstream event FIFO is empty
+            bitOffset: 8
+            bitWidth: 1
+            access: read-only
+          EVENTS:
+            description: Number of events in the downstream event FIFO
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      DS_EVT_FILTER_0:
+        description: Downstream event filter 0
+        addressOffset: 0xA8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FILTER_MATCH:
+            description: 'Filter match. Capture all real-time events that meet the condition: event & filter_mask == filter_match & filter_mask'
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          FILTER_MASK:
+            description: Filter mask
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      DS_EVT_FILTER_1:
+        description: Downstream event filter 1
+        addressOffset: 0xAC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FILTER_MATCH:
+            description: 'Filter match. Capture all real-time events that meet the condition: event & filter_mask == filter_match & filter_mask'
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          FILTER_MASK:
+            description: Filter mask
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      SMB_REG_GLOBAL_CFG:
+        description: Global configuration
+        addressOffset: 0x10000
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MEM_READ_RATE:
+            description: Controls the rate at which the read access credit counter is replenished in powers of 2.
+            bitOffset: 24
+            bitWidth: 4
+            access: read-write
+          MEM_READ_CREDIT:
+            description: Controls the access credit available to the bus master for read accesses to the system memory.
+            bitOffset: 22
+            bitWidth: 2
+            access: read-write
+          MEM_WRITE_RATE:
+            description: Controls the rate at which the write access credit counter is replenished in powers of 2. 0x0 replenishes continuously
+            bitOffset: 18
+            bitWidth: 4
+            access: read-write
+          MEM_WRITE_CREDIT:
+            description: Controls the access credit available to the bus master for write accesses to the system memory.
+            bitOffset: 16
+            bitWidth: 2
+            access: read-write
+          IDLE_PERIOD:
+            description: Controls the idle message injection timer period
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          BURST_LENGTH:
+            description: Programmable burst length for system memory transfers. Defaults to the parameter sys_mem_blen_p
+            bitOffset: 4
+            bitWidth: 8
+            access: read-write
+          MSG_LC:
+            description: The logical channel the network message adapter must output messages on.
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          DOUBLE_END_ENABLE:
+            description: Read enable for double-ended buffering mode.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          MODULE_ENABLE:
+            description: Global enable for the System Memory Buffer. 0-Disable 1-Enable
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SMB_REG_GLOBAL_EN:
+        description: Global enable
+        addressOffset: 0x10004
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MODULE_ENABLE:
+            description: Global enable for the System Memory Buffer. 0-Disable 1-Enable
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SMB_REG_GLOBAL_INT:
+        description: Global interrupt control
+        addressOffset: 0x10008
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          INT_POLARITY:
+            description: 'Interrupt polarity: 1 - Active high. 0 - Active low.'
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          INT_TYPE:
+            description: 'Interrupt type: 1 - Pulse, 0 Level.'
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          INT_ENABLE:
+            description: Global interrupt enable control
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SMB_REG_GLOBAL_ID:
+        description: Global master bus interface ID control
+        addressOffset: 0x1000C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MST_ID:
+            description: Global master bus interface ID control
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      SMB_REG_BUF_CFG_LO_0:
+        description: Logical buffer configuration (lower 32b) i logical buffer index; i = 0 for 1st buffer
+        addressOffset: 0x10040
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BUF_EVENT_ENABLE:
+            description: Enable event generation for the logical buffer when set
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          FLOW_MASK:
+            description: Mask to filter the messages accepted based on their flow
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          TIMER_ENABLE:
+            description: Controls whether the purge timer is enabled for a logical buffer. 0-Purge timer disabled 1-Purge timer enabled
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          BUF_CONTINUOUS:
+            description: Set to make the buffer lossless by configuring it to block its message input when in a paused state.
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          BUF_ARMED:
+            description: Set to arm the logical buffer in single shot mode
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          BUF_ARM_MODE:
+            description: Set to enable single-shot mode. clear for automatic rearming
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          BUF_INIT:
+            description: Initialises the buffer when set to 1, application of 0 has no effect. Read as zero
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          CM_FORWARD_ID:
+            description: The communicator ID to forward the message stream to upon reading of the logical buffer
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          BUF_MODE:
+            description: 'Buffering modes. 00 : Streaming mode (FIFO) 01 : Trace to mode 10 : Trace from mode 11 : Trace about mode'
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          BUF_TYPE:
+            description: 'Buffer control type: 0 : Double-ended buffering mode (default) 1 : Single-ended buffering mode'
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          BUF_ENABLE:
+            description: 'Logical buffer enable control: 0 : Disable the logical buffer 1 : Enable the logical buffer'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SMB_REG_BUF_CFG_HI_0:
+        description: Logical buffer configuration (upper 32b) i logical buffer index; i = 0 for 1st buffer
+        addressOffset: 0x10044
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BUF_TRIGGER:
+            description: The real-time event to accept as a trigger when the buffer is configured in a triggered mode
+            bitOffset: 24
+            bitWidth: 8
+            access: read-write
+          BUF_EVENT:
+            description: The event to output when a buffer trigger occurs
+            bitOffset: 16
+            bitWidth: 8
+            access: read-write
+          MESSAGE_HI:
+            description: Message filter range upper value
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          MESSAGE_LO:
+            description: Message filter range lower value.
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      SMB_REG_INT_CTRL_0:
+        description: Interrupt control
+        addressOffset: 0x10048
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BUF_NOTE:
+            description: Selects the buffer status changes that a debugger is to be notified about using a real-time event or interrupt.
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          BUF_INT_ENABLE:
+            description: Logical buffer interrupts enable.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SMB_REG_INT_STS_0:
+        description: Interrupt status
+        addressOffset: 0x1004C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BUF_FULL:
+            description: Logical buffer full interrupt
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          BUF_TRIGGERED:
+            description: Logical buffer triggered interrupt
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          BUF_BLOCK_AVAIL:
+            description: Logical buffer memory block available to read interrupt.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          BUF_NOT_EMPTY:
+            description: Logical buffer changed to not empty interrupt.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SMB_REG_BASE_LO_0:
+        description: Logical buffer base address (lower 32b)
+        addressOffset: 0x10050
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BASE_ADDR_LO:
+            description: Memory base address lower 32b for the message buffers
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      SMB_REG_BASE_HI_0:
+        description: Logical buffer base address (upper 32b)
+        addressOffset: 0x10054
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BASE_ADDR_HI:
+            description: Memory base address upper 32b for the message buffers
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      SMB_REG_LIMIT_0:
+        description: Logical buffer limit address
+        addressOffset: 0x10058
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LIMIT_ADDR:
+            description: Memory limit address configuring the end of a logical buffer
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      SMB_REG_RD_ADDR_0:
+        description: Memory read address
+        addressOffset: 0x1005C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          READ_PTR:
+            description: Memory read address pointer. Read only if the buffer is enabled in double ended mode
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      SMB_REG_WR_ADDR_0:
+        description: Memory write address
+        addressOffset: 0x10060
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          WRITE_PTR:
+            description: Memory write address pointer
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only
+      SMB_REG_PURGE_0:
+        description: Logical buffer purge
+        addressOffset: 0x10064
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PURGE:
+            description: Applying a 1 causes the packer and input FIFO of the logical buffer to be purged.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SMB_REG_BUFFER_ACTIVE_0:
+        description: Logical buffer buffer active
+        addressOffset: 0x10068
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          READ_BUFFER_ACTIVE:
+            description: Read operations from the buffer are active when 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          WRITE_BUFFER_ACTIVE:
+            description: Write operations from the buffer are active when 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      SMB_REG_BUF_CFG_LO_1:
+        description: Logical buffer configuration (lower 32b) i logical buffer index; i = 0 for 1st buffer
+        addressOffset: 0x10140
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BUF_EVENT_ENABLE:
+            description: Enable event generation for the logical buffer when set
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          FLOW_MASK:
+            description: Mask to filter the messages accepted based on their flow
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          TIMER_ENABLE:
+            description: Controls whether the purge timer is enabled for a logical buffer. 0-Purge timer disabled 1-Purge timer enabled
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          BUF_CONTINUOUS:
+            description: Set to make the buffer lossless by configuring it to block its message input when in a paused state.
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          BUF_ARMED:
+            description: Set to arm the logical buffer in single shot mode
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          BUF_ARM_MODE:
+            description: Set to enable single-shot mode. clear for automatic rearming
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          BUF_INIT:
+            description: Initialises the buffer when set to 1, application of 0 has no effect. Read as zero
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          CM_FORWARD_ID:
+            description: The communicator ID to forward the message stream to upon reading of the logical buffer
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          BUF_MODE:
+            description: 'Buffering modes. 00 : Streaming mode (FIFO) 01 : Trace to mode 10 : Trace from mode 11 : Trace about mode'
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          BUF_TYPE:
+            description: 'Buffer control type: 0 : Double-ended buffering mode (default) 1 : Single-ended buffering mode'
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          BUF_ENABLE:
+            description: 'Logical buffer enable control: 0 : Disable the logical buffer 1 : Enable the logical buffer'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SMB_REG_BUF_CFG_HI_1:
+        description: Logical buffer configuration (upper 32b) i logical buffer index; i = 0 for 1st buffer
+        addressOffset: 0x10144
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BUF_TRIGGER:
+            description: The real-time event to accept as a trigger when the buffer is configured in a triggered mode
+            bitOffset: 24
+            bitWidth: 8
+            access: read-write
+          BUF_EVENT:
+            description: The event to output when a buffer trigger occurs
+            bitOffset: 16
+            bitWidth: 8
+            access: read-write
+          MESSAGE_HI:
+            description: Message filter range upper value
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          MESSAGE_LO:
+            description: Message filter range lower value.
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      SMB_REG_INT_CTRL_1:
+        description: Interrupt control
+        addressOffset: 0x10148
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BUF_NOTE:
+            description: Selects the buffer status changes that a debugger is to be notified about using a real-time event or interrupt.
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          BUF_INT_ENABLE:
+            description: Logical buffer interrupts enable.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SMB_REG_INT_STS_1:
+        description: Interrupt status
+        addressOffset: 0x1014C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BUF_FULL:
+            description: Logical buffer full interrupt
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          BUF_TRIGGERED:
+            description: Logical buffer triggered interrupt
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          BUF_BLOCK_AVAIL:
+            description: Logical buffer memory block available to read interrupt.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          BUF_NOT_EMPTY:
+            description: Logical buffer changed to not empty interrupt.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SMB_REG_BASE_LO_1:
+        description: Logical buffer base address (lower 32b)
+        addressOffset: 0x10150
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BASE_ADDR_LO:
+            description: Memory base address lower 32b for the message buffers
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      SMB_REG_BASE_HI_1:
+        description: Logical buffer base address (upper 32b)
+        addressOffset: 0x10154
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BASE_ADDR_HI:
+            description: Memory base address upper 32b for the message buffers
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      SMB_REG_LIMIT_1:
+        description: Logical buffer limit address
+        addressOffset: 0x10158
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LIMIT_ADDR:
+            description: Memory limit address configuring the end of a logical buffer
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      SMB_REG_RD_ADDR_1:
+        description: Memory read address
+        addressOffset: 0x1015C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          READ_PTR:
+            description: Memory read address pointer. Read only if the buffer is enabled in double ended mode
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      SMB_REG_WR_ADDR_1:
+        description: Memory write address
+        addressOffset: 0x10160
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          WRITE_PTR:
+            description: Memory write address pointer
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only
+      SMB_REG_PURGE_1:
+        description: Logical buffer purge
+        addressOffset: 0x10164
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PURGE:
+            description: Applying a 1 causes the packer and input FIFO of the logical buffer to be purged.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SMB_REG_BUFFER_ACTIVE_1:
+        description: Logical buffer buffer active
+        addressOffset: 0x10168
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          READ_BUFFER_ACTIVE:
+            description: Read operations from the buffer are active when 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          WRITE_BUFFER_ACTIVE:
+            description: Write operations from the buffer are active when 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      VCON_ENABLES:
+        description: Virtual Console global enables register
+        addressOffset: 0x20000
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CHANNEL_ENABLES:
+            description: Channel enable. The enable for channel i corresponds to bit 16 + i.
+            bitOffset: 16
+            bitWidth: 16
+            access: read-write
+          INTERRUPT_ENABLE:
+            description: Global interrupt enable
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          MODULE_ENABLE:
+            description: Global module enable
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      VCON_ENABLES_OR:
+        description: Logical OR between the value written and the Virtual Console global enables register.
+        addressOffset: 0x20004
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          VCON_ENABLES_OR:
+            description: ''
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      VCON_ENABLES_AND:
+        description: Logical AND between the value written and the Virtual Console group enables register
+        addressOffset: 0x20008
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          VCON_ENABLES_AND:
+            description: ''
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      VCON_INTERRUPT_CONFIG:
+        description: Virtual Console interrupt configuration register
+        addressOffset: 0x2000C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          INT_POLARITY:
+            description: 'Interrupt polarity: 0: Active low. 1: Active high. Reset value defined at design time. It should not normally be necessary to change the value of this bit.'
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          INT_TYPE:
+            description: 'Interrupt type: 0: Level. 1: Pulse. Reset to 0.'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      VCON_GLOBAL_STATUS:
+        description: Virtual Console global status register
+        addressOffset: 0x20010
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          RX_NOT_EMPTY:
+            description: Channel i upstream buffer not empty flag
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          TX_HAS_SPACE:
+            description: Channel i downstream buffer has space flag
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      VCON_GLOBAL_ALLOC:
+        description: Virtual Console global allocation register
+        addressOffset: 0x20014
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MANAGE_OP:
+            description: 'Allocation operation: 00 (get): Requests allocation status of global resource 01 (allocate): Allocate global resource to debugger_id if currently unallocated. 10 (release): Deallocate global resource. 11 (force): Allocate global resource to debugger_id even if this resource is already allocated.'
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          DEBUGGER_ID:
+            description: ID of debugger or other software API. Zero means unallocated.
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      VCON_CHAN0_BURSTDATA:
+        description: Virtual Console channel 0 burst data register
+        addressOffset: 0x2007C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BURSTDATA:
+            description: Write transactions transfer data to the channel i upstream buffer. Read transactions retrieve data from the channel I downstream buffer.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      VCON_CHAN1_BURSTDATA:
+        description: Virtual Console channel 1 burst data register
+        addressOffset: 0x200FC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BURSTDATA:
+            description: Write transactions transfer data to the channel i upstream buffer. Read transactions retrieve data from the channel I downstream buffer.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      VCON_CHAN2_BURSTDATA:
+        description: Virtual Console channel 2 burst data register
+        addressOffset: 0x201DC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BURSTDATA:
+            description: Write transactions transfer data to the channel i upstream buffer. Read transactions retrieve data from the channel I downstream buffer.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      VCON_CHAN0_CONFIG:
+        description: Virtual Console channel 0 configuration register
+        addressOffset: 0x20200
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TX_TIMEOUT:
+            description: Transmit timeout in cycles
+            bitOffset: 16
+            bitWidth: 16
+            access: read-write
+          SPACE_THRESHOLD:
+            description: Available space threshold for signalling an interrupt. An interrupt is issued when the available space is greater than this value
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          DATA_SIZE:
+            description: The maximum length - in bytes - of the data field in vconsole_data messages. plus one.
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          TIMESTAMP_ENABLE:
+            description: Enable timestamps on vconsole_data messages
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          FLOW:
+            description: The flow assigned to flow_control_report and vconsole_data messages
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      VCON_CHAN0_STATUS:
+        description: Virtual Console channel 0 status register
+        addressOffset: 0x20204
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          RX_USED:
+            description: Channel i upstream buffer usage in bytes
+            bitOffset: 20
+            bitWidth: 12
+            access: read-only
+          TX_SPACE:
+            description: Channel i downstream buffer space in bytes
+            bitOffset: 18
+            bitWidth: 2
+            access: read-only
+          RX_NOT_EMPTY:
+            description: Channel i upstream buffer not empty flag
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          TX_HAS_SPACE:
+            description: Channel i downstream buffer has space flag
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      VCON_CHAN0_INT_CONFIG:
+        description: Virtual Console channel 0 interrupt configuration register
+        addressOffset: 0x20208
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TX_PURGE:
+            description: Purge channel i downstream buffer. Read as 1 until purge request is complete
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RX_INT_ENABLE:
+            description: Enable interrupt when the channel i upstream buffer state transitions from empty to not empty
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          TX_INT_ENABLE:
+            description: Enable interrupt when the channel i downstream buffer space available is greater than space_threshold.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      VCON_CHAN0_INT_STATUS:
+        description: Virtual Console channel i interrupt status register
+        addressOffset: 0x2020C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          RX_INT_STATUS:
+            description: Status of channel i RX interrupt (upstream buffer).
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          TX_INT_STATUS:
+            description: Status of channel i TX interrupt (downstream buffer).
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      VCON_CHAN0_ALLOC:
+        description: Virtual Console channel 0 allocation register.
+        addressOffset: 0x20210
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MANAGE_OP:
+            description: 'Allocation operation: 00 (get): Requests allocation status of global resource 01 (allocate): Allocate global resource to debugger_id if currently unallocated. 10 (release): Deallocate global resource. 11 (force): Allocate global resource to debugger_id even if this resource is already allocated.'
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          DEBUGGER_ID:
+            description: ID of debugger or other software API. Zero means unallocated
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      VCON_CHAN0_DATA:
+        description: Virtual Console channel 0 data register
+        addressOffset: 0x20214
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: Write transactions transfer a single byte to the channel i upstream buffer. Read transactions retrieve a single byte from the channel i downstream buffer.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      VCON_CHAN1_CONFIG:
+        description: Virtual Console channel 1 configuration register
+        addressOffset: 0x20220
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TX_TIMEOUT:
+            description: Transmit timeout in cycles
+            bitOffset: 16
+            bitWidth: 16
+            access: read-write
+          SPACE_THRESHOLD:
+            description: Available space threshold for signalling an interrupt. An interrupt is issued when the available space is greater than this value
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          DATA_SIZE:
+            description: The maximum length - in bytes - of the data field in vconsole_data messages. plus one.
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          TIMESTAMP_ENABLE:
+            description: Enable timestamps on vconsole_data messages
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          FLOW:
+            description: The flow assigned to flow_control_report and vconsole_data messages
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      VCON_CHAN1_STATUS:
+        description: Virtual Console channel 1 status register
+        addressOffset: 0x20224
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          RX_USED:
+            description: Channel i upstream buffer usage in bytes
+            bitOffset: 20
+            bitWidth: 12
+            access: read-only
+          TX_SPACE:
+            description: Channel i downstream buffer space in bytes
+            bitOffset: 18
+            bitWidth: 2
+            access: read-only
+          RX_NOT_EMPTY:
+            description: Channel i upstream buffer not empty flag
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          TX_HAS_SPACE:
+            description: Channel i downstream buffer has space flag
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      VCON_CHAN1_INT_CONFIG:
+        description: Virtual Console channel 1 interrupt configuration register
+        addressOffset: 0x20228
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TX_PURGE:
+            description: Purge channel i downstream buffer. Read as 1 until purge request is complete
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RX_INT_ENABLE:
+            description: Enable interrupt when the channel i upstream buffer state transitions from empty to not empty
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          TX_INT_ENABLE:
+            description: Enable interrupt when the channel i downstream buffer space available is greater than space_threshold.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      VCON_CHAN1_INT_STATUS:
+        description: Virtual Console channel 1 interrupt status register
+        addressOffset: 0x2022C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          RX_INT_STATUS:
+            description: Status of channel i RX interrupt (upstream buffer).
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          TX_INT_STATUS:
+            description: Status of channel i TX interrupt (downstream buffer).
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      VCON_CHAN1_ALLOC:
+        description: Virtual Console channel 1 allocation register.
+        addressOffset: 0x20230
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MANAGE_OP:
+            description: 'Allocation operation: 00 (get): Requests allocation status of global resource 01 (allocate): Allocate global resource to debugger_id if currently unallocated. 10 (release): Deallocate global resource. 11 (force): Allocate global resource to debugger_id even if this resource is already allocated.'
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          DEBUGGER_ID:
+            description: ID of debugger or other software API. Zero means unallocated
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      VCON_CHAN1_DATA:
+        description: Virtual Console channel 1 data register
+        addressOffset: 0x20234
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: Write transactions transfer a single byte to the channel i upstream buffer. Read transactions retrieve a single byte from the channel i downstream buffer.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      VCON_CHAN2_CONFIG:
+        description: Virtual Console channel 2 configuration register
+        addressOffset: 0x20240
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TX_TIMEOUT:
+            description: Transmit timeout in cycles
+            bitOffset: 16
+            bitWidth: 16
+            access: read-write
+          SPACE_THRESHOLD:
+            description: Available space threshold for signalling an interrupt. An interrupt is issued when the available space is greater than this value
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          DATA_SIZE:
+            description: The maximum length - in bytes - of the data field in vconsole_data messages. plus one.
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          TIMESTAMP_ENABLE:
+            description: Enable timestamps on vconsole_data messages
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          FLOW:
+            description: The flow assigned to flow_control_report and vconsole_data messages
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      VCON_CHAN2_STATUS:
+        description: Virtual Console channel 2 status register
+        addressOffset: 0x20244
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          RX_USED:
+            description: Channel i upstream buffer usage in bytes
+            bitOffset: 20
+            bitWidth: 12
+            access: read-only
+          TX_SPACE:
+            description: Channel i downstream buffer space in bytes
+            bitOffset: 18
+            bitWidth: 2
+            access: read-only
+          RX_NOT_EMPTY:
+            description: Channel i upstream buffer not empty flag
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          TX_HAS_SPACE:
+            description: Channel i downstream buffer has space flag
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      VCON_CHAN2_INT_CONFIG:
+        description: Virtual Console channel 2 interrupt configuration register
+        addressOffset: 0x20248
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TX_PURGE:
+            description: Purge channel i downstream buffer. Read as 1 until purge request is complete
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RX_INT_ENABLE:
+            description: Enable interrupt when the channel i upstream buffer state transitions from empty to not empty
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          TX_INT_ENABLE:
+            description: Enable interrupt when the channel i downstream buffer space available is greater than space_threshold.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      VCON_CHAN2_INT_STATUS:
+        description: Virtual Console channel 2 interrupt status register
+        addressOffset: 0x2024C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          RX_INT_STATUS:
+            description: Status of channel i RX interrupt (upstream buffer).
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          TX_INT_STATUS:
+            description: Status of channel i TX interrupt (downstream buffer).
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      VCON_CHAN2_ALLOC:
+        description: Virtual Console channel 2 allocation register.
+        addressOffset: 0x20250
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MANAGE_OP:
+            description: 'Allocation operation: 00 (get): Requests allocation status of global resource 01 (allocate): Allocate global resource to debugger_id if currently unallocated. 10 (release): Deallocate global resource. 11 (force): Allocate global resource to debugger_id even if this resource is already allocated.'
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          DEBUGGER_ID:
+            description: ID of debugger or other software API. Zero means unallocated
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      VCON_CHAN2_DATA:
+        description: Virtual Console channel 2 data register
+        addressOffset: 0x20254
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: Write transactions transfer a single byte to the channel i upstream buffer. Read transactions retrieve a single byte from the channel i downstream buffer.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      VCON_CHAN3_CONFIG:
+        description: Virtual Console channel 3 configuration register
+        addressOffset: 0x20260
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TX_TIMEOUT:
+            description: Transmit timeout in cycles
+            bitOffset: 16
+            bitWidth: 16
+            access: read-write
+          SPACE_THRESHOLD:
+            description: Available space threshold for signalling an interrupt. An interrupt is issued when the available space is greater than this value
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          DATA_SIZE:
+            description: The maximum length - in bytes - of the data field in vconsole_data messages. plus one.
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          TIMESTAMP_ENABLE:
+            description: Enable timestamps on vconsole_data messages
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          FLOW:
+            description: The flow assigned to flow_control_report and vconsole_data messages
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      VCON_CHAN3_STATUS:
+        description: Virtual Console channel 3 status register
+        addressOffset: 0x20264
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          RX_USED:
+            description: Channel i upstream buffer usage in bytes
+            bitOffset: 20
+            bitWidth: 12
+            access: read-only
+          TX_SPACE:
+            description: Channel i downstream buffer space in bytes
+            bitOffset: 18
+            bitWidth: 2
+            access: read-only
+          RX_NOT_EMPTY:
+            description: Channel i upstream buffer not empty flag
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          TX_HAS_SPACE:
+            description: Channel i downstream buffer has space flag
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      VCON_CHAN3_INT_CONFIG:
+        description: Virtual Console channel 3 interrupt configuration register
+        addressOffset: 0x20268
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TX_PURGE:
+            description: Purge channel i downstream buffer. Read as 1 until purge request is complete
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RX_INT_ENABLE:
+            description: Enable interrupt when the channel i upstream buffer state transitions from empty to not empty
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          TX_INT_ENABLE:
+            description: Enable interrupt when the channel i downstream buffer space available is greater than space_threshold.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      VCON_CHAN3_INT_STATUS:
+        description: Virtual Console channel 3 interrupt status register
+        addressOffset: 0x2026C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          RX_INT_STATUS:
+            description: Status of channel i RX interrupt (upstream buffer).
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          TX_INT_STATUS:
+            description: Status of channel i TX interrupt (downstream buffer).
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      VCON_CHAN3_ALLOC:
+        description: Virtual Console channel 3 allocation register.
+        addressOffset: 0x20270
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MANAGE_OP:
+            description: 'Allocation operation: 00 (get): Requests allocation status of global resource 01 (allocate): Allocate global resource to debugger_id if currently unallocated. 10 (release): Deallocate global resource. 11 (force): Allocate global resource to debugger_id even if this resource is already allocated.'
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          DEBUGGER_ID:
+            description: ID of debugger or other software API. Zero means unallocated
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      VCON_CHAN3_DATA:
+        description: Virtual Console channel 3 data register
+        addressOffset: 0x20274
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: Write transactions transfer a single byte to the channel i upstream buffer. Read transactions retrieve a single byte from the channel i downstream buffer.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      VCON_CHAN4_CONFIG:
+        description: Virtual Console channel 4 configuration register
+        addressOffset: 0x20280
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TX_TIMEOUT:
+            description: Transmit timeout in cycles
+            bitOffset: 16
+            bitWidth: 16
+            access: read-write
+          SPACE_THRESHOLD:
+            description: Available space threshold for signalling an interrupt. An interrupt is issued when the available space is greater than this value
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          DATA_SIZE:
+            description: The maximum length - in bytes - of the data field in vconsole_data messages. plus one.
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          TIMESTAMP_ENABLE:
+            description: Enable timestamps on vconsole_data messages
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          FLOW:
+            description: The flow assigned to flow_control_report and vconsole_data messages
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      VCON_CHAN4_STATUS:
+        description: Virtual Console channel 4 status register
+        addressOffset: 0x20284
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          RX_USED:
+            description: Channel i upstream buffer usage in bytes
+            bitOffset: 20
+            bitWidth: 12
+            access: read-only
+          TX_SPACE:
+            description: Channel i downstream buffer space in bytes
+            bitOffset: 18
+            bitWidth: 2
+            access: read-only
+          RX_NOT_EMPTY:
+            description: Channel i upstream buffer not empty flag
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          TX_HAS_SPACE:
+            description: Channel i downstream buffer has space flag
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      VCON_CHAN4_INT_CONFIG:
+        description: Virtual Console channel 4 interrupt configuration register
+        addressOffset: 0x20288
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TX_PURGE:
+            description: Purge channel i downstream buffer. Read as 1 until purge request is complete
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RX_INT_ENABLE:
+            description: Enable interrupt when the channel i upstream buffer state transitions from empty to not empty
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          TX_INT_ENABLE:
+            description: Enable interrupt when the channel i downstream buffer space available is greater than space_threshold.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      VCON_CHAN4_INT_STATUS:
+        description: Virtual Console channel 4 interrupt status register
+        addressOffset: 0x2028C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          RX_INT_STATUS:
+            description: Status of channel i RX interrupt (upstream buffer).
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          TX_INT_STATUS:
+            description: Status of channel i TX interrupt (downstream buffer).
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      VCON_CHAN4_ALLOC:
+        description: Virtual Console channel 4 allocation register.
+        addressOffset: 0x20290
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MANAGE_OP:
+            description: 'Allocation operation: 00 (get): Requests allocation status of global resource 01 (allocate): Allocate global resource to debugger_id if currently unallocated. 10 (release): Deallocate global resource. 11 (force): Allocate global resource to debugger_id even if this resource is already allocated.'
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          DEBUGGER_ID:
+            description: ID of debugger or other software API. Zero means unallocated
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      VCON_CHAN4_DATA:
+        description: Virtual Console channel 4 data register
+        addressOffset: 0x20294
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: Write transactions transfer a single byte to the channel i upstream buffer. Read transactions retrieve a single byte from the channel i downstream buffer.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      VCON_CHAN3_BURSTDATA:
+        description: Virtual Console channel 3 burst data register
+        addressOffset: 0x202BC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BURSTDATA:
+            description: Write transactions transfer data to the channel i upstream buffer. Read transactions retrieve data from the channel I downstream buffer.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      VCON_CHAN4_BURSTDATA:
+        description: Virtual Console channel 4 burst data register
+        addressOffset: 0x2039C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BURSTDATA:
+            description: Write transactions transfer data to the channel i upstream buffer. Read transactions retrieve data from the channel I downstream buffer.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write

@@ -1,0 +1,357 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  MSRTC_LO:
+    description: MSRTC_LO Controller
+    groupName: MSRTC
+    baseAddress: 0x20124000
+    registers:
+      CONTROL_REG:
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          UPDATED:
+            description: 1:when RTC counter updates the RTC value.It is cleared by the writing '1' to the bit
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          WAKEUP_SET:
+            description: 1:Assert the rtc_wakeup output and set the wakeup status bit.
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          WAKEUP_CLEAR:
+            description: Set every time a match occurs.1:wakeup_clear bit is cleared. Once cleared it will not be set again until the next wakeup occurs
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          MATCH:
+            description: RTC value matches with wakeup value. Indicates rtc_match output value.
+            bitOffset: 7
+            bitWidth: 1
+            access: read-only
+          DOWNLOAD:
+            description: '1: Current RTC counter value to be downloaded'
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          UPLOAD:
+            description: '1: Date/time value loaded into date/time registers and uploaded to the RTC counters'
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RESET:
+            description: 1:date/time value is reset and uploaded to RTC counters
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          ALARM_OFF:
+            description: 1:Alarm is disabled
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          ALARM_ON:
+            description: 1:Alarm is enabled
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          STOP:
+            description: When stop bit is written '1', RTC counter is stopped. Read indicates that RTC is running
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          START:
+            description: When start bit is written '1',indicates that RTC counter is started. Read indicates that RTC counter is running.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MODE_REG:
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WAKE_RESET_PS:
+            description: when a wakeup occurs reset the pre-scaler
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          WAKE_CONTINUE:
+            description: when a wakeup occurs continue counting
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          WAKE_RESET:
+            description: when a wakeup occurs reset the RTC counters
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          WAKE_ENABLE:
+            description: Enables the wakeup output
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          CLOCK_MODE:
+            description: '0: Binary counter 1: date and time counting'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PRESCALER_REG:
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PRESCALER:
+            description: value to divide incoming rtc clock. It should be set to achieve 1Hz from rtc_clk. Value must be greater than 1. Value = Clock Frequency - 1Hz
+            bitOffset: 0
+            bitWidth: 26
+            access: read-write
+      ALARM_LOWER_REG:
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ALARM_LOWER:
+            description: 'Write: Sets the alarm wakeup time. Read: Returns the alarm time. Binary count [31:0]'
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      ALARM_UPPER_REG:
+        addressOffset: 0x10
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ALARM_UPPER:
+            description: 'Write: sets the alarm wakeup time. Read: returns the alarm time. Binary count [42:32]'
+            bitOffset: 0
+            bitWidth: 11
+            access: read-write
+      COMPARE_LOWER_REG:
+        addressOffset: 0x14
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          COMPARE_LOWER:
+            description: 'Write: sets the compare bits on the alarm time. [7:0]: Seconds, [15:8]: Minutres, [23:16]: Hours, [31:24]:Day. Read: Returns the compare value. 0: Bit is ignored. 1: Bit is compared.'
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      COMPARE_UPPER_REG:
+        addressOffset: 0x18
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          COMPARE_UPPER:
+            description: 'Write: sets the compare bits on the alarm time. [7:0]: Month, [15:8]: Year, [23:16]: Weekday, [29:24]:Week. Read: Returns the compare value. 0: Bit is ignored. 1: Bit is compared.'
+            bitOffset: 0
+            bitWidth: 30
+            access: read-write
+      DATE_TIME_LOWER_REG:
+        addressOffset: 0x20
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DATETIME_LOWER:
+            description: 'Writes: Data to be uploaded to counter. Read: returns the current time. [7:0]: Seconds, [15:8]: Minutres, [23:16]: Hours, [31:24]:Day.'
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      DATE_TIME_UPPER_REG:
+        addressOffset: 0x24
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DATETIME_UPPER:
+            description: 'Writes: Data to be uploaded to counter. Read: returns the upper time bits that are in alignment with the last read lower bits.[7:0]: Month, [15:8]: Year, [23:16]: Weekday, [29:24]:Week.'
+            bitOffset: 0
+            bitWidth: 30
+            access: read-write
+      SECONDS_REG:
+        addressOffset: 0x30
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SECONDS:
+            description: The complete RTC data is read and stored internally. For writes all fields (0x30-x4c) must be written. The control register upload bit will upload data to the RTC.These registers are for use when clock_mode=1
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      MINUTES_REG:
+        addressOffset: 0x34
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MINUTES:
+            description: ''
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      HOURS_REG:
+        addressOffset: 0x38
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          HOURS:
+            description: ''
+            bitOffset: 0
+            bitWidth: 5
+            access: read-write
+      DAY_REG:
+        addressOffset: 0x3C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DAY:
+            description: ''
+            bitOffset: 0
+            bitWidth: 5
+            access: read-write
+      MONTH_REG:
+        addressOffset: 0x40
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MONTH:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      YEAR_REG:
+        addressOffset: 0x44
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          YEAR:
+            description: ''
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      WEEKDAY_REG:
+        addressOffset: 0x48
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WEEKDAY:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      WEEK_REG:
+        addressOffset: 0x4C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WEEK:
+            description: ''
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      SECONDS_CNT_REG:
+        addressOffset: 0x50
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SECONDS:
+            description: 'Each read returns the current date/time value. It is possible that date/time may increament b/w reads. Write: All fields (0x50-0x6c) must be writeen. The control register upload bit will upload the data to RTC.These registers are for use when clock_mode=1'
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      MINUTES_CNT_REG:
+        addressOffset: 0x54
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MINUTES:
+            description: ''
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      HOURS_CNT_REG:
+        addressOffset: 0x58
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          HOURS:
+            description: ''
+            bitOffset: 0
+            bitWidth: 5
+            access: read-write
+      DAY_CNT_REG:
+        addressOffset: 0x5C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DAY:
+            description: ''
+            bitOffset: 0
+            bitWidth: 5
+            access: read-write
+      MONTH_CNT_REG:
+        addressOffset: 0x60
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MONTH:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      YEAR_CNT_REG:
+        addressOffset: 0x64
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          YEAR:
+            description: ''
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      WEEKDAY_CNT_REG:
+        addressOffset: 0x68
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WEEKDAY:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      WEEK_CNT_REG:
+        addressOffset: 0x6C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          WEEK:
+            description: ''
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+  MSRTC_HI:
+    derivedFrom: MSRTC_LO
+    description: MSRTC_HI Controller
+    baseAddress: 0x28124000

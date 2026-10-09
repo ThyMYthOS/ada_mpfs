@@ -1,0 +1,130 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  CRYPTO:
+    description: CRYPTO Controller
+    baseAddress: 0x20127000
+    registers:
+      CONFIG:
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x1
+        fields:
+          FAB_OWNER:
+            description: Fabric controls the crypto block
+            bitOffset: 29
+            bitWidth: 1
+            access: read-only
+          MSS_OWNER:
+            description: MSS controls the crypto block
+            bitOffset: 28
+            bitWidth: 1
+            access: read-only
+          FAB_RELEASE:
+            description: Fabric has released the crypto, see the MSS/Fabric Crypto block ownership section in the MAS specification
+            bitOffset: 27
+            bitWidth: 1
+            access: read-only
+          FAB_REQUEST:
+            description: Fabric is requesting crypto use, see the MSS/Fabric Crypto block ownership section in the MAS specification
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          MSS_RELEASE:
+            description: MSS releases crypto, see the MSS/Fabric Crypto block ownership section in the MAS specification
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          MSS_REQUEST:
+            description: MSS requests crypto use, see the MSS/Fabric Crypto block ownership section in the MAS specification
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          USE_FAB_CLK:
+            description: When '1' in MSS mode the Crypto core and AHB interconnect is clocked by the Fabric clock rather than by the MSS sourced 200MHz clock source. This allows the MSS to use the AHB interfaces and the Fabric the streaming interface.
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RESERVED_1:
+            description: ''
+            bitOffset: 13
+            bitWidth: 3
+            access: read-write
+          STREAM_ENABLED:
+            description: Indicates that the streaming interface ie enabled
+            bitOffset: 11
+            bitWidth: 1
+            access: read-only
+          BUSERROR:
+            description: Status signal from Athena core indicating it received a AHB bus error response
+            bitOffset: 10
+            bitWidth: 1
+            access: read-only
+          ALARM:
+            description: Status signal from Athena core indicating alarm condition
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          COMPLETE:
+            description: Status signal from Athena core indicating complete
+            bitOffset: 8
+            bitWidth: 1
+            access: read-only
+          STALL_RATE:
+            description: 'Sets the average stall rate. 00: 1 in 8 01: 1 in 16 10: 1 in 32 11: 1 in 64'
+            bitOffset: 6
+            bitWidth: 2
+            access: read-write
+          STALL_ENABLE:
+            description: 'Enables the stall system on the Crypto core 0: Operates in G5 mode using fabric stall signal, clock_select must be 01 1: Internal mode enabled, stall occurrence generated internally on average 1 in 8 clocks. Works with clock_select 01 or 11.'
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          STREAM_ENABLE:
+            description: Enables the streaming interface to the fabric, must also be enabled via SCB device register
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RING_OSC_ON:
+            description: Turns on the Athena ring oscillators, note turned off at reset
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          GO:
+            description: Asserts the Athena go input
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          PURGE:
+            description: Asserts the Athena purge command input
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RESET:
+            description: Asserts the internal Athena core reset signal
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      STALL:
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SEED:
+            description: Sets the seed value used in the generation off the Athena Stall logic
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      UPPER_ADDRESS:
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ADDRESS:
+            description: Sets the upper 6-bits of the 38 bit Master address provided to the MSS.
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write

@@ -1,0 +1,135 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  AXISWITCH15X9_DW_AXI:
+    description: AXISWITCH15X9_DW_AXI Controller
+    baseAddress: 0x20004000
+    registers:
+      AXI_VERSION_ID_REG:
+        description: Version ID register
+        addressOffset: 0x0
+        size: 32
+        access: read-only
+        resetValue: 0x3430322A
+        fields:
+          AXI_VERID_FIELDS:
+            description: DW_AXI Version ID Number. ASCII value of each number in component version followed by *. For example, 33_30_30_2A represents the version 3.00*.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-only
+      AXI_HW_CFG_REG:
+        description: Hardware configuration register
+        addressOffset: 0x4
+        size: 32
+        access: read-only
+        resetValue: 0x90F105
+        fields:
+          AXI_NUM_SLAVES:
+            description: Number of AXI Slaves.
+            bitOffset: 20
+            bitWidth: 5
+            access: read-only
+          AXI_NUM_MASTERS:
+            description: Number of AXI masters
+            bitOffset: 12
+            bitWidth: 5
+            access: read-only
+          AXI_LOW_POWER_IF:
+            description: 'Include/exclude low-power interface. 0x1 (REMAP_SUPPORTED): DW_axi- Low-power interface is included. 0x0 (REMAP_NOT_SUPPORTED): DW_axi- Low-power interface is not included.'
+            bitOffset: 8
+            bitWidth: 1
+            access: read-only
+          AXI_BI_DIR_CMD_EN:
+            description: 'Support for Enable Bi-directional Command.0x1 (REMAP_SUPPORTED): DW_axi supports the bi-directional command. 0x0 (REMAP_NOT_SUPPORTED): DW_axi does not support the bi-directional command'
+            bitOffset: 7
+            bitWidth: 1
+            access: read-only
+          AXI_REMAP_EN:
+            description: 'Support for Enable Remap mode.0x1 (REMAP_SUPPORTED): DW_axi supports Enable Remap mode. 0x0 (REMAP_NOT_SUPPORTED): DW_axi does not support Enable Remap mode'
+            bitOffset: 6
+            bitWidth: 1
+            access: read-only
+          AXI_DECODER_TYPE:
+            description: 'Use of External/Internal Decoder.0x1 (EXT_DECODER): DW_axi uses external decoder. 0x0 (INT_DECODER): DW_axi does not use the external decoder'
+            bitOffset: 5
+            bitWidth: 1
+            access: read-only
+          AXI_HWCFG_TRUST_ZONE_EN:
+            description: 'Support for Enable Trust Zone. 0x1 (TZEN_SUPPORTED): DW_axi-Trust Zone features are Enabled. 0x0 (TZEN_NOT_SUPPORTED): DW_axi-Trust Zone features are Disabled.'
+            bitOffset: 4
+            bitWidth: 1
+            access: read-only
+          AXI_HWCFG_LOCK_EN:
+            description: 'Support for Enable Lock transactions. 0x1 (LOCKEN_SUPPORTED): DW_axi-Locking feature is Enabled. 0x0 (LOCKEN_NOT_SUPPORTED): DW_axi-Locking feature is Disabled'
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          AXI_HWCFG_AXI4_SUPPORT:
+            description: 'Support for AXI4 features. 0x1 (AXI4_SUPPORTED): DW_axi supports AXI4 features. 0x0 (AXI4_NOT_SUPPORTED): DW_axi does not support AXI4 features.'
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          AXI_HWCFG_APB3_SUPPORT:
+            description: 'Has APB3 support. 0x1 (APB3_SUPPORTED): DW_axi has APB3 support. 0x0 (APB3_NOT_SUPPORTED): DW_axi does not have APB3 support.'
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          AXI_HWCFG_QOS_SUPPORT:
+            description: 'QOS Support. 0x1 (QOS_ENABLED): DW_axi QOS support is enabled. 0x0 (QOS_DISABLED): DW_axi QOS support is disabled'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      AXI_CMD_REG:
+        description: command register
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          AXI_CMD_EN:
+            description: '1: The command in the register is valid and it is not yet completed by the interconnect. The command and data registers are locked for any updates till this bit is reset to 0. Any write to this bit by APB master when it is already set to 1 will be ignored without any error. 0: The command register is ready to accept new commands. The data register holds the data of the last successful transaction depending on whether it was for a read or write'
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          AXI_RD_WR_CMD:
+            description: '0: Read command. 1: Write command'
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          AXI_SOFT_RESET_BIT:
+            description: Internal Register reset. When this bit is set to 1 by the APB master, it resets all registers in the interconnect to their reset values. It is valid when command enable is set to 1 by the APB master. If this bit is 1 along with the command enable bit then it will execute Internal Registers Reset command irrespective of other bits value.
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          AXI_ERR_BIT:
+            description: Error Bit. This bit is a read-only bit as it is set to 1 only by the interconnect in case of error scenarios. It is valid only once command enable is reset to 0 by the interconnect. It will be cleared to 0 on next write to the command register by APB master.
+            bitOffset: 28
+            bitWidth: 1
+            access: read-only
+          AXI_MASTER_PORT:
+            description: Master Port ID. Identifies the master port for which command (bit[2:0]) is configured.
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          AXI_RD_WR_CHAN:
+            description: 'Read Address Channel /Write Address Channel. Identifies that the command is for read address channel or write address channel of the master port (bit[11:8]). 0: the command is for read address channel. 1: the command is for write address channel. It is valid when command enable bit is set to 1 by the APB master'
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          AXI_CMD:
+            description: '3''b000: BURSTINESS_REGULATOR_EN , 3''b001: PEAK_RATE_XCT_RATE , 3''b010: QOS_VALUE , 3''b011: SLV_READY'
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      AXI_DATA_REG:
+        description: Data register
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          AXI_DATA:
+            description: Data to be written into the QoS internal register or the data read from the QoS internal register
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write

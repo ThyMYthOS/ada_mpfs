@@ -1,0 +1,1634 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  MPUCFG:
+    description: MPUCFG Controller
+    baseAddress: 0x20005000
+    registers:
+      PMPCFG_FIC0_0:
+        addressOffset: 0x0
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC0_1:
+        addressOffset: 0x8
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC0_2:
+        addressOffset: 0x10
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC0_3:
+        addressOffset: 0x18
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC0_4:
+        addressOffset: 0x20
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC0_5:
+        addressOffset: 0x28
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC0_6:
+        addressOffset: 0x30
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC0_7:
+        addressOffset: 0x38
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC0_8:
+        addressOffset: 0x40
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC0_9:
+        addressOffset: 0x48
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC0_10:
+        addressOffset: 0x50
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC0_11:
+        addressOffset: 0x58
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC0_12:
+        addressOffset: 0x60
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC0_13:
+        addressOffset: 0x68
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC0_14:
+        addressOffset: 0x70
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC0_15:
+        addressOffset: 0x78
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      STATUS_FIC0:
+        addressOffset: 0x80
+        size: 64
+        access: read-only
+        resetValue: 0x0
+        fields:
+          FAILED:
+            description: Indicates Failure occurred, cleared via a system register bit
+            bitOffset: 43
+            bitWidth: 1
+            access: read-write
+          ID:
+            description: AXI ID of failure (4-bits)
+            bitOffset: 39
+            bitWidth: 4
+            access: read-write
+          WRITE:
+            description: 0=Read 1=Write
+            bitOffset: 38
+            bitWidth: 1
+            access: read-write
+          ADDRESS:
+            description: 38-bit failed address
+            bitOffset: 0
+            bitWidth: 38
+            access: read-write
+      PMPCFG_FIC1_0:
+        addressOffset: 0x100
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC1_1:
+        addressOffset: 0x108
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC1_2:
+        addressOffset: 0x110
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC1_3:
+        addressOffset: 0x118
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC1_4:
+        addressOffset: 0x120
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC1_5:
+        addressOffset: 0x128
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC1_6:
+        addressOffset: 0x130
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC1_7:
+        addressOffset: 0x138
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC1_8:
+        addressOffset: 0x140
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC1_9:
+        addressOffset: 0x148
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC1_10:
+        addressOffset: 0x150
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC1_11:
+        addressOffset: 0x158
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC1_12:
+        addressOffset: 0x160
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC1_13:
+        addressOffset: 0x168
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC1_14:
+        addressOffset: 0x170
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC1_15:
+        addressOffset: 0x178
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      STATUS_FIC1:
+        addressOffset: 0x180
+        size: 64
+        access: read-only
+        resetValue: 0x0
+        fields:
+          FAILED:
+            description: Indicates Failure occurred, cleared via a system register bit
+            bitOffset: 43
+            bitWidth: 1
+            access: read-write
+          ID:
+            description: AXI ID of failure (4-bits)
+            bitOffset: 39
+            bitWidth: 4
+            access: read-write
+          WRITE:
+            description: 0=Read 1=Write
+            bitOffset: 38
+            bitWidth: 1
+            access: read-write
+          ADDRESS:
+            description: 38-bit failed address
+            bitOffset: 0
+            bitWidth: 38
+            access: read-write
+      PMPCFG_FIC2_0:
+        addressOffset: 0x200
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC2_1:
+        addressOffset: 0x208
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC2_2:
+        addressOffset: 0x210
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC2_3:
+        addressOffset: 0x218
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC2_4:
+        addressOffset: 0x220
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC2_5:
+        addressOffset: 0x228
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC2_6:
+        addressOffset: 0x230
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_FIC2_7:
+        addressOffset: 0x238
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      STATUS_FIC2:
+        addressOffset: 0x280
+        size: 64
+        access: read-only
+        resetValue: 0x0
+        fields:
+          FAILED:
+            description: Indicates Failure occurred, cleared via a system register bit
+            bitOffset: 43
+            bitWidth: 1
+            access: read-write
+          ID:
+            description: AXI ID of failure (4-bits)
+            bitOffset: 39
+            bitWidth: 4
+            access: read-write
+          WRITE:
+            description: 0=Read 1=Write
+            bitOffset: 38
+            bitWidth: 1
+            access: read-write
+          ADDRESS:
+            description: 38-bit failed address
+            bitOffset: 0
+            bitWidth: 38
+            access: read-write
+      PMPCFG_CRYPTO_0:
+        addressOffset: 0x300
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_CRYPTO_1:
+        addressOffset: 0x308
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_CRYPTO_2:
+        addressOffset: 0x310
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_CRYPTO_3:
+        addressOffset: 0x318
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      STATUS_CRYPTO:
+        addressOffset: 0x380
+        size: 64
+        access: read-only
+        resetValue: 0x0
+        fields:
+          FAILED:
+            description: Indicates Failure occurred, cleared via a system register bit
+            bitOffset: 43
+            bitWidth: 1
+            access: read-write
+          ID:
+            description: AXI ID of failure (4-bits)
+            bitOffset: 39
+            bitWidth: 4
+            access: read-write
+          WRITE:
+            description: 0=Read 1=Write
+            bitOffset: 38
+            bitWidth: 1
+            access: read-write
+          ADDRESS:
+            description: 38-bit failed address
+            bitOffset: 0
+            bitWidth: 38
+            access: read-write
+      PMPCFG_ETHERNET0_0:
+        addressOffset: 0x400
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_ETHERNET0_1:
+        addressOffset: 0x408
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_ETHERNET0_2:
+        addressOffset: 0x410
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_ETHERNET0_3:
+        addressOffset: 0x418
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_ETHERNET0_4:
+        addressOffset: 0x420
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_ETHERNET0_5:
+        addressOffset: 0x428
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_ETHERNET0_6:
+        addressOffset: 0x430
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_ETHERNET0_7:
+        addressOffset: 0x438
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      STATUS_ETHERNET0:
+        addressOffset: 0x480
+        size: 64
+        access: read-only
+        resetValue: 0x0
+        fields:
+          FAILED:
+            description: Indicates Failure occurred, cleared via a system register bit
+            bitOffset: 43
+            bitWidth: 1
+            access: read-write
+          ID:
+            description: AXI ID of failure (4-bits)
+            bitOffset: 39
+            bitWidth: 4
+            access: read-write
+          WRITE:
+            description: 0=Read 1=Write
+            bitOffset: 38
+            bitWidth: 1
+            access: read-write
+          ADDRESS:
+            description: 38-bit failed address
+            bitOffset: 0
+            bitWidth: 38
+            access: read-write
+      PMPCFG_ETHERNET1_0:
+        addressOffset: 0x500
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_ETHERNET1_1:
+        addressOffset: 0x508
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_ETHERNET1_2:
+        addressOffset: 0x510
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_ETHERNET1_3:
+        addressOffset: 0x518
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_ETHERNET1_4:
+        addressOffset: 0x520
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_ETHERNET1_5:
+        addressOffset: 0x528
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_ETHERNET1_6:
+        addressOffset: 0x530
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_ETHERNET1_7:
+        addressOffset: 0x538
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      STATUS_ETHERNET1:
+        addressOffset: 0x580
+        size: 64
+        access: read-only
+        resetValue: 0x0
+        fields:
+          FAILED:
+            description: Indicates Failure occurred, cleared via a system register bit
+            bitOffset: 43
+            bitWidth: 1
+            access: read-write
+          ID:
+            description: AXI ID of failure (4-bits)
+            bitOffset: 39
+            bitWidth: 4
+            access: read-write
+          WRITE:
+            description: 0=Read 1=Write
+            bitOffset: 38
+            bitWidth: 1
+            access: read-write
+          ADDRESS:
+            description: 38-bit failed address
+            bitOffset: 0
+            bitWidth: 38
+            access: read-write
+      PMPCFG_USB_0:
+        addressOffset: 0x600
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_USB_1:
+        addressOffset: 0x608
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_USB_2:
+        addressOffset: 0x610
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_USB_3:
+        addressOffset: 0x618
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      STATUS_USB:
+        addressOffset: 0x680
+        size: 64
+        access: read-only
+        resetValue: 0x0
+        fields:
+          FAILED:
+            description: Indicates Failure occurred, cleared via a system register bit
+            bitOffset: 43
+            bitWidth: 1
+            access: read-write
+          ID:
+            description: AXI ID of failure (4-bits)
+            bitOffset: 39
+            bitWidth: 4
+            access: read-write
+          WRITE:
+            description: 0=Read 1=Write
+            bitOffset: 38
+            bitWidth: 1
+            access: read-write
+          ADDRESS:
+            description: 38-bit failed address
+            bitOffset: 0
+            bitWidth: 38
+            access: read-write
+      PMPCFG_MMC_0:
+        addressOffset: 0x700
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_MMC_1:
+        addressOffset: 0x708
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_MMC_2:
+        addressOffset: 0x710
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_MMC_3:
+        addressOffset: 0x718
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      STATUS_MMC:
+        addressOffset: 0x780
+        size: 64
+        access: read-only
+        resetValue: 0x0
+        fields:
+          FAILED:
+            description: Indicates Failure occurred, cleared via a system register bit
+            bitOffset: 43
+            bitWidth: 1
+            access: read-write
+          ID:
+            description: AXI ID of failure (4-bits)
+            bitOffset: 39
+            bitWidth: 4
+            access: read-write
+          WRITE:
+            description: 0=Read 1=Write
+            bitOffset: 38
+            bitWidth: 1
+            access: read-write
+          ADDRESS:
+            description: 38-bit failed address
+            bitOffset: 0
+            bitWidth: 38
+            access: read-write
+      PMPCFG_SCB_0:
+        addressOffset: 0x800
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_SCB_1:
+        addressOffset: 0x808
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_SCB_2:
+        addressOffset: 0x810
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_SCB_3:
+        addressOffset: 0x818
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_SCB_4:
+        addressOffset: 0x820
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_SCB_5:
+        addressOffset: 0x828
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_SCB_6:
+        addressOffset: 0x830
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_SCB_7:
+        addressOffset: 0x838
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      STATUS_SCB:
+        addressOffset: 0x880
+        size: 64
+        access: read-only
+        resetValue: 0x0
+        fields:
+          FAILED:
+            description: Indicates Failure occurred, cleared via a system register bit
+            bitOffset: 43
+            bitWidth: 1
+            access: read-write
+          ID:
+            description: AXI ID of failure (4-bits)
+            bitOffset: 39
+            bitWidth: 4
+            access: read-write
+          WRITE:
+            description: 0=Read 1=Write
+            bitOffset: 38
+            bitWidth: 1
+            access: read-write
+          ADDRESS:
+            description: 38-bit failed address
+            bitOffset: 0
+            bitWidth: 38
+            access: read-write
+      PMPCFG_TRACE_0:
+        addressOffset: 0x900
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      PMPCFG_TRACE_1:
+        addressOffset: 0x908
+        size: 64
+        access: read-write
+        resetValue: 0x1FF
+        fields:
+          MODE:
+            description: 'Bit 63: LOCKED When set to 1 the configuration cannot be changed until a reset occurs. Bits 62 : 61 reserved Bits 60:59: Match 00=OFF 01=TOR 10=NA4 11=NAPOT Only 00 and 11 are supported, TOR and NAT settings are equivalent to off Bit 58: Execute enable Bit 57: Write Enable Bit 56: Read Enable'
+            bitOffset: 56
+            bitWidth: 8
+            access: read-write
+          PMP:
+            description: The PMP Value, bits 8:0 are hardwired to 9'h1ff forcing a minimum block size of 4K bytes
+            bitOffset: 0
+            bitWidth: 36
+            access: read-write
+      STATUS_TRACE:
+        addressOffset: 0x980
+        size: 64
+        access: read-only
+        resetValue: 0x0
+        fields:
+          FAILED:
+            description: Indicates Failure occurred, cleared via a system register bit
+            bitOffset: 43
+            bitWidth: 1
+            access: read-write
+          ID:
+            description: AXI ID of failure (4-bits)
+            bitOffset: 39
+            bitWidth: 4
+            access: read-write
+          WRITE:
+            description: 0=Read 1=Write
+            bitOffset: 38
+            bitWidth: 1
+            access: read-write
+          ADDRESS:
+            description: 38-bit failed address
+            bitOffset: 0
+            bitWidth: 38
+            access: read-write
+      SEG_REG0:
+        description: Cached access at 0x00_8000_0000
+        addressOffset: 0xD00
+        size: 64
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LOCKED:
+            description: When set to '1' the configuration cannot be changed until a reset occurs.
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          ADDRESS_OFFSET:
+            description: This sets offset that is added to address bits [37:24] to convert the Corecomplex address to DDR address. Value is twos complement allowing the value to be decremented.
+            bitOffset: 0
+            bitWidth: 15
+            access: read-write
+      SEG_REG1:
+        description: Cached access at 0x00_8000_0000
+        addressOffset: 0xD08
+        size: 64
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LOCKED:
+            description: When set to '1' the configuration cannot be changed until a reset occurs.
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          ADDRESS_OFFSET:
+            description: This sets offset that is added to address bits [37:24] to convert the Corecomplex address to DDR address. Value is twos complement allowing the value to be decremented.
+            bitOffset: 0
+            bitWidth: 15
+            access: read-write
+      SEG_REG2:
+        description: Cached access at 0x00_8000_0000
+        addressOffset: 0xD10
+        size: 64
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LOCKED:
+            description: When set to '1' the configuration cannot be changed until a reset occurs.
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          ADDRESS_OFFSET:
+            description: This sets offset that is added to address bits [37:24] to convert the Corecomplex address to DDR address. Value is twos complement allowing the value to be decremented.
+            bitOffset: 0
+            bitWidth: 15
+            access: read-write
+      SEG_REG3:
+        description: Cached access at 0x00_8000_0000
+        addressOffset: 0xD18
+        size: 64
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LOCKED:
+            description: When set to '1' the configuration cannot be changed until a reset occurs.
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          ADDRESS_OFFSET:
+            description: This sets offset that is added to address bits [37:24] to convert the Corecomplex address to DDR address. Value is twos complement allowing the value to be decremented.
+            bitOffset: 0
+            bitWidth: 15
+            access: read-write
+      SEG_REG4:
+        description: Cached access at 0x00_8000_0000
+        addressOffset: 0xD20
+        size: 64
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LOCKED:
+            description: When set to '1' the configuration cannot be changed until a reset occurs.
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          ADDRESS_OFFSET:
+            description: This sets offset that is added to address bits [37:24] to convert the Corecomplex address to DDR address. Value is twos complement allowing the value to be decremented.
+            bitOffset: 0
+            bitWidth: 15
+            access: read-write
+      SEG_REG5:
+        description: Cached access at 0x00_8000_0000
+        addressOffset: 0xD28
+        size: 64
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LOCKED:
+            description: When set to '1' the configuration cannot be changed until a reset occurs.
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          ADDRESS_OFFSET:
+            description: This sets offset that is added to address bits [37:24] to convert the Corecomplex address to DDR address. Value is twos complement allowing the value to be decremented.
+            bitOffset: 0
+            bitWidth: 15
+            access: read-write
+      SEG_REG6:
+        description: Cached access at 0x00_8000_0000
+        addressOffset: 0xD30
+        size: 64
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LOCKED:
+            description: When set to '1' the configuration cannot be changed until a reset occurs.
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          ADDRESS_OFFSET:
+            description: This sets offset that is added to address bits [37:24] to convert the Corecomplex address to DDR address. Value is twos complement allowing the value to be decremented.
+            bitOffset: 0
+            bitWidth: 15
+            access: read-write
