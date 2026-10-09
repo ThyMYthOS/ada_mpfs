@@ -59,7 +59,7 @@ one="$("$MPFS_PYTHON" "$ROOT/hw/svd_probe.py" --svd "$tmp/clean/build/svd/Polarf
   && pass "probe without a peripheral lists all registers" || fail "probe without a peripheral lists all registers"
 
 fresh stale
-sed -i 's/^./0/' "$W/svd/PolarfireSoC.sha256"
+sed -i 's/^./g/' "$W/svd/PolarfireSoC.sha256"
 expect_check "a wrong recorded hash is rejected" fail "does not match"
 
 fresh changed
