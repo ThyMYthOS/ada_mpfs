@@ -8,8 +8,10 @@
 #  Usage:
 #    ./x help                          this text
 #    ./x list [--json]                 list examples (name, default hart, dir)
-#    ./x toolchain install|check       install the toolchains pinned in
-#                                      tools/toolchain.env / report deviations
+#    ./x toolchain install [svdtools]|check
+#                                      install the toolchains pinned in
+#                                      tools/toolchain.env (only svdtools if
+#                                      named) / report deviations
 #    ./x build <ex> [-P PROFILE] [--hart e51|u54] [--harts 1-4] [--priv m|u]
 #                                      build an example (PROFILE: light|
 #                                      light-tasking|embedded|auto). --harts is
@@ -103,6 +105,30 @@ mpfs_install_alr () {
   rm -f "$tmp"; return $rc
 }
 
+# The pinned svdtools: the release binary where there is one, cargo elsewhere.
+mpfs_install_svdtools () {
+  local pfx ver
+  pfx="$(mpfs_opt_prefix svdtools "$SVDTOOLS_VERSION")"
+  if [ -x "$pfx/bin/svdtools" ] || [ -x "$pfx/bin/svdtools.exe" ]; then
+    echo "x: svdtools $SVDTOOLS_VERSION already installed in $pfx"
+  elif mpfs_install_svdtools_binary "$pfx"; then
+    echo "x: installed svdtools $SVDTOOLS_VERSION in $pfx"
+  elif [ $? -ne 2 ]; then
+    die "installing svdtools $SVDTOOLS_VERSION failed"
+  elif ! command -v cargo >/dev/null 2>&1; then
+    echo "x: cargo not found; skipping svdtools $SVDTOOLS_VERSION (install Rust with https://rustup.rs)" >&2
+  else
+    ver="$(mpfs_version_of rustc --version)"
+    if [ -n "$ver" ] && mpfs_version_ge "$ver" "$SVDTOOLS_RUSTC_MIN"; then
+      cargo install --locked --root "$pfx" svdtools --version "$SVDTOOLS_VERSION" \
+        || die "installing svdtools $SVDTOOLS_VERSION failed"
+    else
+      echo "x: rustc ${ver:-?} is older than $SVDTOOLS_RUSTC_MIN; skipping svdtools $SVDTOOLS_VERSION" >&2
+      echo "x: run 'rustup update stable' (https://rustup.rs) and repeat ./x toolchain install" >&2
+    fi
+  fi
+}
+
 cmd_toolchain () {
   local sub="${1:-}"; shift || true
   # shellcheck source=tools/mpfs-env.sh
@@ -110,6 +136,11 @@ cmd_toolchain () {
   mpfs_find_python
   case "$sub" in
     install)
+      case "${1:-}" in
+        "") ;;
+        svdtools) mpfs_install_svdtools; return ;;   # only what the SVD check needs, no Alire
+        *) die "usage: ./x toolchain install [svdtools]" ;;
+      esac
       if ! command -v alr >/dev/null 2>&1; then
         local apfs; apfs="$(mpfs_opt_prefix alr "$ALR_VERSION")"
         [ -x "$apfs/bin/alr" ] || [ -x "$apfs/bin/alr.exe" ] || mpfs_install_alr "$apfs" \
@@ -133,25 +164,7 @@ cmd_toolchain () {
         if [ -d "$pfx/bin" ]; then echo "x: $crate $ver already installed in $pfx"
         else alr -n install --prefix="$pfx" "$crate=$ver" || die "installing $crate $ver failed"; fi
       done
-      pfx="$(mpfs_opt_prefix svdtools "$SVDTOOLS_VERSION")"
-      if [ -x "$pfx/bin/svdtools" ] || [ -x "$pfx/bin/svdtools.exe" ]; then
-        echo "x: svdtools $SVDTOOLS_VERSION already installed in $pfx"
-      elif mpfs_install_svdtools_binary "$pfx"; then
-        echo "x: installed svdtools $SVDTOOLS_VERSION in $pfx"
-      elif [ $? -ne 2 ]; then
-        die "installing svdtools $SVDTOOLS_VERSION failed"
-      elif ! command -v cargo >/dev/null 2>&1; then
-        echo "x: cargo not found; skipping svdtools $SVDTOOLS_VERSION (install Rust with https://rustup.rs)" >&2
-      else
-        ver="$(mpfs_version_of rustc --version)"
-        if [ -n "$ver" ] && mpfs_version_ge "$ver" "$SVDTOOLS_RUSTC_MIN"; then
-          cargo install --locked --root "$pfx" svdtools --version "$SVDTOOLS_VERSION" \
-            || die "installing svdtools $SVDTOOLS_VERSION failed"
-        else
-          echo "x: rustc ${ver:-?} is older than $SVDTOOLS_RUSTC_MIN; skipping svdtools $SVDTOOLS_VERSION" >&2
-          echo "x: run 'rustup update stable' (https://rustup.rs) and repeat ./x toolchain install" >&2
-        fi
-      fi
+      mpfs_install_svdtools
       mpfs_toolchain_on_path || true
       mpfs_toolchain_check
       ;;
@@ -159,7 +172,7 @@ cmd_toolchain () {
       mpfs_toolchain_on_path || true
       mpfs_toolchain_check
       ;;
-    *) die "usage: ./x toolchain install|check" ;;
+    *) die "usage: ./x toolchain install [svdtools]|check" ;;
   esac
 }
 
