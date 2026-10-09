@@ -1,0 +1,331 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+# source: SiFive U54-MC Core Complex Manual, PLIC chapter (register layout)
+# source: polarfire-soc/platform mpfs_hal/common/mss_plic.h @ 8d52d59 (PLIC_Type, TARGET_OFFSET_*)
+# source: SiFive U54-MC Core Complex Manual, PLIC chapter: reading a claim/complete register claims the highest-priority pending interrupt and clears its pending bit
+# status: unverified
+# owner: Manuel Stahl
+
+# Platform-Level Interrupt Controller. Context numbering: hart 0 -> M context 0;
+# hart n (1..4) -> M context 2n-1, S context 2n.
+_add:
+  PLIC:
+    description: Platform-Level Interrupt Controller
+    groupName: PLIC
+    baseAddress: 0x0C000000
+    addressBlock:
+      offset: 0x0
+      size: 0x4000000
+      usage: registers
+    registers:
+      PRIORITY%s:
+        description: Priority of an interrupt source, one register per source (the array index is the source ID, 1 to 186); 0 disables the source
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        dim: 186
+        dimIncrement: 0x4
+        dimIndex: "1-186"
+        fields:
+          PRIORITY:
+            description: Priority, 1 (lowest) to 7 (highest)
+            bitOffset: 0
+            bitWidth: 3
+      PENDING%s:
+        description: Pending bits of the interrupt sources, 32 sources per register (array index n covers the sources 32*n to 32*n+31)
+        addressOffset: 0x1000
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        dim: 6
+        dimIncrement: 0x4
+        dimIndex: "0-5"
+      ENABLE_H0_M%s:
+        description: Interrupt enable bits of the sources for hart 0, machine mode (context 0), 32 sources per register (array index n covers the sources 32*n to 32*n+31)
+        addressOffset: 0x2000
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        dim: 6
+        dimIncrement: 0x4
+        dimIndex: "0-5"
+      ENABLE_H1_M%s:
+        description: Interrupt enable bits of the sources for hart 1, machine mode (context 1), 32 sources per register (array index n covers the sources 32*n to 32*n+31)
+        addressOffset: 0x2080
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        dim: 6
+        dimIncrement: 0x4
+        dimIndex: "0-5"
+      ENABLE_H1_S%s:
+        description: Interrupt enable bits of the sources for hart 1, supervisor mode (context 2), 32 sources per register (array index n covers the sources 32*n to 32*n+31)
+        addressOffset: 0x2100
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        dim: 6
+        dimIncrement: 0x4
+        dimIndex: "0-5"
+      ENABLE_H2_M%s:
+        description: Interrupt enable bits of the sources for hart 2, machine mode (context 3), 32 sources per register (array index n covers the sources 32*n to 32*n+31)
+        addressOffset: 0x2180
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        dim: 6
+        dimIncrement: 0x4
+        dimIndex: "0-5"
+      ENABLE_H2_S%s:
+        description: Interrupt enable bits of the sources for hart 2, supervisor mode (context 4), 32 sources per register (array index n covers the sources 32*n to 32*n+31)
+        addressOffset: 0x2200
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        dim: 6
+        dimIncrement: 0x4
+        dimIndex: "0-5"
+      ENABLE_H3_M%s:
+        description: Interrupt enable bits of the sources for hart 3, machine mode (context 5), 32 sources per register (array index n covers the sources 32*n to 32*n+31)
+        addressOffset: 0x2280
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        dim: 6
+        dimIncrement: 0x4
+        dimIndex: "0-5"
+      ENABLE_H3_S%s:
+        description: Interrupt enable bits of the sources for hart 3, supervisor mode (context 6), 32 sources per register (array index n covers the sources 32*n to 32*n+31)
+        addressOffset: 0x2300
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        dim: 6
+        dimIncrement: 0x4
+        dimIndex: "0-5"
+      ENABLE_H4_M%s:
+        description: Interrupt enable bits of the sources for hart 4, machine mode (context 7), 32 sources per register (array index n covers the sources 32*n to 32*n+31)
+        addressOffset: 0x2380
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        dim: 6
+        dimIncrement: 0x4
+        dimIndex: "0-5"
+      ENABLE_H4_S%s:
+        description: Interrupt enable bits of the sources for hart 4, supervisor mode (context 8), 32 sources per register (array index n covers the sources 32*n to 32*n+31)
+        addressOffset: 0x2400
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        dim: 6
+        dimIncrement: 0x4
+        dimIndex: "0-5"
+      THRESHOLD_H0_M:
+        description: Priority threshold for hart 0, machine mode (context 0)
+        addressOffset: 0x200000
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          THRESHOLD:
+            description: Sources with a priority less than or equal to the threshold are masked
+            bitOffset: 0
+            bitWidth: 3
+      CLAIM_COMPLETE_H0_M:
+        description: Claim (read) and complete (write) for hart 0, machine mode (context 0)
+        addressOffset: 0x200004
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ID:
+            description: Interrupt source ID. A read claims the highest-priority pending interrupt that is enabled for the context and clears its pending bit (0 if there is none); writing the ID completes the interrupt
+            bitOffset: 0
+            bitWidth: 32
+            readAction: modifyExternal
+      THRESHOLD_H1_M:
+        description: Priority threshold for hart 1, machine mode (context 1)
+        addressOffset: 0x201000
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          THRESHOLD:
+            description: Sources with a priority less than or equal to the threshold are masked
+            bitOffset: 0
+            bitWidth: 3
+      CLAIM_COMPLETE_H1_M:
+        description: Claim (read) and complete (write) for hart 1, machine mode (context 1)
+        addressOffset: 0x201004
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ID:
+            description: Interrupt source ID. A read claims the highest-priority pending interrupt that is enabled for the context and clears its pending bit (0 if there is none); writing the ID completes the interrupt
+            bitOffset: 0
+            bitWidth: 32
+            readAction: modifyExternal
+      THRESHOLD_H1_S:
+        description: Priority threshold for hart 1, supervisor mode (context 2)
+        addressOffset: 0x202000
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          THRESHOLD:
+            description: Sources with a priority less than or equal to the threshold are masked
+            bitOffset: 0
+            bitWidth: 3
+      CLAIM_COMPLETE_H1_S:
+        description: Claim (read) and complete (write) for hart 1, supervisor mode (context 2)
+        addressOffset: 0x202004
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ID:
+            description: Interrupt source ID. A read claims the highest-priority pending interrupt that is enabled for the context and clears its pending bit (0 if there is none); writing the ID completes the interrupt
+            bitOffset: 0
+            bitWidth: 32
+            readAction: modifyExternal
+      THRESHOLD_H2_M:
+        description: Priority threshold for hart 2, machine mode (context 3)
+        addressOffset: 0x203000
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          THRESHOLD:
+            description: Sources with a priority less than or equal to the threshold are masked
+            bitOffset: 0
+            bitWidth: 3
+      CLAIM_COMPLETE_H2_M:
+        description: Claim (read) and complete (write) for hart 2, machine mode (context 3)
+        addressOffset: 0x203004
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ID:
+            description: Interrupt source ID. A read claims the highest-priority pending interrupt that is enabled for the context and clears its pending bit (0 if there is none); writing the ID completes the interrupt
+            bitOffset: 0
+            bitWidth: 32
+            readAction: modifyExternal
+      THRESHOLD_H2_S:
+        description: Priority threshold for hart 2, supervisor mode (context 4)
+        addressOffset: 0x204000
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          THRESHOLD:
+            description: Sources with a priority less than or equal to the threshold are masked
+            bitOffset: 0
+            bitWidth: 3
+      CLAIM_COMPLETE_H2_S:
+        description: Claim (read) and complete (write) for hart 2, supervisor mode (context 4)
+        addressOffset: 0x204004
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ID:
+            description: Interrupt source ID. A read claims the highest-priority pending interrupt that is enabled for the context and clears its pending bit (0 if there is none); writing the ID completes the interrupt
+            bitOffset: 0
+            bitWidth: 32
+            readAction: modifyExternal
+      THRESHOLD_H3_M:
+        description: Priority threshold for hart 3, machine mode (context 5)
+        addressOffset: 0x205000
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          THRESHOLD:
+            description: Sources with a priority less than or equal to the threshold are masked
+            bitOffset: 0
+            bitWidth: 3
+      CLAIM_COMPLETE_H3_M:
+        description: Claim (read) and complete (write) for hart 3, machine mode (context 5)
+        addressOffset: 0x205004
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ID:
+            description: Interrupt source ID. A read claims the highest-priority pending interrupt that is enabled for the context and clears its pending bit (0 if there is none); writing the ID completes the interrupt
+            bitOffset: 0
+            bitWidth: 32
+            readAction: modifyExternal
+      THRESHOLD_H3_S:
+        description: Priority threshold for hart 3, supervisor mode (context 6)
+        addressOffset: 0x206000
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          THRESHOLD:
+            description: Sources with a priority less than or equal to the threshold are masked
+            bitOffset: 0
+            bitWidth: 3
+      CLAIM_COMPLETE_H3_S:
+        description: Claim (read) and complete (write) for hart 3, supervisor mode (context 6)
+        addressOffset: 0x206004
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ID:
+            description: Interrupt source ID. A read claims the highest-priority pending interrupt that is enabled for the context and clears its pending bit (0 if there is none); writing the ID completes the interrupt
+            bitOffset: 0
+            bitWidth: 32
+            readAction: modifyExternal
+      THRESHOLD_H4_M:
+        description: Priority threshold for hart 4, machine mode (context 7)
+        addressOffset: 0x207000
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          THRESHOLD:
+            description: Sources with a priority less than or equal to the threshold are masked
+            bitOffset: 0
+            bitWidth: 3
+      CLAIM_COMPLETE_H4_M:
+        description: Claim (read) and complete (write) for hart 4, machine mode (context 7)
+        addressOffset: 0x207004
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ID:
+            description: Interrupt source ID. A read claims the highest-priority pending interrupt that is enabled for the context and clears its pending bit (0 if there is none); writing the ID completes the interrupt
+            bitOffset: 0
+            bitWidth: 32
+            readAction: modifyExternal
+      THRESHOLD_H4_S:
+        description: Priority threshold for hart 4, supervisor mode (context 8)
+        addressOffset: 0x208000
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          THRESHOLD:
+            description: Sources with a priority less than or equal to the threshold are masked
+            bitOffset: 0
+            bitWidth: 3
+      CLAIM_COMPLETE_H4_S:
+        description: Claim (read) and complete (write) for hart 4, supervisor mode (context 8)
+        addressOffset: 0x208004
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ID:
+            description: Interrupt source ID. A read claims the highest-priority pending interrupt that is enabled for the context and clears its pending bit (0 if there is none); writing the ID completes the interrupt
+            bitOffset: 0
+            bitWidth: 32
+            readAction: modifyExternal

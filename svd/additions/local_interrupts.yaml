@@ -1,0 +1,489 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+# source: polarfire-soc/platform mpfs_hal/common/mss_hart_ints.h @ 8d52d59 (local interrupt offsets)
+# source: polarfire-soc/platform mpfs_hal/common/mss_mtrap.c @ 8d52d59 (mcause = local number + 16)
+# source: polarfire-soc/polarfire-soc-documentation fundamentals/ecc/handling-ecc-errors-on-polarfire-soc.md @ f844a87 (ECC local numbers)
+# status: unverified
+# owner: Manuel Stahl
+
+# Hart-local interrupts. They are not part of the flat SVD model, so this file has its
+# own schema, checked by `./x svd merge`:
+#
+#   schema:     1
+#   harts:      map hart name -> hart id (0..4)
+#   interrupts: list of
+#     local:        local interrupt number (the mcause is 16 + local)
+#     name:         identifier, unique per hart
+#     description:  text
+#     harts:        list of hart names that have this interrupt
+#     plic:         (optional) PLIC source name the same event also raises (see interrupts.yaml)
+#
+# The bus error unit is not listed: it raises a trap with mcause 128.
+schema: 1
+harts:
+  E51: 0
+  U54_1: 1
+  U54_2: 2
+  U54_3: 3
+  U54_4: 4
+interrupts:
+  - local: 0
+    name: MAINTENANCE
+    description: Grouped maintenance events, source in SYSREG MAINTENANCE_INT_SR
+    harts: [E51]
+    plic: E51_0_MAINTENANCE
+  - local: 1
+    name: USOC_SMB_INTERRUPT
+    description: USOC SMB interrupt
+    harts: [E51]
+    plic: USOC_SMB_INTERRUPT
+  - local: 2
+    name: USOC_VC_INTERRUPT
+    description: USOC VC interrupt
+    harts: [E51]
+    plic: USOC_VC_INTERRUPT
+  - local: 3
+    name: G5C_MESSAGE
+    description: G5C message interrupt
+    harts: [E51]
+    plic: G5C_MESSAGE
+  - local: 4
+    name: G5C_DEVRST
+    description: G5C device reset interrupt
+    harts: [E51]
+    plic: G5C_DEVRST
+  - local: 5
+    name: WDOG4_TOUT
+    description: Watchdog 4 timeout interrupt
+    harts: [E51]
+    plic: WDOG4_TOUT
+  - local: 6
+    name: WDOG3_TOUT
+    description: Watchdog 3 timeout interrupt
+    harts: [E51]
+    plic: WDOG3_TOUT
+  - local: 7
+    name: WDOG2_TOUT
+    description: Watchdog 2 timeout interrupt
+    harts: [E51]
+    plic: WDOG2_TOUT
+  - local: 8
+    name: WDOG1_TOUT
+    description: Watchdog 1 timeout interrupt
+    harts: [E51]
+    plic: WDOG1_TOUT
+  - local: 9
+    name: WDOG0_TOUT
+    description: Watchdog 0 timeout interrupt
+    harts: [E51]
+    plic: WDOG0_TOUT
+  - local: 10
+    name: WDOG0_MVRP
+    description: Watchdog 0 MVRP interrupt
+    harts: [E51]
+    plic: WDOG0_MVRP
+  - local: 11
+    name: MMUART0
+    description: MMUART0 interrupt
+    harts: [E51]
+    plic: MMUART0
+  - local: 12
+    name: ENVM
+    description: eNVM interrupt
+    harts: [E51]
+    plic: ENVM
+  - local: 13
+    name: ECC_CORRECT
+    description: Correctable peripheral ECC error
+    harts: [E51]
+    plic: ECC_CORRECT
+  - local: 14
+    name: ECC_ERROR
+    description: Uncorrectable peripheral ECC error
+    harts: [E51]
+    plic: ECC_ERROR
+  - local: 15
+    name: SCB
+    description: System controller bus interrupt
+    harts: [E51]
+    plic: SCB_INTERRUPT
+  - local: 16
+    name: F2M_32
+    description: Fabric to MSS interrupt 32
+    harts: [E51]
+    plic: F2M_32
+  - local: 17
+    name: F2M_33
+    description: Fabric to MSS interrupt 33
+    harts: [E51]
+    plic: F2M_33
+  - local: 18
+    name: F2M_34
+    description: Fabric to MSS interrupt 34
+    harts: [E51]
+    plic: F2M_34
+  - local: 19
+    name: F2M_35
+    description: Fabric to MSS interrupt 35
+    harts: [E51]
+    plic: F2M_35
+  - local: 20
+    name: F2M_36
+    description: Fabric to MSS interrupt 36
+    harts: [E51]
+    plic: F2M_36
+  - local: 21
+    name: F2M_37
+    description: Fabric to MSS interrupt 37
+    harts: [E51]
+    plic: F2M_37
+  - local: 22
+    name: F2M_38
+    description: Fabric to MSS interrupt 38
+    harts: [E51]
+    plic: F2M_38
+  - local: 23
+    name: F2M_39
+    description: Fabric to MSS interrupt 39
+    harts: [E51]
+    plic: F2M_39
+  - local: 24
+    name: F2M_40
+    description: Fabric to MSS interrupt 40
+    harts: [E51]
+    plic: F2M_40
+  - local: 25
+    name: F2M_41
+    description: Fabric to MSS interrupt 41
+    harts: [E51]
+    plic: F2M_41
+  - local: 26
+    name: F2M_42
+    description: Fabric to MSS interrupt 42
+    harts: [E51]
+    plic: F2M_42
+  - local: 27
+    name: F2M_43
+    description: Fabric to MSS interrupt 43
+    harts: [E51]
+    plic: F2M_43
+  - local: 28
+    name: F2M_44
+    description: Fabric to MSS interrupt 44
+    harts: [E51]
+    plic: F2M_44
+  - local: 29
+    name: F2M_45
+    description: Fabric to MSS interrupt 45
+    harts: [E51]
+    plic: F2M_45
+  - local: 30
+    name: F2M_46
+    description: Fabric to MSS interrupt 46
+    harts: [E51]
+    plic: F2M_46
+  - local: 31
+    name: F2M_47
+    description: Fabric to MSS interrupt 47
+    harts: [E51]
+    plic: F2M_47
+  - local: 32
+    name: F2M_48
+    description: Fabric to MSS interrupt 48
+    harts: [E51]
+    plic: F2M_48
+  - local: 33
+    name: F2M_49
+    description: Fabric to MSS interrupt 49
+    harts: [E51]
+    plic: F2M_49
+  - local: 34
+    name: F2M_50
+    description: Fabric to MSS interrupt 50
+    harts: [E51]
+    plic: F2M_50
+  - local: 35
+    name: F2M_51
+    description: Fabric to MSS interrupt 51
+    harts: [E51]
+    plic: F2M_51
+  - local: 36
+    name: F2M_52
+    description: Fabric to MSS interrupt 52
+    harts: [E51]
+    plic: F2M_52
+  - local: 37
+    name: F2M_53
+    description: Fabric to MSS interrupt 53
+    harts: [E51]
+    plic: F2M_53
+  - local: 38
+    name: F2M_54
+    description: Fabric to MSS interrupt 54
+    harts: [E51]
+    plic: F2M_54
+  - local: 39
+    name: F2M_55
+    description: Fabric to MSS interrupt 55
+    harts: [E51]
+    plic: F2M_55
+  - local: 40
+    name: F2M_56
+    description: Fabric to MSS interrupt 56
+    harts: [E51]
+    plic: F2M_56
+  - local: 41
+    name: F2M_57
+    description: Fabric to MSS interrupt 57
+    harts: [E51]
+    plic: F2M_57
+  - local: 42
+    name: F2M_58
+    description: Fabric to MSS interrupt 58
+    harts: [E51]
+    plic: F2M_58
+  - local: 43
+    name: F2M_59
+    description: Fabric to MSS interrupt 59
+    harts: [E51]
+    plic: F2M_59
+  - local: 44
+    name: F2M_60
+    description: Fabric to MSS interrupt 60
+    harts: [E51]
+    plic: F2M_60
+  - local: 45
+    name: F2M_61
+    description: Fabric to MSS interrupt 61
+    harts: [E51]
+    plic: F2M_61
+  - local: 46
+    name: F2M_62
+    description: Fabric to MSS interrupt 62
+    harts: [E51]
+    plic: F2M_62
+  - local: 47
+    name: F2M_63
+    description: Fabric to MSS interrupt 63
+    harts: [E51]
+    plic: F2M_63
+  - local: 3
+    name: MAC_MMSL_MAC0
+    description: MAC0 MMSL interrupt (U54_1 and U54_2)
+    harts: [U54_1, U54_2]
+  - local: 3
+    name: MAC_MMSL_MAC1
+    description: MAC1 MMSL interrupt (U54_3 and U54_4)
+    harts: [U54_3, U54_4]
+  - local: 4
+    name: MAC_EMAC_MAC0
+    description: MAC0 eMAC interrupt (U54_1 and U54_2)
+    harts: [U54_1, U54_2]
+  - local: 4
+    name: MAC_EMAC_MAC1
+    description: MAC1 eMAC interrupt (U54_3 and U54_4)
+    harts: [U54_3, U54_4]
+  - local: 5
+    name: MAC_QUEUE3_MAC0
+    description: MAC0 queue 3 interrupt (U54_1 and U54_2)
+    harts: [U54_1, U54_2]
+  - local: 5
+    name: MAC_QUEUE3_MAC1
+    description: MAC1 queue 3 interrupt (U54_3 and U54_4)
+    harts: [U54_3, U54_4]
+  - local: 6
+    name: MAC_QUEUE2_MAC0
+    description: MAC0 queue 2 interrupt (U54_1 and U54_2)
+    harts: [U54_1, U54_2]
+  - local: 6
+    name: MAC_QUEUE2_MAC1
+    description: MAC1 queue 2 interrupt (U54_3 and U54_4)
+    harts: [U54_3, U54_4]
+  - local: 7
+    name: MAC_QUEUE1_MAC0
+    description: MAC0 queue 1 interrupt (U54_1 and U54_2)
+    harts: [U54_1, U54_2]
+  - local: 7
+    name: MAC_QUEUE1_MAC1
+    description: MAC1 queue 1 interrupt (U54_3 and U54_4)
+    harts: [U54_3, U54_4]
+  - local: 8
+    name: MAC_INT_MAC0
+    description: MAC0 interrupt (U54_1 and U54_2)
+    harts: [U54_1, U54_2]
+  - local: 8
+    name: MAC_INT_MAC1
+    description: MAC1 interrupt (U54_3 and U54_4)
+    harts: [U54_3, U54_4]
+  - local: 9
+    name: WDOG_TOUT
+    description: Timeout interrupt of the watchdog of the hart (WDOGn for U54_n)
+    harts: [U54_1, U54_2, U54_3, U54_4]
+  - local: 10
+    name: WDOG_MVRP
+    description: MVRP interrupt of the watchdog of the hart (WDOGn for U54_n)
+    harts: [U54_1, U54_2, U54_3, U54_4]
+  - local: 11
+    name: MMUART
+    description: Interrupt of the MMUART of the hart (MMUARTn for U54_n)
+    harts: [U54_1, U54_2, U54_3, U54_4]
+  - local: 16
+    name: F2M_0
+    description: Fabric to MSS interrupt 0
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_0
+  - local: 17
+    name: F2M_1
+    description: Fabric to MSS interrupt 1
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_1
+  - local: 18
+    name: F2M_2
+    description: Fabric to MSS interrupt 2
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_2
+  - local: 19
+    name: F2M_3
+    description: Fabric to MSS interrupt 3
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_3
+  - local: 20
+    name: F2M_4
+    description: Fabric to MSS interrupt 4
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_4
+  - local: 21
+    name: F2M_5
+    description: Fabric to MSS interrupt 5
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_5
+  - local: 22
+    name: F2M_6
+    description: Fabric to MSS interrupt 6
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_6
+  - local: 23
+    name: F2M_7
+    description: Fabric to MSS interrupt 7
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_7
+  - local: 24
+    name: F2M_8
+    description: Fabric to MSS interrupt 8
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_8
+  - local: 25
+    name: F2M_9
+    description: Fabric to MSS interrupt 9
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_9
+  - local: 26
+    name: F2M_10
+    description: Fabric to MSS interrupt 10
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_10
+  - local: 27
+    name: F2M_11
+    description: Fabric to MSS interrupt 11
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_11
+  - local: 28
+    name: F2M_12
+    description: Fabric to MSS interrupt 12
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_12
+  - local: 29
+    name: F2M_13
+    description: Fabric to MSS interrupt 13
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_13
+  - local: 30
+    name: F2M_14
+    description: Fabric to MSS interrupt 14
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_14
+  - local: 31
+    name: F2M_15
+    description: Fabric to MSS interrupt 15
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_15
+  - local: 32
+    name: F2M_16
+    description: Fabric to MSS interrupt 16
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_16
+  - local: 33
+    name: F2M_17
+    description: Fabric to MSS interrupt 17
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_17
+  - local: 34
+    name: F2M_18
+    description: Fabric to MSS interrupt 18
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_18
+  - local: 35
+    name: F2M_19
+    description: Fabric to MSS interrupt 19
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_19
+  - local: 36
+    name: F2M_20
+    description: Fabric to MSS interrupt 20
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_20
+  - local: 37
+    name: F2M_21
+    description: Fabric to MSS interrupt 21
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_21
+  - local: 38
+    name: F2M_22
+    description: Fabric to MSS interrupt 22
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_22
+  - local: 39
+    name: F2M_23
+    description: Fabric to MSS interrupt 23
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_23
+  - local: 40
+    name: F2M_24
+    description: Fabric to MSS interrupt 24
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_24
+  - local: 41
+    name: F2M_25
+    description: Fabric to MSS interrupt 25
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_25
+  - local: 42
+    name: F2M_26
+    description: Fabric to MSS interrupt 26
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_26
+  - local: 43
+    name: F2M_27
+    description: Fabric to MSS interrupt 27
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_27
+  - local: 44
+    name: F2M_28
+    description: Fabric to MSS interrupt 28
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_28
+  - local: 45
+    name: F2M_29
+    description: Fabric to MSS interrupt 29
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_29
+  - local: 46
+    name: F2M_30
+    description: Fabric to MSS interrupt 30
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_30
+  - local: 47
+    name: F2M_31
+    description: Fabric to MSS interrupt 31
+    harts: [U54_1, U54_2, U54_3, U54_4]
+    plic: F2M_31

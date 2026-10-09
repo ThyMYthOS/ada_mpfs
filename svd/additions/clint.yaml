@@ -1,0 +1,45 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+# source: SiFive U54-MC Core Complex Manual, CLINT chapter (register layout)
+# source: polarfire-soc/platform mpfs_hal/common/mss_clint.h @ 8d52d59 (CLINT_Type, CLINT_BASE in encoding.h)
+# status: unverified
+# owner: Manuel Stahl
+
+# Core-Local Interruptor. MSIP and MTIMECMP are indexed by the hart number (0..4).
+_add:
+  CLINT:
+    description: Core-Local Interruptor
+    groupName: CLINT
+    baseAddress: 0x02000000
+    addressBlock:
+      offset: 0x0
+      size: 0x10000
+      usage: registers
+    registers:
+      MSIP%s:
+        description: Machine-mode software interrupt pending, one register per hart (the array index is the hart ID)
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        dim: 5
+        dimIncrement: 0x4
+        dimIndex: "0-4"
+        fields:
+          MSIP:
+            description: Writing 1 raises the software interrupt of the hart
+            bitOffset: 0
+            bitWidth: 1
+      MTIMECMP%s:
+        description: Timer compare value, one register per hart (the array index is the hart ID); the timer interrupt of a hart is pending while MTIME >= its MTIMECMP
+        addressOffset: 0x4000
+        size: 64
+        access: read-write
+        dim: 5
+        dimIncrement: 0x8
+        dimIndex: "0-4"
+      MTIME:
+        description: Machine-mode timer, counting at the RTC clock rate
+        addressOffset: 0xBFF8
+        size: 64
+        access: read-write

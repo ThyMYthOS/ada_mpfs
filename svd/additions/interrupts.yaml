@@ -1,0 +1,568 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+# source: polarfire-soc/platform mpfs_hal/common/mss_plic.h @ 8d52d59 (PLIC_IRQn_Type)
+# status: unverified
+# owner: Manuel Stahl
+
+# PLIC interrupt sources. ID 117 has no source in the reference header. The GPIO
+# direct lines 13..50 get neutral names as their meaning depends on
+# GPIO_INTERRUPT_FAB_CR. Names are the header names without prefix and suffix, with
+# typos corrected (METADAT, MAINTENACE, MRVP).
+PLIC:
+  _add:
+    _interrupts:
+      L2_METADATA_CORR:
+        description: L2 METADATA CORR interrupt
+        value: 1
+      L2_METADATA_UNCORR:
+        description: L2 METADATA UNCORR interrupt
+        value: 2
+      L2_DATA_CORR:
+        description: L2 DATA CORR interrupt
+        value: 3
+      L2_DATA_UNCORR:
+        description: L2 DATA UNCORR interrupt
+        value: 4
+      DMA_CH0_DONE:
+        description: DMA CH0 DONE interrupt
+        value: 5
+      DMA_CH0_ERR:
+        description: DMA CH0 ERR interrupt
+        value: 6
+      DMA_CH1_DONE:
+        description: DMA CH1 DONE interrupt
+        value: 7
+      DMA_CH1_ERR:
+        description: DMA CH1 ERR interrupt
+        value: 8
+      DMA_CH2_DONE:
+        description: DMA CH2 DONE interrupt
+        value: 9
+      DMA_CH2_ERR:
+        description: DMA CH2 ERR interrupt
+        value: 10
+      DMA_CH3_DONE:
+        description: DMA CH3 DONE interrupt
+        value: 11
+      DMA_CH3_ERR:
+        description: DMA CH3 ERR interrupt
+        value: 12
+      GPIO_DIRECT_0:
+        description: GPIO direct interrupt 0 (GPIO0 bit 0 or GPIO2 bit 0, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 13
+      GPIO_DIRECT_1:
+        description: GPIO direct interrupt 1 (GPIO0 bit 1 or GPIO2 bit 1, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 14
+      GPIO_DIRECT_2:
+        description: GPIO direct interrupt 2 (GPIO0 bit 2 or GPIO2 bit 2, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 15
+      GPIO_DIRECT_3:
+        description: GPIO direct interrupt 3 (GPIO0 bit 3 or GPIO2 bit 3, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 16
+      GPIO_DIRECT_4:
+        description: GPIO direct interrupt 4 (GPIO0 bit 4 or GPIO2 bit 4, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 17
+      GPIO_DIRECT_5:
+        description: GPIO direct interrupt 5 (GPIO0 bit 5 or GPIO2 bit 5, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 18
+      GPIO_DIRECT_6:
+        description: GPIO direct interrupt 6 (GPIO0 bit 6 or GPIO2 bit 6, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 19
+      GPIO_DIRECT_7:
+        description: GPIO direct interrupt 7 (GPIO0 bit 7 or GPIO2 bit 7, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 20
+      GPIO_DIRECT_8:
+        description: GPIO direct interrupt 8 (GPIO0 bit 8 or GPIO2 bit 8, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 21
+      GPIO_DIRECT_9:
+        description: GPIO direct interrupt 9 (GPIO0 bit 9 or GPIO2 bit 9, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 22
+      GPIO_DIRECT_10:
+        description: GPIO direct interrupt 10 (GPIO0 bit 10 or GPIO2 bit 10, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 23
+      GPIO_DIRECT_11:
+        description: GPIO direct interrupt 11 (GPIO0 bit 11 or GPIO2 bit 11, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 24
+      GPIO_DIRECT_12:
+        description: GPIO direct interrupt 12 (GPIO0 bit 12 or GPIO2 bit 12, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 25
+      GPIO_DIRECT_13:
+        description: GPIO direct interrupt 13 (GPIO0 bit 13 or GPIO2 bit 13, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 26
+      GPIO_DIRECT_14:
+        description: GPIO direct interrupt 14 (GPIO1 bit 0 or GPIO2 bit 14, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 27
+      GPIO_DIRECT_15:
+        description: GPIO direct interrupt 15 (GPIO1 bit 1 or GPIO2 bit 15, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 28
+      GPIO_DIRECT_16:
+        description: GPIO direct interrupt 16 (GPIO1 bit 2 or GPIO2 bit 16, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 29
+      GPIO_DIRECT_17:
+        description: GPIO direct interrupt 17 (GPIO1 bit 3 or GPIO2 bit 17, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 30
+      GPIO_DIRECT_18:
+        description: GPIO direct interrupt 18 (GPIO1 bit 4 or GPIO2 bit 18, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 31
+      GPIO_DIRECT_19:
+        description: GPIO direct interrupt 19 (GPIO1 bit 5 or GPIO2 bit 19, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 32
+      GPIO_DIRECT_20:
+        description: GPIO direct interrupt 20 (GPIO1 bit 6 or GPIO2 bit 20, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 33
+      GPIO_DIRECT_21:
+        description: GPIO direct interrupt 21 (GPIO1 bit 7 or GPIO2 bit 21, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 34
+      GPIO_DIRECT_22:
+        description: GPIO direct interrupt 22 (GPIO1 bit 8 or GPIO2 bit 22, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 35
+      GPIO_DIRECT_23:
+        description: GPIO direct interrupt 23 (GPIO1 bit 9 or GPIO2 bit 23, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 36
+      GPIO_DIRECT_24:
+        description: GPIO direct interrupt 24 (GPIO1 bit 10 or GPIO2 bit 24, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 37
+      GPIO_DIRECT_25:
+        description: GPIO direct interrupt 25 (GPIO1 bit 11 or GPIO2 bit 25, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 38
+      GPIO_DIRECT_26:
+        description: GPIO direct interrupt 26 (GPIO1 bit 12 or GPIO2 bit 26, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 39
+      GPIO_DIRECT_27:
+        description: GPIO direct interrupt 27 (GPIO1 bit 13 or GPIO2 bit 27, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 40
+      GPIO_DIRECT_28:
+        description: GPIO direct interrupt 28 (GPIO1 bit 14 or GPIO2 bit 28, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 41
+      GPIO_DIRECT_29:
+        description: GPIO direct interrupt 29 (GPIO1 bit 15 or GPIO2 bit 29, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 42
+      GPIO_DIRECT_30:
+        description: GPIO direct interrupt 30 (GPIO1 bit 16 or GPIO2 bit 30, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 43
+      GPIO_DIRECT_31:
+        description: GPIO direct interrupt 31 (GPIO1 bit 17 or GPIO2 bit 31, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 44
+      GPIO_DIRECT_32:
+        description: GPIO direct interrupt 32 (GPIO1 bit 18, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 45
+      GPIO_DIRECT_33:
+        description: GPIO direct interrupt 33 (GPIO1 bit 19, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 46
+      GPIO_DIRECT_34:
+        description: GPIO direct interrupt 34 (GPIO1 bit 20, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 47
+      GPIO_DIRECT_35:
+        description: GPIO direct interrupt 35 (GPIO1 bit 21, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 48
+      GPIO_DIRECT_36:
+        description: GPIO direct interrupt 36 (GPIO1 bit 22, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 49
+      GPIO_DIRECT_37:
+        description: GPIO direct interrupt 37 (GPIO1 bit 23, selected by GPIO_INTERRUPT_FAB_CR)
+        value: 50
+      GPIO0_NON_DIRECT:
+        description: GPIO0 NON DIRECT interrupt
+        value: 51
+      GPIO1_NON_DIRECT:
+        description: GPIO1 NON DIRECT interrupt
+        value: 52
+      GPIO2_NON_DIRECT:
+        description: GPIO2 NON DIRECT interrupt
+        value: 53
+      SPI0:
+        description: SPI0 interrupt
+        value: 54
+      SPI1:
+        description: SPI1 interrupt
+        value: 55
+      CAN0:
+        description: CAN0 interrupt
+        value: 56
+      CAN1:
+        description: CAN1 interrupt
+        value: 57
+      I2C0_MAIN:
+        description: I2C0 MAIN interrupt
+        value: 58
+      I2C0_ALERT:
+        description: I2C0 ALERT interrupt
+        value: 59
+      I2C0_SUS:
+        description: I2C0 SUS interrupt
+        value: 60
+      I2C1_MAIN:
+        description: I2C1 MAIN interrupt
+        value: 61
+      I2C1_ALERT:
+        description: I2C1 ALERT interrupt
+        value: 62
+      I2C1_SUS:
+        description: I2C1 SUS interrupt
+        value: 63
+      MAC0_INT:
+        description: MAC0 INT interrupt
+        value: 64
+      MAC0_QUEUE1:
+        description: MAC0 QUEUE1 interrupt
+        value: 65
+      MAC0_QUEUE2:
+        description: MAC0 QUEUE2 interrupt
+        value: 66
+      MAC0_QUEUE3:
+        description: MAC0 QUEUE3 interrupt
+        value: 67
+      MAC0_EMAC:
+        description: MAC0 EMAC interrupt
+        value: 68
+      MAC0_MMSL:
+        description: MAC0 MMSL interrupt
+        value: 69
+      MAC1_INT:
+        description: MAC1 INT interrupt
+        value: 70
+      MAC1_QUEUE1:
+        description: MAC1 QUEUE1 interrupt
+        value: 71
+      MAC1_QUEUE2:
+        description: MAC1 QUEUE2 interrupt
+        value: 72
+      MAC1_QUEUE3:
+        description: MAC1 QUEUE3 interrupt
+        value: 73
+      MAC1_EMAC:
+        description: MAC1 EMAC interrupt
+        value: 74
+      MAC1_MMSL:
+        description: MAC1 MMSL interrupt
+        value: 75
+      DDRC_TRAIN:
+        description: DDRC TRAIN interrupt
+        value: 76
+      SCB_INTERRUPT:
+        description: SCB INTERRUPT interrupt
+        value: 77
+      ECC_ERROR:
+        description: ECC ERROR interrupt
+        value: 78
+      ECC_CORRECT:
+        description: ECC CORRECT interrupt
+        value: 79
+      RTC_WAKEUP:
+        description: RTC WAKEUP interrupt
+        value: 80
+      RTC_MATCH:
+        description: RTC MATCH interrupt
+        value: 81
+      TIMER1:
+        description: TIMER1 interrupt
+        value: 82
+      TIMER2:
+        description: TIMER2 interrupt
+        value: 83
+      ENVM:
+        description: ENVM interrupt
+        value: 84
+      QSPI:
+        description: QSPI interrupt
+        value: 85
+      USB_DMA:
+        description: USB DMA interrupt
+        value: 86
+      USB_MC:
+        description: USB MC interrupt
+        value: 87
+      MMC_MAIN:
+        description: MMC MAIN interrupt
+        value: 88
+      MMC_WAKEUP:
+        description: MMC WAKEUP interrupt
+        value: 89
+      MMUART0:
+        description: MMUART0 interrupt
+        value: 90
+      MMUART1:
+        description: MMUART1 interrupt
+        value: 91
+      MMUART2:
+        description: MMUART2 interrupt
+        value: 92
+      MMUART3:
+        description: MMUART3 interrupt
+        value: 93
+      MMUART4:
+        description: MMUART4 interrupt
+        value: 94
+      G5C_DEVRST:
+        description: G5C DEVRST interrupt
+        value: 95
+      G5C_MESSAGE:
+        description: G5C MESSAGE interrupt
+        value: 96
+      USOC_VC_INTERRUPT:
+        description: USOC VC INTERRUPT interrupt
+        value: 97
+      USOC_SMB_INTERRUPT:
+        description: USOC SMB INTERRUPT interrupt
+        value: 98
+      E51_0_MAINTENANCE:
+        description: E51 0 MAINTENANCE interrupt
+        value: 99
+      WDOG0_MVRP:
+        description: WDOG0 MVRP interrupt
+        value: 100
+      WDOG1_MVRP:
+        description: WDOG1 MVRP interrupt
+        value: 101
+      WDOG2_MVRP:
+        description: WDOG2 MVRP interrupt
+        value: 102
+      WDOG3_MVRP:
+        description: WDOG3 MVRP interrupt
+        value: 103
+      WDOG4_MVRP:
+        description: WDOG4 MVRP interrupt
+        value: 104
+      WDOG0_TOUT:
+        description: WDOG0 TOUT interrupt
+        value: 105
+      WDOG1_TOUT:
+        description: WDOG1 TOUT interrupt
+        value: 106
+      WDOG2_TOUT:
+        description: WDOG2 TOUT interrupt
+        value: 107
+      WDOG3_TOUT:
+        description: WDOG3 TOUT interrupt
+        value: 108
+      WDOG4_TOUT:
+        description: WDOG4 TOUT interrupt
+        value: 109
+      G5C_MSS_SPI:
+        description: G5C MSS SPI interrupt
+        value: 110
+      VOLT_TEMP_ALARM:
+        description: VOLT TEMP ALARM interrupt
+        value: 111
+      ATHENA_COMPLETE:
+        description: ATHENA COMPLETE interrupt
+        value: 112
+      ATHENA_ALARM:
+        description: ATHENA ALARM interrupt
+        value: 113
+      ATHENA_BUS_ERROR:
+        description: ATHENA BUS ERROR interrupt
+        value: 114
+      USOC_AXIC_US:
+        description: USOC AXIC US interrupt
+        value: 115
+      USOC_AXIC_DS:
+        description: USOC AXIC DS interrupt
+        value: 116
+      F2M_0:
+        description: F2M 0 interrupt
+        value: 118
+      F2M_1:
+        description: F2M 1 interrupt
+        value: 119
+      F2M_2:
+        description: F2M 2 interrupt
+        value: 120
+      F2M_3:
+        description: F2M 3 interrupt
+        value: 121
+      F2M_4:
+        description: F2M 4 interrupt
+        value: 122
+      F2M_5:
+        description: F2M 5 interrupt
+        value: 123
+      F2M_6:
+        description: F2M 6 interrupt
+        value: 124
+      F2M_7:
+        description: F2M 7 interrupt
+        value: 125
+      F2M_8:
+        description: F2M 8 interrupt
+        value: 126
+      F2M_9:
+        description: F2M 9 interrupt
+        value: 127
+      F2M_10:
+        description: F2M 10 interrupt
+        value: 128
+      F2M_11:
+        description: F2M 11 interrupt
+        value: 129
+      F2M_12:
+        description: F2M 12 interrupt
+        value: 130
+      F2M_13:
+        description: F2M 13 interrupt
+        value: 131
+      F2M_14:
+        description: F2M 14 interrupt
+        value: 132
+      F2M_15:
+        description: F2M 15 interrupt
+        value: 133
+      F2M_16:
+        description: F2M 16 interrupt
+        value: 134
+      F2M_17:
+        description: F2M 17 interrupt
+        value: 135
+      F2M_18:
+        description: F2M 18 interrupt
+        value: 136
+      F2M_19:
+        description: F2M 19 interrupt
+        value: 137
+      F2M_20:
+        description: F2M 20 interrupt
+        value: 138
+      F2M_21:
+        description: F2M 21 interrupt
+        value: 139
+      F2M_22:
+        description: F2M 22 interrupt
+        value: 140
+      F2M_23:
+        description: F2M 23 interrupt
+        value: 141
+      F2M_24:
+        description: F2M 24 interrupt
+        value: 142
+      F2M_25:
+        description: F2M 25 interrupt
+        value: 143
+      F2M_26:
+        description: F2M 26 interrupt
+        value: 144
+      F2M_27:
+        description: F2M 27 interrupt
+        value: 145
+      F2M_28:
+        description: F2M 28 interrupt
+        value: 146
+      F2M_29:
+        description: F2M 29 interrupt
+        value: 147
+      F2M_30:
+        description: F2M 30 interrupt
+        value: 148
+      F2M_31:
+        description: F2M 31 interrupt
+        value: 149
+      F2M_32:
+        description: F2M 32 interrupt
+        value: 150
+      F2M_33:
+        description: F2M 33 interrupt
+        value: 151
+      F2M_34:
+        description: F2M 34 interrupt
+        value: 152
+      F2M_35:
+        description: F2M 35 interrupt
+        value: 153
+      F2M_36:
+        description: F2M 36 interrupt
+        value: 154
+      F2M_37:
+        description: F2M 37 interrupt
+        value: 155
+      F2M_38:
+        description: F2M 38 interrupt
+        value: 156
+      F2M_39:
+        description: F2M 39 interrupt
+        value: 157
+      F2M_40:
+        description: F2M 40 interrupt
+        value: 158
+      F2M_41:
+        description: F2M 41 interrupt
+        value: 159
+      F2M_42:
+        description: F2M 42 interrupt
+        value: 160
+      F2M_43:
+        description: F2M 43 interrupt
+        value: 161
+      F2M_44:
+        description: F2M 44 interrupt
+        value: 162
+      F2M_45:
+        description: F2M 45 interrupt
+        value: 163
+      F2M_46:
+        description: F2M 46 interrupt
+        value: 164
+      F2M_47:
+        description: F2M 47 interrupt
+        value: 165
+      F2M_48:
+        description: F2M 48 interrupt
+        value: 166
+      F2M_49:
+        description: F2M 49 interrupt
+        value: 167
+      F2M_50:
+        description: F2M 50 interrupt
+        value: 168
+      F2M_51:
+        description: F2M 51 interrupt
+        value: 169
+      F2M_52:
+        description: F2M 52 interrupt
+        value: 170
+      F2M_53:
+        description: F2M 53 interrupt
+        value: 171
+      F2M_54:
+        description: F2M 54 interrupt
+        value: 172
+      F2M_55:
+        description: F2M 55 interrupt
+        value: 173
+      F2M_56:
+        description: F2M 56 interrupt
+        value: 174
+      F2M_57:
+        description: F2M 57 interrupt
+        value: 175
+      F2M_58:
+        description: F2M 58 interrupt
+        value: 176
+      F2M_59:
+        description: F2M 59 interrupt
+        value: 177
+      F2M_60:
+        description: F2M 60 interrupt
+        value: 178
+      F2M_61:
+        description: F2M 61 interrupt
+        value: 179
+      F2M_62:
+        description: F2M 62 interrupt
+        value: 180
+      F2M_63:
+        description: F2M 63 interrupt
+        value: 181
+      E51_BUS_ERROR_UNIT:
+        description: E51 BUS ERROR UNIT interrupt
+        value: 182
+      U54_1_BUS_ERROR_UNIT:
+        description: U54 1 BUS ERROR UNIT interrupt
+        value: 183
+      U54_2_BUS_ERROR_UNIT:
+        description: U54 2 BUS ERROR UNIT interrupt
+        value: 184
+      U54_3_BUS_ERROR_UNIT:
+        description: U54 3 BUS ERROR UNIT interrupt
+        value: 185
+      U54_4_BUS_ERROR_UNIT:
+        description: U54 4 BUS ERROR UNIT interrupt
+        value: 186
