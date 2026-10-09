@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+# source: svd/base/sysreg.yaml, MSS_BUILD.REVISION description: set to the SVN revision of pfsoc_mss_main.sv
+# source: probe finding on the Icicle Kit: MSS_BUILD (0x20002028) reads 0x1CF02, the SVD resetValue is 0x0
+# status: unverified
+# owner: Manuel Stahl
+
+# MSS_BUILD holds the build revision of the silicon design, which the SVD does not know.
+# Keep the reset value and compare no bit.
+SYSREG:
+  _modify:
+    MSS_BUILD:
+      resetMask: 0x0
