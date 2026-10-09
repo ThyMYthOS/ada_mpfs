@@ -83,6 +83,24 @@ mpfs_version_ge () {
     [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -1)" = "$2" ]
 }
 
+# Python interpreter for the tools: $MPFS_PYTHON if set, else the first of
+# python3, python3.20 ... python3.<minor of PYTHON_MIN> on PATH that is at least
+# PYTHON_MIN (python3 may be older than a versioned interpreter next to it, as
+# on Ubuntu 24.04). Falls back to python3 so the check reports what is wrong.
+# Sets and exports MPFS_PYTHON.
+mpfs_find_python () {
+    if [ -z "${MPFS_PYTHON:-}" ]; then
+        local c v minor="${PYTHON_MIN#*.}" n
+        MPFS_PYTHON=python3
+        for c in python3 $(n=20; while [ "$n" -ge "$minor" ]; do echo "python3.$n"; n=$((n - 1)); done); do
+            command -v "$c" >/dev/null 2>&1 || continue
+            v="$("$c" -c 'import sys;print("%d.%d"%sys.version_info[:2])' 2>/dev/null)" || continue
+            if mpfs_version_ge "$v" "$PYTHON_MIN"; then MPFS_PYTHON="$c"; break; fi
+        done
+    fi
+    export MPFS_PYTHON
+}
+
 # Report on all tools, one line each; returns 1 if any check failed.
 #   ok       installed and equal to the pin
 #   ERROR    installed but different, or a required tool is missing
@@ -136,8 +154,9 @@ mpfs_toolchain_check () {
         _exact "$crate" "$want" "$v" 1
     done
 
-    v=; command -v python3 >/dev/null 2>&1 && v="$(python3 -c 'import sys;print("%d.%d"%sys.version_info[:2])')"
-    _min python3 "$PYTHON_MIN" "$v" 1
+    mpfs_find_python
+    v=; command -v "$MPFS_PYTHON" >/dev/null 2>&1 && v="$("$MPFS_PYTHON" -c 'import sys;print("%d.%d"%sys.version_info[:2])')"
+    _min "$MPFS_PYTHON" "$PYTHON_MIN" "$v" 1
     v=; command -v qemu-system-riscv64 >/dev/null 2>&1 && v="$(mpfs_version_of qemu-system-riscv64 --version)"
     _min qemu-system-riscv64 "$QEMU_MIN" "$v" 0
     v=; command -v svdtools >/dev/null 2>&1 && v="$(mpfs_version_of svdtools --version)"

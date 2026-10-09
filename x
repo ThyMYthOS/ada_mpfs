@@ -59,7 +59,7 @@ mpfs_install_svdtools_binary () {
      && [ "$(openssl dgst -sha256 "$tmp" | sed 's/.* //')" = "$want" ]; then
     mkdir -p "$pfx/bin" || return 1
     if [ "$ext" = zip ]; then
-      python3 -c 'import sys,zipfile; zipfile.ZipFile(sys.argv[1]).extract("svdtools.exe", sys.argv[2])' "$tmp" "$pfx/bin"
+      "$MPFS_PYTHON" -c 'import sys,zipfile; zipfile.ZipFile(sys.argv[1]).extract("svdtools.exe", sys.argv[2])' "$tmp" "$pfx/bin"
     else
       gzip -dc "$tmp" > "$pfx/bin/$exe"
     fi && chmod +x "$pfx/bin/$exe"
@@ -88,7 +88,7 @@ mpfs_install_alr () {
      && [ "$(openssl dgst -sha256 "$tmp" | sed 's/.* //')" = "$want" ]; then
     mkdir -p "$pfx" || return 1
     if [ "$ext" = zip ]; then
-      python3 -c 'import sys,zipfile; zipfile.ZipFile(sys.argv[1]).extract("bin/alr", sys.argv[2])' "$tmp" "$pfx" \
+      "$MPFS_PYTHON" -c 'import sys,zipfile; zipfile.ZipFile(sys.argv[1]).extract("bin/alr", sys.argv[2])' "$tmp" "$pfx" \
         && chmod +x "$pfx/bin/alr"
     else
       # Inno Setup installer: unattended, into the prefix
@@ -107,6 +107,7 @@ cmd_toolchain () {
   local sub="${1:-}"; shift || true
   # shellcheck source=tools/mpfs-env.sh
   . "$ROOT/tools/mpfs-env.sh"
+  mpfs_find_python
   case "$sub" in
     install)
       if ! command -v alr >/dev/null 2>&1; then
@@ -451,7 +452,7 @@ delegate () {   # delegate <script> [args...]
   local script="$1"; shift
   [ -f "$ROOT/$script" ] || die "not available yet: $script is missing"
   case "$script" in
-    *.py) python3 "$ROOT/$script" "$@" ;;
+    *.py) . "$ROOT/tools/mpfs-env.sh"; mpfs_find_python; "$MPFS_PYTHON" -u "$ROOT/$script" "$@" ;;
     *)    bash "$ROOT/$script" "$@" ;;
   esac
 }
