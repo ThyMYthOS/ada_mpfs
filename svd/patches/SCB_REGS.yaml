@@ -2,15 +2,20 @@
 # SPDX-License-Identifier: CC-BY-4.0
 # source: svd/base/scb_regs.yaml, SOFT_RESET description: the register is not readable by the MSS or the debug access
 # source: probe finding on the Icicle Kit: SOFT_RESET (0x20003000) reads 0x0, the SVD resetValue is 0x07200000
+# source: probe finding on the Icicle Kit: DEVICE_ID (0x20003188) reads 0xF81A, the SVD resetValue is 0x0
 # status: unverified
 # owner: Manuel Stahl
 
-# The register is not readable, so its reset value cannot be compared with a target:
-# the reset value is 0x0, which is what the hardware reads, and no bit is compared
+# SOFT_RESET is not readable, so its reset value cannot be compared with a target: the
+# reset value is 0x0, which is what the hardware reads, and no bit is compared
 # (resetMask 0). svdtools rejects a reset value with bits outside the mask, so the
 # documented 0x07200000 (BLOCKID) cannot be kept together with an empty mask.
+# DEVICE_ID holds the device identification (IDV, IDP), a value set by the silicon that
+# the SVD does not know. Keep the reset value and compare no bit.
 SCB_REGS:
   _modify:
     SOFT_RESET:
       resetValue: 0x0
+      resetMask: 0x0
+    DEVICE_ID:
       resetMask: 0x0
