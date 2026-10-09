@@ -8,10 +8,10 @@
 #  Usage:
 #    ./x help                          this text
 #    ./x list [--json]                 list examples (name, default hart, dir)
-#    ./x toolchain install [svdtools]|check
+#    ./x toolchain install [svdtools|svd2ada]|check
 #                                      install the toolchains pinned in
-#                                      tools/toolchain.env (only svdtools if
-#                                      named) / report deviations
+#                                      tools/toolchain.env (only svdtools or
+#                                      svd2ada if named) / report deviations
 #    ./x build <ex> [-P PROFILE] [--hart e51|u54] [--harts 1-4] [--priv m|u]
 #                                      build an example (PROFILE: light|
 #                                      light-tasking|embedded|auto). --harts is
@@ -130,6 +130,46 @@ mpfs_install_svdtools () {
   fi
 }
 
+# Puts alr on PATH: the one that is there, else the pinned release in its prefix.
+mpfs_ensure_alr () {
+  command -v alr >/dev/null 2>&1 && return 0
+  local apfs; apfs="$(mpfs_opt_prefix alr "$ALR_VERSION")"
+  [ -x "$apfs/bin/alr" ] || [ -x "$apfs/bin/alr.exe" ] || mpfs_install_alr "$apfs" \
+    || die "alr not found and no Alire $ALR_VERSION could be installed; see https://alire.ada.dev"
+  export PATH="$apfs/bin:$PATH"
+}
+
+# Builds svd2ada from source at the pinned commit (the Alire release has defects)
+# into the per-commit prefix: the clone and the build are in a work directory
+# next to it, which is removed again; only bin/svd2ada and its schema/ stay. Needs alr (for
+# xmlada), the pinned gprbuild and the native GNAT.
+mpfs_install_svd2ada () {
+  local pfx src got
+  pfx="$(mpfs_opt_prefix svd2ada "$SVD2ADA_COMMIT")"
+  if [ -x "$pfx/bin/svd2ada" ]; then
+    echo "x: svd2ada ${SVD2ADA_COMMIT:0:7} already installed in $pfx"
+    return 0
+  fi
+  [ -n "$SVD2ADA_REPO" ] && [ -n "$SVD2ADA_COMMIT" ] || die "SVD2ADA_REPO or SVD2ADA_COMMIT is not pinned in tools/toolchain.env"
+  mpfs_toolchain_on_path || die "pinned toolchain missing; svd2ada needs gprbuild and the native GNAT"
+  mpfs_ensure_alr
+  src="$pfx.build"
+  rm -rf "$src"; mkdir -p "$(dirname "$src")"
+  git clone -q "$SVD2ADA_REPO" "$src" || die "cloning $SVD2ADA_REPO failed"
+  git -C "$src" checkout -q --detach "$SVD2ADA_COMMIT" 2>/dev/null \
+    || { [ -n "${SVD2ADA_REF:-}" ] && git -C "$src" fetch -q origin "$SVD2ADA_REF" && git -C "$src" checkout -q --detach "$SVD2ADA_COMMIT"; } \
+    || die "commit $SVD2ADA_COMMIT not found in $SVD2ADA_REPO"
+  got="$(git -C "$src" rev-parse HEAD)"
+  [ "$got" = "$SVD2ADA_COMMIT" ] || die "svd2ada checkout is $got, not the pinned $SVD2ADA_COMMIT"
+  ( cd "$src" && alr -n build ) || { rm -rf "$src"; die "building svd2ada failed"; }
+  [ -x "$src/bin/svd2ada" ] || die "building svd2ada produced no bin/svd2ada"
+  # the tool reads the SVD schema from schema/ next to its bin/
+  mkdir -p "$pfx/bin" && cp "$src/bin/svd2ada" "$pfx/bin/svd2ada" && cp -r "$src/schema" "$pfx/schema" \
+    || die "installing svd2ada failed"
+  rm -rf "$src"
+  echo "x: installed svd2ada ${SVD2ADA_COMMIT:0:7} in $pfx"
+}
+
 cmd_toolchain () {
   local sub="${1:-}"; shift || true
   # shellcheck source=tools/mpfs-env.sh
@@ -140,14 +180,10 @@ cmd_toolchain () {
       case "${1:-}" in
         "") ;;
         svdtools) mpfs_install_svdtools; return ;;   # only what the SVD check needs, no Alire
-        *) die "usage: ./x toolchain install [svdtools]" ;;
+        svd2ada) mpfs_install_svd2ada; return ;;    # needs the toolchains and alr
+        *) die "usage: ./x toolchain install [svdtools|svd2ada]" ;;
       esac
-      if ! command -v alr >/dev/null 2>&1; then
-        local apfs; apfs="$(mpfs_opt_prefix alr "$ALR_VERSION")"
-        [ -x "$apfs/bin/alr" ] || [ -x "$apfs/bin/alr.exe" ] || mpfs_install_alr "$apfs" \
-          || die "alr not found and no Alire $ALR_VERSION could be installed; see https://alire.ada.dev"
-        export PATH="$apfs/bin:$PATH"
-      fi
+      mpfs_ensure_alr
       # `--select` is the only way to get a toolchain onto disk; one call per
       # toolchain (alr 2.1.0). Nothing in the build calls `alr`: the toolchains
       # only need to exist where MPFS_ADA_TOOLCHAINS looks.
@@ -167,13 +203,15 @@ cmd_toolchain () {
       done
       mpfs_install_svdtools
       mpfs_toolchain_on_path || true
+      mpfs_install_svd2ada
+      mpfs_toolchain_on_path || true
       mpfs_toolchain_check
       ;;
     check)
       mpfs_toolchain_on_path || true
       mpfs_toolchain_check
       ;;
-    *) die "usage: ./x toolchain install [svdtools]|check" ;;
+    *) die "usage: ./x toolchain install [svdtools|svd2ada]|check" ;;
   esac
 }
 

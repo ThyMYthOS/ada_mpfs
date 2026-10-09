@@ -13,7 +13,8 @@
 #                        $ADA_MPFS_SDK/toolchains takes precedence.
 #   MPFS_TOOLS_PREFIX    root of the per-version install prefixes of optional
 #                        Alire tools (<crate>-<version>/bin). A version is never
-#                        installed over another one. Default:
+#                        installed over another one (svd2ada is built from
+#                        source into svd2ada-<commit>). Default:
 #                        ~/.local/share/ada_mpfs/tools; a bundled
 #                        $ADA_MPFS_SDK/tools-prefix takes precedence.
 
@@ -61,7 +62,7 @@ mpfs_toolchain_on_path () {
         case ":$PATH:" in *":$d:"*) ;; *) PATH="$d:$PATH" ;; esac
     done
     # Optional tools: put the pinned version's bin/ on PATH if it is installed.
-    for d in "gnatprove:$GNATPROVE_VERSION" "adalang_analyzer:$ADALANG_ANALYZER_VERSION" "svdtools:$SVDTOOLS_VERSION"; do
+    for d in "gnatprove:$GNATPROVE_VERSION" "adalang_analyzer:$ADALANG_ANALYZER_VERSION" "svdtools:$SVDTOOLS_VERSION" "svd2ada:$SVD2ADA_COMMIT"; do
         [ -n "${d#*:}" ] && [ -d "$(mpfs_opt_prefix "${d%%:*}" "${d#*:}")/bin" ] || continue
         d="$(mpfs_opt_prefix "${d%%:*}" "${d#*:}")/bin"
         case ":$PATH:" in *":$d:"*) ;; *) PATH="$d:$PATH" ;; esac
@@ -199,10 +200,16 @@ mpfs_toolchain_check () {
     _exact adalang_analyzer "$ADALANG_ANALYZER_VERSION" "$v" 0
     v=; command -v renode >/dev/null 2>&1 && v="$(mpfs_version_of renode --version)"
     _exact renode "$RENODE_VERSION" "$v" 0
-    if [ -n "${MPFS_SVD2ADA:-}" ] || command -v svd2ada >/dev/null 2>&1; then
-        _mpfs_row svd2ada ok "built from source, pin $SVD2ADA_COMMIT is verified by 'pac check'"
+    # svd2ada is built from source, into a prefix named after the pinned commit
+    b="$(mpfs_opt_prefix svd2ada "$SVD2ADA_COMMIT")/bin"
+    if [ -x "$b/svd2ada" ] && [ "$(command -v svd2ada 2>/dev/null)" = "$b/svd2ada" ]; then
+        _mpfs_row svd2ada ok "built from ${SVD2ADA_COMMIT:0:7}"
+    elif [ -x "$b/svd2ada" ]; then
+        _mpfs_row svd2ada ERROR "built but not first on PATH (source export.sh)"; rc=1
+    elif command -v svd2ada >/dev/null 2>&1; then
+        _mpfs_row svd2ada absent "(pin ${SVD2ADA_COMMIT:0:7}; $(command -v svd2ada) is not the pinned build; ./x toolchain install)"
     else
-        _mpfs_row svd2ada absent "(pin ${SVD2ADA_COMMIT:0:7})"
+        _mpfs_row svd2ada absent "(pin ${SVD2ADA_COMMIT:0:7}; needed by pac generate; ./x toolchain install)"
     fi
     unset -f _mpfs_row _exact _min
     return $rc
