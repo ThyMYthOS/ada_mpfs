@@ -662,7 +662,8 @@ _add:
         addressOffset: 0x20
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not In case of control flag bit, 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags. In case of command flag bit, 0: Default and 1: prohibited'
@@ -745,7 +746,8 @@ _add:
         addressOffset: 0x30
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -828,7 +830,8 @@ _add:
         addressOffset: 0x40
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -911,7 +914,8 @@ _add:
         addressOffset: 0x50
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -994,7 +998,8 @@ _add:
         addressOffset: 0x60
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1077,7 +1082,8 @@ _add:
         addressOffset: 0x70
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1160,7 +1166,8 @@ _add:
         addressOffset: 0x80
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1243,7 +1250,8 @@ _add:
         addressOffset: 0x90
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1326,7 +1334,8 @@ _add:
         addressOffset: 0xA0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1409,7 +1418,8 @@ _add:
         addressOffset: 0xB0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1492,7 +1502,8 @@ _add:
         addressOffset: 0xC0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1575,7 +1586,8 @@ _add:
         addressOffset: 0xD0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1658,7 +1670,8 @@ _add:
         addressOffset: 0xE0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1741,7 +1754,8 @@ _add:
         addressOffset: 0xF0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1824,7 +1838,8 @@ _add:
         addressOffset: 0x100
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1907,7 +1922,8 @@ _add:
         addressOffset: 0x110
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1990,7 +2006,8 @@ _add:
         addressOffset: 0x120
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2073,7 +2090,8 @@ _add:
         addressOffset: 0x130
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2156,7 +2174,8 @@ _add:
         addressOffset: 0x140
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2239,7 +2258,8 @@ _add:
         addressOffset: 0x150
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2322,7 +2342,8 @@ _add:
         addressOffset: 0x160
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2405,7 +2426,8 @@ _add:
         addressOffset: 0x170
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2488,7 +2510,8 @@ _add:
         addressOffset: 0x180
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2571,7 +2594,8 @@ _add:
         addressOffset: 0x190
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2654,7 +2678,8 @@ _add:
         addressOffset: 0x1A0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2737,7 +2762,8 @@ _add:
         addressOffset: 0x1B0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not. In case of control flag bit, 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags. In case of command flag bit, 0: default and 1: prohibited'
@@ -2820,7 +2846,8 @@ _add:
         addressOffset: 0x1C0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2903,7 +2930,8 @@ _add:
         addressOffset: 0x1D0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2986,7 +3014,8 @@ _add:
         addressOffset: 0x1E0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -3069,7 +3098,8 @@ _add:
         addressOffset: 0x1F0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -3152,7 +3182,8 @@ _add:
         addressOffset: 0x200
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -3235,7 +3266,8 @@ _add:
         addressOffset: 0x210
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -3318,7 +3350,8 @@ _add:
         addressOffset: 0x220
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high. In case of control flag bit, 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined. In case of command flag bit, 0:default and 1: prohibited'
@@ -3469,7 +3502,8 @@ _add:
         addressOffset: 0x240
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -3620,7 +3654,8 @@ _add:
         addressOffset: 0x260
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -3771,7 +3806,8 @@ _add:
         addressOffset: 0x280
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -3922,7 +3958,8 @@ _add:
         addressOffset: 0x2A0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -4073,7 +4110,8 @@ _add:
         addressOffset: 0x2C0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -4224,7 +4262,8 @@ _add:
         addressOffset: 0x2E0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -4375,7 +4414,8 @@ _add:
         addressOffset: 0x300
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -4526,7 +4566,8 @@ _add:
         addressOffset: 0x320
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -4677,7 +4718,8 @@ _add:
         addressOffset: 0x340
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -4828,7 +4870,8 @@ _add:
         addressOffset: 0x360
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -4979,7 +5022,8 @@ _add:
         addressOffset: 0x380
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -5130,7 +5174,8 @@ _add:
         addressOffset: 0x3A0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -5281,7 +5326,8 @@ _add:
         addressOffset: 0x3C0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -5432,7 +5478,8 @@ _add:
         addressOffset: 0x3E0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -5583,7 +5630,8 @@ _add:
         addressOffset: 0x400
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -5734,7 +5782,8 @@ _add:
         addressOffset: 0x420
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -5885,7 +5934,8 @@ _add:
         addressOffset: 0x440
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -6036,7 +6086,8 @@ _add:
         addressOffset: 0x460
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -6187,7 +6238,8 @@ _add:
         addressOffset: 0x480
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -6338,7 +6390,8 @@ _add:
         addressOffset: 0x4A0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -6489,7 +6542,8 @@ _add:
         addressOffset: 0x4C0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -6640,7 +6694,8 @@ _add:
         addressOffset: 0x4E0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -6791,7 +6846,8 @@ _add:
         addressOffset: 0x500
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -6942,7 +6998,8 @@ _add:
         addressOffset: 0x520
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -7093,7 +7150,8 @@ _add:
         addressOffset: 0x540
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -7244,7 +7302,8 @@ _add:
         addressOffset: 0x560
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -7395,7 +7454,8 @@ _add:
         addressOffset: 0x580
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -7546,7 +7606,8 @@ _add:
         addressOffset: 0x5A0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -7697,7 +7758,8 @@ _add:
         addressOffset: 0x5C0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -7848,7 +7910,8 @@ _add:
         addressOffset: 0x5E0
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -7999,7 +8062,8 @@ _add:
         addressOffset: 0x600
         size: 32
         access: read-write
-        resetValue: 0x800000
+        resetValue: 0x0
+        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
