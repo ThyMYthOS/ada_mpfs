@@ -1,0 +1,18 @@
+# Build
+obj*/
+build/
+*.o
+*.ali
+*.elf
+*.bin
+*.map
+alire/
+# Python
+__pycache__/
+*.pyc
+.venv/
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
