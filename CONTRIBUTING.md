@@ -48,7 +48,8 @@ SVD and the PAC generated from it CC-BY-4.0; SPARKNaCl BSD-3-Clause.
 ## Generated files
 
 They live in dedicated `generated/` subdirectories and are **never** edited by hand. CI checks that
-regeneration reproduces them.
+regeneration reproduces them: `./x svd check` for the SVD hash, `./x pac check` for the register
+package in `libs/mpfs_pac/src/generated` (`./x pac generate` rewrites it).
 
 ## Language
 

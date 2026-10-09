@@ -5,5 +5,6 @@
 | Workflow | Content |
 |---|---|
 | `svd.yml` | Job `svd`: Python 3.13 with the packages of `tools/requirements.txt`, `xmllint` and the svdtools version pinned in `tools/toolchain.env` (installed with `./x toolchain install svdtools`, cached by the pin), then `./x svd check`, `tests/host/svd/run.sh` and `tests/host/x/run.sh`. Runs on pull requests that touch the SVD, its tools or the host tests, and on pushes to `main`. |
+| `pac.yml` | Job `pac`: the pinned GNAT, gprbuild, alr, svdtools and svd2ada (`./x toolchain install pac`, which skips gnatprove and adalang_analyzer, cached by `tools/toolchain.env`), then `tests/host/pac/run.sh` and `./x pac check`. Runs on pull requests that touch the SVD, the PAC, its tools or the host tests, and on pushes to `main`. |
 
 Actions are pinned by version tag.

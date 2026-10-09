@@ -1,0 +1,61 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# Register package: regenerate libs/mpfs_pac/src/generated from the SVD with the
+# svd2ada built at the pinned commit, fail on any difference, and compile the
+# package for the E51 and the U54 ABI with the pinned riscv64 GNAT.
+name: pac
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - ".github/workflows/pac.yml"
+      - "svd/**"
+      - "libs/mpfs_pac/**"
+      - "tools/**"
+      - "tests/host/**"
+      - "x"
+
+permissions:
+  contents: read
+
+jobs:
+  pac:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-python@v5.6.0
+        with:
+          python-version: "3.13"
+
+      - name: Install xmllint
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libxml2-utils
+
+      # Alire toolchains (gnat_native, gnat_riscv64_elf, gprbuild) and the per-version
+      # tool prefixes (alr, svdtools, svd2ada, ...): every version is pinned in
+      # tools/toolchain.env, so the cache key follows that file.
+      - name: Cache the toolchains and the svd2ada build
+        uses: actions/cache@v4.2.3
+        with:
+          path: |
+            ~/.local/share/alire
+            ~/.local/share/ada_mpfs/tools
+            ~/.config/alire
+          key: pac-${{ runner.os }}-${{ hashFiles('tools/toolchain.env') }}
+
+      # Only what `./x pac check` needs (no gnatprove, no adalang_analyzer). Idempotent:
+      # what the cache restored is detected and not installed again.
+      - name: Install the toolchains
+        run: ./x toolchain install pac
+
+      - name: Host tests of the register package tooling
+        run: tests/host/pac/run.sh
+
+      - name: Check the register package
+        run: ./x pac check
