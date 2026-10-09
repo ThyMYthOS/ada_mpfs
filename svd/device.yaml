@@ -31,7 +31,13 @@ _include:
   - base/trace.yaml
   - base/usb.yaml
   - base/wdog.yaml
+  - patches/CAN_A_LO.yaml
+  - patches/EMMC_SD.yaml
+  - patches/I2C_A_LO.yaml
+  - patches/MMUART0_LO.yaml
+  - patches/QSPIXIP.yaml
   - patches/SCB_REGS.yaml
+  - patches/SPI_A_LO.yaml
   - patches/SYSREG.yaml
   - additions/plic.yaml
   - additions/clint.yaml

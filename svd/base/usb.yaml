@@ -16,3 +16,4 @@ _add:
             bitOffset: 0
             bitWidth: 32
             access: read-write
+            readAction: modifyExternal

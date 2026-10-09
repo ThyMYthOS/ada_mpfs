@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+# source: svd/base/i2c.yaml, I2C0_DATA: the register holds the serial data byte shifted in and out; its description is empty
+# source: svd/base/i2c.yaml, I2C0_CTRL.SI description: the interrupt flag is set on a change of the status register and must be cleared by software after the data register was serviced
+# status: unverified
+# owner: Manuel Stahl
+
+# The register map does not document a read side effect of the data register. It is kept
+# as a register whose read is not repeatable (the core hands the received byte to the
+# software and continues the transfer), the conservative reading for SPARK. Verify on
+# silicon before relying on it. The other I2C instances are derivedFrom I2C_A_LO.
+I2C_A_LO:
+  I2C0_DATA:
+    _modify:
+      "*":
+        readAction: modifyExternal

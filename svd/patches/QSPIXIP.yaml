@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+# source: svd/base/qspixip.yaml, X4ReceiveData description: "Allows the processor to read 4-bytes from the SPI FIFO in a single transaction."
+# source: svd/base/qspixip.yaml, ReceiveData.RXDATA description: "Received data - single byte" (the same receive FIFO)
+# status: unverified
+# owner: Manuel Stahl
+
+# Reading the receive data registers pops the SPI receive FIFO.
+QSPIXIP:
+  ReceiveData:
+    _modify:
+      RXDATA:
+        readAction: modifyExternal
+  X4ReceiveData:
+    _modify:
+      RXDATA4:
+        readAction: modifyExternal

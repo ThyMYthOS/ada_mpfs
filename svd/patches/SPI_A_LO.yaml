@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+# source: svd/base/spi.yaml, RX_DATA.RXDATA description: "Received data. Reading this clears the register of the received data."
+# status: unverified
+# owner: Manuel Stahl
+
+# Reading RX_DATA consumes the received data (the receive FIFO). The other SPI instances
+# are derivedFrom SPI_A_LO and inherit it.
+SPI_A_LO:
+  RX_DATA:
+    _modify:
+      RXDATA:
+        readAction: clear

@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+# source: svd/base/mmuart.yaml, RBR description: the register is loaded with data from the receive FIFO
+# source: 16550-compatible UART: reading RBR removes the oldest character from the receive FIFO
+# status: unverified
+# owner: Manuel Stahl
+
+# Reading RBR pops the receive FIFO: a read with a side effect on state outside the register.
+# The other MMUART instances are derivedFrom MMUART0_LO and inherit it.
+MMUART0_LO:
+  RBR:
+    _modify:
+      RBR:
+        readAction: modifyExternal

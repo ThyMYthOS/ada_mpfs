@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+# source: svd/base/emmc_sd.yaml, SRS08.BDP description: "Buffer Data Port: the field is to access the internal buffer (data block) in non-DMA transfer mode"
+# status: unverified
+# owner: Manuel Stahl
+
+# Reading the buffer data port takes the next data word out of the internal data buffer.
+EMMC_SD:
+  SRS08:
+    _modify:
+      BDP:
+        readAction: modifyExternal

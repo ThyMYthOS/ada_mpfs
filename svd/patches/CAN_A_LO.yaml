@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+# source: svd/base/can.yaml, RX_MSGn_CTRL_CMD.MSGAV_RTRS description: a new message is acknowledged by writing 1 to the flag; no read side effect is documented
+# status: unverified
+# owner: Manuel Stahl
+
+# The receive message buffers (RX_MSGn_DATA_HIGH / _LOW) are filled by the controller and
+# released to it by the acknowledge; the register map documents no read side effect. They
+# are kept as registers whose content changes under the software, the conservative reading
+# for SPARK. Verify on silicon before relying on it. The other CAN instances are
+# derivedFrom CAN_A_LO.
+CAN_A_LO:
+  "RX_MSG*_DATA_*":
+    _modify:
+      "*":
+        readAction: modifyExternal
