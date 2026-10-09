@@ -8,10 +8,12 @@
 #  Usage:
 #    ./x help                          this text
 #    ./x list [--json]                 list examples (name, default hart, dir)
-#    ./x toolchain install [svdtools|svd2ada]|check
+#    ./x toolchain install [svdtools|svd2ada|pac]|check
 #                                      install the toolchains pinned in
 #                                      tools/toolchain.env (only svdtools or
-#                                      svd2ada if named) / report deviations
+#                                      svd2ada if named; pac: only what
+#                                      `./x pac check` needs, without gnatprove
+#                                      and adalang_analyzer) / report deviations
 #    ./x build <ex> [-P PROFILE] [--hart e51|u54] [--harts 1-4] [--priv m|u]
 #                                      build an example (PROFILE: light|
 #                                      light-tasking|embedded|auto). --harts is
@@ -170,6 +172,16 @@ mpfs_install_svd2ada () {
   echo "x: installed svd2ada ${SVD2ADA_COMMIT:0:7} in $pfx"
 }
 
+# The three pinned Alire toolchains. `--select` is the only way to get a toolchain onto disk;
+# one call per toolchain (alr 2.1.0). Nothing in the build calls `alr`: the toolchains only
+# need to exist where MPFS_ADA_TOOLCHAINS looks.
+mpfs_install_alire_toolchains () {
+  mpfs_ensure_alr
+  alr -n toolchain --select "gprbuild=$GPRBUILD_VERSION"
+  alr -n toolchain --select "gnat_riscv64_elf=$GNAT_RISCV64_VERSION"
+  alr -n toolchain --select "gnat_native=$GNAT_NATIVE_VERSION"
+}
+
 cmd_toolchain () {
   local sub="${1:-}"; shift || true
   # shellcheck source=tools/mpfs-env.sh
@@ -181,15 +193,18 @@ cmd_toolchain () {
         "") ;;
         svdtools) mpfs_install_svdtools; return ;;   # only what the SVD check needs, no Alire
         svd2ada) mpfs_install_svd2ada; return ;;    # needs the toolchains and alr
-        *) die "usage: ./x toolchain install [svdtools|svd2ada]" ;;
+        pac)    # what `./x pac check` needs: no gnatprove, no adalang_analyzer
+          mpfs_install_alire_toolchains
+          mpfs_venv_install || die "creating the python environment failed"
+          mpfs_install_svdtools
+          mpfs_toolchain_on_path || true
+          mpfs_install_svd2ada
+          mpfs_toolchain_on_path || true
+          mpfs_toolchain_check
+          return ;;
+        *) die "usage: ./x toolchain install [svdtools|svd2ada|pac]" ;;
       esac
-      mpfs_ensure_alr
-      # `--select` is the only way to get a toolchain onto disk; one call per
-      # toolchain (alr 2.1.0). Nothing in the build calls `alr`: the toolchains
-      # only need to exist where MPFS_ADA_TOOLCHAINS looks.
-      alr -n toolchain --select "gprbuild=$GPRBUILD_VERSION"
-      alr -n toolchain --select "gnat_riscv64_elf=$GNAT_RISCV64_VERSION"
-      alr -n toolchain --select "gnat_native=$GNAT_NATIVE_VERSION"
+      mpfs_install_alire_toolchains
       mpfs_venv_install || die "creating the python environment failed"
       # Optional crates are installed, not selected, each version into its own
       # prefix: no conflict with other versions, no --force, repeatable.
@@ -211,7 +226,7 @@ cmd_toolchain () {
       mpfs_toolchain_on_path || true
       mpfs_toolchain_check
       ;;
-    *) die "usage: ./x toolchain install [svdtools|svd2ada]|check" ;;
+    *) die "usage: ./x toolchain install [svdtools|svd2ada|pac]|check" ;;
   esac
 }
 

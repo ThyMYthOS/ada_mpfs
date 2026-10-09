@@ -38,6 +38,14 @@ expect_rc "list exits 0"            0       "$X" list
 expect_rc "list --json exits 0"     0       "$X" list --json
 expect_rc "unknown verb fails"      nonzero "$X" no-such-verb
 expect_rc "toolchain rejects an unknown install target" nonzero "$X" toolchain install bogus
+case "$("$X" toolchain install bogus 2>&1)" in
+  *"svdtools|svd2ada|pac"*) pass "toolchain usage names the pac target" ;;
+  *) fail "toolchain usage names the pac target" ;;
+esac
+case "$help" in
+  *"svdtools|svd2ada|pac"*) pass "help names the pac target" ;;
+  *) fail "help names the pac target" ;;
+esac
 expect_rc "svd without a mode fails" nonzero "$X" svd
 expect_rc "svd rejects an unknown mode" nonzero "$X" svd bogus
 expect_rc "svd probe needs a peripheral" nonzero "$X" svd probe
@@ -76,6 +84,40 @@ done
 expect_rc "bad subcommand: svd"   nonzero "$TX" svd bogus
 expect_rc "bad subcommand: pac"   nonzero "$TX" pac bogus
 expect_rc "bad subcommand: test"  nonzero "$TX" test bogus
+
+# `toolchain install pac` selects the three toolchains and installs no optional crate
+# (gnatprove, adalang_analyzer); the full install does. alr is a stub that logs its
+# arguments, the other tools are already "installed" in a throwaway prefix.
+stub="$(mktemp -d)"
+trap 'rm -r "$tmp" "$stub"' EXIT
+(
+  . "$ROOT/tools/toolchain.env"
+  mkdir -p "$stub/bin" "$stub/tools/svdtools-$SVDTOOLS_VERSION/bin" "$stub/tools/svd2ada-$SVD2ADA_COMMIT/bin" "$stub/tools/venv/bin"
+  printf '#!/bin/sh\necho "$*" >> "$STUB_ALR_LOG"\n' > "$stub/bin/alr"
+  printf '#!/bin/sh\nexit 0\n' > "$stub/tools/svdtools-$SVDTOOLS_VERSION/bin/svdtools"
+  printf '#!/bin/sh\nexit 0\n' > "$stub/tools/svd2ada-$SVD2ADA_COMMIT/bin/svd2ada"
+  printf '#!/bin/sh\nexit 1\n' > "$stub/tools/venv/bin/python"
+  cp "$ROOT/tools/requirements.txt" "$stub/tools/venv/requirements.txt"
+  chmod +x "$stub/bin/alr" "$stub/tools"/*/bin/*
+  for target in pac full; do
+    : > "$stub/$target.log"
+    arg=pac; [ "$target" = full ] && arg=
+    # shellcheck disable=SC2086
+    PATH="$stub/bin:$PATH" STUB_ALR_LOG="$stub/$target.log" MPFS_TOOLS_PREFIX="$stub/tools" \
+      MPFS_ADA_TOOLCHAINS="$stub/none" "$X" toolchain install $arg >/dev/null 2>&1 || true
+  done
+)
+for tc in "gprbuild=" "gnat_riscv64_elf=" "gnat_native="; do
+  for target in pac full; do
+    grep -q "^-n toolchain --select $tc" "$stub/$target.log" \
+      && pass "toolchain install ($target) selects $tc" || fail "toolchain install ($target) selects $tc"
+  done
+done
+grep -q "gnatprove\|adalang_analyzer" "$stub/pac.log" \
+  && fail "toolchain install pac installs no optional crate" || pass "toolchain install pac installs no optional crate"
+grep -q "gnatprove" "$stub/full.log" && grep -q "adalang_analyzer" "$stub/full.log" \
+  && pass "toolchain install (full) installs gnatprove and adalang_analyzer" \
+  || fail "toolchain install (full) installs gnatprove and adalang_analyzer"
 
 echo "summary: $fails failure(s)"
 [ $fails -eq 0 ]
