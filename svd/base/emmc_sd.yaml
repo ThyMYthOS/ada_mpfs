@@ -62,7 +62,7 @@ _add:
             bitWidth: 14
             access: read-only
           OTN:
-            description: OTN - Number of Outstanding Transfers\n\n Specifies number of outstanding transfers on DMA (Master) interface. The number of outstadings is (OTN + 1), where OTN can be defined in range 0 to 3.\n\n This register is set to 3 after reset (i.e. 4 outstanding transfers) (HWINIT_HRS02).
+            description: OTN - Number of Outstanding Transfers\n\n Specifies number of outstanding transfers on DMA (Master) interface. The number of outstandings is (OTN + 1), where OTN can be defined in range 0 to 3.\n\n This register is set to 3 after reset (i.e. 4 outstanding transfers) (HWINIT_HRS02).
             bitOffset: 16
             bitWidth: 2
             access: read-write
@@ -144,7 +144,7 @@ _add:
             bitWidth: 1
             access: read-write
       HRS04:
-        description: HRS04 - SD/eMMC PHY Registers Interface\n\n This register enables access to the SD/eMMC PHY registers. The interface behavior is described in section SD/eMMC PHY Register Intreface.
+        description: HRS04 - SD/eMMC PHY Registers Interface\n\n This register enables access to the SD/eMMC PHY registers. The interface behavior is described in section SD/eMMC PHY Register Interface.
         addressOffset: 0x10
         size: 32
         access: read-write
@@ -210,12 +210,12 @@ _add:
         resetValue: 0x0
         fields:
           ODELAY_VAL:
-            description: ODELAY_VAL - Output delay value for IO. \n Designer should update this register with delay value of IO with appriopriate output delay. \n Delay is count in half of period of sdmclk. If sdmclk is working at 200MHz frequency, \n then 1 is 2,5 ns. \n This value will be used to compensate delay of DAT line when controller is READ WAIT. \n The sum value of IDELAY_VAL, ODELAY_VAL should be less equal 5'd20 for controller to work properly. \n
+            description: ODELAY_VAL - Output delay value for IO. \n Designer should update this register with delay value of IO with appropriate output delay. \n Delay is count in half of period of sdmclk. If sdmclk is working at 200MHz frequency, \n then 1 is 2,5 ns. \n This value will be used to compensate delay of DAT line when controller is READ WAIT. \n The sum value of IDELAY_VAL, ODELAY_VAL should be less equal 5'd20 for controller to work properly. \n
             bitOffset: 16
             bitWidth: 5
             access: read-write
           IDELAY_VAL:
-            description: IDELAY_VAL - Input delay value for IO. \n Designer should update this register with delay value of IO with appriopriate input delay. \n Delay is count in half of period of sdmclk. If sdmclk is working at 200MHz frequency, \n then 1 is 2,5 ns. \n This value will be used to compensate delay of DAT line when controller is driving READ WAIT. \n The sum value of IDELAY_VAL, ODELAY_VAL should be less equal 5'd20 for controller to work properly. \n
+            description: IDELAY_VAL - Input delay value for IO. \n Designer should update this register with delay value of IO with appropriate input delay. \n Delay is count in half of period of sdmclk. If sdmclk is working at 200MHz frequency, \n then 1 is 2,5 ns. \n This value will be used to compensate delay of DAT line when controller is driving READ WAIT. \n The sum value of IDELAY_VAL, ODELAY_VAL should be less equal 5'd20 for controller to work properly. \n
             bitOffset: 0
             bitWidth: 5
             access: read-write
@@ -283,7 +283,7 @@ _add:
         resetValue: 0x0
         fields:
           STAT0:
-            description: STAT0 - Tune status 0\n After invoking UHS-I tunning procedure each bit of this register represents status of one tuning step.\n This field correspond to tuning steps 31-0.\n 0 - Step failed\n 1 - Step passed
+            description: STAT0 - Tune status 0\n After invoking UHS-I tuning procedure each bit of this register represents status of one tuning step.\n This field correspond to tuning steps 31-0.\n 0 - Step failed\n 1 - Step passed
             bitOffset: 0
             bitWidth: 32
             access: read-only
@@ -814,7 +814,7 @@ _add:
             bitWidth: 1
             access: read-only
           ICE:
-            description: ICE - Internal Clock Enable\n\n This field is designated to controls (enable/disable) external clock generator (e.g. PLL). The ICE bits of every slot are logically OR-ed together and then drive the ice pin. It means, the ice pin is 0 only when ICE in 0 for every slot implemented inside the host.\n The ice pin is 1 if at least one of the ICE bits is set to 1.\n When set to 0, the clock on sdmclk pin can be stopped externally.\n\n If the sdmclk is stopped, then host goes to a very low power state. The hosts registers are still operable (read and written operation are valid) even if the clock on sdmclk is stopped.\n Setting of the ICE bit does not affect card detection. It means, the card detection works even if the clock on sdmclk is stopped.
+            description: ICE - Internal Clock Enable\n\n This field is designated to controls (enable/disable) external clock generator (e.g. PLL). The ICE bits of every slot are logically OR-ed together and then drive the ice pin. It means, the ice pin is 0 only when ICE is 0 for every slot implemented inside the host.\n The ice pin is 1 if at least one of the ICE bits is set to 1.\n When set to 0, the clock on sdmclk pin can be stopped externally.\n\n If the sdmclk is stopped, then host goes to a very low power state. The hosts registers are still operable (read and written operation are valid) even if the clock on sdmclk is stopped.\n Setting of the ICE bit does not affect card detection. It means, the card detection works even if the clock on sdmclk is stopped.
             bitOffset: 0
             bitWidth: 1
             access: read-write
@@ -1085,7 +1085,7 @@ _add:
             bitWidth: 1
             access: read-write
           EDT_IE:
-            description: EDT_IE - ata Timeout Error Interrupt Enable (SD mode only)\n\n 1 - enabled\n 0 - masked
+            description: EDT_IE - Data Timeout Error Interrupt Enable (SD mode only)\n\n 1 - enabled\n 0 - masked
             bitOffset: 20
             bitWidth: 1
             access: read-write
@@ -1381,7 +1381,7 @@ _add:
             bitWidth: 1
             access: read-only
           RTNGCNT:
-            description: RTNGCNT - Timer Count for Re-Tuning\n\n These bits contain initial value for timer used to starting periodically Re-Tuning Operation.\n 0h - Re-Tuning Timer disabled\n 1h - 1 second\n ...\n n - 2^(n-1) seconds\n ...\n Bh - 1024 seconds\n Eh-Ch - Reserved\n Fh - Obtain this info in other way
+            description: RTNGCNT - Timer Count for Re-Tuning\n\n These bits contain initial value for timer used to start periodically Re-Tuning Operation.\n 0h - Re-Tuning Timer disabled\n 1h - 1 second\n ...\n n - 2^(n-1) seconds\n ...\n Bh - 1024 seconds\n Eh-Ch - Reserved\n Fh - Obtain this info in other way
             bitOffset: 8
             bitWidth: 4
             access: read-only

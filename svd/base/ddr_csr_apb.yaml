@@ -1915,7 +1915,7 @@ _add:
         resetValue: 0x0
         fields:
           CFG_ODT_RD_TURN_ON:
-            description: Allows timing adjustments for the ODT signals during reads. Value is expressed in two's compliment form and represents the amount of shift from the nominal value of ODT turn-on and turn-off timing during reads. -8 ('b1000) - negative shift of 8 clocks ... -1 ('b1111) - negative shift of 1 clock 0 ('b0000) - use standard ODT timing 1 ('b0001) - positive shift of transition timing ... 7 ('b0111) - positive shift of 7 clocks Typically only a value of '0' will be used. However, negative values can be used to advance the turn-on relative to the nominal, while positive values will delay it.
+            description: Allows timing adjustments for the ODT signals during reads. Value is expressed in two's complement form and represents the amount of shift from the nominal value of ODT turn-on and turn-off timing during reads. -8 ('b1000) - negative shift of 8 clocks ... -1 ('b1111) - negative shift of 1 clock 0 ('b0000) - use standard ODT timing 1 ('b0001) - positive shift of transition timing ... 7 ('b0111) - positive shift of 7 clocks Typically only a value of '0' will be used. However, negative values can be used to advance the turn-on relative to the nominal, while positive values will delay it.
             bitOffset: 0
             bitWidth: 4
             access: read-write
@@ -1926,7 +1926,7 @@ _add:
         resetValue: 0x0
         fields:
           CFG_ODT_WR_TURN_ON:
-            description: Allows timing adjustments for the ODT signals during writes. Value is expressed in two's compliment form and represents the amount of shift from the nominal value of ODT turn-on and turn-off timing during writes. -8 ('b1000) - negative shift of 8 clocks ... -1 ('b1111) - negative shift of 1 clock 0 ('b0000) - use standard ODT timing 1 ('b0001) - positive shift of transition timing ... 7 ('b0111) - positive shift of 7 clocks Typically only a value of '0' will be used. However, negative values can be used to advance the turn-on relative to the nominal, while positive values will delay it.
+            description: Allows timing adjustments for the ODT signals during writes. Value is expressed in two's complement form and represents the amount of shift from the nominal value of ODT turn-on and turn-off timing during writes. -8 ('b1000) - negative shift of 8 clocks ... -1 ('b1111) - negative shift of 1 clock 0 ('b0000) - use standard ODT timing 1 ('b0001) - positive shift of transition timing ... 7 ('b0111) - positive shift of 7 clocks Typically only a value of '0' will be used. However, negative values can be used to advance the turn-on relative to the nominal, while positive values will delay it.
             bitOffset: 0
             bitWidth: 4
             access: read-write
@@ -3554,7 +3554,7 @@ _add:
         resetValue: 0x0
         fields:
           CFG_RO_PRIORITY_EN:
-            description: Reorder_core QOS/priority enable. When this bit is set (and REORDER_PRIORITY_ENABLE paramter was set during synthesis), the reorder core will normally send out only requests that have the highest priority (except if the oldest entry in the reorder core has aged/timed-out). If clear (or the REORDER_PRIORITY_ENABLE parameter was clear during synthesis), the reorder core ignores any incoming priority and selects the next request from the reorder_queue to maximize bandwidth/performance.
+            description: Reorder_core QOS/priority enable. When this bit is set (and REORDER_PRIORITY_ENABLE parameter was set during synthesis), the reorder core will normally send out only requests that have the highest priority (except if the oldest entry in the reorder core has aged/timed-out). If clear (or the REORDER_PRIORITY_ENABLE parameter was clear during synthesis), the reorder core ignores any incoming priority and selects the next request from the reorder_queue to maximize bandwidth/performance.
             bitOffset: 0
             bitWidth: 1
             access: read-write
@@ -3631,7 +3631,7 @@ _add:
         resetValue: 0x0
         fields:
           CFG_ECC_1BIT_INT_THRESH:
-            description: This 8-bit value defines the number of ECC 1-bit error corrections that must be exceeded before the stat_int_ecc_1bit_thresh status bit (and interrupt output pin) are set and the error summing register is cleared to start summing new ECC 1bit error correction counts. Setting this value to 0 means that each new correctable ecc error will signal an interrupt/set the status bit. Setting this value to the maximum value of 0xff will disable generating the interrupt and interrupt status. Note that if the parity error retry module is included, 1bit error corrections signaled into that unit are not counted and only the 1bit corrected errors that are passed on to the user logic interface from this unit are counted. Also if the RMW unit is included and a read prefetch is performed to allow data to be merged with a user write and the read prefetch results in a 1bit ecc correction, this 1bit correction will be counted by the ecc_1bit_int_threshold detection logic. Finally, if the ECC Scrub logic is included, any ECC corrections deteted by this unit will also be counted.
+            description: This 8-bit value defines the number of ECC 1-bit error corrections that must be exceeded before the stat_int_ecc_1bit_thresh status bit (and interrupt output pin) are set and the error summing register is cleared to start summing new ECC 1bit error correction counts. Setting this value to 0 means that each new correctable ecc error will signal an interrupt/set the status bit. Setting this value to the maximum value of 0xff will disable generating the interrupt and interrupt status. Note that if the parity error retry module is included, 1bit error corrections signaled into that unit are not counted and only the 1bit corrected errors that are passed on to the user logic interface from this unit are counted. Also if the RMW unit is included and a read prefetch is performed to allow data to be merged with a user write and the read prefetch results in a 1bit ecc correction, this 1bit correction will be counted by the ecc_1bit_int_threshold detection logic. Finally, if the ECC Scrub logic is included, any ECC corrections detected by this unit will also be counted.
             bitOffset: 0
             bitWidth: 8
             access: read-write
@@ -3796,7 +3796,7 @@ _add:
         resetValue: 0x0
         fields:
           MTC_ACQ_CYCS_STORED:
-            description: 'Number of vectors stored with last armed acquisition. Note: This value is not synchonized for CSR readout with coherency of the bits. It is assumed that this register is only read when the memory test is idle.'
+            description: 'Number of vectors stored with last armed acquisition. Note: This value is not synchronized for CSR readout with coherency of the bits. It is assumed that this register is only read when the memory test is idle.'
             bitOffset: 0
             bitWidth: 7
             access: read-only
@@ -3818,7 +3818,7 @@ _add:
         resetValue: 0x0
         fields:
           MTC_ACQ_MEM_TRIG_ADDR:
-            description: 'Memory address corresponding to trigger vector. Note: This value is not synchonized for CSR readout with coherency of the bits. It is assumed that this register is only read when the memory test is idle.'
+            description: 'Memory address corresponding to trigger vector. Note: This value is not synchronized for CSR readout with coherency of the bits. It is assumed that this register is only read when the memory test is idle.'
             bitOffset: 0
             bitWidth: 6
             access: read-only
@@ -3829,7 +3829,7 @@ _add:
         resetValue: 0x0
         fields:
           MTC_ACQ_MEM_LAST_ADDR:
-            description: 'Memory address of last stored vector. Note: This value is not synchonized for CSR readout with coherency of the bits. It is assumed that this register is only read when the memory test is idle.'
+            description: 'Memory address of last stored vector. Note: This value is not synchronized for CSR readout with coherency of the bits. It is assumed that this register is only read when the memory test is idle.'
             bitOffset: 0
             bitWidth: 6
             access: read-only
@@ -4467,7 +4467,7 @@ _add:
         resetValue: 0x0
         fields:
           CFG_AXI_AUTO_PCH:
-            description: This is AXI interface register that can be configured to be 8, 16, or 32 bits wide depending upon the number of AXI ports supported. Bit 0 of this register is always associated with axi port 0, bit 1 with axi port 1, etc. If port Y uses a local bus interface, then cfg_axi_auto_pch[Y] is not used and is considered a don't care. If it is an axi port input, cfg_axi_auto_pch serves solely as the auto_pch control for that AXI port. When cfg_axi_auto_pch is set and a long (multibeat) AXI read or write is issued by user logic, then the NWL axi interface logic will insure that only the last sdram controller request being issued (on behalf of a single long AXI request) asserts auto_precharge. If a reorder core is included and is enabled (cfg_reorder_queue_en = 1), then cfg_ro_closed_page_policy, when set, overrides the cfg_axi_auto_pch input and forces auto_pch asserted on all outgoing requests from the reoder core.
+            description: This is AXI interface register that can be configured to be 8, 16, or 32 bits wide depending upon the number of AXI ports supported. Bit 0 of this register is always associated with axi port 0, bit 1 with axi port 1, etc. If port Y uses a local bus interface, then cfg_axi_auto_pch[Y] is not used and is considered a don't care. If it is an axi port input, cfg_axi_auto_pch serves solely as the auto_pch control for that AXI port. When cfg_axi_auto_pch is set and a long (multibeat) AXI read or write is issued by user logic, then the NWL axi interface logic will insure that only the last sdram controller request being issued (on behalf of a single long AXI request) asserts auto_precharge. If a reorder core is included and is enabled (cfg_reorder_queue_en = 1), then cfg_ro_closed_page_policy, when set, overrides the cfg_axi_auto_pch input and forces auto_pch asserted on all outgoing requests from the reorder core.
             bitOffset: 0
             bitWidth: 32
             access: read-write

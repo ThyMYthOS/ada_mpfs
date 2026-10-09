@@ -33,7 +33,7 @@ _add:
             bitWidth: 1
             access: read-write
           SAMPLE:
-            description: 'Sets when the core samples SDI in master mode 00: At the rising edge off SPI CLOCK allowing half a SPI clock period round trip delay Other values are not supported.'
+            description: 'Sets when the core samples SDI in master mode 00: At the rising edge of SPI CLOCK allowing half a SPI clock period round trip delay Other values are not supported.'
             bitOffset: 11
             bitWidth: 2
             access: read-write
@@ -293,7 +293,7 @@ _add:
         resetValue: 0x0
         fields:
           RXDATA4:
-            description: Returns 4-bytes off receive data
+            description: Returns 4-bytes of receive data
             bitOffset: 0
             bitWidth: 32
             access: read-only

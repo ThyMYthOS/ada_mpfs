@@ -33,7 +33,7 @@ _add:
             bitWidth: 1
             access: read-write
       AXI_WSETUP:
-        description: Axi Write Setup. Not accesible from MSS or user or DRI.
+        description: Axi Write Setup. Not accessible from MSS or user or DRI.
         addressOffset: 0x10
         size: 32
         access: read-write
@@ -85,7 +85,7 @@ _add:
             bitWidth: 6
             access: read-write
       AXI_WADDR:
-        description: AXI Write Address. Not accesible from MSS or user or DRI.
+        description: AXI Write Address. Not accessible from MSS or user or DRI.
         addressOffset: 0x14
         size: 32
         access: read-write
@@ -97,7 +97,7 @@ _add:
             bitWidth: 32
             access: read-write
       AXI_WDATA:
-        description: AXI Write Data. This is write only register, reads will return zero. Not accesible from MSS or user or DRI.
+        description: AXI Write Data. This is write only register, reads will return zero. Not accessible from MSS or user or DRI.
         addressOffset: 0x18
         size: 32
         access: read-write
@@ -109,7 +109,7 @@ _add:
             bitWidth: 32
             access: read-write
       AXI_RSETUP:
-        description: AXI Read Setup. Not accesible from MSS or user or DRI.
+        description: AXI Read Setup. Not accessible from MSS or user or DRI.
         addressOffset: 0x1C
         size: 32
         access: read-write
@@ -161,7 +161,7 @@ _add:
             bitWidth: 6
             access: read-write
       AXI_RADDR:
-        description: AXI Read Address. Not accesible from MSS or user or DRI.
+        description: AXI Read Address. Not accessible from MSS or user or DRI.
         addressOffset: 0x20
         size: 32
         access: read-write
@@ -272,7 +272,7 @@ _add:
             bitWidth: 1
             access: read-write
       AXI_CONTROL:
-        description: AXI Cycle Controls. Not accesible from MSS or user or DRI.
+        description: AXI Cycle Controls. Not accessible from MSS or user or DRI.
         addressOffset: 0x2C
         size: 32
         access: read-write
@@ -306,12 +306,12 @@ _add:
             bitWidth: 1
             access: read-write
           ISOLATE:
-            description: Asserts the Redundacy isolate, interface isolated when 1 (can be accessed by MSS in factory mode)
+            description: Asserts the Redundancy isolate, interface isolated when 1 (can be accessed by MSS in factory mode)
             bitOffset: 1
             bitWidth: 1
             access: read-write
           RESET:
-            description: Asserts the Redundacy reset (can be accessed by MSS in factory mode)
+            description: Asserts the Redundancy reset (can be accessed by MSS in factory mode)
             bitOffset: 0
             bitWidth: 1
             access: read-write
@@ -372,7 +372,7 @@ _add:
         resetValue: 0x2000
         fields:
           LENGTH:
-            description: Number of bits to shift 1-127. If set to >32 the outgoing shift data for bits 33 upwards will be zero. This allows MBIST with CSR registers greater than 32 to be started with valid data loaded into bits 23:0 off the CSR register as specified in the data register. When >32 incoming data is not captured in the shift register, if the read data is to extracted then each shift operation should be <=32 bits. To read a 88 bit register will require 3 shift operatiosn of 32, 32 and 24 bits
+            description: Number of bits to shift 1-127. If set to >32 the outgoing shift data for bits 33 upwards will be zero. This allows MBIST with CSR registers greater than 32 to be started with valid data loaded into bits 23:0 of the CSR register as specified in the data register. When >32 incoming data is not captured in the shift register, if the read data is to extracted then each shift operation should be <=32 bits. To read a 88 bit register will require 3 shift operations of 32, 32 and 24 bits
             bitOffset: 8
             bitWidth: 7
             access: read-write
@@ -382,7 +382,7 @@ _add:
             bitWidth: 1
             access: read-only
           SHIFT:
-            description: Perform the specified number off shift cycles.
+            description: Perform the specified number of shift cycles.
             bitOffset: 2
             bitWidth: 1
             access: read-write
@@ -404,7 +404,7 @@ _add:
         resetValue: 0x107
         fields:
           REASON:
-            description: This provides a read off the main SYSREG reset reason register
+            description: This provides a read of the main SYSREG reset reason register
             bitOffset: 16
             bitWidth: 9
             access: read-only
@@ -429,7 +429,7 @@ _add:
             bitWidth: 1
             access: read-write
           CPU:
-            description: Holds the CPUS (corplex) in reset.
+            description: Holds the CPUS (coreplex) in reset.
             bitOffset: 0
             bitWidth: 1
             access: read-write
@@ -653,7 +653,7 @@ _add:
         resetValue: 0x0
         fields:
           IOOUT:
-            description: Allows PFC to drive an IO pad[4] when IOMUX is configured in MISC mode. This is provided to aid device validation alloing an IO to be easily controlleed by PF-control.
+            description: Allows PFC to drive an IO pad[4] when IOMUX is configured in MISC mode. This is provided to aid device validation allowing an IO to be easily controlled by PF-control.
             bitOffset: 0
             bitWidth: 1
             access: read-write
@@ -680,7 +680,7 @@ _add:
         resetValue: 0x0
         fields:
           ACTIVE:
-            description: Writing to this bit sets the PFc_message interrupt to the Coreplex, interrupt is cleared by coreplex writing a '0'. It is required that the MSS clears this bit proir to requesting a system service from PFC, on completion PFC will set the MESSAGE register and this bit casuing an interrupt to the MSS indicating the system service is complete.
+            description: Writing to this bit sets the PFc_message interrupt to the Coreplex, interrupt is cleared by coreplex writing a '0'. It is required that the MSS clears this bit prior to requesting a system service from PFC, on completion PFC will set the MESSAGE register and this bit causing an interrupt to the MSS indicating the system service is complete.
             bitOffset: 0
             bitWidth: 1
             access: read-write
@@ -702,7 +702,7 @@ _add:
         resetValue: 0x0
         fields:
           ACTIVE:
-            description: Writing to this bit sets the DEVRST interrupt to the Coreplex via the maintence register, interrupt is cleared by coreplex writing a '0' to this bit
+            description: Writing to this bit sets the DEVRST interrupt to the Coreplex via the maintenance register, interrupt is cleared by coreplex writing a '0' to this bit
             bitOffset: 0
             bitWidth: 1
             access: read-write
@@ -736,7 +736,7 @@ _add:
         resetValue: 0x4
         fields:
           DISABLE_XIP:
-            description: When set prevents the QSPI module from operating in XIP mode preventinmg direct execution from the QSPI device
+            description: When set prevents the QSPI module from operating in XIP mode preventing direct execution from the QSPI device
             bitOffset: 16
             bitWidth: 1
             access: read-write
@@ -746,7 +746,7 @@ _add:
             bitWidth: 1
             access: read-write
           CPU_DISABLE:
-            description: When '1' dissables the SIFIVE CPUs and holds them in reset.
+            description: When '1' disables the SIFIVE CPUs and holds them in reset.
             bitOffset: 5
             bitWidth: 1
             access: read-write
@@ -783,7 +783,7 @@ _add:
             bitWidth: 1
             access: read-write
           MSS_MODE:
-            description: '0xx: Crypto block not available to fabric or MSS 100: Only available to MSS 101: Only avaliable to fabric 110: Available to both, starts with MSS 111: Available to both, starts with fabric If changed during operation then initial change must be to 3''b000.'
+            description: '0xx: Crypto block not available to fabric or MSS 100: Only available to MSS 101: Only available to fabric 110: Available to both, starts with MSS 111: Available to both, starts with fabric If changed during operation then initial change must be to 3''b000.'
             bitOffset: 0
             bitWidth: 3
             access: read-write
@@ -795,7 +795,7 @@ _add:
         resetValue: 0x40050003
         fields:
           TIMER:
-            description: 'Sets the duration of the timer used to detect a non response of slow response from the PNVM on C and R bus accesses. Timer Duration = Value * 4ns. 0x00: Timer dissabled. If the timer expires the AHB cycle is terminates using the HRESP protocol. This field must be set before the PFC override is set and should not be changed whilst it is set.'
+            description: 'Sets the duration of the timer used to detect a non response of slow response from the PNVM on C and R bus accesses. Timer Duration = Value * 4ns. 0x00: Timer disabled. If the timer expires the AHB cycle is terminated using the HRESP protocol. This field must be set before the PFC override is set and should not be changed whilst it is set.'
             bitOffset: 24
             bitWidth: 8
             access: read-write
@@ -805,7 +805,7 @@ _add:
             bitWidth: 1
             access: read-write
           SLOWREAD:
-            description: When '1' the controller will initate separate PNVM reads for all reads. No buffering or speculative operations will be carried out. When performing word reads incrementing through PNVM each location will be read twice (intended for test use)
+            description: When '1' the controller will initiate separate PNVM reads for all reads. No buffering or speculative operations will be carried out. When performing word reads incrementing through PNVM each location will be read twice (intended for test use)
             bitOffset: 17
             bitWidth: 1
             access: read-write
@@ -954,7 +954,7 @@ _add:
             bitWidth: 1
             access: read-write
       RAM_MARGIN_CR:
-        description: Controls the RAM margin inputs on the RAMS. Should not be changeld without explicity guidance from Silicon Engineering
+        description: Controls the RAM margin inputs on the RAMS. Should not be changed without explicitly guidance from Silicon Engineering
         addressOffset: 0x1B4
         size: 32
         access: read-write
@@ -1043,17 +1043,17 @@ _add:
             bitWidth: 1
             access: read-write
           ULTRASOC_DISABLE_AXI:
-            description: When set the Utrasoc module is dissabled and will not respond to AXI accesses from PF-Control or the fabric. The JTAG end point will be in bypass mode.
+            description: When set the Utrasoc module is disabled and will not respond to AXI accesses from PF-Control or the fabric. The JTAG end point will be in bypass mode.
             bitOffset: 2
             bitWidth: 1
             access: read-write
           ULTRASOC_DISABLE_JTAG:
-            description: When set the Utrasoc module is dissabled and will not respond to JTAG accesses from PF-Control or the fabric. The JTAG end point will be in bypass mode.
+            description: When set the Utrasoc module is disabled and will not respond to JTAG accesses from PF-Control or the fabric. The JTAG end point will be in bypass mode.
             bitOffset: 1
             bitWidth: 1
             access: read-write
           CPU_DEBUG_DISABLE:
-            description: When set the RiscV debug module is dissabled and will not respond to JTAG accesses from either PF-Control or the fabric. The JTAG end point will be in bypass mode.
+            description: When set the RiscV debug module is disabled and will not respond to JTAG accesses from either PF-Control or the fabric. The JTAG end point will be in bypass mode.
             bitOffset: 0
             bitWidth: 1
             access: read-write
@@ -1268,7 +1268,7 @@ _add:
             bitWidth: 2
             access: read-write
           PHASE_P:
-            description: All thes eregisters follow the standard allocation for DLL blocks used in PF. Please refer to the DLL SAC specification for details of register functions.
+            description: All these registers follow the standard allocation for DLL blocks used in PF. Please refer to the DLL SAC specification for details of register functions.
             bitOffset: 0
             bitWidth: 2
             access: read-write

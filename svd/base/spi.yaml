@@ -337,7 +337,7 @@ _add:
             bitWidth: 1
             access: read-only
           TXCHUNDR:
-            description: RAW interrupt status. Reading this returns raw interrupt status. Raw status of transmit channel under-run. Indicates in slave mode that data was not availiable when required in the transmit FIFO
+            description: RAW interrupt status. Reading this returns raw interrupt status. Raw status of transmit channel under-run. Indicates in slave mode that data was not available when required in the transmit FIFO
             bitOffset: 3
             bitWidth: 1
             access: read-only
@@ -579,7 +579,7 @@ _add:
             bitWidth: 16
             access: read-write
           BYTESLOWER:
-            description: 'W: No operation. R: Resturns the lower 16 bits of the byte count from the FRAMES register.'
+            description: 'W: No operation. R: Returns the lower 16 bits of the byte count from the FRAMES register.'
             bitOffset: 0
             bitWidth: 16
             access: read-write

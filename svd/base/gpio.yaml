@@ -1025,7 +1025,7 @@ _add:
         resetValue: 0x0
         fields:
           NO_FIELD_NAMES_OR_BIT_RANGES_ASSIGNED_YET:
-            description: Per bit interrupt, ; Read Modify Write. To clear an interrtupt the bit is written with '1'
+            description: Per bit interrupt, ; Read Modify Write. To clear an interrupt the bit is written with '1'
             bitOffset: 0
             bitWidth: 1
             access: read-write

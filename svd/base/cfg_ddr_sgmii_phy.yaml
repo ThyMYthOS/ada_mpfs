@@ -197,12 +197,12 @@ _add:
             bitWidth: 1
             access: read-write
           PERSIST_ADD_CMD:
-            description: 'Persit all Addcmd bits . When 1: write RPC_lp_persist_addcmd to 1 else 0'
+            description: 'Persist all Addcmd bits . When 1: write RPC_lp_persist_addcmd to 1 else 0'
             bitOffset: 2
             bitWidth: 1
             access: read-write
           DATA_LOCKDN:
-            description: Data bits honor Lockdn clobal signal
+            description: Data bits honor Lockdn global signal
             bitOffset: 1
             bitWidth: 1
             access: read-write
@@ -947,7 +947,7 @@ _add:
             bitWidth: 6
             access: read-only
       IOC_REG6:
-        description: IO calibr control resgister6
+        description: IO calibr control register6
         addressOffset: 0x21C
         size: 32
         access: read-write
@@ -4817,7 +4817,7 @@ _add:
         resetValue: 0x0
         fields:
           INITLDQS_2_MID_LANEX_RANKX:
-            description: Distance between the DQS start possition to the middle of data window
+            description: Distance between the DQS start position to the middle of data window
             bitOffset: 0
             bitWidth: 8
             access: read-only
@@ -4924,7 +4924,7 @@ _add:
             bitWidth: 4
             access: read-only
       BCLKSCLK_ANSWER:
-        description: BCLK/SCLK trainng result
+        description: BCLK/SCLK training result
         addressOffset: 0x870
         size: 32
         access: read-only
@@ -4955,32 +4955,32 @@ _add:
         resetValue: 0x0
         fields:
           DYN_OVR_DFI_SHIM_EN:
-            description: 1 -> enable MSS overide, 0 -> disable MSS override
+            description: 1 -> enable MSS override, 0 -> disable MSS override
             bitOffset: 5
             bitWidth: 1
             access: read-write
           DYN_OVR_CALIF_EN:
-            description: 1 -> enable MSS overide, 0 -> disable MSS override
+            description: 1 -> enable MSS override, 0 -> disable MSS override
             bitOffset: 4
             bitWidth: 1
             access: read-write
           DYN_OVR_WRCALIB_EN:
-            description: 1 -> enable MSS overide, 0 -> disable MSS override
+            description: 1 -> enable MSS override, 0 -> disable MSS override
             bitOffset: 3
             bitWidth: 1
             access: read-write
           DYN_OVR_RDGATE_EN:
-            description: 1 -> enable MSS overide, 0 -> disable MSS override
+            description: 1 -> enable MSS override, 0 -> disable MSS override
             bitOffset: 2
             bitWidth: 1
             access: read-write
           DYN_OVR_PLLCNT_EN:
-            description: 1 -> enable MSS overide, 0 -> disable MSS override
+            description: 1 -> enable MSS override, 0 -> disable MSS override
             bitOffset: 1
             bitWidth: 1
             access: read-write
           DYN_OVR_DLYCNT_EN:
-            description: 1 -> enable MSS overide, 0 -> disable MSS override
+            description: 1 -> enable MSS override, 0 -> disable MSS override
             bitOffset: 0
             bitWidth: 1
             access: read-write
@@ -5907,7 +5907,7 @@ _add:
         resetValue: 0x40E60C
         fields:
           REG_REFCLK_EN_INS_HYST_N:
-            description: REFCLK N input hysterisis enable
+            description: REFCLK N input hysteresis enable
             bitOffset: 31
             bitWidth: 1
             access: read-write
@@ -5917,7 +5917,7 @@ _add:
             bitWidth: 1
             access: read-write
           REG_REFCLK_EN_INS_HYST_P:
-            description: REFCLK P input hysterisis enable
+            description: REFCLK P input hysteresis enable
             bitOffset: 29
             bitWidth: 1
             access: read-write
@@ -5962,7 +5962,7 @@ _add:
             bitWidth: 4
             access: read-write
           REG_DLL_LOCK_FLT:
-            description: DLL phase lock tolerance of gitter
+            description: DLL phase lock tolerance of jitter
             bitOffset: 8
             bitWidth: 2
             access: read-write

@@ -3424,7 +3424,7 @@ _add:
         resetValue: 0x0
         fields:
           RX_MSG0_AMR:
-            description: 'Receive Message0 buffer AMR bits.(Accepatnce Mask Register). [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care".'
+            description: 'Receive Message0 buffer AMR bits.(Acceptance Mask Register). [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care".'
             bitOffset: 0
             bitWidth: 32
             access: read-write

@@ -270,7 +270,7 @@ _add:
         resetValue: 0x0
         fields:
           SECONDS:
-            description: 'Each read returns the current date/time value. It is possible that date/time may increament b/w reads. Write: All fields (0x50-0x6c) must be writeen. The control register upload bit will upload the data to RTC.These registers are for use when clock_mode=1'
+            description: 'Each read returns the current date/time value. It is possible that date/time may increment b/w reads. Write: All fields (0x50-0x6c) must be written. The control register upload bit will upload the data to RTC.These registers are for use when clock_mode=1'
             bitOffset: 0
             bitWidth: 6
             access: read-write

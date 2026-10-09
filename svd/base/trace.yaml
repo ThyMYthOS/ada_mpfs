@@ -752,7 +752,7 @@ _add:
             bitWidth: 1
             access: read-write
       SMB_REG_BUFFER_ACTIVE_0:
-        description: Logical buffer buffer active
+        description: Logical buffer active
         addressOffset: 0x10068
         size: 32
         access: read-only
@@ -974,7 +974,7 @@ _add:
             bitWidth: 1
             access: read-write
       SMB_REG_BUFFER_ACTIVE_1:
-        description: Logical buffer buffer active
+        description: Logical buffer active
         addressOffset: 0x10168
         size: 32
         access: read-only

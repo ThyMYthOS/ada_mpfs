@@ -12,7 +12,7 @@ _add:
         resetValue: 0x4005000F
         fields:
           TIMER:
-            description: 'Sets the duration of the timer used to detect a non-response of slow response from the ENVM on C and R bus accesses. Timer Duration = (Value+1) * (128 * AHB Clock Period) 0x00: Timer disabled. If the timer expires the AHB cycle is terminates using the HRESP protocol. The time should be set.'
+            description: 'Sets the duration of the timer used to detect a non-response of slow response from the ENVM on C and R bus accesses. Timer Duration = (Value+1) * (128 * AHB Clock Period) 0x00: Timer disabled. If the timer expires the AHB cycle is terminated using the HRESP protocol. The time should be set.'
             bitOffset: 24
             bitWidth: 8
             access: read-write

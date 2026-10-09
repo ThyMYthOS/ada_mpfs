@@ -113,7 +113,7 @@ _add:
         resetValue: 0x0
         fields:
           SEED:
-            description: Sets the seed value used in the generation off the Athena Stall logic
+            description: Sets the seed value used in the generation of the Athena Stall logic
             bitOffset: 0
             bitWidth: 32
             access: read-write

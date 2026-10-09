@@ -4054,7 +4054,7 @@ _add:
             bitWidth: 8
             access: read-only
           TX_PBUF_SIZE_DEF:
-            description: Takes the value of the edma_tx_pbuf_size_def parameter which is set by the `gem_tx_pbuf_size_def DEFINE but will be zero if the FIFO inteface has been configured
+            description: Takes the value of the edma_tx_pbuf_size_def parameter which is set by the `gem_tx_pbuf_size_def DEFINE but will be zero if the FIFO interface has been configured
             bitOffset: 19
             bitWidth: 1
             access: read-only
@@ -4436,7 +4436,7 @@ _add:
             bitWidth: 1
             access: read-only
           PROTECT_TSU:
-            description: akes the value of the edma_asf_prot_tsu parameter which is set by the `gem_asf_prot_tsu DEFINE or is zero if no TSU is present.
+            description: Takes the value of the edma_asf_prot_tsu parameter which is set by the `gem_asf_prot_tsu DEFINE or is zero if no TSU is present.
             bitOffset: 3
             bitWidth: 1
             access: read-only
@@ -7725,7 +7725,7 @@ _add:
             bitWidth: 1
             access: read-write
       asf_trans_to_fault_status:
-        description: Status register for transaction timeouts fault. If a fault occurs the revelant status bit will be set to 1. Each bit can be cleared by software writing 1 to each bit.
+        description: Status register for transaction timeouts fault. If a fault occurs the relevant status bit will be set to 1. Each bit can be cleared by software writing 1 to each bit.
         addressOffset: 0xE38
         size: 32
         access: read-write
@@ -7854,7 +7854,7 @@ _add:
             bitWidth: 1
             access: read-write
       asf_protocol_fault_status:
-        description: Status register for protocol faults. If a fault occurs the revelant status bit will be set to 1. Each bit can be cleared by software writing 1 to each bit
+        description: Status register for protocol faults. If a fault occurs the relevant status bit will be set to 1. Each bit can be cleared by software writing 1 to each bit
         addressOffset: 0xE44
         size: 32
         access: read-write
@@ -11807,7 +11807,7 @@ _add:
             bitWidth: 8
             access: read-only
           TX_PBUF_SIZE_DEF:
-            description: Takes the value of the edma_tx_pbuf_size_def parameter which is set by the `gem_tx_pbuf_size_def DEFINE but will be zero if the FIFO inteface has been configured
+            description: Takes the value of the edma_tx_pbuf_size_def parameter which is set by the `gem_tx_pbuf_size_def DEFINE but will be zero if the FIFO interface has been configured
             bitOffset: 19
             bitWidth: 1
             access: read-only
@@ -12114,7 +12114,7 @@ _add:
             bitWidth: 1
             access: read-only
           PROTECT_TSU:
-            description: akes the value of the edma_asf_prot_tsu parameter which is set by the `gem_asf_prot_tsu DEFINE or is zero if no TSU is present.
+            description: Takes the value of the edma_asf_prot_tsu parameter which is set by the `gem_asf_prot_tsu DEFINE or is zero if no TSU is present.
             bitOffset: 3
             bitWidth: 1
             access: read-only
@@ -13652,7 +13652,7 @@ _add:
             bitWidth: 1
             access: read-write
       emac_asf_trans_to_fault_status:
-        description: Status register for transaction timeouts fault. If a fault occurs the revelant status bit will be set to 1. Each bit can be cleared by software writing 1 to each bit.
+        description: Status register for transaction timeouts fault. If a fault occurs the relevant status bit will be set to 1. Each bit can be cleared by software writing 1 to each bit.
         addressOffset: 0x1E38
         size: 32
         access: read-write
@@ -13781,7 +13781,7 @@ _add:
             bitWidth: 1
             access: read-write
       emac_asf_protocol_fault_status:
-        description: Status register for protocol faults. If a fault occurs the revelant status bit will be set to 1. Each bit can be cleared by software writing 1 to each bit
+        description: Status register for protocol faults. If a fault occurs the relevant status bit will be set to 1. Each bit can be cleared by software writing 1 to each bit
         addressOffset: 0x1E44
         size: 32
         access: read-write

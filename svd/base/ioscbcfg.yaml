@@ -17,7 +17,7 @@ _add:
             bitWidth: 1
             access: read-write
           RESET_CYCLE:
-            description: Writing a '1' to the bit will cause a reset off the internal FSMS. Once set it will stay asserted until the reset cycle completes when it will be cleared. This may take several clock cycles depending on relative speeds of the SCB and AHB clocks.
+            description: Writing a '1' to the bit will cause a reset of the internal FSMS. Once set it will stay asserted until the reset cycle completes when it will be cleared. This may take several clock cycles depending on relative speeds of the SCB and AHB clocks.
             bitOffset: 8
             bitWidth: 1
             access: read-write

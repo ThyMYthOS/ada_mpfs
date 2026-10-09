@@ -54,7 +54,7 @@ _add:
         resetValue: 0x10064
         fields:
           ENABLE:
-            description: RTC Clock enable. When chaning the divider the enable should be trurned off first, the divider changed and the enable turned back on.
+            description: RTC Clock enable. When changing the divider the enable should be turned off first, the divider changed and the enable turned back on.
             bitOffset: 16
             bitWidth: 1
             access: read-write
@@ -71,7 +71,7 @@ _add:
         resetValue: 0x0
         fields:
           ENABLE:
-            description: This bitfield has no affect if changed
+            description: This bitfield has no effect if changed
             bitOffset: 0
             bitWidth: 1
             access: read-write
@@ -94,7 +94,7 @@ _add:
         resetValue: 0x0
         fields:
           RESET_VALUE:
-            description: When written to 16'hDEAD will cause a full MSS reset. The Reset wil clear this register. The register may be writtent to any value but only a value off 16'hDEAD will cause the reset to happen
+            description: When written to 16'hDEAD will cause a full MSS reset. The Reset will clear this register. The register may be written to any value but only a value of 16'hDEAD will cause the reset to happen
             bitOffset: 0
             bitWidth: 16
             access: read-write
@@ -118,7 +118,7 @@ _add:
         resetValue: 0x1FF
         fields:
           CPU_SOFT_RESET:
-            description: Indicates that the CPU reset ths MSS using the soft reset register
+            description: Indicates that the CPU reset the MSS using the soft reset register
             bitOffset: 8
             bitWidth: 1
             access: read-write
@@ -275,7 +275,7 @@ _add:
             bitWidth: 32
             access: read-write
       FAB_INTEN_MISC:
-        description: Allows the Ethernat interrupts to be directly routed to the U54 CPUS.
+        description: Allows the Ethernet interrupts to be directly routed to the U54 CPUS.
         addressOffset: 0x50
         size: 32
         access: read-write
@@ -441,7 +441,7 @@ _add:
             bitWidth: 1
             access: read-write
       SUBBLK_CLOCK_CR:
-        description: Enables the clock to the MSS peripheral. By turning clocks off dynamic power can be saved. When the clock is off the peripheral should not be accessed, the acess may be ignored, return unspecified data or result in bus response error.
+        description: Enables the clock to the MSS peripheral. By turning clocks off dynamic power can be saved. When the clock is off the peripheral should not be accessed, the access may be ignored, return unspecified data or result in bus response error.
         addressOffset: 0x84
         size: 32
         access: read-write
@@ -593,7 +593,7 @@ _add:
             bitWidth: 1
             access: read-write
       SOFT_RESET_CR:
-        description: Holds the MSS peripherals in reset. Whenin reset the peripheral should not be accessed, the acess may be ignored, return unspecified data or result in bus response error.
+        description: Holds the MSS peripherals in reset. When in reset the peripheral should not be accessed, the access may be ignored, return unspecified data or result in bus response error.
         addressOffset: 0x88
         size: 32
         access: read-write
@@ -750,7 +750,7 @@ _add:
             bitWidth: 1
             access: read-write
       AHBAXI_CR:
-        description: Configures how many outstanding transfers the AXI-AHB bridges in front off the USB and Crypto blocks should allow. (See Synopsys AXI-AHB bridge documentation)
+        description: Configures how many outstanding transfers the AXI-AHB bridges in front of the USB and Crypto blocks should allow. (See Synopsys AXI-AHB bridge documentation)
         addressOffset: 0x8C
         size: 32
         access: read-write
@@ -818,32 +818,32 @@ _add:
         resetValue: 0xF0703
         fields:
           GPIO2_DEFAULT:
-            description: Sets the reset value off the GPIO0 per byte Bit 0 controls GPIO0 [7:0] ,bit 1 GPIO[15:8] and bit 1 GPIO[23:16], and bit 3 GPIO[31:24]
+            description: Sets the reset value of the GPIO0 per byte Bit 0 controls GPIO0 [7:0] ,bit 1 GPIO[15:8] and bit 1 GPIO[23:16], and bit 3 GPIO[31:24]
             bitOffset: 20
             bitWidth: 4
             access: read-write
           GPIO2_SOFT_RESET_SELECT:
-            description: 'This signal selects whether the associated byte is reset by soft reset or the the MSS_GPIO_RESET_N signal from the FPGA fabric. The allowed values are: • 0: Selects MSS_GPIO_RESET_N signal from the FPGA fabric. • 1: Selects the GPIO to be reset by the GPIO block soft reset signal . Bit 0 controls GPIO0 [7:0] ,bit 1 GPIO[15:8] and bit 1 GPIO[23:16], and bit 3 GPIO[31:24] The master MSS reset will also reset the GPIO register if not configured to use fabric reset.'
+            description: 'This signal selects whether the associated byte is reset by soft reset or the MSS_GPIO_RESET_N signal from the FPGA fabric. The allowed values are: • 0: Selects MSS_GPIO_RESET_N signal from the FPGA fabric. • 1: Selects the GPIO to be reset by the GPIO block soft reset signal . Bit 0 controls GPIO0 [7:0] ,bit 1 GPIO[15:8] and bit 1 GPIO[23:16], and bit 3 GPIO[31:24] The master MSS reset will also reset the GPIO register if not configured to use fabric reset.'
             bitOffset: 16
             bitWidth: 4
             access: read-write
           GPIO1_DEFAULT:
-            description: Sets the reset value off the GPIO0 per byte Bit 0 controls GPIO0 [7:0] ,bit 1 GPIO[15:8] and bit 2 GPIO[23:16]
+            description: Sets the reset value of the GPIO0 per byte Bit 0 controls GPIO0 [7:0] ,bit 1 GPIO[15:8] and bit 2 GPIO[23:16]
             bitOffset: 12
             bitWidth: 3
             access: read-write
           GPIO1_SOFT_RESET_SELECT:
-            description: 'This signal selects whether the associated byte is reset by soft reset or the the MSS_GPIO_RESET_N signal from the FPGA fabric. The allowed values are: • 0: Selects MSS_GPIO_RESET_N signal from the FPGA fabric. • 1: Selects the GPIO to be reset by the GPIO block soft reset signal . Bit 0 controls GPIO0 [7:0] ,bit 1 GPIO[15:8] and bit 2 GPIO[23:16] The master MSS reset will also reset the GPIO register if not configured to use fabric reset.'
+            description: 'This signal selects whether the associated byte is reset by soft reset or the MSS_GPIO_RESET_N signal from the FPGA fabric. The allowed values are: • 0: Selects MSS_GPIO_RESET_N signal from the FPGA fabric. • 1: Selects the GPIO to be reset by the GPIO block soft reset signal . Bit 0 controls GPIO0 [7:0] ,bit 1 GPIO[15:8] and bit 2 GPIO[23:16] The master MSS reset will also reset the GPIO register if not configured to use fabric reset.'
             bitOffset: 8
             bitWidth: 3
             access: read-write
           GPIO0_DEFAULT:
-            description: Sets the reset value off the GPIO0 per byte Bit 0 controls GPIO0 [7:0] , and bit 1 GPIO[15:8]
+            description: Sets the reset value of the GPIO0 per byte Bit 0 controls GPIO0 [7:0] , and bit 1 GPIO[15:8]
             bitOffset: 4
             bitWidth: 2
             access: read-write
           GPIO0_SOFT_RESET_SELECT:
-            description: 'This signal selects whether the associated byte is reset by soft reset or the the MSS_GPIO_RESET_N signal from the FPGA fabric. The allowed values are: • 0: Selects MSS_GPIO_RESET_N signal from the FPGA fabric. • 1: Selects the GPIO to be reset by the GPIO block soft reset signal . Bit 0 controls GPIO0 [7:0] , and bit 1 GPIO[15:8] The master MSS reset will also reset the GPIO register if not configured to use fabric reset.'
+            description: 'This signal selects whether the associated byte is reset by soft reset or the MSS_GPIO_RESET_N signal from the FPGA fabric. The allowed values are: • 0: Selects MSS_GPIO_RESET_N signal from the FPGA fabric. • 1: Selects the GPIO to be reset by the GPIO block soft reset signal . Bit 0 controls GPIO0 [7:0] , and bit 1 GPIO[15:8] The master MSS reset will also reset the GPIO register if not configured to use fabric reset.'
             bitOffset: 0
             bitWidth: 2
             access: read-write
@@ -889,7 +889,7 @@ _add:
             bitWidth: 1
             access: read-only
           POWERDOWN_ENABLE:
-            description: When '1' will stops the clock to the USB core when the core asserts its POWERDOWN output. For G4 compatability this bit defaults to 0.
+            description: When '1' will stop the clock to the USB core when the core asserts its POWERDOWN output. For G4 compatibility this bit defaults to 0.
             bitOffset: 1
             bitWidth: 1
             access: read-write
@@ -955,7 +955,7 @@ _add:
         resetValue: 0x4005004F
         fields:
           TIMER:
-            description: 'Sets the duration of the timer used to detect a non response of slow response from the PNVM on C and R bus accesses. Timer Duration = Value * (1000/AHBFREQMHZ) 0x00: Timer dissabled. If the timer expires the AHB cycle is terminates using the HRESP protocol'
+            description: 'Sets the duration of the timer used to detect a non response of slow response from the PNVM on C and R bus accesses. Timer Duration = Value * (1000/AHBFREQMHZ) 0x00: Timer disabled. If the timer expires the AHB cycle is terminated using the HRESP protocol'
             bitOffset: 24
             bitWidth: 8
             access: read-write
@@ -965,7 +965,7 @@ _add:
             bitWidth: 1
             access: read-write
           SLOWREAD:
-            description: When '1' the controller will initate separate ENVM reads for all reads. No buffering or speculative operations will be carried out. When performing word reads incrementing through PNVM each location will be read twice (intended for test use)
+            description: When '1' the controller will initiate separate ENVM reads for all reads. No buffering or speculative operations will be carried out. When performing word reads incrementing through PNVM each location will be read twice (intended for test use)
             bitOffset: 17
             bitWidth: 1
             access: read-write
@@ -1243,7 +1243,7 @@ _add:
         resetValue: 0x0
         fields:
           ADDR:
-            description: The address (bits 31:0) that failed. Redaing this address as 64-bits will return the 38-bit address in assingle read combined with additional information in the next register
+            description: The address (bits 31:0) that failed. Reading this address as 64-bits will return the 38-bit address in a single read combined with additional information in the next register
             bitOffset: 0
             bitWidth: 32
             access: read-only
@@ -1265,12 +1265,12 @@ _add:
             bitWidth: 1
             access: read-only
           ID:
-            description: AXI ID off failure
+            description: AXI ID of failure
             bitOffset: 8
             bitWidth: 8
             access: read-only
           ADDR:
-            description: Upper 6 bits off address [37:32]
+            description: Upper 6 bits of address [37:32]
             bitOffset: 0
             bitWidth: 6
             access: read-only
@@ -1429,7 +1429,7 @@ _add:
             bitWidth: 1
             access: read-write
       EDAC_CNT_MMC:
-        description: Count off single bit errors
+        description: Count of single bit errors
         addressOffset: 0x108
         size: 32
         access: read-write
@@ -1441,7 +1441,7 @@ _add:
             bitWidth: 10
             access: read-write
       EDAC_CNT_DDRC:
-        description: Count off single bit errors
+        description: Count of single bit errors
         addressOffset: 0x10C
         size: 32
         access: read-write
@@ -1453,7 +1453,7 @@ _add:
             bitWidth: 10
             access: read-write
       EDAC_CNT_MAC0:
-        description: Count off single bit errors
+        description: Count of single bit errors
         addressOffset: 0x110
         size: 32
         access: read-write
@@ -1465,7 +1465,7 @@ _add:
             bitWidth: 10
             access: read-write
       EDAC_CNT_MAC1:
-        description: Count off single bit errors
+        description: Count of single bit errors
         addressOffset: 0x114
         size: 32
         access: read-write
@@ -1477,7 +1477,7 @@ _add:
             bitWidth: 10
             access: read-write
       EDAC_CNT_USB:
-        description: Count off single bit errors
+        description: Count of single bit errors
         addressOffset: 0x118
         size: 32
         access: read-write
@@ -1489,7 +1489,7 @@ _add:
             bitWidth: 10
             access: read-write
       EDAC_CNT_CAN0:
-        description: Count off single bit errors
+        description: Count of single bit errors
         addressOffset: 0x11C
         size: 32
         access: read-write
@@ -1501,7 +1501,7 @@ _add:
             bitWidth: 10
             access: read-write
       EDAC_CNT_CAN1:
-        description: Count off single bit errors
+        description: Count of single bit errors
         addressOffset: 0x120
         size: 32
         access: read-write
@@ -1739,7 +1739,7 @@ _add:
             bitWidth: 1
             access: read-write
       MAINTENANCE_INT_SR:
-        description: Maintenace interrupt, indicates fault and status events.
+        description: Maintenance interrupt, indicates fault and status events.
         addressOffset: 0x148
         size: 32
         access: read-write
@@ -1751,7 +1751,7 @@ _add:
             bitWidth: 1
             access: read-only
           IO_BANK_B6_OFF:
-            description: Indicates that one off the DLLs whent into the lock or unlock state. Cleared via DLL status register
+            description: Indicates that one of the DLLs went into the lock or unlock state. Cleared via DLL status register
             bitOffset: 19
             bitWidth: 1
             access: read-write
@@ -1841,12 +1841,12 @@ _add:
             bitWidth: 1
             access: read-only
           MPU:
-            description: Indicates that one off the MPUS signaled a MPU violation. Cleared via MPU Violation Register
+            description: Indicates that one of the MPUS signaled a MPU violation. Cleared via MPU Violation Register
             bitOffset: 1
             bitWidth: 1
             access: read-only
           PLL:
-            description: Indicates that one off the PLLs whent into the lock or unlock state. Cleared via PLL status register
+            description: Indicates that one of the PLLs went into the lock or unlock state. Cleared via PLL status register
             bitOffset: 0
             bitWidth: 1
             access: read-only
@@ -1858,17 +1858,17 @@ _add:
         resetValue: 0x0
         fields:
           SGMII_LOCK_NOW:
-            description: Current state off SGMII PLL locked signal
+            description: Current state of SGMII PLL locked signal
             bitOffset: 10
             bitWidth: 1
             access: read-only
           DFI_LOCK_NOW:
-            description: Current state off DFI PLL locked signal
+            description: Current state of DFI PLL locked signal
             bitOffset: 9
             bitWidth: 1
             access: read-only
           CPU_LOCK_NOW:
-            description: Current state off CPU PLL locked signal
+            description: Current state of CPU PLL locked signal
             bitOffset: 8
             bitWidth: 1
             access: read-only
@@ -1910,12 +1910,12 @@ _add:
         resetValue: 0x0
         fields:
           ENABLE:
-            description: When set and the CFM channel is in timer mode and CFM channel is set to 2 (Group C) this register allows the timet to count. Allows software to start and stop the timers.
+            description: When set and the CFM channel is in timer mode and CFM channel is set to 2 (Group C) this register allows the time to count. Allows software to start and stop the timers.
             bitOffset: 0
             bitWidth: 5
             access: read-write
       MISC_SR:
-        description: Miscellanous Register
+        description: Miscellaneous Register
         addressOffset: 0x154
         size: 32
         access: read-only
@@ -1996,27 +1996,27 @@ _add:
         resetValue: 0x0
         fields:
           FIC4_LOCK_NOW:
-            description: Current state off FIC4 DLL locked signal
+            description: Current state of FIC4 DLL locked signal
             bitOffset: 20
             bitWidth: 1
             access: read-only
           FIC3_LOCK_NOW:
-            description: Current state off FIC3 DLL locked signal
+            description: Current state of FIC3 DLL locked signal
             bitOffset: 19
             bitWidth: 1
             access: read-only
           FIC2_LOCK_NOW:
-            description: Current state off FIC2 DLL locked signal
+            description: Current state of FIC2 DLL locked signal
             bitOffset: 18
             bitWidth: 1
             access: read-only
           FIC1_LOCK_NOW:
-            description: Current state off FIC1 DLL locked signal
+            description: Current state of FIC1 DLL locked signal
             bitOffset: 17
             bitWidth: 1
             access: read-only
           FIC0_LOCK_NOW:
-            description: Current state off FIC0 DLL locked signal
+            description: Current state of FIC0 DLL locked signal
             bitOffset: 16
             bitWidth: 1
             access: read-only
@@ -2302,7 +2302,7 @@ _add:
             bitWidth: 1
             access: read-write
       L2_SHUTDOWN_CR:
-        description: Allows each bank of the L2 Cache to be powered down, orded with global shutdown
+        description: Allows each bank of the L2 Cache to be powered down, ordered with global shutdown
         addressOffset: 0x174
         size: 32
         access: read-write
