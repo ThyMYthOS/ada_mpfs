@@ -1,0 +1,61 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# SVD process: rebuild the merged SVD, verify its recorded hash and run the host tests
+# of the SVD tooling and of ./x. Needs no Ada toolchain.
+name: svd
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - ".github/workflows/svd.yml"
+      - "svd/**"
+      - "hw/svd_probe.py"
+      - "tools/**"
+      - "tests/host/**"
+      - "x"
+
+permissions:
+  contents: read
+
+jobs:
+  svd:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-python@v5.6.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: tools/requirements.txt
+
+      - name: Install Python packages and xmllint
+        run: |
+          python3 -m pip install -r tools/requirements.txt
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libxml2-utils
+
+      # The release binary and its pin are in tools/toolchain.env; the cache key follows it.
+      - name: Cache svdtools
+        id: svdtools
+        uses: actions/cache@v4.2.3
+        with:
+          path: ~/.local/share/ada_mpfs/tools
+          key: svdtools-${{ runner.os }}-${{ hashFiles('tools/toolchain.env') }}
+
+      - name: Install svdtools
+        if: steps.svdtools.outputs.cache-hit != 'true'
+        run: ./x toolchain install svdtools
+
+      - name: Check the SVD
+        run: ./x svd check
+
+      - name: Host tests of the SVD tooling
+        run: tests/host/svd/run.sh
+
+      - name: Host tests of x
+        run: tests/host/x/run.sh
