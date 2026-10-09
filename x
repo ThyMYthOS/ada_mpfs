@@ -27,7 +27,7 @@
 #    ./x analyze [--style] [--update-baseline]   static analysis
 #    ./x stack <ex>                    static stack analysis
 #    ./x svd merge|check               merge the SVD and record its hash / verify the hash
-#    ./x svd probe <periph>...         compare reset values with a target (OpenOCD)
+#    ./x svd probe [--all|<periph>...] compare reset values with a target (OpenOCD); regenerates a stale build/svd
 #    ./x pac generate|check            register package generation and checks
 #    ./x trace [--check]               requirement trace matrix
 #    ./x prove                         SPARK proofs
@@ -513,7 +513,10 @@ cmd_metrics () {
 cmd_svd () {
   case "${1:-}" in
     merge|check) delegate tools/svd.py "$@" ;;
-    probe)       shift; delegate hw/svd_probe.py "$@" ;;
+    probe)       shift
+                 # the probe compares with build/svd/PolarfireSoC.svd: regenerate it if its hash does not fit
+                 case " $* " in *" --svd "*|*" --svd="*) ;; *) delegate tools/svd.py ensure || return ;; esac
+                 delegate hw/svd_probe.py "$@" ;;
     *) die "usage: ./x svd merge|check|probe" ;;
   esac
 }
