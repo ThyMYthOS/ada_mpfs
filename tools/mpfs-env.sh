@@ -83,20 +83,48 @@ mpfs_version_ge () {
     [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -1)" = "$2" ]
 }
 
-# Python interpreter for the tools: $MPFS_PYTHON if set, else the first of
-# python3, python3.20 ... python3.<minor of PYTHON_MIN> on PATH that is at least
-# PYTHON_MIN (python3 may be older than a versioned interpreter next to it, as
-# on Ubuntu 24.04). Falls back to python3 so the check reports what is wrong.
-# Sets and exports MPFS_PYTHON.
+# Virtual environment of the host tools (tools/requirements.txt), one per
+# tools prefix. Prints the path of its interpreter if it exists.
+mpfs_venv_dir () { printf '%s/venv\n' "$MPFS_TOOLS_PREFIX"; }
+mpfs_venv_python () {
+    local d; d="$(mpfs_venv_dir)"
+    if [ -x "$d/bin/python" ]; then echo "$d/bin/python"
+    elif [ -x "$d/Scripts/python.exe" ]; then echo "$d/Scripts/python.exe"
+    else return 1; fi
+}
+
+# Python interpreter for the tools: $MPFS_PYTHON if set, else the interpreter of
+# the virtual environment if `./x toolchain install` has created it, else the
+# first of python3, python3.20 ... python3.<minor of PYTHON_MIN> on PATH that is
+# at least PYTHON_MIN (python3 may be older than a versioned interpreter next to
+# it, as on Ubuntu 24.04). Falls back to python3 so the check reports what is
+# wrong. Sets and exports MPFS_PYTHON; MPFS_SYSTEM_PYTHON is the PATH search
+# alone, which creates the virtual environment.
 mpfs_find_python () {
-    if [ -z "${MPFS_PYTHON:-}" ]; then
-        local c v minor="${PYTHON_MIN#*.}" n
-        MPFS_PYTHON=python3
-        for c in python3 $(n=20; while [ "$n" -ge "$minor" ]; do echo "python3.$n"; n=$((n - 1)); done); do
-            command -v "$c" >/dev/null 2>&1 || continue
-            v="$("$c" -c 'import sys;print("%d.%d"%sys.version_info[:2])' 2>/dev/null)" || continue
-            if mpfs_version_ge "$v" "$PYTHON_MIN"; then MPFS_PYTHON="$c"; break; fi
-        done
+    local c v minor="${PYTHON_MIN#*.}" n
+    MPFS_SYSTEM_PYTHON=python3
+    for c in python3 $(n=20; while [ "$n" -ge "$minor" ]; do echo "python3.$n"; n=$((n - 1)); done); do
+        command -v "$c" >/dev/null 2>&1 || continue
+        v="$("$c" -c 'import sys;print("%d.%d"%sys.version_info[:2])' 2>/dev/null)" || continue
+        if mpfs_version_ge "$v" "$PYTHON_MIN"; then MPFS_SYSTEM_PYTHON="$c"; break; fi
+    done
+    [ -n "${MPFS_PYTHON:-}" ] || MPFS_PYTHON="$(mpfs_venv_python)" || MPFS_PYTHON="$MPFS_SYSTEM_PYTHON"
+    export MPFS_PYTHON MPFS_SYSTEM_PYTHON
+}
+
+# Create or refresh the virtual environment from tools/requirements.txt.
+# A copy of the requirements inside it tells whether it is current.
+mpfs_venv_install () {
+    local d req="$MPFS_TOOLS_DIR/requirements.txt"
+    d="$(mpfs_venv_dir)"
+    if [ -f "$d/requirements.txt" ] && cmp -s "$req" "$d/requirements.txt" && mpfs_venv_python >/dev/null; then
+        echo "x: python environment already installed in $d"
+    else
+        echo "x: creating python environment in $d ($MPFS_SYSTEM_PYTHON)"
+        "$MPFS_SYSTEM_PYTHON" -m venv --clear "$d" || return 1
+        MPFS_PYTHON="$(mpfs_venv_python)" || return 1
+        "$MPFS_PYTHON" -m pip install -q --disable-pip-version-check -r "$req" || return 1
+        cp "$req" "$d/requirements.txt"
     fi
     export MPFS_PYTHON
 }
@@ -161,6 +189,8 @@ mpfs_toolchain_check () {
     _min qemu-system-riscv64 "$QEMU_MIN" "$v" 0
     v=; command -v svdtools >/dev/null 2>&1 && v="$(mpfs_version_of svdtools --version)"
     _exact svdtools "$SVDTOOLS_VERSION" "$v" 0
+    v=; "$MPFS_PYTHON" -c 'import yaml, bs4' >/dev/null 2>&1 && v=ok
+    if [ -n "$v" ]; then _mpfs_row python-libs ok "(PyYAML, beautifulsoup4)"; else _mpfs_row python-libs absent "(needed by svd merge and regmap2svd; ./x toolchain install)"; fi
     v=; command -v gnatprove >/dev/null 2>&1 && v="$(mpfs_version_of gnatprove --version)"
     _exact gnatprove "$GNATPROVE_VERSION" "$v" 0
     v=; command -v adalang_analyzer >/dev/null 2>&1 && v="$(mpfs_version_of adalang_analyzer --version)"

@@ -122,6 +122,7 @@ cmd_toolchain () {
       alr -n toolchain --select "gprbuild=$GPRBUILD_VERSION"
       alr -n toolchain --select "gnat_riscv64_elf=$GNAT_RISCV64_VERSION"
       alr -n toolchain --select "gnat_native=$GNAT_NATIVE_VERSION"
+      mpfs_venv_install || die "creating the python environment failed"
       # Optional crates are installed, not selected, each version into its own
       # prefix: no conflict with other versions, no --force, repeatable.
       local crate ver pfx

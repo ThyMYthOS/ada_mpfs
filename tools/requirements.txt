@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# Python libraries of the host tools, installed by `./x toolchain install` into
+# a virtual environment. Pin every package; a change here is its own pull request.
+PyYAML==6.0.3
+beautifulsoup4==4.15.0
+soupsieve==2.10
+typing_extensions==4.16.0
