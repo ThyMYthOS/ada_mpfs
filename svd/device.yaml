@@ -31,6 +31,7 @@ _include:
   - base/trace.yaml
   - base/usb.yaml
   - base/wdog.yaml
+  - patches/SCB_REGS.yaml
   - additions/plic.yaml
   - additions/clint.yaml
   - additions/interrupts.yaml

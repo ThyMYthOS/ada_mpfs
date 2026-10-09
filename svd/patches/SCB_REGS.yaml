@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+# source: svd/base/scb_regs.yaml, SOFT_RESET description: the register is not readable by the MSS or the debug access
+# source: probe finding on the Icicle Kit: SOFT_RESET (0x20003000) reads 0x0, the SVD resetValue is 0x07200000
+# status: unverified
+# owner: Manuel Stahl
+
+# The register is not readable, so its reset value cannot be compared with a target:
+# the reset value is 0x0, which is what the hardware reads, and no bit is compared
+# (resetMask 0). svdtools rejects a reset value with bits outside the mask, so the
+# documented 0x07200000 (BLOCKID) cannot be kept together with an empty mask.
+SCB_REGS:
+  _modify:
+    SOFT_RESET:
+      resetValue: 0x0
+      resetMask: 0x0
