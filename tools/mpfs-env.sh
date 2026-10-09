@@ -11,6 +11,11 @@
 #   MPFS_ADA_TOOLCHAINS  search root holding the gnat_*/gprbuild_* directories.
 #                        Default: Alire's install dir. A bundled
 #                        $ADA_MPFS_SDK/toolchains takes precedence.
+#   MPFS_TOOLS_PREFIX    root of the per-version install prefixes of optional
+#                        Alire tools (<crate>-<version>/bin). A version is never
+#                        installed over another one. Default:
+#                        ~/.local/share/ada_mpfs/tools; a bundled
+#                        $ADA_MPFS_SDK/tools-prefix takes precedence.
 
 __mpfs_env_self="${BASH_SOURCE[0]:-$0}"
 MPFS_TOOLS_DIR="$(cd "$(dirname "$__mpfs_env_self")" && pwd)"
@@ -27,9 +32,20 @@ if [ -n "${ADA_MPFS_SDK:-}" ] && [ -d "$ADA_MPFS_SDK/toolchains" ]; then
 fi
 export MPFS_ADA_TOOLCHAINS
 
+: "${MPFS_TOOLS_PREFIX:=$HOME/.local/share/ada_mpfs/tools}"
+if [ -n "${ADA_MPFS_SDK:-}" ] && [ -d "$ADA_MPFS_SDK/tools-prefix" ]; then
+    MPFS_TOOLS_PREFIX="$ADA_MPFS_SDK/tools-prefix"
+fi
+export MPFS_TOOLS_PREFIX
+
 # bin/ of the exactly pinned version of crate $1 ($2 = version); empty if absent.
 mpfs_tc_bin () {
     { ls -d "$MPFS_ADA_TOOLCHAINS"/"$1"_"$2"_*/bin 2>/dev/null || true; } | head -1
+}
+
+# Install prefix of the pinned version of optional crate $1 ($2 = version).
+mpfs_opt_prefix () {
+    printf '%s/%s-%s\n' "$MPFS_TOOLS_PREFIX" "$1" "$2"
 }
 
 # Put the pinned gprbuild, cross GNAT and native GNAT on PATH (idempotent).
@@ -42,6 +58,12 @@ mpfs_toolchain_on_path () {
     local d rc=0
     for d in "$MPFS_GPRBUILD_BIN" "$MPFS_GNAT_RISCV64_BIN" "$MPFS_GNAT_NATIVE_BIN"; do
         [ -n "$d" ] || continue
+        case ":$PATH:" in *":$d:"*) ;; *) PATH="$d:$PATH" ;; esac
+    done
+    # Optional tools: put the pinned version's bin/ on PATH if it is installed.
+    for d in "gnatprove:$GNATPROVE_VERSION" "adalang_analyzer:$ADALANG_ANALYZER_VERSION"; do
+        [ -n "${d#*:}" ] && [ -d "$(mpfs_opt_prefix "${d%%:*}" "${d#*:}")/bin" ] || continue
+        d="$(mpfs_opt_prefix "${d%%:*}" "${d#*:}")/bin"
         case ":$PATH:" in *":$d:"*) ;; *) PATH="$d:$PATH" ;; esac
     done
     export PATH

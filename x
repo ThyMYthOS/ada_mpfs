@@ -30,9 +30,16 @@ cmd_toolchain () {
       alr -n toolchain --select "gprbuild=$GPRBUILD_VERSION"
       alr -n toolchain --select "gnat_riscv64_elf=$GNAT_RISCV64_VERSION"
       alr -n toolchain --select "gnat_native=$GNAT_NATIVE_VERSION"
-      # Crates that are installed, not selected, are optional until pinned.
-      if [ -n "$GNATPROVE_VERSION" ]; then alr -n install "gnatprove=$GNATPROVE_VERSION"; fi
-      if [ -n "$ADALANG_ANALYZER_VERSION" ]; then alr -n install "adalang_analyzer=$ADALANG_ANALYZER_VERSION"; fi
+      # Optional crates are installed, not selected, each version into its own
+      # prefix: no conflict with other versions, no --force, repeatable.
+      local crate ver pfx
+      for crate in gnatprove:"$GNATPROVE_VERSION" adalang_analyzer:"$ADALANG_ANALYZER_VERSION"; do
+        ver="${crate#*:}"; crate="${crate%%:*}"
+        [ -n "$ver" ] || continue
+        pfx="$(mpfs_opt_prefix "$crate" "$ver")"
+        if [ -d "$pfx/bin" ]; then echo "x: $crate $ver already installed in $pfx"
+        else alr -n install --prefix="$pfx" "$crate=$ver" || die "installing $crate $ver failed"; fi
+      done
       if command -v cargo >/dev/null 2>&1; then
         cargo install --locked svdtools --version "$SVDTOOLS_VERSION"
       else
