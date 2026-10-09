@@ -184,7 +184,7 @@ mpfs_toolchain_check () {
 
     mpfs_find_python
     v=; command -v "$MPFS_PYTHON" >/dev/null 2>&1 && v="$("$MPFS_PYTHON" -c 'import sys;print("%d.%d"%sys.version_info[:2])')"
-    _min "$MPFS_PYTHON" "$PYTHON_MIN" "$v" 1
+    _min python "$PYTHON_MIN" "$v" 1
     v=; command -v qemu-system-riscv64 >/dev/null 2>&1 && v="$(mpfs_version_of qemu-system-riscv64 --version)"
     _min qemu-system-riscv64 "$QEMU_MIN" "$v" 0
     v=; command -v svdtools >/dev/null 2>&1 && v="$(mpfs_version_of svdtools --version)"

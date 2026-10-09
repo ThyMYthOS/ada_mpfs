@@ -453,7 +453,7 @@ delegate () {   # delegate <script> [args...]
   local script="$1"; shift
   [ -f "$ROOT/$script" ] || die "not available yet: $script is missing"
   case "$script" in
-    *.py) . "$ROOT/tools/mpfs-env.sh"; mpfs_find_python; "$MPFS_PYTHON" -u "$ROOT/$script" "$@" ;;
+    *.py) . "$ROOT/tools/mpfs-env.sh"; mpfs_toolchain_on_path || true; mpfs_find_python; "$MPFS_PYTHON" -u "$ROOT/$script" "$@" ;;
     *)    bash "$ROOT/$script" "$@" ;;
   esac
 }
