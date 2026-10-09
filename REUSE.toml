@@ -1,0 +1,42 @@
+version = 1
+
+# Files that cannot carry an in-file header. In-file headers take precedence
+# (precedence = "closest"), so these only apply to files without one.
+
+[[annotations]]
+path = "svd/**"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Manuel Stahl <thymythos@googlemail.com>"
+SPDX-License-Identifier = "CC-BY-4.0"
+
+# Derived from the SVD, therefore CC-BY-4.0.
+[[annotations]]
+path = "libs/mpfs_pac/src/generated/**"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Manuel Stahl <thymythos@googlemail.com>"
+SPDX-License-Identifier = "CC-BY-4.0"
+
+# Trivial files: no copyright claimed.
+[[annotations]]
+path = [
+  "**/README.md",
+  "CONTRIBUTING.md",
+  "NOTICE",
+  "PROVENANCE.md",
+  "REUSE.toml",
+  "SECURITY.md",
+  ".gitignore",
+  ".editorconfig",
+  ".github/CODEOWNERS",
+  ".github/pull_request_template.md",
+  ".github/ISSUE_TEMPLATE/*.md",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = "NONE"
+SPDX-License-Identifier = "CC0-1.0"
+
+[[annotations]]
+path = ["**/*.png", "**/*.jpg", "**/*.svg", "**/*.pdf"]
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Manuel Stahl <thymythos@googlemail.com>"
+SPDX-License-Identifier = "CC-BY-4.0"
