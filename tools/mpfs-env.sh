@@ -189,6 +189,8 @@ mpfs_toolchain_check () {
     _min qemu-system-riscv64 "$QEMU_MIN" "$v" 0
     v=; command -v svdtools >/dev/null 2>&1 && v="$(mpfs_version_of svdtools --version)"
     _exact svdtools "$SVDTOOLS_VERSION" "$v" 0
+    v=; command -v xmllint >/dev/null 2>&1 && v=ok
+    if [ -n "$v" ]; then _mpfs_row xmllint ok "(svd merge, svd check)"; else _mpfs_row xmllint absent "(needed by svd merge; apt install libxml2-utils)"; fi
     v=; "$MPFS_PYTHON" -c 'import yaml, bs4' >/dev/null 2>&1 && v=ok
     if [ -n "$v" ]; then _mpfs_row python-libs ok "(PyYAML, beautifulsoup4)"; else _mpfs_row python-libs absent "(needed by svd merge and regmap2svd; ./x toolchain install)"; fi
     v=; command -v gnatprove >/dev/null 2>&1 && v="$(mpfs_version_of gnatprove --version)"

@@ -26,7 +26,8 @@
 #    ./x metrics verify|bless          compare / re-bless metrics.golden
 #    ./x analyze [--style] [--update-baseline]   static analysis
 #    ./x stack <ex>                    static stack analysis
-#    ./x svd merge|check|probe         SVD assembly and checks
+#    ./x svd merge|check               merge the SVD and record its hash / verify the hash
+#    ./x svd probe <periph>...         compare reset values with a target (OpenOCD)
 #    ./x pac generate|check            register package generation and checks
 #    ./x trace [--check]               requirement trace matrix
 #    ./x prove                         SPARK proofs
@@ -511,7 +512,8 @@ cmd_metrics () {
 
 cmd_svd () {
   case "${1:-}" in
-    merge|check|probe) delegate tools/svd.sh "$@" ;;
+    merge|check) delegate tools/svd.py "$@" ;;
+    probe)       shift; delegate hw/svd_probe.py "$@" ;;
     *) die "usage: ./x svd merge|check|probe" ;;
   esac
 }

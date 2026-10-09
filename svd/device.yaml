@@ -1,0 +1,36 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+#
+# Root of the svdtools run, see tools/svd.py: the device head svd/base/device.svd
+# plus the includes below. Order is fixed: base fragments, patches, additions; a
+# later file may refer to peripherals added by an earlier one.
+_svd: base/device.svd
+_include:
+  - base/athena.yaml
+  - base/axiswitch15x9_dw_axi.yaml
+  - base/can.yaml
+  - base/cfg_ddr_sgmii_phy.yaml
+  - base/crypto.yaml
+  - base/ddr_csr_apb.yaml
+  - base/emmc_sd.yaml
+  - base/envm.yaml
+  - base/frqmeter.yaml
+  - base/gem.yaml
+  - base/gpio.yaml
+  - base/h2fint.yaml
+  - base/i2c.yaml
+  - base/ioscbcfg.yaml
+  - base/mmuart.yaml
+  - base/mpucfg.yaml
+  - base/msrtc.yaml
+  - base/mstimer.yaml
+  - base/qspixip.yaml
+  - base/scb_regs.yaml
+  - base/spi.yaml
+  - base/sysreg.yaml
+  - base/trace.yaml
+  - base/usb.yaml
+  - base/wdog.yaml
+  - additions/plic.yaml
+  - additions/clint.yaml
+  - additions/interrupts.yaml
