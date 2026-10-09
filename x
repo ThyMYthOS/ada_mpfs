@@ -70,13 +70,51 @@ mpfs_install_svdtools_binary () {
   rm -f "$tmp"
 }
 
+# Installs the pinned Alire release into $1 (bin/alr). Returns 2 where no
+# release binary exists for the platform.
+mpfs_install_alr () {
+  local pfx="$1" asset want ext=zip url tmp
+  case "$(uname -sm)" in
+    "Linux x86_64")   asset=bin-x86_64-linux;    want="$ALR_SHA256_X86_64_LINUX" ;;
+    "Darwin "*)       asset=bin-universal-macos; want="$ALR_SHA256_UNIVERSAL_MACOS" ;;
+    MINGW*" x86_64"|MSYS*" x86_64"|CYGWIN*" x86_64")
+                      asset=installer-x86_64-windows; want="$ALR_SHA256_X86_64_WINDOWS"
+                      ext=exe ;;
+    *) return 2 ;;
+  esac
+  url="https://github.com/alire-project/alire/releases/download/v$ALR_VERSION/alr-$ALR_VERSION-$asset.$ext"
+  tmp="$(mktemp)" || return 1
+  if curl -fsSL -o "$tmp" "$url" \
+     && [ "$(openssl dgst -sha256 "$tmp" | sed 's/.* //')" = "$want" ]; then
+    mkdir -p "$pfx" || return 1
+    if [ "$ext" = zip ]; then
+      python3 -c 'import sys,zipfile; zipfile.ZipFile(sys.argv[1]).extract("bin/alr", sys.argv[2])' "$tmp" "$pfx" \
+        && chmod +x "$pfx/bin/alr"
+    else
+      # Inno Setup installer: unattended, into the prefix
+      mv "$tmp" "$tmp.exe" && tmp="$tmp.exe" \
+        && "$tmp" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART "/DIR=$(cygpath -w "$pfx")"
+    fi
+  else
+    echo "x: downloading or verifying $url failed" >&2
+    rm -f "$tmp"; return 1
+  fi
+  local rc=$?
+  rm -f "$tmp"; return $rc
+}
+
 cmd_toolchain () {
   local sub="${1:-}"; shift || true
   # shellcheck source=tools/mpfs-env.sh
   . "$ROOT/tools/mpfs-env.sh"
   case "$sub" in
     install)
-      command -v alr >/dev/null 2>&1 || die "alr not found; install Alire $ALR_VERSION first (https://alire.ada.dev)"
+      if ! command -v alr >/dev/null 2>&1; then
+        local apfs; apfs="$(mpfs_opt_prefix alr "$ALR_VERSION")"
+        [ -x "$apfs/bin/alr" ] || [ -x "$apfs/bin/alr.exe" ] || mpfs_install_alr "$apfs" \
+          || die "alr not found and no Alire $ALR_VERSION could be installed; see https://alire.ada.dev"
+        export PATH="$apfs/bin:$PATH"
+      fi
       # `--select` is the only way to get a toolchain onto disk; one call per
       # toolchain (alr 2.1.0). Nothing in the build calls `alr`: the toolchains
       # only need to exist where MPFS_ADA_TOOLCHAINS looks.
