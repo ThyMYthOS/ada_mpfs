@@ -38,6 +38,9 @@ expect_rc "list exits 0"            0       "$X" list
 expect_rc "list --json exits 0"     0       "$X" list --json
 expect_rc "unknown verb fails"      nonzero "$X" no-such-verb
 expect_rc "toolchain rejects an unknown install target" nonzero "$X" toolchain install bogus
+expect_rc "svd without a mode fails" nonzero "$X" svd
+expect_rc "svd rejects an unknown mode" nonzero "$X" svd bogus
+expect_rc "svd probe needs a peripheral" nonzero "$X" svd probe
 
 # Option validation happens before the toolchain is touched, so these hold on any host.
 # A throwaway example is needed to get past the example lookup.
