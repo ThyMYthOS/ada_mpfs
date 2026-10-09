@@ -1,0 +1,31 @@
+--  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+--  SPDX-License-Identifier: Apache-2.0
+--
+--  Register package MPFS_Registers: the generated packages in src/generated
+--  and the hand-written helpers in src. The target and the runtime are those of
+--  the project that withs this one; MPFS_HART only selects the build directories.
+
+project MPFS_Pac is
+
+   type Hart_Kind is ("e51", "u54");
+   Hart : Hart_Kind := external ("MPFS_HART", "e51");
+
+   for Languages use ("Ada");
+   for Source_Dirs use ("src", "src/generated");
+   for Object_Dir use "../../build/mpfs_pac/obj-" & Hart;
+   for Library_Name use "mpfs_pac";
+   for Library_Dir use "../../build/mpfs_pac/lib-" & Hart;
+   for Library_Kind use "static";
+
+   package Compiler is
+      --  Generated sources: no warnings as errors. Every hand-written source
+      --  in src/ is listed below with the strict switches (`./x pac check`
+      --  fails for one that is not).
+      for Default_Switches ("Ada") use ("-O2", "-g", "-gnat2022");
+
+      Strict := ("-O2", "-g", "-gnat2022", "-gnatwa", "-gnatwe", "-gnaty");
+
+      for Switches ("mpfs_registers-bases.ads") use Strict;
+   end Compiler;
+
+end MPFS_Pac;
