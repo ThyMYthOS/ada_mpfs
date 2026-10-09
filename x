@@ -41,6 +41,35 @@ ADA_MPFS_SDK="$ROOT"; export ADA_MPFS_SDK
 die () { echo "x: $*" >&2; exit 1; }
 
 # -- toolchain ----------------------------------------------------------------
+# Download the svdtools release binary for this platform into prefix $1 and
+# verify its SHA-256. Returns 2 if there is no binary for this platform.
+mpfs_install_svdtools_binary () {
+  local pfx="$1" target want ext=gz exe=svdtools url tmp
+  case "$(uname -sm)" in
+    "Linux x86_64")   target=x86_64-unknown-linux-gnu; want="$SVDTOOLS_SHA256_X86_64_LINUX" ;;
+    "Darwin arm64")   target=aarch64-apple-darwin;     want="$SVDTOOLS_SHA256_AARCH64_DARWIN" ;;
+    MINGW*" x86_64"|MSYS*" x86_64"|CYGWIN*" x86_64")
+                      target=x86_64-pc-windows-msvc;   want="$SVDTOOLS_SHA256_X86_64_WINDOWS"
+                      ext=zip; exe=svdtools.exe ;;
+    *) return 2 ;;
+  esac
+  url="https://github.com/rust-embedded/svdtools/releases/download/v$SVDTOOLS_VERSION/svdtools-$target.$ext"
+  tmp="$(mktemp)" || return 1
+  if curl -fsSL -o "$tmp" "$url" \
+     && [ "$(openssl dgst -sha256 "$tmp" | sed 's/.* //')" = "$want" ]; then
+    mkdir -p "$pfx/bin" || return 1
+    if [ "$ext" = zip ]; then
+      python3 -c 'import sys,zipfile; zipfile.ZipFile(sys.argv[1]).extract("svdtools.exe", sys.argv[2])' "$tmp" "$pfx/bin"
+    else
+      gzip -dc "$tmp" > "$pfx/bin/$exe"
+    fi && chmod +x "$pfx/bin/$exe"
+  else
+    echo "x: downloading or verifying $url failed" >&2
+    rm -f "$tmp"; return 1
+  fi
+  rm -f "$tmp"
+}
+
 cmd_toolchain () {
   local sub="${1:-}"; shift || true
   # shellcheck source=tools/mpfs-env.sh
@@ -65,8 +94,12 @@ cmd_toolchain () {
         else alr -n install --prefix="$pfx" "$crate=$ver" || die "installing $crate $ver failed"; fi
       done
       pfx="$(mpfs_opt_prefix svdtools "$SVDTOOLS_VERSION")"
-      if [ -x "$pfx/bin/svdtools" ]; then
+      if [ -x "$pfx/bin/svdtools" ] || [ -x "$pfx/bin/svdtools.exe" ]; then
         echo "x: svdtools $SVDTOOLS_VERSION already installed in $pfx"
+      elif mpfs_install_svdtools_binary "$pfx"; then
+        echo "x: installed svdtools $SVDTOOLS_VERSION in $pfx"
+      elif [ $? -ne 2 ]; then
+        die "installing svdtools $SVDTOOLS_VERSION failed"
       elif ! command -v cargo >/dev/null 2>&1; then
         echo "x: cargo not found; skipping svdtools $SVDTOOLS_VERSION (install Rust with https://rustup.rs)" >&2
       else
