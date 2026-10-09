@@ -1,5 +1,31 @@
 # `tools/`
 
-- **Purpose:** Tools: `./x` helpers, toolchain pin, header check, trace, proof, analyzer.
-- **Owning phase:** P0.2 onwards
+- **Purpose:** Tools: `./x` helpers, toolchain pin, header check, SVD merge, register package generation, trace, proof, analyzer.
 - **License:** Apache-2.0
+
+| File | Content |
+|---|---|
+| `toolchain.env`, `mpfs-env.sh` | Pinned tool versions and the environment resolving them (including svd2ada, built from source into `$MPFS_TOOLS_PREFIX/svd2ada-<commit>`). `./x toolchain install` installs everything, `install svdtools` only svdtools, `install svd2ada` only svd2ada, `install pac` what `./x pac check` needs (the pinned gprbuild and GNAT toolchains, alr if missing, the python environment, svdtools and svd2ada; no gnatprove, no adalang_analyzer). |
+| `svd.py` | `./x svd merge\|check`. |
+| `pac.sh`, `pac_gen.py` | `./x pac generate\|check`: svd2ada run and post-processing of the register package. |
+| `headers.py` | SPDX header and provenance check. |
+| `regmap2svd.py` | One-time import of the Microchip register map into SVD fragments. |
+| `requirements.txt` | Python packages of the host tools. |
+
+## What svd2ada does with the SVD
+
+Findings for the pinned svd2ada (`f6071e4`, identical to the master of AdaCore/svd2ada on 2026-10-09). Line numbers refer to `src/` of that commit.
+
+**Sharing the types of peripheral instances.** Only `<groupName>` does it.
+
+- `derivedFrom` copies the content of the base peripheral into the derived one (`descriptors-peripheral.adb:104-123`), but the derived peripheral keeps its own type name: `<name>` sets `Type_Name` (`:136-138`). A derived peripheral alone therefore still produces its own package and its own `<NAME>_Peripheral` type (`Dump`, `:405-457`). That is what the SVD produced before `groupName` was added.
+- `<groupName>` (`:149`, copied by `derivedFrom`, so only the base instance needs it) makes `descriptors-device.adb:536-545` gather all peripherals of the group into one package `MPFS_Registers.<Group>`. `Dump (Group)` (`descriptors-peripheral.adb:461-599`) compares the registers of the members (`Sorted (Idx).Content = First.Content`, `:525`); if they are all identical, the type is `<Group>_Peripheral` and every member is an instance of it (`:552-572`). Members that differ keep one type per layout, named after the first member (`:574-593`) without any warning; `tools/pac_gen.py` aborts if that happens.
+- `<headerStructName>` only renames the type (`:140`) and does not merge anything. `<dim>`/`<dimIncrement>` arrays of peripherals are not supported (they exist for registers, clusters and fields only), and `<alternateGroup>` is read for registers (`descriptors-register.adb:128`) and not used for the type.
+- `Similar_Type` (`descriptors-register.adb:219-242`, used by `Find_Common_Types`, `descriptors-cluster.adb:505-551`) shares types between registers inside one peripheral or group, never between peripherals. In a group it is what lets the member registers share their types. For registers of the same name prefix and a different size it produced a mistyped register; the pinned svd2ada contains AdaCore/svd2ada pull request #117, which compares the sizes as well.
+- `svd2ada --help` has no option for any of this.
+
+Experiment with the merged SVD: without `groupName` svd2ada writes 66 packages, 44 of them one per instance of the 9 families (CAN, GPIO, H2FINT, I2C, MMUART, MSRTC, MSTIMER, SPI, WDOG) with one type per instance, although 35 of the instances are `derivedFrom`; with `groupName` on the base instance of each family it writes 31 packages, 9 of them group packages with one type per family and the same declarations as the former post-processing step that merged the packages (only comments differ: the group package has no package comment, and the comment of the shared type names one member). GEM_A/B_LO/HI are `derivedFrom` GEM_A_LO as well and carry the `groupName` GEM, so they are one package, too (28 packages in total).
+
+**Read side effects.** svd2ada reads `<readAction>` (`clear`, `set`, `modify`, `modifyExternal`) and `<modifiedWriteValues>` of registers and fields (`descriptors-register.adb:140-144`, `descriptors-field.adb:151-155`; the register-level `modifiedWriteValue` is spelled without the `s` there, so the register-level tag is not read) but only turns them into text: a register-level `readAction` is the default of its fields (`descriptors-register.adb:160`), and a field with one gets a note such as "*** Reading this field has side effects on other resources ***" in its comment (`descriptors-field.adb:686-707`). A register without fields (or with one full-width field, which svd2ada folds into a plain `UInt32`) has no comment at all. svd2ada emits no SPARK aspects (no `Volatile`, `Async_*` or `Effective_*` anywhere in `src/`); `pac_gen.py` adds them. It derives `Effective_Reads` from the merged SVD: every peripheral with a `readAction` on any field, also through `derivedFrom`. `<access>` is not used for the aspects: it only selects the field and register types.
+
+svdtools 0.5.0 sets `readAction` on fields only (see `svd/patches/README.md`).
