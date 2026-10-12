@@ -1,19 +1,1494 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: CC-BY-4.0
+# status: unverified (checked against the Linux MUSB driver, drivers/usb/musb, with the corrections below; offsets, access and the interrupt clear semantics still to verify on silicon)
+# source: Microchip platform drivers/mss/mss_usb (register structure, 16 endpoints, 32-bit DMA words, FIFO size encoding) and Linux drivers/usb/musb/{musb_regs.h,musb_dma.h,musb_core.c,musbhsdma.c,mpfs.c}: register names, DMA interrupt register, FIFO size encoding, writable flags, MISC, read side effects
+# owner: Manuel Stahl
 _add:
   USB:
-    description: USB Controller
-    baseAddress: 0x202010EC
+    description: MSS USB 2.0 OTG High-Speed Controller
+    baseAddress: 0x20201000
     registers:
-      Warning:
+      FADDR:
+        description: Function Address Register (peripheral mode)
         addressOffset: 0x0
-        size: 32
-        access: read-only
-        resetValue: 0x0
+        size: 8
+        access: read-write
         fields:
-          WARNING:
-            description: ''
+          FUNC_ADDR:
+            description: USB function address (0–127)
+            bitOffset: 0
+            bitWidth: 7
+      POWER:
+        description: Power Management and High-Speed Control Register
+        addressOffset: 0x1
+        size: 8
+        access: read-write
+        fields:
+          ENSUSPEND:
+            description: Enable the SuspendM signal output
+            bitOffset: 0
+            bitWidth: 1
+          SUSPEND_MODE:
+            description: 'Suspend mode: set by software to enter suspend (SUSPENDM), read back as the suspend state'
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RESUME_SIGNAL:
+            description: Drive resume signalling on the bus
+            bitOffset: 2
+            bitWidth: 1
+          BUS_RESET_SIGNAL:
+            description: USB bus reset signalling active (read-only in device mode)
+            bitOffset: 3
+            bitWidth: 1
+          HS_MODE:
+            description: High-speed mode negotiated and active (read-only)
+            bitOffset: 4
+            bitWidth: 1
+            access: read-only
+          ENABLE_HS:
+            description: Enable high-speed negotiation during reset
+            bitOffset: 5
+            bitWidth: 1
+          SOFT_CONN:
+            description: Soft connect / disconnect control (peripheral mode)
+            bitOffset: 6
+            bitWidth: 1
+          ISO_UPDATE:
+            description: 'Isochronous update: wait for SOF before sending (peripheral)'
+            bitOffset: 7
+            bitWidth: 1
+      TX_IRQ:
+        description: TX Endpoint Interrupt Status Register (read-clears)
+        addressOffset: 0x2
+        size: 16
+        access: read-only
+        fields:
+          EP0:
+            description: EP0 interrupt pending
+            bitOffset: 0
+            bitWidth: 1
+            readAction: clear
+          EP1:
+            description: TX EP1 interrupt pending
+            bitOffset: 1
+            bitWidth: 1
+            readAction: clear
+          EP2:
+            description: TX EP2 interrupt pending
+            bitOffset: 2
+            bitWidth: 1
+            readAction: clear
+          EP3:
+            description: TX EP3 interrupt pending
+            bitOffset: 3
+            bitWidth: 1
+            readAction: clear
+          EP4:
+            description: TX EP4 interrupt pending
+            bitOffset: 4
+            bitWidth: 1
+            readAction: clear
+          EP5:
+            description: TX EP5 interrupt pending
+            bitOffset: 5
+            bitWidth: 1
+            readAction: clear
+          EP6:
+            description: TX EP6 interrupt pending
+            bitOffset: 6
+            bitWidth: 1
+            readAction: clear
+          EP7:
+            description: TX EP7 interrupt pending
+            bitOffset: 7
+            bitWidth: 1
+            readAction: clear
+          EP8:
+            description: Endpoint 8
+            bitOffset: 8
+            bitWidth: 1
+            readAction: clear
+          EP9:
+            description: Endpoint 9
+            bitOffset: 9
+            bitWidth: 1
+            readAction: clear
+          EP10:
+            description: Endpoint 10
+            bitOffset: 10
+            bitWidth: 1
+            readAction: clear
+          EP11:
+            description: Endpoint 11
+            bitOffset: 11
+            bitWidth: 1
+            readAction: clear
+          EP12:
+            description: Endpoint 12
+            bitOffset: 12
+            bitWidth: 1
+            readAction: clear
+          EP13:
+            description: Endpoint 13
+            bitOffset: 13
+            bitWidth: 1
+            readAction: clear
+          EP14:
+            description: Endpoint 14
+            bitOffset: 14
+            bitWidth: 1
+            readAction: clear
+          EP15:
+            description: Endpoint 15
+            bitOffset: 15
+            bitWidth: 1
+            readAction: clear
+      RX_IRQ:
+        description: RX Endpoint Interrupt Status Register (read-clears; bit 0 unused)
+        addressOffset: 0x4
+        size: 16
+        access: read-only
+        fields:
+          EP1:
+            description: RX EP1 interrupt pending
+            bitOffset: 1
+            bitWidth: 1
+            readAction: clear
+          EP2:
+            description: RX EP2 interrupt pending
+            bitOffset: 2
+            bitWidth: 1
+            readAction: clear
+          EP3:
+            description: RX EP3 interrupt pending
+            bitOffset: 3
+            bitWidth: 1
+            readAction: clear
+          EP4:
+            description: RX EP4 interrupt pending
+            bitOffset: 4
+            bitWidth: 1
+            readAction: clear
+          EP5:
+            description: RX EP5 interrupt pending
+            bitOffset: 5
+            bitWidth: 1
+            readAction: clear
+          EP6:
+            description: RX EP6 interrupt pending
+            bitOffset: 6
+            bitWidth: 1
+            readAction: clear
+          EP7:
+            description: RX EP7 interrupt pending
+            bitOffset: 7
+            bitWidth: 1
+            readAction: clear
+          EP8:
+            description: Endpoint 8
+            bitOffset: 8
+            bitWidth: 1
+            readAction: clear
+          EP9:
+            description: Endpoint 9
+            bitOffset: 9
+            bitWidth: 1
+            readAction: clear
+          EP10:
+            description: Endpoint 10
+            bitOffset: 10
+            bitWidth: 1
+            readAction: clear
+          EP11:
+            description: Endpoint 11
+            bitOffset: 11
+            bitWidth: 1
+            readAction: clear
+          EP12:
+            description: Endpoint 12
+            bitOffset: 12
+            bitWidth: 1
+            readAction: clear
+          EP13:
+            description: Endpoint 13
+            bitOffset: 13
+            bitWidth: 1
+            readAction: clear
+          EP14:
+            description: Endpoint 14
+            bitOffset: 14
+            bitWidth: 1
+            readAction: clear
+          EP15:
+            description: Endpoint 15
+            bitOffset: 15
+            bitWidth: 1
+            readAction: clear
+      TX_IRQ_ENABLE:
+        description: TX Endpoint Interrupt Enable Register
+        addressOffset: 0x6
+        size: 16
+        access: read-write
+        fields:
+          EP0:
+            description: EP0 / control endpoint interrupt enable
+            bitOffset: 0
+            bitWidth: 1
+          EP1:
+            description: TX EP1 interrupt enable
+            bitOffset: 1
+            bitWidth: 1
+          EP2:
+            description: TX EP2 interrupt enable
+            bitOffset: 2
+            bitWidth: 1
+          EP3:
+            description: TX EP3 interrupt enable
+            bitOffset: 3
+            bitWidth: 1
+          EP4:
+            description: TX EP4 interrupt enable
+            bitOffset: 4
+            bitWidth: 1
+          EP5:
+            description: TX EP5 interrupt enable
+            bitOffset: 5
+            bitWidth: 1
+          EP6:
+            description: TX EP6 interrupt enable
+            bitOffset: 6
+            bitWidth: 1
+          EP7:
+            description: TX EP7 interrupt enable
+            bitOffset: 7
+            bitWidth: 1
+          EP8:
+            description: Endpoint 8
+            bitOffset: 8
+            bitWidth: 1
+          EP9:
+            description: Endpoint 9
+            bitOffset: 9
+            bitWidth: 1
+          EP10:
+            description: Endpoint 10
+            bitOffset: 10
+            bitWidth: 1
+          EP11:
+            description: Endpoint 11
+            bitOffset: 11
+            bitWidth: 1
+          EP12:
+            description: Endpoint 12
+            bitOffset: 12
+            bitWidth: 1
+          EP13:
+            description: Endpoint 13
+            bitOffset: 13
+            bitWidth: 1
+          EP14:
+            description: Endpoint 14
+            bitOffset: 14
+            bitWidth: 1
+          EP15:
+            description: Endpoint 15
+            bitOffset: 15
+            bitWidth: 1
+      RX_IRQ_ENABLE:
+        description: RX Endpoint Interrupt Enable Register
+        addressOffset: 0x8
+        size: 16
+        access: read-write
+        fields:
+          EP1:
+            description: RX EP1 interrupt enable
+            bitOffset: 1
+            bitWidth: 1
+          EP2:
+            description: RX EP2 interrupt enable
+            bitOffset: 2
+            bitWidth: 1
+          EP3:
+            description: RX EP3 interrupt enable
+            bitOffset: 3
+            bitWidth: 1
+          EP4:
+            description: RX EP4 interrupt enable
+            bitOffset: 4
+            bitWidth: 1
+          EP5:
+            description: RX EP5 interrupt enable
+            bitOffset: 5
+            bitWidth: 1
+          EP6:
+            description: RX EP6 interrupt enable
+            bitOffset: 6
+            bitWidth: 1
+          EP7:
+            description: RX EP7 interrupt enable
+            bitOffset: 7
+            bitWidth: 1
+          EP8:
+            description: Endpoint 8
+            bitOffset: 8
+            bitWidth: 1
+          EP9:
+            description: Endpoint 9
+            bitOffset: 9
+            bitWidth: 1
+          EP10:
+            description: Endpoint 10
+            bitOffset: 10
+            bitWidth: 1
+          EP11:
+            description: Endpoint 11
+            bitOffset: 11
+            bitWidth: 1
+          EP12:
+            description: Endpoint 12
+            bitOffset: 12
+            bitWidth: 1
+          EP13:
+            description: Endpoint 13
+            bitOffset: 13
+            bitWidth: 1
+          EP14:
+            description: Endpoint 14
+            bitOffset: 14
+            bitWidth: 1
+          EP15:
+            description: Endpoint 15
+            bitOffset: 15
+            bitWidth: 1
+      USB_IRQ:
+        description: USB Common Interrupt Status Register
+        addressOffset: 0xa
+        size: 8
+        access: read-only
+        fields:
+          SUSPEND:
+            description: Suspend condition detected
+            bitOffset: 0
+            bitWidth: 1
+            readAction: clear
+          RESUME:
+            description: Resume signalling detected
+            bitOffset: 1
+            bitWidth: 1
+            readAction: clear
+          RESET_BABBLE:
+            description: Bus reset (device) or babble (host) detected
+            bitOffset: 2
+            bitWidth: 1
+            readAction: clear
+          SOF:
+            description: Start-of-Frame token received / generated
+            bitOffset: 3
+            bitWidth: 1
+            readAction: clear
+          CONN:
+            description: Device connected (host mode)
+            bitOffset: 4
+            bitWidth: 1
+            readAction: clear
+          DISCONN:
+            description: Device disconnected
+            bitOffset: 5
+            bitWidth: 1
+            readAction: clear
+          SESSION_REQ:
+            description: Session-request protocol event (OTG)
+            bitOffset: 6
+            bitWidth: 1
+            readAction: clear
+          VBUS_ERROR:
+            description: VBUS error (OTG)
+            bitOffset: 7
+            bitWidth: 1
+            readAction: clear
+      USB_ENABLE:
+        description: USB Common Interrupt Enable Register
+        addressOffset: 0xb
+        size: 8
+        access: read-write
+        fields:
+          SUSPEND:
+            description: Suspend interrupt enable
+            bitOffset: 0
+            bitWidth: 1
+          RESUME:
+            description: Resume interrupt enable
+            bitOffset: 1
+            bitWidth: 1
+          RESET_BABBLE:
+            description: Reset/babble interrupt enable
+            bitOffset: 2
+            bitWidth: 1
+          SOF:
+            description: SOF interrupt enable
+            bitOffset: 3
+            bitWidth: 1
+          CONN:
+            description: Connect interrupt enable
+            bitOffset: 4
+            bitWidth: 1
+          DISCONN:
+            description: Disconnect interrupt enable
+            bitOffset: 5
+            bitWidth: 1
+          SESSION_REQ:
+            description: Session-request interrupt enable
+            bitOffset: 6
+            bitWidth: 1
+          VBUS_ERROR:
+            description: VBUS error interrupt enable
+            bitOffset: 7
+            bitWidth: 1
+      FRAME:
+        description: USB Frame Number Register (read-only)
+        addressOffset: 0xc
+        size: 16
+        access: read-only
+        fields:
+          FRAME_NUM:
+            description: Current USB SOF frame number (0–2047)
+            bitOffset: 0
+            bitWidth: 11
+      INDEX:
+        description: Endpoint Index Register — selects which endpoint CSRs appear at 0x010–0x01F
+        addressOffset: 0xe
+        size: 8
+        access: read-write
+        fields:
+          ENDPOINT_INDEX:
+            description: Active endpoint number (0–15) for indexed CSR window
+            bitOffset: 0
+            bitWidth: 4
+      TEST_MODE:
+        description: USB Test Mode Control Register
+        addressOffset: 0xf
+        size: 8
+        access: read-write
+        fields:
+          SE0NAK:
+            description: Force SE0/NAK test
+            bitOffset: 0
+            bitWidth: 1
+          TEST_J:
+            description: Force HS Test_J state
+            bitOffset: 1
+            bitWidth: 1
+          TEST_K:
+            description: Force HS Test_K state
+            bitOffset: 2
+            bitWidth: 1
+          TEST_PACKET:
+            description: Transmit test packet
+            bitOffset: 3
+            bitWidth: 1
+          FORCE_HS:
+            description: Force high-speed operation
+            bitOffset: 4
+            bitWidth: 1
+          FORCE_FS:
+            description: Force full-speed operation
+            bitOffset: 5
+            bitWidth: 1
+          FIFO_ACCESS:
+            description: Enable FIFO access mode (self-clearing)
+            bitOffset: 6
+            bitWidth: 1
+          FORCE_HOST:
+            description: Force host mode
+            bitOffset: 7
+            bitWidth: 1
+      INDEXED_TX_MAX_P:
+        description: Indexed TX Maximum Packet Size (endpoint selected by INDEX)
+        addressOffset: 0x10
+        size: 16
+        access: read-write
+        fields:
+          MAX_PAYLOAD:
+            description: Maximum TX packet payload in bytes (bits[10:0])
+            bitOffset: 0
+            bitWidth: 11
+          NUM_USB_PKTS:
+            description: High-bandwidth packets per micro-frame minus 1 (bits[15:11])
+            bitOffset: 11
+            bitWidth: 5
+      INDEXED_TX_CSR:
+        description: "Indexed TX Control/Status Register — EPN view (N>0).\n            Upper byte (TxCSRH) carries DMA and mode control.\n            Bit semantics differ between device and host mode."
+        addressOffset: 0x12
+        size: 16
+        access: read-write
+        fields:
+          TX_PKT_RDY:
+            description: Set to indicate TX FIFO loaded; cleared by hardware after transmission
+            bitOffset: 0
+            bitWidth: 1
+          TX_FIFO_NE:
+            description: TX FIFO not empty (read-only)
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          UNDERRUN_RESPONSE_ERR:
+            description: Underrun error (device) / no response error (host)
+            bitOffset: 2
+            bitWidth: 1
+          FLUSH_FIFO:
+            description: Flush TX FIFO (self-clearing)
+            bitOffset: 3
+            bitWidth: 1
+          SEND_STALL_SETUP_PKT:
+            description: Issue STALL handshake (device) / send SETUP token (host)
+            bitOffset: 4
+            bitWidth: 1
+          STALL_SENT_STALL_RCVD:
+            description: STALL handshake sent (device) / STALL received (host)
+            bitOffset: 5
+            bitWidth: 1
+          CLR_DATA_TOG:
+            description: Reset TX data toggle to DATA0
+            bitOffset: 6
+            bitWidth: 1
+          ISO_INCOMP_NAK_TIMEOUT:
+            description: Incomplete ISO TX (device) / NAK timeout (host)
+            bitOffset: 7
+            bitWidth: 1
+          DATA_TOG:
+            description: Current TX data toggle value (host only, read-only) (written only with DATA_TOG_WE set)
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          DATA_TOG_WE:
+            description: Enable write to DATA_TOG bit (host only, self-clearing)
+            bitOffset: 9
+            bitWidth: 1
+          DMA_MODE:
+            description: 'DMA request mode: 0=mode0, 1=mode1'
+            bitOffset: 10
+            bitWidth: 1
+          FRC_DATA_TOG:
+            description: Force data toggle (used for bulk transactions)
+            bitOffset: 11
+            bitWidth: 1
+          ENABLE_DMA:
+            description: Enable DMA request for this TX endpoint
+            bitOffset: 12
+            bitWidth: 1
+          TXRX_MODE:
+            description: 'Direction mode: 1=TX only when endpoint is bidirectional'
+            bitOffset: 13
+            bitWidth: 1
+          ENABLE_ISO:
+            description: Isochronous mode enable (device only)
+            bitOffset: 14
+            bitWidth: 1
+          ENABLE_AUTOSET:
+            description: Auto-set TxPktRdy when FIFO full
+            bitOffset: 15
+            bitWidth: 1
+      INDEXED_CSR0:
+        description: "Indexed EP0 Control/Status Register — EP0 view only (INDEX=0).\n            Overlaps INDEXED_TX_CSR; bit definitions differ completely."
+        addressOffset: 0x12
+        size: 16
+        access: read-write
+        fields:
+          RX_PKT_RDY:
+            description: Data packet received in EP0 RX FIFO (device) / RX ready (host) (cleared by writing 0)
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+          TX_PKT_RDY:
+            description: Data packet loaded in EP0 TX FIFO (device/host)
+            bitOffset: 1
+            bitWidth: 1
+          STALL_SENT_STALL_RCVD:
+            description: STALL sent (device) / STALL received (host)
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          DATA_END_SETUP_PKT:
+            description: Signal data end (device) / SETUP packet (host)
+            bitOffset: 3
+            bitWidth: 1
+          SETUP_END_RETRY_ERR:
+            description: Setup end condition (device, read-only) / retry error (host)
+            bitOffset: 4
+            bitWidth: 1
+            access: read-only
+          SEND_STALL_IN_PKT_REQ:
+            description: Issue STALL (device) / IN packet request (host)
+            bitOffset: 5
+            bitWidth: 1
+          SERVICED_RX_PKT_RDY_STATUS_PKT:
+            description: ServicedRxPktRdy (device) / status packet (host)
+            bitOffset: 6
+            bitWidth: 1
+          SERVICED_SETUP_END_NAK_TIMEOUT:
+            description: ServicedSetupEnd (device) / NAK timeout (host)
+            bitOffset: 7
+            bitWidth: 1
+          FLUSH_FIFO:
+            description: Flush EP0 FIFO (self-clearing)
+            bitOffset: 8
+            bitWidth: 1
+          DATA_TOG:
+            description: Data toggle value (host only) (written only with DATA_TOG_WE set)
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          DATA_TOG_WE:
+            description: Enable write to DATA_TOG (host only, self-clearing)
+            bitOffset: 10
+            bitWidth: 1
+          DISABLE_PING:
+            description: Disable PING token generation (host only)
+            bitOffset: 11
+            bitWidth: 1
+      INDEXED_RX_MAX_P:
+        description: Indexed RX Maximum Packet Size (endpoint selected by INDEX)
+        addressOffset: 0x14
+        size: 16
+        access: read-write
+        fields:
+          MAX_PAYLOAD:
+            description: Maximum RX packet payload in bytes (bits[10:0])
+            bitOffset: 0
+            bitWidth: 11
+          NUM_USB_PKTS:
+            description: High-bandwidth packets per micro-frame minus 1 (bits[15:11])
+            bitOffset: 11
+            bitWidth: 5
+      INDEXED_RX_CSR:
+        description: "Indexed RX Control/Status Register — EPN view (N>0).\n            Upper byte (RxCSRH) carries DMA, ISO and mode bits.\n            Bit semantics differ between device and host mode."
+        addressOffset: 0x16
+        size: 16
+        access: read-write
+        fields:
+          RX_PKT_RDY:
+            description: Data packet available in RX FIFO (cleared by software) (cleared by writing 0)
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+          RX_FIFO_FULL:
+            description: RX FIFO full (read-only)
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          OVERRUN_RESPONSE_ERR:
+            description: Overrun (device) / no response error (host)
+            bitOffset: 2
+            bitWidth: 1
+          DATA_ERR_NAK_TIMEOUT:
+            description: Data CRC/bit-stuff error (device) / NAK timeout (host)
+            bitOffset: 3
+            bitWidth: 1
+          FLUSH_FIFO:
+            description: Flush RX FIFO (self-clearing)
+            bitOffset: 4
+            bitWidth: 1
+          SEND_STALL_IN_PKT_REQ:
+            description: Issue STALL (device) / IN packet request (host)
+            bitOffset: 5
+            bitWidth: 1
+          STALL_SENT_STALL_RCVD:
+            description: STALL sent (device) / STALL received (host)
+            bitOffset: 6
+            bitWidth: 1
+          CLR_DATA_TOG:
+            description: Reset RX data toggle to DATA0
+            bitOffset: 7
+            bitWidth: 1
+          RX_ISO_INCOMP:
+            description: Incomplete ISO RX in this frame
+            bitOffset: 8
+            bitWidth: 1
+            access: read-only
+          DATA_TOG:
+            description: Current RX data toggle (host only, read-only) (written only with DATA_TOG_WE set)
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          DATA_TOG_WE:
+            description: Enable write to DATA_TOG (host only)
+            bitOffset: 10
+            bitWidth: 1
+          DMA_MODE:
+            description: 'DMA request mode: 0=mode0, 1=mode1'
+            bitOffset: 11
+            bitWidth: 1
+          ISO_PID_ERR_BI_DIS_NYET:
+            description: ISO PID error (device) / disable NYET handshake (host)
+            bitOffset: 12
+            bitWidth: 1
+          ENABLE_DMA:
+            description: Enable DMA request for this RX endpoint
+            bitOffset: 13
+            bitWidth: 1
+          ENABLE_ISO_AUTOREQ:
+            description: ISO mode enable (device) / auto-request IN (host)
+            bitOffset: 14
+            bitWidth: 1
+          ENABLE_AUTOCLR:
+            description: Auto-clear RxPktRdy when FIFO drained
+            bitOffset: 15
+            bitWidth: 1
+      INDEXED_RX_COUNT:
+        description: Indexed RX Byte Count Register (COUNT0 for EP0; read-only)
+        addressOffset: 0x18
+        size: 16
+        access: read-only
+        fields:
+          COUNT:
+            description: 'Number of bytes in RX FIFO (EP0: max 64 / EPN: up to 16383)'
+            bitOffset: 0
+            bitWidth: 14
+      INDEXED_TX_TYPE:
+        description: Indexed TX Type Register — target EP, protocol, speed (host mode; TYPE0 for EP0)
+        addressOffset: 0x1a
+        size: 8
+        access: read-write
+        fields:
+          TARGET_EP_NUM:
+            description: Target endpoint number on the remote device
+            bitOffset: 0
+            bitWidth: 4
+          PROTOCOL:
+            description: 'Transfer type: 00=Control, 01=Isoch, 10=Bulk, 11=Interrupt'
+            bitOffset: 4
+            bitWidth: 2
+          SPEED:
+            description: 'Target device speed: 00=same as bus, 01=High, 10=Full, 11=Low'
+            bitOffset: 6
+            bitWidth: 2
+      INDEXED_TX_INTERVAL:
+        description: Indexed TX Polling Interval / NAK Limit (host; NAK_LIMIT0 for EP0)
+        addressOffset: 0x1b
+        size: 8
+        access: read-write
+        fields:
+          INTERVAL:
+            description: Polling interval (interrupt/ISO) or NAK retry limit (bulk/control)
+            bitOffset: 0
+            bitWidth: 8
+      INDEXED_RX_TYPE:
+        description: Indexed RX Type Register — target EP, protocol, speed (host mode)
+        addressOffset: 0x1c
+        size: 8
+        access: read-write
+        fields:
+          TARGET_EP_NUM:
+            description: Target endpoint number on the remote device
+            bitOffset: 0
+            bitWidth: 4
+          PROTOCOL:
+            description: 'Transfer type: 00=Control, 01=Isoch, 10=Bulk, 11=Interrupt'
+            bitOffset: 4
+            bitWidth: 2
+          SPEED:
+            description: 'Target device speed: 00=same as bus, 01=High, 10=Full, 11=Low'
+            bitOffset: 6
+            bitWidth: 2
+      INDEXED_RX_INTERVAL:
+        description: Indexed RX Polling Interval / NAK Limit (host mode)
+        addressOffset: 0x1d
+        size: 8
+        access: read-write
+        fields:
+          INTERVAL:
+            description: Polling interval or NAK retry limit
+            bitOffset: 0
+            bitWidth: 8
+      INDEXED_FIFO_SIZE:
+        description: Indexed FIFO Size / Config Data Register (read-only)
+        addressOffset: 0x1f
+        size: 8
+        access: read-only
+        fields:
+          TX_FIFO_SZ:
+            description: TX FIFO size encoding (log2(size/8)) [3:0]
+            bitOffset: 0
+            bitWidth: 4
+          RX_FIFO_SZ:
+            description: RX FIFO size encoding (log2(size/8)) [7:4]
+            bitOffset: 4
+            bitWidth: 4
+      FIFO[%s]:
+        description: Endpoint %s FIFO Data Port (32-bit access; 8- and 16-bit accesses also valid)
+        dim: 16
+        dimIncrement: 0x4
+        dimIndex: 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+        addressOffset: 0x20
+        size: 32
+        access: read-write
+        fields:
+          DATA:
+            description: FIFO data word
             bitOffset: 0
             bitWidth: 32
-            access: read-write
             readAction: modifyExternal
+      DEV_CTRL:
+        description: OTG Device Control Register
+        addressOffset: 0x60
+        size: 8
+        access: read-write
+        fields:
+          SESSION:
+            description: Start (write 1) or end (write 0) an OTG session
+            bitOffset: 0
+            bitWidth: 1
+          HOST_REQ:
+            description: Host negotiation request (OTG A-device)
+            bitOffset: 1
+            bitWidth: 1
+          HOST_MODE:
+            description: Host mode active (read-only)
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          VBUS:
+            description: VBUS voltage level (read-only)
+            bitOffset: 3
+            bitWidth: 2
+            access: read-only
+          LS_DEV:
+            description: Low-speed device connected (host mode, read-only)
+            bitOffset: 5
+            bitWidth: 1
+            access: read-only
+          FS_DEV:
+            description: Full-speed device connected (host mode, read-only)
+            bitOffset: 6
+            bitWidth: 1
+            access: read-only
+          B_DEVICE:
+            description: B-device role (read-only)
+            bitOffset: 7
+            bitWidth: 1
+            access: read-only
+      MISC:
+        description: Miscellaneous Control Register (BABBLE_CTL in the Linux MUSB driver)
+        addressOffset: 0x61
+        size: 8
+        access: read-write
+        fields:
+          RCV_DISABLE:
+            description: Disable the receiver
+            bitOffset: 2
+            bitWidth: 1
+          STUCK_J:
+            description: Stuck J condition on the bus
+            bitOffset: 5
+            bitWidth: 1
+          SW_SESSION_CTRL:
+            description: Software controls the session
+            bitOffset: 6
+            bitWidth: 1
+          FORCE_TXIDLE:
+            description: Force the transmitter idle
+            bitOffset: 7
+            bitWidth: 1
+      TX_FIFO_SIZE:
+        description: Dynamic TX FIFO Size Register (selects the endpoint by INDEX)
+        addressOffset: 0x62
+        size: 8
+        access: read-write
+        fields:
+          TXFIFOSZ:
+            description: 'TX FIFO size as log2(size/8): 0=8B, 1=16B, 2=32B, 3=64B, 4=128B, 5=256B, 6=512B, 7=1024B, 8=2048B, 9=4096B'
+            bitOffset: 0
+            bitWidth: 4
+          DPB:
+            description: Double-packet buffering enable
+            bitOffset: 4
+            bitWidth: 1
+      RX_FIFO_SIZE:
+        description: Dynamic RX FIFO Size Register (selects the endpoint by INDEX)
+        addressOffset: 0x63
+        size: 8
+        access: read-write
+        fields:
+          RXFIFOSZ:
+            description: 'RX FIFO size as log2(size/8): 0=8B, 1=16B, 2=32B, 3=64B, 4=128B, 5=256B, 6=512B, 7=1024B, 8=2048B, 9=4096B (same encoding as TX_FIFO_SIZE.TXFIFOSZ)'
+            bitOffset: 0
+            bitWidth: 4
+          DPB:
+            description: Double-packet buffering enable
+            bitOffset: 4
+            bitWidth: 1
+      TX_FIFO_ADDR:
+        description: Dynamic TX FIFO Start Address Register (8-byte units) (selects the endpoint by INDEX)
+        addressOffset: 0x64
+        size: 16
+        access: read-write
+        fields:
+          ADDR:
+            description: Start address of TX FIFO allocation in 8-byte units
+            bitOffset: 0
+            bitWidth: 13
+      RX_FIFO_ADDR:
+        description: Dynamic RX FIFO Start Address Register (8-byte units) (selects the endpoint by INDEX)
+        addressOffset: 0x66
+        size: 16
+        access: read-write
+        fields:
+          ADDR:
+            description: Start address of RX FIFO allocation in 8-byte units
+            bitOffset: 0
+            bitWidth: 13
+      VBUS_CSR:
+        description: VBUS Control and Status Register (not used by the Linux MUSB driver, unverified)
+        addressOffset: 0x68
+        size: 32
+        access: read-write
+      HW_VERSION:
+        description: Hardware Version Register (read-only)
+        addressOffset: 0x6c
+        size: 16
+        access: read-only
+      ULPI_BUSCONTROL:
+        description: ULPI VBUS Control Register
+        addressOffset: 0x70
+        size: 8
+        access: read-write
+      ULPI_CARKIT_CTRL:
+        description: ULPI Carkit Control Register (not used by the Linux MUSB driver, unverified)
+        addressOffset: 0x71
+        size: 8
+        access: read-write
+      ULPI_INT_MASK:
+        description: ULPI Interrupt Mask Register
+        addressOffset: 0x72
+        size: 8
+        access: read-write
+      ULPI_INT_SRC:
+        description: ULPI Interrupt Source Register (read-only)
+        addressOffset: 0x73
+        size: 8
+        access: read-only
+      ULPI_REG_DATA:
+        description: ULPI Data Register
+        addressOffset: 0x74
+        size: 8
+        access: read-write
+      ULPI_REG_ADDR:
+        description: ULPI Address Register
+        addressOffset: 0x75
+        size: 8
+        access: read-write
+      ULPI_REG_CONTROL:
+        description: ULPI Control Register
+        addressOffset: 0x76
+        size: 8
+        access: read-write
+      ULPI_RAW_DATA:
+        description: ULPI Raw Data Register (read-only)
+        addressOffset: 0x77
+        size: 8
+        access: read-only
+      EP_INFO:
+        description: Endpoint Information Register (read-only)
+        addressOffset: 0x78
+        size: 8
+        access: read-only
+        fields:
+          TX_EP_NUM:
+            description: Number of TX endpoints implemented (bits[3:0])
+            bitOffset: 0
+            bitWidth: 4
+          RX_EP_NUM:
+            description: Number of RX endpoints implemented (bits[7:4])
+            bitOffset: 4
+            bitWidth: 4
+      RAM_INFO:
+        description: FIFO RAM Size Information Register (read-only)
+        addressOffset: 0x79
+        size: 8
+        access: read-only
+        fields:
+          RAM_BITS:
+            description: RAM width (vendor driver)
+            bitOffset: 0
+            bitWidth: 4
+          DMA_CHANNELS:
+            description: Number of DMA channels (vendor driver)
+            bitOffset: 4
+            bitWidth: 4
+      LINK_INFO:
+        description: Link Layer Timing Information Register (read-only)
+        addressOffset: 0x7a
+        size: 8
+        access: read-only
+        fields:
+          WTID:
+            description: Wait time for ID (vendor driver)
+            bitOffset: 0
+            bitWidth: 4
+          WTCON:
+            description: Wait time for connect (vendor driver)
+            bitOffset: 4
+            bitWidth: 4
+      VP_LEN:
+        description: VBUS Pulsing Length Register
+        addressOffset: 0x7b
+        size: 8
+        access: read-write
+      HS_EOF1:
+        description: High-Speed End-of-Frame Timing Register 1
+        addressOffset: 0x7c
+        size: 8
+        access: read-write
+      FS_EOF1:
+        description: Full-Speed End-of-Frame Timing Register 1
+        addressOffset: 0x7d
+        size: 8
+        access: read-write
+      LS_EOF1:
+        description: Low-Speed End-of-Frame Timing Register 1
+        addressOffset: 0x7e
+        size: 8
+        access: read-write
+      SOFT_RST:
+        description: 'Soft Reset Control Register (self-clearing: the vendor driver writes it and polls until it reads 0; not used by the Linux MUSB driver)'
+        addressOffset: 0x7f
+        size: 8
+        access: read-write
+        fields:
+          NRST:
+            description: Assert NRSTn reset (bit 0)
+            bitOffset: 0
+            bitWidth: 1
+          NADF:
+            description: Assert NADFn reset (bit 1)
+            bitOffset: 1
+            bitWidth: 1
+      RQ_PKT_CNT[%s]:
+        description: Endpoint %s Requested Packet Count Register (DMA mode 1) (not used by the Linux MUSB driver, unverified)
+        dim: 16
+        dimIncrement: 0x4
+        dimIndex: 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+        addressOffset: 0x300
+        size: 32
+        access: read-write
+        fields:
+          PKT_COUNT:
+            description: Number of bulk packets to transfer via DMA mode 1 (bits[15:0])
+            bitOffset: 0
+            bitWidth: 16
+      RX_DPBUF_DIS:
+        description: "RX Double-Packet Buffer Disable Register\n            (bit N disables double-buffering on RX endpoint N; bit 0 unused) (not used by the Linux MUSB driver, unverified)"
+        addressOffset: 0x340
+        size: 16
+        access: read-write
+      TX_DPBUF_DIS:
+        description: "TX Double-Packet Buffer Disable Register\n            (bit N disables double-buffering on TX endpoint N; bit 0 unused) (not used by the Linux MUSB driver, unverified)"
+        addressOffset: 0x342
+        size: 16
+        access: read-write
+      C_T_UCH:
+        description: Chirp Timeout (UCH) Value Register (not used by the Linux MUSB driver, unverified)
+        addressOffset: 0x344
+        size: 16
+        access: read-write
+      C_T_HHSRTN:
+        description: Host High-Speed Return (HHSRTN) Timing Register (not used by the Linux MUSB driver, unverified)
+        addressOffset: 0x346
+        size: 16
+        access: read-write
+      C_T_HSBT:
+        description: High-Speed Bus Turnaround (HSBT) Timing Register (not used by the Linux MUSB driver, unverified)
+        addressOffset: 0x348
+        size: 16
+        access: read-write
+      DMA_INTR:
+        description: 'DMA Interrupt Register (the IRQ word of DMA channel 0): bit n is set when DMA channel n completed or failed; a read clears it. Linux reads it as 8 bits.'
+        addressOffset: 0x200
+        size: 32
+        access: read-only
+        fields:
+          DMA_IRQ:
+            description: Interrupt status of DMA channel n in bit n (read clears)
+            bitOffset: 0
+            bitWidth: 8
+            readAction: clear
+    clusters:
+      TAR[%s]:
+        description: Target Address / Hub Routing Registers for endpoint %s
+        dim: 16
+        dimIncrement: 0x8
+        dimIndex: 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+        addressOffset: 0x80
+        registers:
+          TX_FUNC_ADDR:
+            description: TX target device function address
+            addressOffset: 0x0
+            size: 8
+            access: read-write
+            fields:
+              ADDR:
+                description: Target function address (0–127)
+                bitOffset: 0
+                bitWidth: 7
+          TX_HUB_ADDR:
+            description: TX hub address (TT routing for FS/LS behind HS hub)
+            addressOffset: 0x2
+            size: 8
+            access: read-write
+            fields:
+              HUB_ADDR:
+                description: Hub function address (bits[6:0])
+                bitOffset: 0
+                bitWidth: 7
+              MT:
+                description: Multi-TT hub flag (bit 7)
+                bitOffset: 7
+                bitWidth: 1
+          TX_HUB_PORT:
+            description: TX hub port number
+            addressOffset: 0x3
+            size: 8
+            access: read-write
+            fields:
+              PORT:
+                description: Hub port number (0–127)
+                bitOffset: 0
+                bitWidth: 7
+          RX_FUNC_ADDR:
+            description: RX target device function address
+            addressOffset: 0x4
+            size: 8
+            access: read-write
+            fields:
+              ADDR:
+                description: Target function address (0–127)
+                bitOffset: 0
+                bitWidth: 7
+          RX_HUB_ADDR:
+            description: RX hub address
+            addressOffset: 0x6
+            size: 8
+            access: read-write
+            fields:
+              HUB_ADDR:
+                description: Hub function address (bits[6:0])
+                bitOffset: 0
+                bitWidth: 7
+              MT:
+                description: Multi-TT hub flag (bit 7)
+                bitOffset: 7
+                bitWidth: 1
+          RX_HUB_PORT:
+            description: RX hub port number
+            addressOffset: 0x7
+            size: 8
+            access: read-write
+            fields:
+              PORT:
+                description: Hub port number (0–127)
+                bitOffset: 0
+                bitWidth: 7
+      ENDPOINT[%s]:
+        description: Non-indexed Control and Status Registers for endpoint %s
+        dim: 16
+        dimIncrement: 0x10
+        dimIndex: 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+        addressOffset: 0x100
+        registers:
+          TX_MAX_P:
+            description: TX Maximum Packet Size
+            addressOffset: 0x0
+            size: 16
+            access: read-write
+            fields:
+              MAX_PAYLOAD:
+                description: Maximum TX payload bytes (bits[10:0])
+                bitOffset: 0
+                bitWidth: 11
+              NUM_USB_PKTS:
+                description: High-bandwidth packets per micro-frame minus 1 (bits[15:11])
+                bitOffset: 11
+                bitWidth: 5
+          TX_CSR:
+            description: TX Control and Status Register (TxCSRL[7:0] + TxCSRH[15:8])
+            addressOffset: 0x2
+            size: 16
+            access: read-write
+            fields:
+              TX_PKT_RDY:
+                description: TX FIFO loaded; hardware clears after transmit
+                bitOffset: 0
+                bitWidth: 1
+              TX_FIFO_NE:
+                description: TX FIFO not empty (read-only)
+                bitOffset: 1
+                bitWidth: 1
+                access: read-only
+              UNDERRUN_RESPONSE_ERR:
+                description: Underrun (device) / no-response error (host)
+                bitOffset: 2
+                bitWidth: 1
+              FLUSH_FIFO:
+                description: Flush TX FIFO (self-clearing)
+                bitOffset: 3
+                bitWidth: 1
+              SEND_STALL_SETUP_PKT:
+                description: Issue STALL (device) / send SETUP token (host)
+                bitOffset: 4
+                bitWidth: 1
+              STALL_SENT_STALL_RCVD:
+                description: STALL sent (device) / STALL received (host)
+                bitOffset: 5
+                bitWidth: 1
+              CLR_DATA_TOG:
+                description: Reset TX data toggle to DATA0
+                bitOffset: 6
+                bitWidth: 1
+              ISO_INCOMP_NAK_TIMEOUT:
+                description: Incomplete ISO TX (device) / NAK timeout (host)
+                bitOffset: 7
+                bitWidth: 1
+              DATA_TOG:
+                description: TX data toggle (host only, read-only) (written only with DATA_TOG_WE set)
+                bitOffset: 8
+                bitWidth: 1
+                access: read-write
+              DATA_TOG_WE:
+                description: Write enable for DATA_TOG (host only)
+                bitOffset: 9
+                bitWidth: 1
+              DMA_MODE:
+                description: 'DMA mode: 0=mode0, 1=mode1'
+                bitOffset: 10
+                bitWidth: 1
+              FRC_DATA_TOG:
+                description: Force data toggle
+                bitOffset: 11
+                bitWidth: 1
+              ENABLE_DMA:
+                description: Enable DMA for TX endpoint
+                bitOffset: 12
+                bitWidth: 1
+              TXRX_MODE:
+                description: TX/RX direction mode
+                bitOffset: 13
+                bitWidth: 1
+              ENABLE_ISO:
+                description: Isochronous mode (device only)
+                bitOffset: 14
+                bitWidth: 1
+              ENABLE_AUTOSET:
+                description: Auto-set TxPktRdy when FIFO reaches MaxP
+                bitOffset: 15
+                bitWidth: 1
+          RX_MAX_P:
+            description: RX Maximum Packet Size
+            addressOffset: 0x4
+            size: 16
+            access: read-write
+            fields:
+              MAX_PAYLOAD:
+                description: Maximum RX payload bytes (bits[10:0])
+                bitOffset: 0
+                bitWidth: 11
+              NUM_USB_PKTS:
+                description: High-bandwidth packets per micro-frame minus 1 (bits[15:11])
+                bitOffset: 11
+                bitWidth: 5
+          RX_CSR:
+            description: RX Control and Status Register (RxCSRL[7:0] + RxCSRH[15:8])
+            addressOffset: 0x6
+            size: 16
+            access: read-write
+            fields:
+              RX_PKT_RDY:
+                description: Packet in RX FIFO; cleared by software after reading (cleared by writing 0)
+                bitOffset: 0
+                bitWidth: 1
+                access: read-write
+              RX_FIFO_FULL:
+                description: RX FIFO full (read-only)
+                bitOffset: 1
+                bitWidth: 1
+                access: read-only
+              OVERRUN_RESPONSE_ERR:
+                description: Overrun (device) / no-response error (host)
+                bitOffset: 2
+                bitWidth: 1
+              DATA_ERR_NAK_TIMEOUT:
+                description: Data error (device) / NAK timeout (host)
+                bitOffset: 3
+                bitWidth: 1
+              FLUSH_FIFO:
+                description: Flush RX FIFO (self-clearing)
+                bitOffset: 4
+                bitWidth: 1
+              SEND_STALL_IN_PKT_REQ:
+                description: Issue STALL (device) / IN packet request (host)
+                bitOffset: 5
+                bitWidth: 1
+              STALL_SENT_STALL_RCVD:
+                description: STALL sent (device) / STALL received (host)
+                bitOffset: 6
+                bitWidth: 1
+              CLR_DATA_TOG:
+                description: Reset RX data toggle to DATA0
+                bitOffset: 7
+                bitWidth: 1
+              RX_ISO_INCOMP:
+                description: Incomplete ISO RX (read-only)
+                bitOffset: 8
+                bitWidth: 1
+                access: read-only
+              DATA_TOG:
+                description: RX data toggle (host only, read-only) (written only with DATA_TOG_WE set)
+                bitOffset: 9
+                bitWidth: 1
+                access: read-write
+              DATA_TOG_WE:
+                description: Write enable for DATA_TOG (host only)
+                bitOffset: 10
+                bitWidth: 1
+              DMA_MODE:
+                description: 'DMA mode: 0=mode0, 1=mode1'
+                bitOffset: 11
+                bitWidth: 1
+              ISO_PID_ERR_BI_DIS_NYET:
+                description: ISO PID error (device) / disable NYET (host)
+                bitOffset: 12
+                bitWidth: 1
+              ENABLE_DMA:
+                description: Enable DMA for RX endpoint
+                bitOffset: 13
+                bitWidth: 1
+              ENABLE_ISO_AUTOREQ:
+                description: ISO mode (device) / auto-request IN (host)
+                bitOffset: 14
+                bitWidth: 1
+              ENABLE_AUTOCLR:
+                description: Auto-clear RxPktRdy when FIFO drained to zero
+                bitOffset: 15
+                bitWidth: 1
+          RX_COUNT:
+            description: Number of bytes available in RX FIFO (read-only)
+            addressOffset: 0x8
+            size: 16
+            access: read-only
+            fields:
+              COUNT:
+                description: Received byte count
+                bitOffset: 0
+                bitWidth: 14
+          TX_TYPE:
+            description: TX Type Register — target EP, protocol, speed (host mode)
+            addressOffset: 0xa
+            size: 8
+            access: read-write
+            fields:
+              TARGET_EP_NUM:
+                description: Target endpoint number (bits[3:0])
+                bitOffset: 0
+                bitWidth: 4
+              PROTOCOL:
+                description: 00=Control, 01=Isoch, 10=Bulk, 11=Interrupt
+                bitOffset: 4
+                bitWidth: 2
+              SPEED:
+                description: 00=same, 01=High, 10=Full, 11=Low
+                bitOffset: 6
+                bitWidth: 2
+          TX_INTERVAL:
+            description: TX Polling Interval / NAK Limit (host mode)
+            addressOffset: 0xb
+            size: 8
+            access: read-write
+          RX_TYPE:
+            description: RX Type Register — target EP, protocol, speed (host mode)
+            addressOffset: 0xc
+            size: 8
+            access: read-write
+            fields:
+              TARGET_EP_NUM:
+                description: Target endpoint number (bits[3:0])
+                bitOffset: 0
+                bitWidth: 4
+              PROTOCOL:
+                description: 00=Control, 01=Isoch, 10=Bulk, 11=Interrupt
+                bitOffset: 4
+                bitWidth: 2
+              SPEED:
+                description: 00=same, 01=High, 10=Full, 11=Low
+                bitOffset: 6
+                bitWidth: 2
+          RX_INTERVAL:
+            description: RX Polling Interval / NAK Limit (host mode)
+            addressOffset: 0xd
+            size: 8
+            access: read-write
+          FIFO_SIZE:
+            description: TX/RX FIFO Size Encoding Register (read-only)
+            addressOffset: 0xf
+            size: 8
+            access: read-only
+            fields:
+              TX_FIFO_SZ:
+                description: TX FIFO size encoding (log2(size/8)) [3:0]
+                bitOffset: 0
+                bitWidth: 4
+              RX_FIFO_SZ:
+                description: RX FIFO size encoding (log2(size/8)) [7:4]
+                bitOffset: 4
+                bitWidth: 4
+      DMA_CHANNEL[%s]:
+        description: DMA Channel %s Registers
+        dim: 8
+        dimIncrement: 0x10
+        dimIndex: 0,1,2,3,4,5,6,7
+        addressOffset: 0x200
+        registers:
+          CNTL:
+            description: DMA Channel Control Register
+            addressOffset: 0x4
+            size: 32
+            access: read-write
+            fields:
+              START_XFR:
+                description: Enable the DMA transfer (cleared by the driver to abort)
+                bitOffset: 0
+                bitWidth: 1
+              DMA_DIR:
+                description: 'Direction: 0=RX (write to memory), 1=TX (read from memory)'
+                bitOffset: 1
+                bitWidth: 1
+              DMA_MODE:
+                description: 'DMA mode: 0=mode0 (single packet), 1=mode1 (multi-packet)'
+                bitOffset: 2
+                bitWidth: 1
+              ENABLE_DMA_IRQ:
+                description: Enable DMA completion interrupt
+                bitOffset: 3
+                bitWidth: 1
+              DMA_EP_NUM:
+                description: Endpoint associated with this DMA channel (bits[7:4])
+                bitOffset: 4
+                bitWidth: 4
+              DMA_BUS_ERR:
+                description: AHB bus error flag (read-only; cleared by START_XFR)
+                bitOffset: 8
+                bitWidth: 1
+                access: read-only
+              DMA_BURST_MODE:
+                description: 'AHB burst size: 00=unspecified, 01=INCR4, 10=INCR8, 11=INCR16 (bits[10:9])'
+                bitOffset: 9
+                bitWidth: 2
+          ADDR:
+            description: DMA Channel Transfer Start Address Register
+            addressOffset: 0x8
+            size: 32
+            access: read-write
+          COUNT:
+            description: DMA Channel Transfer Byte Count Register
+            addressOffset: 0xc
+            size: 32
+            access: read-write
