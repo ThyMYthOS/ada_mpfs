@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: CC-BY-4.0
 # source: svd/base/emmc_sd.yaml, SRS08.BDP description: "Buffer Data Port: the field is to access the internal buffer (data block) in non-DMA transfer mode"
+# source: Linux drivers/mmc/host/sdhci.c: sdhci_read_block_pio reads SDHCI_BUFFER once per word of the block, so a read consumes the buffer
 # status: unverified
 # owner: Manuel Stahl
 

@@ -5,6 +5,7 @@
 # source: probe finding on the Icicle Kit: DEVICE_ID (0x20003188) reads 0xF81A, the SVD resetValue is 0x0
 # source: svd/base/scb_regs.yaml, MESSAGE.DATA description: the system controller sets MESSAGE on completion of a system service (return status), signalled by MESSAGE_INT
 # source: the annotation of the system controller mailbox with Effective_Reads that tools/pac_gen.py carried before; no read side effect is documented
+# source: Linux drivers/mailbox/mailbox-mpfs.c reads MESSAGE and acknowledges through MESSAGE_INT (0x18C); it shows no read side effect on MESSAGE, the entry stays as the conservative reading
 # status: unverified
 # owner: Manuel Stahl
 

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: CC-BY-4.0
 # source: svd/base/i2c.yaml, I2C0_DATA: the register holds the serial data byte shifted in and out; its description is empty
 # source: svd/base/i2c.yaml, I2C0_CTRL.SI description: the interrupt flag is set on a change of the status register and must be cleared by software after the data register was serviced
+# source: Linux drivers/i2c/busses/i2c-microchip-corei2c.c reads DATA with a plain readb and acknowledges through CTRL.SI; it shows no read side effect on DATA, the entry stays as the conservative reading
 # status: unverified
 # owner: Manuel Stahl
 

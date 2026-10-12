@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: CC-BY-4.0
 # source: svd/base/qspixip.yaml, X4ReceiveData description: "Allows the processor to read 4-bytes from the SPI FIFO in a single transaction."
 # source: svd/base/qspixip.yaml, ReceiveData.RXDATA description: "Received data - single byte" (the same receive FIFO)
+# source: Linux drivers/spi/spi-microchip-core-qspi.c: mchp_coreqspi_read_op reads REG_X4_RX_DATA and REG_RX_DATA after waiting for a non-empty RX FIFO
 # status: unverified
 # owner: Manuel Stahl
 

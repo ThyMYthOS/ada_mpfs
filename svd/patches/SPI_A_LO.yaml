@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: CC-BY-4.0
 # source: svd/base/spi.yaml, RX_DATA.RXDATA description: "Received data. Reading this clears the register of the received data."
+# source: Linux drivers/spi/spi-microchip-core-spi.c: mchp_corespi_read_fifo reads RXDATA once per byte after waiting for a non-empty RX FIFO, which is a FIFO pop
 # status: unverified
 # owner: Manuel Stahl
 
@@ -10,4 +11,4 @@ SPI_A_LO:
   RX_DATA:
     _modify:
       RXDATA:
-        readAction: clear
+        readAction: modifyExternal
