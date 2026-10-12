@@ -3,6 +3,7 @@
 _add:
   GEM_A_LO:
     description: GEM_A_LO Controller
+    groupName: GEM
     baseAddress: 0x20110000
     registers:
       network_control:

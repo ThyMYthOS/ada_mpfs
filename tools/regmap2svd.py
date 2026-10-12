@@ -38,10 +38,11 @@ SPDX-License-Identifier: CC-BY-4.0
 YAML_HEADER = """# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: CC-BY-4.0
 """
-# Pages without a base address: (new name, name in the instance table, further instances).
+# Pages without a base address: (new name, name in the instance table, further instances,
+# groupName of the base instance if there are further instances).
 MISSING_BASE = {
-    "ENVM": ("ENVM", "ENVMCFG", []),
-    "GEM_GXIMICROSEMI": ("GEM_A_LO", "GEM_A_LO", ["GEM_B_LO", "GEM_A_HI", "GEM_B_HI"]),
+    "ENVM": ("ENVM", "ENVMCFG", [], None),
+    "GEM_GXIMICROSEMI": ("GEM_A_LO", "GEM_A_LO", ["GEM_B_LO", "GEM_A_HI", "GEM_B_HI"], "GEM"),
 }
 # Fragment names that differ from the lower-case page name (after dropping pfsoc_mss_top_).
 FRAGMENT_NAMES = {"gem_gxlmicrosemi": "gem"}
@@ -319,8 +320,8 @@ def apply_instance_table(p: Peripheral, table: dict[str, str]) -> None:
     """
     if p.base_address or p.name not in MISSING_BASE:
         return
-    name, table_name, others = MISSING_BASE[p.name]
-    p.name, p.base_address = name, table[table_name]
+    name, table_name, others, group = MISSING_BASE[p.name]
+    p.name, p.base_address, p.group = name, table[table_name], group
     p.instances = [Instance(n, table[n]) for n in others]
 
 
