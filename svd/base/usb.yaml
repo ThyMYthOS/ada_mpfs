@@ -1,8 +1,13 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: CC-BY-4.0
 # status: unverified (checked against the Linux MUSB driver, drivers/usb/musb, with the corrections below; offsets, access and the interrupt clear semantics still to verify on silicon)
-# source: Microchip platform drivers/mss/mss_usb (register structure, 16 endpoints, 32-bit DMA words, FIFO size encoding) and Linux drivers/usb/musb/{musb_regs.h,musb_dma.h,musb_core.c,musbhsdma.c,mpfs.c}: register names, DMA interrupt register, FIFO size encoding, writable flags, MISC, read side effects
+# source: Microchip platform drivers/mss/mss_usb (register layout for up to 16 endpoints, 32-bit DMA words, FIFO size encoding) and Linux drivers/usb/musb/{musb_regs.h,musb_dma.h,musb_core.c,musbhsdma.c,mpfs.c}: register names, DMA interrupt register, FIFO size encoding, writable flags, MISC, read side effects
+# source: hardware probe on an Icicle Kit (MPFS250T): EP_INFO reads 0x44 (4 TX and 4 RX endpoints besides EP0), TX_IRQ_ENABLE reads 0x1F and RX_IRQ_ENABLE 0x1E (EP0..EP4), RAM_INFO reads 0x4B, INDEXED_FIFO_SIZE reads 0xDE at INDEX 0
 # owner: Manuel Stahl
+#
+# The register layout is that of the MUSB core for up to 16 endpoints. The MPFS250T implements the control endpoint
+# EP0 and the endpoints EP1..EP4 (TX and RX each); the registers and interrupt bits of EP5..EP15 are part of the layout
+# and read 0 there. The register arrays keep all 16 entries.
 _add:
   USB:
     description: MSS USB 2.0 OTG High-Speed Controller
@@ -59,7 +64,7 @@ _add:
             bitOffset: 7
             bitWidth: 1
       TX_IRQ:
-        description: TX Endpoint Interrupt Status Register (read-clears)
+        description: TX Endpoint Interrupt Status Register (read-clears; EP0..EP4 are implemented on the MPFS250T)
         addressOffset: 0x2
         size: 16
         access: read-only
@@ -145,7 +150,7 @@ _add:
             bitWidth: 1
             readAction: clear
       RX_IRQ:
-        description: RX Endpoint Interrupt Status Register (read-clears; bit 0 unused)
+        description: RX Endpoint Interrupt Status Register (read-clears; bit 0 unused; EP1..EP4 are implemented on the MPFS250T)
         addressOffset: 0x4
         size: 16
         access: read-only
@@ -226,7 +231,7 @@ _add:
             bitWidth: 1
             readAction: clear
       TX_IRQ_ENABLE:
-        description: TX Endpoint Interrupt Enable Register
+        description: TX Endpoint Interrupt Enable Register (EP0..EP4 are implemented on the MPFS250T; the board reads 0x1F)
         addressOffset: 0x6
         size: 16
         access: read-write
@@ -296,7 +301,7 @@ _add:
             bitOffset: 15
             bitWidth: 1
       RX_IRQ_ENABLE:
-        description: RX Endpoint Interrupt Enable Register
+        description: RX Endpoint Interrupt Enable Register (EP1..EP4 are implemented on the MPFS250T; the board reads 0x1E)
         addressOffset: 0x8
         size: 16
         access: read-write
@@ -462,7 +467,7 @@ _add:
         access: read-write
         fields:
           ENDPOINT_INDEX:
-            description: Active endpoint number (0–15) for indexed CSR window
+            description: Active endpoint number (0–15) for indexed CSR window; the MPFS250T implements EP0..EP4
             bitOffset: 0
             bitWidth: 4
       TEST_MODE:
@@ -802,7 +807,7 @@ _add:
             bitOffset: 0
             bitWidth: 8
       INDEXED_FIFO_SIZE:
-        description: Indexed FIFO Size / Config Data Register (read-only)
+        description: 'Indexed FIFO Size / Config Data Register (read-only). With INDEX of an endpoint above 0 the fields give its FIFO sizes (Linux MUSB_FIFOSIZE). With INDEX 0 the same byte is CONFIGDATA of the core (Linux MUSB_CONFIGDATA = MUSB_FIFOSIZE re-used for EP0, read by musb_read_configdata after writing INDEX 0), and the fields below do not apply: bit 7 MPRXE, 6 MPTXE, 5 BIGENDIAN, 4 HBRXE, 3 HBTXE, 2 DYNFIFO, 1 SOFTCONE, 0 UTMIDW (16 bit UTMI data). The board reads 0xDE at INDEX 0.'
         addressOffset: 0x1f
         size: 8
         access: read-only
@@ -816,7 +821,7 @@ _add:
             bitOffset: 4
             bitWidth: 4
       FIFO[%s]:
-        description: Endpoint %s FIFO Data Port (32-bit access; 8- and 16-bit accesses also valid)
+        description: Endpoint %s FIFO Data Port (32-bit access; 8- and 16-bit accesses also valid; only EP0..EP4 are implemented on the MPFS250T)
         dim: 16
         dimIncrement: 0x4
         dimIndex: 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
@@ -989,17 +994,17 @@ _add:
         size: 8
         access: read-only
       EP_INFO:
-        description: Endpoint Information Register (read-only)
+        description: Endpoint Information Register (read-only; the number of endpoints besides EP0, the MPFS250T reads 0x44, i.e. 4 TX and 4 RX)
         addressOffset: 0x78
         size: 8
         access: read-only
         fields:
           TX_EP_NUM:
-            description: Number of TX endpoints implemented (bits[3:0])
+            description: Number of TX endpoints besides EP0 (bits[3:0])
             bitOffset: 0
             bitWidth: 4
           RX_EP_NUM:
-            description: Number of RX endpoints implemented (bits[7:4])
+            description: Number of RX endpoints besides EP0 (bits[7:4])
             bitOffset: 4
             bitWidth: 4
       RAM_INFO:
@@ -1065,7 +1070,7 @@ _add:
             bitOffset: 1
             bitWidth: 1
       RQ_PKT_CNT[%s]:
-        description: Endpoint %s Requested Packet Count Register (DMA mode 1) (not used by the Linux MUSB driver, unverified)
+        description: Endpoint %s Requested Packet Count Register (DMA mode 1) (not used by the Linux MUSB driver, unverified; only EP0..EP4 are implemented on the MPFS250T)
         dim: 16
         dimIncrement: 0x4
         dimIndex: 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
@@ -1115,7 +1120,7 @@ _add:
             readAction: clear
     clusters:
       TAR[%s]:
-        description: Target Address / Hub Routing Registers for endpoint %s
+        description: Target Address / Hub Routing Registers for endpoint %s (only EP0..EP4 are implemented on the MPFS250T)
         dim: 16
         dimIncrement: 0x8
         dimIndex: 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
@@ -1190,7 +1195,7 @@ _add:
                 bitOffset: 0
                 bitWidth: 7
       ENDPOINT[%s]:
-        description: Non-indexed Control and Status Registers for endpoint %s
+        description: Non-indexed Control and Status Registers for endpoint %s (only EP0..EP4 are implemented on the MPFS250T)
         dim: 16
         dimIncrement: 0x10
         dimIndex: 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
