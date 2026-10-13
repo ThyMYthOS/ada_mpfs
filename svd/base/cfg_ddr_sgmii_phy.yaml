@@ -255,7 +255,7 @@ _add:
         addressOffset: 0x84
         size: 32
         access: read-write
-        resetValue: 0x3E
+        resetValue: 0x10BE
         fields:
           LOCK:
             description: Status of PLL lock
@@ -379,7 +379,7 @@ _add:
         addressOffset: 0x98
         size: 32
         access: read-write
-        resetValue: 0x8
+        resetValue: 0x1018
         fields:
           BWP:
             description: ''
@@ -396,7 +396,7 @@ _add:
         addressOffset: 0x9C
         size: 32
         access: read-only
-        resetValue: 0x0
+        resetValue: 0x8
       PLL_PHADJ_MAIN:
         description: PLL phase registers
         addressOffset: 0xA0
@@ -440,7 +440,7 @@ _add:
         addressOffset: 0xA8
         size: 32
         access: read-only
-        resetValue: 0x0
+        resetValue: 0xA
       SSCG_REG_2_MAIN:
         description: SSCG registers 2
         addressOffset: 0xAC
@@ -458,7 +458,7 @@ _add:
         addressOffset: 0xB0
         size: 32
         access: read-only
-        resetValue: 0x0
+        resetValue: 0x1
       RPC_RESET_MAIN_PLL:
         addressOffset: 0xB4
         size: 32
@@ -502,7 +502,7 @@ _add:
         addressOffset: 0x104
         size: 32
         access: read-write
-        resetValue: 0x3E
+        resetValue: 0x10BE
         fields:
           LOCK:
             description: Status of PLL lock
@@ -626,7 +626,7 @@ _add:
         addressOffset: 0x118
         size: 32
         access: read-write
-        resetValue: 0x8
+        resetValue: 0x1018
         fields:
           BWP:
             description: ''
@@ -643,7 +643,7 @@ _add:
         addressOffset: 0x11C
         size: 32
         access: read-only
-        resetValue: 0x0
+        resetValue: 0x8
       PLL_PHADJ_IOSCB:
         description: PLL phase registers
         addressOffset: 0x120
@@ -687,7 +687,7 @@ _add:
         addressOffset: 0x128
         size: 32
         access: read-only
-        resetValue: 0x0
+        resetValue: 0xA
       SSCG_REG_2_IOSCB:
         description: SSCG registers 2
         addressOffset: 0x12C
@@ -705,7 +705,7 @@ _add:
         addressOffset: 0x130
         size: 32
         access: read-only
-        resetValue: 0x0
+        resetValue: 0x1
       RPC_RESET_IOSCB:
         addressOffset: 0x134
         size: 32
@@ -846,7 +846,7 @@ _add:
         addressOffset: 0x204
         size: 32
         access: read-write
-        resetValue: 0x0
+        resetValue: 0x8000
         fields:
           REG_CALIB_LOCK:
             description: ''
