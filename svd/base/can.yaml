@@ -536,7 +536,7 @@ _add:
         addressOffset: 0x14
         size: 32
         access: read-write
-        resetValue: 0x0
+        resetValue: 0x30000000
         fields:
           REVISION_CONTROL:
             description: 'This field contains the version of the CAN core in the following format. This is a read-only field. [major version].[minor version].[revision number] [31:28]: Major version [27:24]: Minor version [23:16]: Revision number'
@@ -626,6 +626,7 @@ _add:
         size: 32
         access: read-write
         resetValue: 0x0
+        resetMask: 0xFFFE003F
         fields:
           FIELD:
             description: 'This specifies the field of the ECR 0x00: Stopped 0x01: Synchronize 0x05: Interframe 0x06: Bus idle 0x07: Start of frame 0x08: Arbitration 0x09: Control 0x0A: Data 0x0B: CRC 0x0C: ACK 0x0D: End of frame 0x10: Error flag 0x11: Error echo 0x12: Error delimiter 0x18: Overload flag 0x19: Overload echo 0x1A: Overload delimiter Others: N/A'
@@ -662,8 +663,6 @@ _add:
         addressOffset: 0x20
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not In case of control flag bit, 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags. In case of command flag bit, 0: Default and 1: prohibited'
@@ -710,7 +709,6 @@ _add:
         addressOffset: 0x24
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -722,7 +720,6 @@ _add:
         addressOffset: 0x28
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG0_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -734,7 +731,6 @@ _add:
         addressOffset: 0x2C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG0_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -746,8 +742,6 @@ _add:
         addressOffset: 0x30
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -794,7 +788,6 @@ _add:
         addressOffset: 0x34
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -806,7 +799,6 @@ _add:
         addressOffset: 0x38
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG1_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -818,7 +810,6 @@ _add:
         addressOffset: 0x3C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG1_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -830,8 +821,6 @@ _add:
         addressOffset: 0x40
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -878,7 +867,6 @@ _add:
         addressOffset: 0x44
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -890,7 +878,6 @@ _add:
         addressOffset: 0x48
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG2_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -902,7 +889,6 @@ _add:
         addressOffset: 0x4C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG2_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -914,8 +900,6 @@ _add:
         addressOffset: 0x50
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -962,7 +946,6 @@ _add:
         addressOffset: 0x54
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -974,7 +957,6 @@ _add:
         addressOffset: 0x58
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG3_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -986,7 +968,6 @@ _add:
         addressOffset: 0x5C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG3_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -998,8 +979,6 @@ _add:
         addressOffset: 0x60
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1046,7 +1025,6 @@ _add:
         addressOffset: 0x64
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -1058,7 +1036,6 @@ _add:
         addressOffset: 0x68
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG4_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -1070,7 +1047,6 @@ _add:
         addressOffset: 0x6C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG4_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -1082,8 +1058,6 @@ _add:
         addressOffset: 0x70
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1130,7 +1104,6 @@ _add:
         addressOffset: 0x74
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -1142,7 +1115,6 @@ _add:
         addressOffset: 0x78
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG5_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -1154,7 +1126,6 @@ _add:
         addressOffset: 0x7C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG5_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -1166,8 +1137,6 @@ _add:
         addressOffset: 0x80
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1214,7 +1183,6 @@ _add:
         addressOffset: 0x84
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -1226,7 +1194,6 @@ _add:
         addressOffset: 0x88
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG6_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -1238,7 +1205,6 @@ _add:
         addressOffset: 0x8C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG6_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -1250,8 +1216,6 @@ _add:
         addressOffset: 0x90
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1298,7 +1262,6 @@ _add:
         addressOffset: 0x94
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -1310,7 +1273,6 @@ _add:
         addressOffset: 0x98
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG7_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -1322,7 +1284,6 @@ _add:
         addressOffset: 0x9C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG7_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -1334,8 +1295,6 @@ _add:
         addressOffset: 0xA0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1382,7 +1341,6 @@ _add:
         addressOffset: 0xA4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -1394,7 +1352,6 @@ _add:
         addressOffset: 0xA8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG8_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -1406,7 +1363,6 @@ _add:
         addressOffset: 0xAC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG8_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -1418,8 +1374,6 @@ _add:
         addressOffset: 0xB0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1466,7 +1420,6 @@ _add:
         addressOffset: 0xB4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -1478,7 +1431,6 @@ _add:
         addressOffset: 0xB8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG9_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -1490,7 +1442,6 @@ _add:
         addressOffset: 0xBC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG9_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -1502,8 +1453,6 @@ _add:
         addressOffset: 0xC0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1550,7 +1499,6 @@ _add:
         addressOffset: 0xC4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -1562,7 +1510,6 @@ _add:
         addressOffset: 0xC8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG10_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -1574,7 +1521,6 @@ _add:
         addressOffset: 0xCC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG10_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -1586,8 +1532,6 @@ _add:
         addressOffset: 0xD0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1634,7 +1578,6 @@ _add:
         addressOffset: 0xD4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -1646,7 +1589,6 @@ _add:
         addressOffset: 0xD8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG11_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -1658,7 +1600,6 @@ _add:
         addressOffset: 0xDC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG11_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -1670,8 +1611,6 @@ _add:
         addressOffset: 0xE0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1718,7 +1657,6 @@ _add:
         addressOffset: 0xE4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -1730,7 +1668,6 @@ _add:
         addressOffset: 0xE8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG12_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -1742,7 +1679,6 @@ _add:
         addressOffset: 0xEC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG12_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -1754,8 +1690,6 @@ _add:
         addressOffset: 0xF0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1802,7 +1736,6 @@ _add:
         addressOffset: 0xF4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -1814,7 +1747,6 @@ _add:
         addressOffset: 0xF8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG13_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -1826,7 +1758,6 @@ _add:
         addressOffset: 0xFC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG13_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -1838,8 +1769,6 @@ _add:
         addressOffset: 0x100
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1886,7 +1815,6 @@ _add:
         addressOffset: 0x104
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -1898,7 +1826,6 @@ _add:
         addressOffset: 0x108
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG14_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -1910,7 +1837,6 @@ _add:
         addressOffset: 0x10C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG14_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -1922,8 +1848,6 @@ _add:
         addressOffset: 0x110
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -1970,7 +1894,6 @@ _add:
         addressOffset: 0x114
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -1982,7 +1905,6 @@ _add:
         addressOffset: 0x118
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG15_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -1994,7 +1916,6 @@ _add:
         addressOffset: 0x11C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG15_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -2006,8 +1927,6 @@ _add:
         addressOffset: 0x120
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2054,7 +1973,6 @@ _add:
         addressOffset: 0x124
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -2066,7 +1984,6 @@ _add:
         addressOffset: 0x128
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG16_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -2078,7 +1995,6 @@ _add:
         addressOffset: 0x12C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG16_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -2090,8 +2006,6 @@ _add:
         addressOffset: 0x130
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2138,7 +2052,6 @@ _add:
         addressOffset: 0x134
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -2150,7 +2063,6 @@ _add:
         addressOffset: 0x138
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG17_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -2162,7 +2074,6 @@ _add:
         addressOffset: 0x13C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG17_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -2174,8 +2085,6 @@ _add:
         addressOffset: 0x140
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2222,7 +2131,6 @@ _add:
         addressOffset: 0x144
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -2234,7 +2142,6 @@ _add:
         addressOffset: 0x148
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG18_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -2246,7 +2153,6 @@ _add:
         addressOffset: 0x14C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG18_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -2258,8 +2164,6 @@ _add:
         addressOffset: 0x150
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2306,7 +2210,6 @@ _add:
         addressOffset: 0x154
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -2318,7 +2221,6 @@ _add:
         addressOffset: 0x158
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG19_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -2330,7 +2232,6 @@ _add:
         addressOffset: 0x15C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG19_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -2342,8 +2243,6 @@ _add:
         addressOffset: 0x160
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2390,7 +2289,6 @@ _add:
         addressOffset: 0x164
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -2402,7 +2300,6 @@ _add:
         addressOffset: 0x168
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG20_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -2414,7 +2311,6 @@ _add:
         addressOffset: 0x16C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG20_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -2426,8 +2322,6 @@ _add:
         addressOffset: 0x170
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2474,7 +2368,6 @@ _add:
         addressOffset: 0x174
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -2486,7 +2379,6 @@ _add:
         addressOffset: 0x178
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG21_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -2498,7 +2390,6 @@ _add:
         addressOffset: 0x17C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG21_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -2510,8 +2401,6 @@ _add:
         addressOffset: 0x180
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2558,7 +2447,6 @@ _add:
         addressOffset: 0x184
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -2570,7 +2458,6 @@ _add:
         addressOffset: 0x188
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG22_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -2582,7 +2469,6 @@ _add:
         addressOffset: 0x18C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG22_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -2594,8 +2480,6 @@ _add:
         addressOffset: 0x190
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2642,7 +2526,6 @@ _add:
         addressOffset: 0x194
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -2654,7 +2537,6 @@ _add:
         addressOffset: 0x198
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG23_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -2666,7 +2548,6 @@ _add:
         addressOffset: 0x19C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG23_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -2678,8 +2559,6 @@ _add:
         addressOffset: 0x1A0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2726,7 +2605,6 @@ _add:
         addressOffset: 0x1A4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -2738,7 +2616,6 @@ _add:
         addressOffset: 0x1A8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG24_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -2750,7 +2627,6 @@ _add:
         addressOffset: 0x1AC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG24_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -2762,8 +2638,6 @@ _add:
         addressOffset: 0x1B0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not. In case of control flag bit, 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags. In case of command flag bit, 0: default and 1: prohibited'
@@ -2810,7 +2684,6 @@ _add:
         addressOffset: 0x1B4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: 'Transmit message0 buffer: identifier (29-bit wide). [31:3]:ID[28:0]'
@@ -2822,7 +2695,6 @@ _add:
         addressOffset: 0x1B8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG25_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -2834,7 +2706,6 @@ _add:
         addressOffset: 0x1BC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG25_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -2846,8 +2717,6 @@ _add:
         addressOffset: 0x1C0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2894,7 +2763,6 @@ _add:
         addressOffset: 0x1C4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -2906,7 +2774,6 @@ _add:
         addressOffset: 0x1C8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG26_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -2918,7 +2785,6 @@ _add:
         addressOffset: 0x1CC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG26_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -2930,8 +2796,6 @@ _add:
         addressOffset: 0x1D0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -2978,7 +2842,6 @@ _add:
         addressOffset: 0x1D4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -2990,7 +2853,6 @@ _add:
         addressOffset: 0x1D8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG27_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -3002,7 +2864,6 @@ _add:
         addressOffset: 0x1DC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG27_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -3014,8 +2875,6 @@ _add:
         addressOffset: 0x1E0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -3062,7 +2921,6 @@ _add:
         addressOffset: 0x1E4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -3074,7 +2932,6 @@ _add:
         addressOffset: 0x1E8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG28_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -3086,7 +2943,6 @@ _add:
         addressOffset: 0x1EC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG28_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -3098,8 +2954,6 @@ _add:
         addressOffset: 0x1F0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -3146,7 +3000,6 @@ _add:
         addressOffset: 0x1F4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -3158,7 +3011,6 @@ _add:
         addressOffset: 0x1F8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG29_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -3170,7 +3022,6 @@ _add:
         addressOffset: 0x1FC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG29_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -3182,8 +3033,6 @@ _add:
         addressOffset: 0x200
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -3230,7 +3079,6 @@ _add:
         addressOffset: 0x204
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -3242,7 +3090,6 @@ _add:
         addressOffset: 0x208
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG30_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -3254,7 +3101,6 @@ _add:
         addressOffset: 0x20C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG30_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -3266,8 +3112,6 @@ _add:
         addressOffset: 0x210
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPN_B:
             description: 'Write protect not 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. by default. The read back value of this bit is undefined Note: Using the WPN flag enables simple retransmission of the same message by only having to set the TxReq and TxAbort flags without taking care of the special flags'
@@ -3314,7 +3158,6 @@ _add:
         addressOffset: 0x214
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: Transmit message0 buffer identifier (29-bit wide)
@@ -3326,7 +3169,6 @@ _add:
         addressOffset: 0x218
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG31_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -3338,7 +3180,6 @@ _add:
         addressOffset: 0x21C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           TX_MSG31_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit swap_endian = 0.. default [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -3350,8 +3191,6 @@ _add:
         addressOffset: 0x220
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high. In case of control flag bit, 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined. In case of command flag bit, 0:default and 1: prohibited'
@@ -3418,7 +3257,6 @@ _add:
         addressOffset: 0x224
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide). [31:3]:ID[28:0]
@@ -3430,7 +3268,6 @@ _add:
         addressOffset: 0x228
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG0_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -3442,7 +3279,6 @@ _add:
         addressOffset: 0x22C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG0_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -3454,7 +3290,6 @@ _add:
         addressOffset: 0x230
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG0_AMR:
             description: 'Receive Message0 buffer AMR bits.(Acceptance Mask Register). [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care".'
@@ -3466,7 +3301,6 @@ _add:
         addressOffset: 0x234
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG0_ACR:
             description: 'Receive Message0 buffer ACR bits. (Acceptance Code Register), [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -3478,7 +3312,6 @@ _add:
         addressOffset: 0x238
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG0_AMR_DATA:
             description: 'Receive Message0 buffer AMR Data bits.(Acceptance Mask Register-Data), [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -3490,7 +3323,6 @@ _add:
         addressOffset: 0x23C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG0_ACR_DATA:
             description: 'Receive Message0 buffer ACR Data bits. (Acceptance Code Register-Data): [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -3502,8 +3334,6 @@ _add:
         addressOffset: 0x240
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -3570,7 +3400,6 @@ _add:
         addressOffset: 0x244
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -3582,7 +3411,6 @@ _add:
         addressOffset: 0x248
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG1_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -3594,7 +3422,6 @@ _add:
         addressOffset: 0x24C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG1_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -3606,7 +3433,6 @@ _add:
         addressOffset: 0x250
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG1_AMR:
             description: 'Receive Message1 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -3618,7 +3444,6 @@ _add:
         addressOffset: 0x254
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG1_ACR:
             description: 'Receive Message1 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -3630,7 +3455,6 @@ _add:
         addressOffset: 0x258
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG1_AMR_DATA:
             description: 'Receive Message1 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -3642,7 +3466,6 @@ _add:
         addressOffset: 0x25C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG1_ACR_DATA:
             description: 'Receive Message1 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -3654,8 +3477,6 @@ _add:
         addressOffset: 0x260
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -3722,7 +3543,6 @@ _add:
         addressOffset: 0x264
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -3734,7 +3554,6 @@ _add:
         addressOffset: 0x268
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG2_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -3746,7 +3565,6 @@ _add:
         addressOffset: 0x26C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG2_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -3758,7 +3576,6 @@ _add:
         addressOffset: 0x270
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG2_AMR:
             description: 'Receive Message2 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -3770,7 +3587,6 @@ _add:
         addressOffset: 0x274
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG2_ACR:
             description: 'Receive Message2 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -3782,7 +3598,6 @@ _add:
         addressOffset: 0x278
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG2_AMR_DATA:
             description: 'Receive Message2 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -3794,7 +3609,6 @@ _add:
         addressOffset: 0x27C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG2_ACR_DATA:
             description: 'Receive Message2 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -3806,8 +3620,6 @@ _add:
         addressOffset: 0x280
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -3874,7 +3686,6 @@ _add:
         addressOffset: 0x284
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -3886,7 +3697,6 @@ _add:
         addressOffset: 0x288
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG3_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -3898,7 +3708,6 @@ _add:
         addressOffset: 0x28C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG3_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -3910,7 +3719,6 @@ _add:
         addressOffset: 0x290
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG3_AMR:
             description: 'Receive Message3 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -3922,7 +3730,6 @@ _add:
         addressOffset: 0x294
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG3_ACR:
             description: 'Receive Message3 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -3934,7 +3741,6 @@ _add:
         addressOffset: 0x298
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG3_AMR_DATA:
             description: 'Receive Message3 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -3946,7 +3752,6 @@ _add:
         addressOffset: 0x29C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG3_ACR_DATA:
             description: 'Receive Message3 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -3958,8 +3763,6 @@ _add:
         addressOffset: 0x2A0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -4026,7 +3829,6 @@ _add:
         addressOffset: 0x2A4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -4038,7 +3840,6 @@ _add:
         addressOffset: 0x2A8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG4_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -4050,7 +3851,6 @@ _add:
         addressOffset: 0x2AC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG4_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -4062,7 +3862,6 @@ _add:
         addressOffset: 0x2B0
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG4_AMR:
             description: 'Receive Message4 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -4074,7 +3873,6 @@ _add:
         addressOffset: 0x2B4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG4_ACR:
             description: 'Receive Message4 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -4086,7 +3884,6 @@ _add:
         addressOffset: 0x2B8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG4_AMR_DATA:
             description: 'Receive Message4 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -4098,7 +3895,6 @@ _add:
         addressOffset: 0x2BC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG4_ACR_DATA:
             description: 'Receive Message4 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -4110,8 +3906,6 @@ _add:
         addressOffset: 0x2C0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -4178,7 +3972,6 @@ _add:
         addressOffset: 0x2C4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -4190,7 +3983,6 @@ _add:
         addressOffset: 0x2C8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG5_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -4202,7 +3994,6 @@ _add:
         addressOffset: 0x2CC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG5_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -4214,7 +4005,6 @@ _add:
         addressOffset: 0x2D0
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG5_AMR:
             description: 'Receive Message5 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -4226,7 +4016,6 @@ _add:
         addressOffset: 0x2D4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG5_ACR:
             description: 'Receive Message5 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -4238,7 +4027,6 @@ _add:
         addressOffset: 0x2D8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG5_AMR_DATA:
             description: 'Receive Message5 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -4250,7 +4038,6 @@ _add:
         addressOffset: 0x2DC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG5_ACR_DATA:
             description: 'Receive Message5 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -4262,8 +4049,6 @@ _add:
         addressOffset: 0x2E0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -4330,7 +4115,6 @@ _add:
         addressOffset: 0x2E4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -4342,7 +4126,6 @@ _add:
         addressOffset: 0x2E8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG6_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -4354,7 +4137,6 @@ _add:
         addressOffset: 0x2EC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG6_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -4366,7 +4148,6 @@ _add:
         addressOffset: 0x2F0
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG6_AMR:
             description: 'Receive Message6 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -4378,7 +4159,6 @@ _add:
         addressOffset: 0x2F4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG6_ACR:
             description: 'Receive Message6 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -4390,7 +4170,6 @@ _add:
         addressOffset: 0x2F8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG6_AMR_DATA:
             description: 'Receive Message6 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -4402,7 +4181,6 @@ _add:
         addressOffset: 0x2FC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG6_ACR_DATA:
             description: 'Receive Message6 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -4414,8 +4192,6 @@ _add:
         addressOffset: 0x300
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -4482,7 +4258,6 @@ _add:
         addressOffset: 0x304
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -4494,7 +4269,6 @@ _add:
         addressOffset: 0x308
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG7_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -4506,7 +4280,6 @@ _add:
         addressOffset: 0x30C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG7_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -4518,7 +4291,6 @@ _add:
         addressOffset: 0x310
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG7_AMR:
             description: 'Receive Message7 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -4530,7 +4302,6 @@ _add:
         addressOffset: 0x314
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG7_ACR:
             description: 'Receive Message7 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -4542,7 +4313,6 @@ _add:
         addressOffset: 0x318
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG7_AMR_DATA:
             description: 'Receive Message7 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -4554,7 +4324,6 @@ _add:
         addressOffset: 0x31C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG7_ACR_DATA:
             description: 'Receive Message7 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -4566,8 +4335,6 @@ _add:
         addressOffset: 0x320
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -4634,7 +4401,6 @@ _add:
         addressOffset: 0x324
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -4646,7 +4412,6 @@ _add:
         addressOffset: 0x328
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG8_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -4658,7 +4423,6 @@ _add:
         addressOffset: 0x32C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG8_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -4670,7 +4434,6 @@ _add:
         addressOffset: 0x330
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG8_AMR:
             description: 'Receive Message8 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -4682,7 +4445,6 @@ _add:
         addressOffset: 0x334
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG8_ACR:
             description: 'Receive Message8 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -4694,7 +4456,6 @@ _add:
         addressOffset: 0x338
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG8_AMR_DATA:
             description: 'Receive Message8 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -4706,7 +4467,6 @@ _add:
         addressOffset: 0x33C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG8_ACR_DATA:
             description: 'Receive Message8 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -4718,8 +4478,6 @@ _add:
         addressOffset: 0x340
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -4786,7 +4544,6 @@ _add:
         addressOffset: 0x344
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -4798,7 +4555,6 @@ _add:
         addressOffset: 0x348
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG9_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -4810,7 +4566,6 @@ _add:
         addressOffset: 0x34C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG9_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -4822,7 +4577,6 @@ _add:
         addressOffset: 0x350
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG9_AMR:
             description: 'Receive Message9 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -4834,7 +4588,6 @@ _add:
         addressOffset: 0x354
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG9_ACR:
             description: 'Receive Message9 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -4846,7 +4599,6 @@ _add:
         addressOffset: 0x358
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG9_AMR_DATA:
             description: 'Receive Message9 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -4858,7 +4610,6 @@ _add:
         addressOffset: 0x35C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG9_ACR_DATA:
             description: 'Receive Message9 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -4870,8 +4621,6 @@ _add:
         addressOffset: 0x360
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -4938,7 +4687,6 @@ _add:
         addressOffset: 0x364
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -4950,7 +4698,6 @@ _add:
         addressOffset: 0x368
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG10_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -4962,7 +4709,6 @@ _add:
         addressOffset: 0x36C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG10_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -4974,7 +4720,6 @@ _add:
         addressOffset: 0x370
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG10_AMR:
             description: 'Receive Message10 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -4986,7 +4731,6 @@ _add:
         addressOffset: 0x374
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG10_ACR:
             description: 'Receive Message10 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -4998,7 +4742,6 @@ _add:
         addressOffset: 0x378
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG10_AMR_DATA:
             description: 'Receive Message10 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -5010,7 +4753,6 @@ _add:
         addressOffset: 0x37C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG10_ACR_DATA:
             description: 'Receive Message10 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -5022,8 +4764,6 @@ _add:
         addressOffset: 0x380
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -5090,7 +4830,6 @@ _add:
         addressOffset: 0x384
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -5102,7 +4841,6 @@ _add:
         addressOffset: 0x388
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG11_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -5114,7 +4852,6 @@ _add:
         addressOffset: 0x38C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG11_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -5126,7 +4863,6 @@ _add:
         addressOffset: 0x390
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG11_AMR:
             description: 'Receive Message11 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -5138,7 +4874,6 @@ _add:
         addressOffset: 0x394
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG11_ACR:
             description: 'Receive Message11 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -5150,7 +4885,6 @@ _add:
         addressOffset: 0x398
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG11_AMR_DATA:
             description: 'Receive Message11 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -5162,7 +4896,6 @@ _add:
         addressOffset: 0x39C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG11_ACR_DATA:
             description: 'Receive Message11 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -5174,8 +4907,6 @@ _add:
         addressOffset: 0x3A0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -5242,7 +4973,6 @@ _add:
         addressOffset: 0x3A4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -5254,7 +4984,6 @@ _add:
         addressOffset: 0x3A8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG12_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -5266,7 +4995,6 @@ _add:
         addressOffset: 0x3AC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG12_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -5278,7 +5006,6 @@ _add:
         addressOffset: 0x3B0
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG12_AMR:
             description: 'Receive Message12 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -5290,7 +5017,6 @@ _add:
         addressOffset: 0x3B4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG12_ACR:
             description: 'Receive Message12 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -5302,7 +5028,6 @@ _add:
         addressOffset: 0x3B8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG12_AMR_DATA:
             description: 'Receive Message12 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -5314,7 +5039,6 @@ _add:
         addressOffset: 0x3BC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG12_ACR_DATA:
             description: 'Receive Message12 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -5326,8 +5050,6 @@ _add:
         addressOffset: 0x3C0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -5394,7 +5116,6 @@ _add:
         addressOffset: 0x3C4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -5406,7 +5127,6 @@ _add:
         addressOffset: 0x3C8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG13_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -5418,7 +5138,6 @@ _add:
         addressOffset: 0x3CC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG13_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -5430,7 +5149,6 @@ _add:
         addressOffset: 0x3D0
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG13_AMR:
             description: 'Receive Message13 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -5442,7 +5160,6 @@ _add:
         addressOffset: 0x3D4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG13_ACR:
             description: 'Receive Message13 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -5454,7 +5171,6 @@ _add:
         addressOffset: 0x3D8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG13_AMR_DATA:
             description: 'Receive Message13 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -5466,7 +5182,6 @@ _add:
         addressOffset: 0x3DC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG13_ACR_DATA:
             description: 'Receive Message13 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -5478,8 +5193,6 @@ _add:
         addressOffset: 0x3E0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -5546,7 +5259,6 @@ _add:
         addressOffset: 0x3E4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -5558,7 +5270,6 @@ _add:
         addressOffset: 0x3E8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG14_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -5570,7 +5281,6 @@ _add:
         addressOffset: 0x3EC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG14_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -5582,7 +5292,6 @@ _add:
         addressOffset: 0x3F0
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG14_AMR:
             description: 'Receive Message14 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -5594,7 +5303,6 @@ _add:
         addressOffset: 0x3F4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG14_ACR:
             description: 'Receive Message14 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -5606,7 +5314,6 @@ _add:
         addressOffset: 0x3F8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG14_AMR_DATA:
             description: 'Receive Message14 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -5618,7 +5325,6 @@ _add:
         addressOffset: 0x3FC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG14_ACR_DATA:
             description: 'Receive Message14 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -5630,8 +5336,6 @@ _add:
         addressOffset: 0x400
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -5698,7 +5402,6 @@ _add:
         addressOffset: 0x404
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -5710,7 +5413,6 @@ _add:
         addressOffset: 0x408
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG15_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -5722,7 +5424,6 @@ _add:
         addressOffset: 0x40C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG15_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -5734,7 +5435,6 @@ _add:
         addressOffset: 0x410
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG15_AMR:
             description: 'Receive Message15 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -5746,7 +5446,6 @@ _add:
         addressOffset: 0x414
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG15_ACR:
             description: 'Receive Message15 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -5758,7 +5457,6 @@ _add:
         addressOffset: 0x418
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG15_AMR_DATA:
             description: 'Receive Message15 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -5770,7 +5468,6 @@ _add:
         addressOffset: 0x41C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG15_ACR_DATA:
             description: 'Receive Message15 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -5782,8 +5479,6 @@ _add:
         addressOffset: 0x420
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -5850,7 +5545,6 @@ _add:
         addressOffset: 0x424
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -5862,7 +5556,6 @@ _add:
         addressOffset: 0x428
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG16_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -5874,7 +5567,6 @@ _add:
         addressOffset: 0x42C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG16_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -5886,7 +5578,6 @@ _add:
         addressOffset: 0x430
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG16_AMR:
             description: 'Receive Message16 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -5898,7 +5589,6 @@ _add:
         addressOffset: 0x434
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG16_ACR:
             description: 'Receive Message16 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -5910,7 +5600,6 @@ _add:
         addressOffset: 0x438
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG16_AMR_DATA:
             description: 'Receive Message16 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -5922,7 +5611,6 @@ _add:
         addressOffset: 0x43C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG16_ACR_DATA:
             description: 'Receive Message16 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -5934,8 +5622,6 @@ _add:
         addressOffset: 0x440
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -6002,7 +5688,6 @@ _add:
         addressOffset: 0x444
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -6014,7 +5699,6 @@ _add:
         addressOffset: 0x448
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG17_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -6026,7 +5710,6 @@ _add:
         addressOffset: 0x44C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG17_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -6038,7 +5721,6 @@ _add:
         addressOffset: 0x450
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG17_AMR:
             description: 'Receive Message17 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -6050,7 +5732,6 @@ _add:
         addressOffset: 0x454
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG17_ACR:
             description: 'Receive Message17 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -6062,7 +5743,6 @@ _add:
         addressOffset: 0x458
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG17_AMR_DATA:
             description: 'Receive Message17 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -6074,7 +5754,6 @@ _add:
         addressOffset: 0x45C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG17_ACR_DATA:
             description: 'Receive Message17 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -6086,8 +5765,6 @@ _add:
         addressOffset: 0x460
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -6154,7 +5831,6 @@ _add:
         addressOffset: 0x464
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -6166,7 +5842,6 @@ _add:
         addressOffset: 0x468
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG18_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -6178,7 +5853,6 @@ _add:
         addressOffset: 0x46C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG18_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -6190,7 +5864,6 @@ _add:
         addressOffset: 0x470
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG18_AMR:
             description: 'Receive Message18 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -6202,7 +5875,6 @@ _add:
         addressOffset: 0x474
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG18_ACR:
             description: 'Receive Message18 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -6214,7 +5886,6 @@ _add:
         addressOffset: 0x478
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG18_AMR_DATA:
             description: 'Receive Message18 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -6226,7 +5897,6 @@ _add:
         addressOffset: 0x47C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG18_ACR_DATA:
             description: 'Receive Message18 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -6238,8 +5908,6 @@ _add:
         addressOffset: 0x480
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -6306,7 +5974,6 @@ _add:
         addressOffset: 0x484
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -6318,7 +5985,6 @@ _add:
         addressOffset: 0x488
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG19_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -6330,7 +5996,6 @@ _add:
         addressOffset: 0x48C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG19_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -6342,7 +6007,6 @@ _add:
         addressOffset: 0x490
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG19_AMR:
             description: 'Receive Message19 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -6354,7 +6018,6 @@ _add:
         addressOffset: 0x494
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG19_ACR:
             description: 'Receive Message19 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -6366,7 +6029,6 @@ _add:
         addressOffset: 0x498
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG19_AMR_DATA:
             description: 'Receive Message19 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -6378,7 +6040,6 @@ _add:
         addressOffset: 0x49C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG19_ACR_DATA:
             description: 'Receive Message19 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -6390,8 +6051,6 @@ _add:
         addressOffset: 0x4A0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -6458,7 +6117,6 @@ _add:
         addressOffset: 0x4A4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -6470,7 +6128,6 @@ _add:
         addressOffset: 0x4A8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG20_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -6482,7 +6139,6 @@ _add:
         addressOffset: 0x4AC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG20_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -6494,7 +6150,6 @@ _add:
         addressOffset: 0x4B0
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG20_AMR:
             description: 'Receive Message20 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -6506,7 +6161,6 @@ _add:
         addressOffset: 0x4B4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG20_ACR:
             description: 'Receive Message20 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -6518,7 +6172,6 @@ _add:
         addressOffset: 0x4B8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG20_AMR_DATA:
             description: 'Receive Message20 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -6530,7 +6183,6 @@ _add:
         addressOffset: 0x4BC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG20_ACR_DATA:
             description: 'Receive Message20 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -6542,8 +6194,6 @@ _add:
         addressOffset: 0x4C0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -6610,7 +6260,6 @@ _add:
         addressOffset: 0x4C4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -6622,7 +6271,6 @@ _add:
         addressOffset: 0x4C8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG21_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -6634,7 +6282,6 @@ _add:
         addressOffset: 0x4CC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG21_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -6646,7 +6293,6 @@ _add:
         addressOffset: 0x4D0
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG21_AMR:
             description: 'Receive Message21 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -6658,7 +6304,6 @@ _add:
         addressOffset: 0x4D4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG21_ACR:
             description: 'Receive Message21 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -6670,7 +6315,6 @@ _add:
         addressOffset: 0x4D8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG21_AMR_DATA:
             description: 'Receive Message21 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -6682,7 +6326,6 @@ _add:
         addressOffset: 0x4DC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG21_ACR_DATA:
             description: 'Receive Message21 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -6694,8 +6337,6 @@ _add:
         addressOffset: 0x4E0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -6762,7 +6403,6 @@ _add:
         addressOffset: 0x4E4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -6774,7 +6414,6 @@ _add:
         addressOffset: 0x4E8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG22_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -6786,7 +6425,6 @@ _add:
         addressOffset: 0x4EC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG22_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -6798,7 +6436,6 @@ _add:
         addressOffset: 0x4F0
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG22_AMR:
             description: 'Receive Message22 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -6810,7 +6447,6 @@ _add:
         addressOffset: 0x4F4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG22_ACR:
             description: 'Receive Message22 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -6822,7 +6458,6 @@ _add:
         addressOffset: 0x4F8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG22_AMR_DATA:
             description: 'Receive Message22 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -6834,7 +6469,6 @@ _add:
         addressOffset: 0x4FC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG22_ACR_DATA:
             description: 'Receive Message22 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -6846,8 +6480,6 @@ _add:
         addressOffset: 0x500
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -6914,7 +6546,6 @@ _add:
         addressOffset: 0x504
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -6926,7 +6557,6 @@ _add:
         addressOffset: 0x508
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG23_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -6938,7 +6568,6 @@ _add:
         addressOffset: 0x50C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG23_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -6950,7 +6579,6 @@ _add:
         addressOffset: 0x510
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG23_AMR:
             description: 'Receive Message23 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -6962,7 +6590,6 @@ _add:
         addressOffset: 0x514
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG23_ACR:
             description: 'Receive Message23 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -6974,7 +6601,6 @@ _add:
         addressOffset: 0x518
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG23_AMR_DATA:
             description: 'Receive Message23 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -6986,7 +6612,6 @@ _add:
         addressOffset: 0x51C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG23_ACR_DATA:
             description: 'Receive Message23 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -6998,8 +6623,6 @@ _add:
         addressOffset: 0x520
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -7066,7 +6689,6 @@ _add:
         addressOffset: 0x524
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -7078,7 +6700,6 @@ _add:
         addressOffset: 0x528
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG24_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -7090,7 +6711,6 @@ _add:
         addressOffset: 0x52C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG24_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -7102,7 +6722,6 @@ _add:
         addressOffset: 0x530
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG24_AMR:
             description: 'Receive Message24 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -7114,7 +6733,6 @@ _add:
         addressOffset: 0x534
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG24_ACR:
             description: 'Receive Message24 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -7126,7 +6744,6 @@ _add:
         addressOffset: 0x538
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG24_AMR_DATA:
             description: 'Receive Message24 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -7138,7 +6755,6 @@ _add:
         addressOffset: 0x53C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG24_ACR_DATA:
             description: 'Receive Message24 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -7150,8 +6766,6 @@ _add:
         addressOffset: 0x540
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -7218,7 +6832,6 @@ _add:
         addressOffset: 0x544
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -7230,7 +6843,6 @@ _add:
         addressOffset: 0x548
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG25_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -7242,7 +6854,6 @@ _add:
         addressOffset: 0x54C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG25_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -7254,7 +6865,6 @@ _add:
         addressOffset: 0x550
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG25_AMR:
             description: 'Receive Message25 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -7266,7 +6876,6 @@ _add:
         addressOffset: 0x554
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG25_ACR:
             description: 'Receive Message25 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -7278,7 +6887,6 @@ _add:
         addressOffset: 0x558
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG25_AMR_DATA:
             description: 'Receive Message25 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -7290,7 +6898,6 @@ _add:
         addressOffset: 0x55C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG25_ACR_DATA:
             description: 'Receive Message25 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -7302,8 +6909,6 @@ _add:
         addressOffset: 0x560
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -7370,7 +6975,6 @@ _add:
         addressOffset: 0x564
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -7382,7 +6986,6 @@ _add:
         addressOffset: 0x568
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG26_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -7394,7 +6997,6 @@ _add:
         addressOffset: 0x56C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG26_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -7406,7 +7008,6 @@ _add:
         addressOffset: 0x570
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG26_AMR:
             description: 'Receive Message26 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -7418,7 +7019,6 @@ _add:
         addressOffset: 0x574
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG26_ACR:
             description: 'Receive Message26 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -7430,7 +7030,6 @@ _add:
         addressOffset: 0x578
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG26_AMR_DATA:
             description: 'Receive Message26 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -7442,7 +7041,6 @@ _add:
         addressOffset: 0x57C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG26_ACR_DATA:
             description: 'Receive Message26 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -7454,8 +7052,6 @@ _add:
         addressOffset: 0x580
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -7522,7 +7118,6 @@ _add:
         addressOffset: 0x584
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -7534,7 +7129,6 @@ _add:
         addressOffset: 0x588
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG27_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -7546,7 +7140,6 @@ _add:
         addressOffset: 0x58C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG27_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -7558,7 +7151,6 @@ _add:
         addressOffset: 0x590
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG27_AMR:
             description: 'Receive Message27 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -7570,7 +7162,6 @@ _add:
         addressOffset: 0x594
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG27_ACR:
             description: 'Receive Message27 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -7582,7 +7173,6 @@ _add:
         addressOffset: 0x598
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG27_AMR_DATA:
             description: 'Receive Message27 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -7594,7 +7184,6 @@ _add:
         addressOffset: 0x59C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG27_ACR_DATA:
             description: 'Receive Message27 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -7606,8 +7195,6 @@ _add:
         addressOffset: 0x5A0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -7674,7 +7261,6 @@ _add:
         addressOffset: 0x5A4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -7686,7 +7272,6 @@ _add:
         addressOffset: 0x5A8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG28_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -7698,7 +7283,6 @@ _add:
         addressOffset: 0x5AC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG28_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -7710,7 +7294,6 @@ _add:
         addressOffset: 0x5B0
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG28_AMR:
             description: 'Receive Message28 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -7722,7 +7305,6 @@ _add:
         addressOffset: 0x5B4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG28_ACR:
             description: 'Receive Message28 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -7734,7 +7316,6 @@ _add:
         addressOffset: 0x5B8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG28_AMR_DATA:
             description: 'Receive Message28 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -7746,7 +7327,6 @@ _add:
         addressOffset: 0x5BC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG28_ACR_DATA:
             description: 'Receive Message28 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -7758,8 +7338,6 @@ _add:
         addressOffset: 0x5C0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -7826,7 +7404,6 @@ _add:
         addressOffset: 0x5C4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -7838,7 +7415,6 @@ _add:
         addressOffset: 0x5C8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG29_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -7850,7 +7426,6 @@ _add:
         addressOffset: 0x5CC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG29_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -7862,7 +7437,6 @@ _add:
         addressOffset: 0x5D0
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG29_AMR:
             description: 'Receive Message29 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -7874,7 +7448,6 @@ _add:
         addressOffset: 0x5D4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG29_ACR:
             description: 'Receive Message29 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -7886,7 +7459,6 @@ _add:
         addressOffset: 0x5D8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG29_AMR_DATA:
             description: 'Receive Message29 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -7898,7 +7470,6 @@ _add:
         addressOffset: 0x5DC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG29_ACR_DATA:
             description: 'Receive Message29 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -7910,8 +7481,6 @@ _add:
         addressOffset: 0x5E0
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -7978,7 +7547,6 @@ _add:
         addressOffset: 0x5E4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -7990,7 +7558,6 @@ _add:
         addressOffset: 0x5E8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG30_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -8002,7 +7569,6 @@ _add:
         addressOffset: 0x5EC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG30_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -8014,7 +7580,6 @@ _add:
         addressOffset: 0x5F0
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG30_AMR:
             description: 'Receive Message30 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -8026,7 +7591,6 @@ _add:
         addressOffset: 0x5F4
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG30_ACR:
             description: 'Receive Message30 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -8038,7 +7602,6 @@ _add:
         addressOffset: 0x5F8
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG30_AMR_DATA:
             description: 'Receive Message30 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -8050,7 +7613,6 @@ _add:
         addressOffset: 0x5FC
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG30_ACR_DATA:
             description: 'Receive Message30 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -8062,8 +7624,6 @@ _add:
         addressOffset: 0x600
         size: 32
         access: read-write
-        resetValue: 0x0
-        resetMask: 0xFF7FFFFF
         fields:
           WPNH:
             description: 'Write protect not high 0: Bit[21:16] remain unchanged 1: The write protect is not set and bit[21:16] are modified.. default The read back value of this bit is undefined'
@@ -8130,7 +7690,6 @@ _add:
         addressOffset: 0x604
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           ID:
             description: RxMessage0 buffer identifier (29-bit wide)
@@ -8142,7 +7701,6 @@ _add:
         addressOffset: 0x608
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG31_DATA_HIGH:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 1 [23:16]: CAN data byte 2 [15:8]: CAN data byte 3 [7:0]: CAN data byte 4 swap_endian = 1 [31:24]: CAN data byte 4 [23:16]: CAN data byte 3 [15:8]: CAN data byte 2 [7:0]: CAN data byte 1'
@@ -8154,7 +7712,6 @@ _add:
         addressOffset: 0x60C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG31_DATA_LOW:
             description: 'The byte mapping can be set using the CAN swap_endian configuration bit. swap_endian = 0.. default: [31:24]: CAN data byte 5 [23:16]: CAN data byte 6 [15:8]: CAN data byte 7 [7:0]: CAN data byte 8 swap_endian = 1 [31:24]: CAN data byte 8 [23:16]: CAN data byte 7 [15:8]: CAN data byte 6 [7:0]: CAN data byte 5'
@@ -8166,7 +7723,6 @@ _add:
         addressOffset: 0x610
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG31_AMR:
             description: 'Receive Message31 buffer AMR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: Reserved AMR: 0: The incoming bit is checked against the respective ACR. The message is not accepted when the incoming bit does not match with the respective ACR flag. 1: The incoming bit is a "don''t care"'
@@ -8178,7 +7734,6 @@ _add:
         addressOffset: 0x614
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG31_ACR:
             description: 'Receive Message31 buffer ACR bits [31:3]: Identifier [2]: IDE [1]: RTR [0]: N/A'
@@ -8190,7 +7745,6 @@ _add:
         addressOffset: 0x618
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG31_AMR_DATA:
             description: 'Receive Message31 buffer AMR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
@@ -8202,7 +7756,6 @@ _add:
         addressOffset: 0x61C
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           RX_MSG31_ACR_DATA:
             description: 'Receive Message31 buffer ACR Data bits [15:8]: CAN data byte 1 [7:0]: CAN data byte 2'
