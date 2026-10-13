@@ -10,7 +10,7 @@ _add:
         addressOffset: 0x0
         size: 32
         access: read-write
-        resetValue: 0x1000400
+        resetValue: 0x1000402
         fields:
           CLKRATE:
             description: 'Sets the SPI clock rate (master mode) 0: Not Supported N: SPICLK = HCLK/(2*N) No. can vary from 2-15 allowing rates from HCLK/4(Max) to HCLK/30(Min)'
