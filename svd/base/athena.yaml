@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: CC-BY-4.0
 _add:
   ATHENA:
-    description: ATHENA Controller
+    description: ATHENA Controller. Only present on devices with the security option (S-devices).
     baseAddress: 0x22006000
     registers:
       CSRMAIN:
