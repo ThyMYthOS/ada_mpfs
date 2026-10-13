@@ -72,17 +72,22 @@ class Field:
 
 @dataclass(slots=True)
 class Register:
-    """A register with its raw description table and its bit fields."""
+    """A register with its raw description table and its bit fields.
+
+    <reserved> holds the reserved fields. They are not part of the SVD fields, but their
+    reset values belong to the register reset value (for example bit 12 of PLL_CTRL2_MAIN).
+    """
     name: str
     info: dict[str, str]
     size: str
     fields: list[Field] = field(default_factory=list)
+    reserved: list[Field] = field(default_factory=list)
 
     @property
     def reset_value(self) -> int:
-        """Register reset value: the combination of the field reset values."""
+        """Register reset value: the combination of the reset values of all fields, reserved ones included."""
         value = 0
-        for f in self.fields:
+        for f in self.fields + self.reserved:
             try:
                 value |= int(f.reset or "0", 0) << f.msb_lsb[1]
             except ValueError:
@@ -152,13 +157,13 @@ def parse_info(table: Tag) -> dict[str, str]:
             for c in rows(table) if len(c) >= 2}
 
 
-def parse_fields(table: Tag) -> list[Field]:
-    """Parse the bit field table of a register.
+def parse_fields(table: Tag) -> tuple[list[Field], list[Field]]:
+    """Parse the bit field table of a register into its fields and its reserved fields.
 
     Rows without a bit range continue the description of the previous field.
-    Reserved fields are dropped.
     """
     fields: list[Field] = []
+    reserved: list[Field] = []
     current: Field | None = None
     for cols in rows(table)[1:]:  # skip header
         if not cols:
@@ -175,9 +180,8 @@ def parse_fields(table: Tag) -> list[Field]:
                 type=remove_whitespace(cols[3].get_text()),
                 reset=remove_whitespace(cols[4].get_text()),
             )
-            if current.name != "RESERVED":
-                fields.append(current)
-    return fields
+            (reserved if current.name == "RESERVED" else fields).append(current)
+    return fields, reserved
 
 
 def heading(soup: BeautifulSoup, tag: str, suffix: str) -> Tag:
@@ -204,11 +208,13 @@ def parse_peripheral(soup: BeautifulSoup) -> Peripheral:
         info_table = header.find_next("table")
         fields_table = info_table.find_next("table") if info_table else None
         if info_table and fields_table:
+            fields, reserved = parse_fields(fields_table)
             registers.append(Register(
                 name=reg_name,
                 info=parse_info(info_table),
                 size=summary[reg_name.upper()].get("register width (bits)", "32"),
-                fields=parse_fields(fields_table),
+                fields=fields,
+                reserved=reserved,
             ))
 
     # Several instances: the first "Register Summary" names the base instance.
