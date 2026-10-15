@@ -441,7 +441,7 @@ _add:
             bitWidth: 1
             access: read-write
       SUBBLK_CLOCK_CR:
-        description: Enables the clock to the MSS peripheral. By turning clocks off dynamic power can be saved. When the clock is off the peripheral should not be accessed, the access may be ignored, return unspecified data or result in bus response error.
+        description: Enables the clock to the MSS peripheral. By turning clocks off dynamic power can be saved. When the clock is off the peripheral should not be accessed, the access may be ignored, return unspecified data or result in bus response error. Bits 31, 30 and 17 are not implemented, they have no field here and read 0 after writing 1 (0xFFFFFFFF reads back 0x3FFDFFFF on the MPFS250T of the Icicle Kit); bit 17 lies between USB (bit 16) and RTC (bit 18).
         addressOffset: 0x84
         size: 32
         access: read-write
