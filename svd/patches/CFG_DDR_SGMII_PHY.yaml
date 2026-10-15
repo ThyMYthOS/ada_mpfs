@@ -2,11 +2,13 @@
 # SPDX-License-Identifier: CC-BY-4.0
 # source: official CFG_DDR_SGMII_PHY register summary and bit tables: PLL_DIV_0_1, PLL_DIV_2_3, PLL_PHADJ and SSCG_REG_2 reset values of the MAIN and IOSCB blocks (svd/base/cfg_ddr_sgmii_phy.yaml carries them unchanged, except PLL_PHADJ bit 0)
 # source: svd/base/cfg_ddr_sgmii_phy.yaml (regmap2svd.py output): PLL_PHADJ_MAIN 0x0 and PLL_PHADJ_IOSCB 0x4000 drop bit 0, a reserved read-only field with reset 1 in the official tables
-# source: probe on the Icicle Kit (MPFS250T, boot mode 0), reset halt with SYSREG.DFIAPB_CR=0x1 (MSS corner clock on; at the power-on value 0x2 every PHY register reads 0): 393 registers, 352 equal the SVD, 39 differ
+# source: measurement on the Icicle Kit (MPFS250T, boot mode 0), reset halt with SYSREG.DFIAPB_CR=0x1 (MSS corner clock on; at the power-on value 0x2 every PHY register reads 0): 393 registers, 352 equal the SVD, 39 differ
 # source: official SOFT_RESET_* register tables: PERIPH (bit 8) "asserted and left asserted at power-up" in the text, reset 0 in the table; BLOCKID (bits 31:16) read-only, listed with reset 0
-# source: same probe: bit 8 reads 1 in all ten SOFT_RESET_* registers, bits 31:16 read the block ID (0x0200 DDR_PHY, 0x0800 MAIN_PLL and IOSCB_PLL, 0x0A00 CFM, 0x0B00 BANK_CTRL, 0x0C00 IOCALIB, 0 for DECODER_* and TIP)
+# source: same measurement: bit 8 reads 1 in all ten SOFT_RESET_* registers, bits 31:16 read the block ID (0x0200 DDR_PHY, 0x0800 MAIN_PLL and IOSCB_PLL, 0x0A00 CFM, 0x0B00 BANK_CTRL, 0x0C00 IOCALIB, 0 for DECODER_* and TIP)
 # source: official RPC_RESET_* register tables: soft_reset_periph (bit 0) reset 0
-# source: same probe: all five RPC_RESET_* registers read 1
+# source: same measurement: all five RPC_RESET_* registers read 1
+# source: official TRAINING_RESET, DYN_CNTL, IOC_REG0 and RECAL_CNTL field tables: reset values 0x0, 0x400, 0x8000 and 0x8; field layout as used for the masks below
+# source: same measurement: TRAINING_RESET reads 0x2, DYN_CNTL 0x480, IOC_REG0 0xE000, RECAL_CNTL 0x20C8
 # status: unverified
 # owner: Manuel Stahl
 
@@ -42,6 +44,18 @@
 # RPC_RESET_* (five registers: MAIN_PLL, IOSCB, BANK_CTRL, IOCALIB, CFM): the only
 # field soft_reset_periph (bit 0) reads 1 at reset; the official table lists 0. The
 # evidence is five registers on one board, so it is medium.
+#
+# Live status bits are excluded from the comparison (the reset value stays as
+# documented, the mask drops the bits that change at run time):
+#   TRAINING_RESET  0x20007818  reads 0x2: bit 1 is a documented reserved bit that is
+#                   transient; only bit 0 (reset) is compared, resetMask 0x1.
+#   DYN_CNTL        0x20007C1C  reads 0x480 (reset 0x400): bit 7 bc_vrgen_oor is a
+#                   read-only status; resetMask 0xFFFFFF7F.
+#   IOC_REG0        0x20007204  reads 0xE000 (reset 0x8000): bits 14 reg_calib_lock and
+#                   13 reg_calib_start are set by the calibration; resetMask 0xFFFF9FFF.
+#   RECAL_CNTL      0x20007C14  reads 0x20C8 (reset 0x8): bits 13:12 reg_pvt_reg_calib_clkdiv,
+#                   7 reg_pvt_calib_lock and 6 reg_pvt_calib_start change at run time;
+#                   resetMask 0xFFFFCF3F.
 CFG_DDR_SGMII_PHY:
   _modify:
     PLL_DIV_0_1_MAIN:
@@ -98,3 +112,11 @@ CFG_DDR_SGMII_PHY:
       resetValue: 0x1
     RPC_RESET_CFM:
       resetValue: 0x1
+    TRAINING_RESET:
+      resetMask: 0x1
+    DYN_CNTL:
+      resetMask: 0xFFFFFF7F
+    IOC_REG0:
+      resetMask: 0xFFFF9FFF
+    RECAL_CNTL:
+      resetMask: 0xFFFFCF3F
