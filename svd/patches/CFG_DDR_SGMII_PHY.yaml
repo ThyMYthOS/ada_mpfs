@@ -3,6 +3,8 @@
 # source: official CFG_DDR_SGMII_PHY register summary and bit tables: PLL_DIV_0_1, PLL_DIV_2_3, PLL_PHADJ and SSCG_REG_2 reset values of the MAIN and IOSCB blocks (svd/base/cfg_ddr_sgmii_phy.yaml carries them unchanged, except PLL_PHADJ bit 0)
 # source: svd/base/cfg_ddr_sgmii_phy.yaml (regmap2svd.py output): PLL_PHADJ_MAIN 0x0 and PLL_PHADJ_IOSCB 0x4000 drop bit 0, a reserved read-only field with reset 1 in the official tables
 # source: probe on the Icicle Kit (MPFS250T, boot mode 0), reset halt with SYSREG.DFIAPB_CR=0x1 (MSS corner clock on; at the power-on value 0x2 every PHY register reads 0): 393 registers, 352 equal the SVD, 39 differ
+# source: official SOFT_RESET_* register tables: PERIPH (bit 8) "asserted and left asserted at power-up" in the text, reset 0 in the table; BLOCKID (bits 31:16) read-only, listed with reset 0
+# source: same probe: bit 8 reads 1 in all ten SOFT_RESET_* registers, bits 31:16 read the block ID (0x0200 DDR_PHY, 0x0800 MAIN_PLL and IOSCB_PLL, 0x0A00 CFM, 0x0B00 BANK_CTRL, 0x0C00 IOCALIB, 0 for DECODER_* and TIP)
 # status: unverified
 # owner: Manuel Stahl
 
@@ -26,6 +28,14 @@
 #
 # SSCG_REG_2_MAIN (0x200070AC) reads 0x80, which matches no official value (MAIN
 # 0x30, IOSCB 0x20): unexplained, not patched.
+#
+# SOFT_RESET_* (ten registers: DDR_PHY, MAIN_PLL, IOSCB_PLL, BANK_CTRL, IOCALIB, CFM,
+# DECODER_DRIVER, DECODER_ODT, DECODER_IO, TIP): PERIPH (bit 8) reads 1 at reset, as the
+# official text says ("asserted at power-up"; the table lists 0). Bits 31:16 are a
+# read-only block ID that the official map lists as 0 and that the SVD cannot know per
+# silicon, so they are excluded from the comparison like DEVICE_ID in SCB_REGS.yaml:
+# resetValue 0x100, resetMask 0x103 (bit 8 and the two write-only bits 1:0 compared,
+# which read 0).
 CFG_DDR_SGMII_PHY:
   _modify:
     PLL_DIV_0_1_MAIN:
@@ -42,3 +52,33 @@ CFG_DDR_SGMII_PHY:
       resetValue: 0x1
     SSCG_REG_2_IOSCB:
       resetValue: 0x30
+    SOFT_RESET_DDR_PHY:
+      resetValue: 0x100
+      resetMask: 0x103
+    SOFT_RESET_MAIN_PLL:
+      resetValue: 0x100
+      resetMask: 0x103
+    SOFT_RESET_IOSCB_PLL:
+      resetValue: 0x100
+      resetMask: 0x103
+    SOFT_RESET_BANK_CTRL:
+      resetValue: 0x100
+      resetMask: 0x103
+    SOFT_RESET_IOCALIB:
+      resetValue: 0x100
+      resetMask: 0x103
+    SOFT_RESET_CFM:
+      resetValue: 0x100
+      resetMask: 0x103
+    SOFT_RESET_DECODER_DRIVER:
+      resetValue: 0x100
+      resetMask: 0x103
+    SOFT_RESET_DECODER_ODT:
+      resetValue: 0x100
+      resetMask: 0x103
+    SOFT_RESET_DECODER_IO:
+      resetValue: 0x100
+      resetMask: 0x103
+    SOFT_RESET_TIP:
+      resetValue: 0x100
+      resetMask: 0x103
