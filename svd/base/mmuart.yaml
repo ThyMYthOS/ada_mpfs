@@ -491,26 +491,26 @@ _add:
             bitWidth: 8
             access: read-write
       DLR:
-        description: Divisor latch (LSB)
+        description: 'Divisor latch (LSB, DLL of a 16550). The address (offset 0x80) is an alias of the data port at offset 0: it reaches the divisor latch only with LCR.DLAB 1; with DLAB 0 it reads and writes RBR/THR instead. The reset value 0x1 is the latch value, a read at LCR 0 after reset returns the RBR value (measured on an Icicle Kit MPFS250T with the clock enabled: +0x00, +0x80 and +0x100 read 0x01 at LCR 0x83, a write of 0x37 at +0x00 reads back at all three; at LCR 0 +0x80 reads the same as +0x00 and a write of 0x37 to +0x80 changes no readback).'
         addressOffset: 0x80
         size: 32
         access: read-write
         resetValue: 0x1
         fields:
           DLR:
-            description: This divisor latch LSB register (DLR) holds the LSB of the integer divisor value used to calculate the baud rate. The baud rate can be calculated using EQ 1.. 2.. 3.. or 4. ** To access this Register DAP (bit7) of Line Control Register (LCR) should be set.
+            description: This divisor latch LSB register (DLR) holds the LSB of the integer divisor value used to calculate the baud rate. The baud rate can be calculated using EQ 1.. 2.. 3.. or 4. ** To access this register the divisor latch access bit (DLAB, bit 7) of the line control register (LCR) must be set.
             bitOffset: 0
             bitWidth: 8
             access: read-write
       DMR:
-        description: Divisor latch (MSB)
+        description: 'Divisor latch (MSB, DLM of a 16550). The address (offset 0x84) is an alias of the data port at offset 4: it reaches the divisor latch only with LCR.DLAB 1; with DLAB 0 it reads and writes IER instead. The reset value 0x0 is the latch value, a read at LCR 0 after reset returns the IER value (measured on an Icicle Kit MPFS250T with the clock enabled: +0x84 reads 0 at LCR 0 and at LCR 0x83, the IER value and the DLM reset value coincide).'
         addressOffset: 0x84
         size: 32
         access: read-write
         resetValue: 0x0
         fields:
           DMR:
-            description: This divisor latch MSB register (DMR) holds the MSB of the integer divisor value used to calculate the baud rate. The baud rate can be calculated using EQ 1.. 2.. 3.. or 4. ** To access this Register DAP (bit7) of Line Control Register (LCR) should be set.
+            description: This divisor latch MSB register (DMR) holds the MSB of the integer divisor value used to calculate the baud rate. The baud rate can be calculated using EQ 1.. 2.. 3.. or 4. ** To access this register the divisor latch access bit (DLAB, bit 7) of the line control register (LCR) must be set.
             bitOffset: 0
             bitWidth: 8
             access: read-write
