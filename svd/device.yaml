@@ -32,6 +32,7 @@ _include:
   - base/usb.yaml
   - base/wdog.yaml
   - patches/CAN_A_LO.yaml
+  - patches/CFG_DDR_SGMII_PHY.yaml
   - patches/EMMC_SD.yaml
   - patches/I2C_A_LO.yaml
   - patches/MMUART0_LO.yaml

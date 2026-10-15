@@ -1,0 +1,44 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+# source: official CFG_DDR_SGMII_PHY register summary and bit tables: PLL_DIV_0_1, PLL_DIV_2_3, PLL_PHADJ and SSCG_REG_2 reset values of the MAIN and IOSCB blocks (svd/base/cfg_ddr_sgmii_phy.yaml carries them unchanged, except PLL_PHADJ bit 0)
+# source: svd/base/cfg_ddr_sgmii_phy.yaml (regmap2svd.py output): PLL_PHADJ_MAIN 0x0 and PLL_PHADJ_IOSCB 0x4000 drop bit 0, a reserved read-only field with reset 1 in the official tables
+# source: probe on the Icicle Kit (MPFS250T, boot mode 0), reset halt with SYSREG.DFIAPB_CR=0x1 (MSS corner clock on; at the power-on value 0x2 every PHY register reads 0): 393 registers, 352 equal the SVD, 39 differ
+# status: unverified
+# owner: Manuel Stahl
+
+# The probe reads the official reset value of the MAIN block at the IOSCB address and
+# the other way round for PLL_DIV_0_1, PLL_DIV_2_3, PLL_PHADJ and SSCG_REG_2 (IOSCB):
+#
+#   register          address     SVD         official    measured
+#   PLL_DIV_0_1_MAIN  0x20007090  0x08000200  0x08000200  0x02000100
+#   PLL_DIV_0_1_IOSCB 0x20007110  0x02000100  0x02000100  0x08000200
+#   PLL_DIV_2_3_MAIN  0x20007094  0x14000800  0x14000800  0x01000100
+#   PLL_DIV_2_3_IOSCB 0x20007114  0x01000100  0x01000100  0x14000800
+#   PLL_PHADJ_MAIN    0x200070A0  0x0         0x1         0x4001
+#   PLL_PHADJ_IOSCB   0x20007120  0x4000      0x4001      0x1
+#   SSCG_REG_2_IOSCB  0x2000712C  0x20        0x20        0x30
+#
+# This is consistent with exchanged MAIN and IOSCB labels or addresses in the official
+# map, but the readbacks cannot tell which of the two is wrong. For the SVD only the
+# reset value per address matters, so the reset values are set to what the hardware
+# reads at each address; no register is renamed and no address changes. PLL_PHADJ
+# also gets the reserved read-only bit 0 (reset 1) back.
+#
+# SSCG_REG_2_MAIN (0x200070AC) reads 0x80, which matches no official value (MAIN
+# 0x30, IOSCB 0x20): unexplained, not patched.
+CFG_DDR_SGMII_PHY:
+  _modify:
+    PLL_DIV_0_1_MAIN:
+      resetValue: 0x02000100
+    PLL_DIV_0_1_IOSCB:
+      resetValue: 0x08000200
+    PLL_DIV_2_3_MAIN:
+      resetValue: 0x01000100
+    PLL_DIV_2_3_IOSCB:
+      resetValue: 0x14000800
+    PLL_PHADJ_MAIN:
+      resetValue: 0x4001
+    PLL_PHADJ_IOSCB:
+      resetValue: 0x1
+    SSCG_REG_2_IOSCB:
+      resetValue: 0x30
