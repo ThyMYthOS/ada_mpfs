@@ -3,14 +3,25 @@
 # source: SiFive U54-MC Core Complex Manual, PLIC chapter (register layout)
 # source: polarfire-soc/platform mpfs_hal/common/mss_plic.h @ 8d52d59 (PLIC_Type, TARGET_OFFSET_*)
 # source: SiFive U54-MC Core Complex Manual, PLIC chapter: reading a claim/complete register claims the highest-priority pending interrupt and clears its pending bit
+# source: Icicle Kit measurement, boot mode 0, power-on state and after reset halt: the priority, enable and threshold registers read different nonzero values after different power-ups
+# source: Icicle Kit measurement, boot mode 0: the priority, enable and threshold registers are identical word for word (255 words) before and after reset halt
+# source: Icicle Kit measurement, boot mode 0: the pending registers are zero after reset halt and after a claim; they were nonzero only after some power-ups (PENDING3 bit 23, source 119 = F2M_1, a fabric interrupt line)
+# source: Icicle Kit measurement, boot mode 0: CLAIM_COMPLETE reads 0 for 8 of 9 contexts and 0x77 (source 119) for hart 0, machine mode, while source 119 was pending
+# source: hw/probe_irq.S: the PLIC powers up with random enables, priorities and pending bits (measured)
 # status: unverified
 # owner: Manuel Stahl
 
-# Platform-Level Interrupt Controller. Context numbering: hart 0 -> M context 0;
+# Platform-Level Interrupt Controller. The priority, enable and threshold registers
+# have no reset value: they power up with random content (measured in boot
+# mode 0) that is stable across reset halt. The pending bits are driven by the
+# interrupt sources, not random: they read 0 after reset halt, and were nonzero only
+# after some power-ups while a source (119, F2M_1) asserted its line. The pending registers
+# and the CLAIM_COMPLETE registers therefore keep the reset value 0 (a claim reads 0
+# when nothing is pending and enabled). Context numbering: hart 0 -> M context 0;
 # hart n (1..4) -> M context 2n-1, S context 2n.
 _add:
   PLIC:
-    description: Platform-Level Interrupt Controller
+    description: Platform-Level Interrupt Controller. The priority, enable and threshold registers have no defined value after power-up (random in measurements, stable across reset halt); the pending bits follow the interrupt sources and read 0 when no source is pending
     groupName: PLIC
     baseAddress: 0x0C000000
     addressBlock:
@@ -23,7 +34,6 @@ _add:
         addressOffset: 0x4
         size: 32
         access: read-write
-        resetValue: 0x0
         dim: 186
         dimIncrement: 0x4
         dimIndex: "1-186"
@@ -46,7 +56,6 @@ _add:
         addressOffset: 0x2000
         size: 32
         access: read-write
-        resetValue: 0x0
         dim: 6
         dimIncrement: 0x4
         dimIndex: "0-5"
@@ -55,7 +64,6 @@ _add:
         addressOffset: 0x2080
         size: 32
         access: read-write
-        resetValue: 0x0
         dim: 6
         dimIncrement: 0x4
         dimIndex: "0-5"
@@ -64,7 +72,6 @@ _add:
         addressOffset: 0x2100
         size: 32
         access: read-write
-        resetValue: 0x0
         dim: 6
         dimIncrement: 0x4
         dimIndex: "0-5"
@@ -73,7 +80,6 @@ _add:
         addressOffset: 0x2180
         size: 32
         access: read-write
-        resetValue: 0x0
         dim: 6
         dimIncrement: 0x4
         dimIndex: "0-5"
@@ -82,7 +88,6 @@ _add:
         addressOffset: 0x2200
         size: 32
         access: read-write
-        resetValue: 0x0
         dim: 6
         dimIncrement: 0x4
         dimIndex: "0-5"
@@ -91,7 +96,6 @@ _add:
         addressOffset: 0x2280
         size: 32
         access: read-write
-        resetValue: 0x0
         dim: 6
         dimIncrement: 0x4
         dimIndex: "0-5"
@@ -100,7 +104,6 @@ _add:
         addressOffset: 0x2300
         size: 32
         access: read-write
-        resetValue: 0x0
         dim: 6
         dimIncrement: 0x4
         dimIndex: "0-5"
@@ -109,7 +112,6 @@ _add:
         addressOffset: 0x2380
         size: 32
         access: read-write
-        resetValue: 0x0
         dim: 6
         dimIncrement: 0x4
         dimIndex: "0-5"
@@ -118,7 +120,6 @@ _add:
         addressOffset: 0x2400
         size: 32
         access: read-write
-        resetValue: 0x0
         dim: 6
         dimIncrement: 0x4
         dimIndex: "0-5"
@@ -127,7 +128,6 @@ _add:
         addressOffset: 0x200000
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           THRESHOLD:
             description: Sources with a priority less than or equal to the threshold are masked
@@ -150,7 +150,6 @@ _add:
         addressOffset: 0x201000
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           THRESHOLD:
             description: Sources with a priority less than or equal to the threshold are masked
@@ -173,7 +172,6 @@ _add:
         addressOffset: 0x202000
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           THRESHOLD:
             description: Sources with a priority less than or equal to the threshold are masked
@@ -196,7 +194,6 @@ _add:
         addressOffset: 0x203000
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           THRESHOLD:
             description: Sources with a priority less than or equal to the threshold are masked
@@ -219,7 +216,6 @@ _add:
         addressOffset: 0x204000
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           THRESHOLD:
             description: Sources with a priority less than or equal to the threshold are masked
@@ -242,7 +238,6 @@ _add:
         addressOffset: 0x205000
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           THRESHOLD:
             description: Sources with a priority less than or equal to the threshold are masked
@@ -265,7 +260,6 @@ _add:
         addressOffset: 0x206000
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           THRESHOLD:
             description: Sources with a priority less than or equal to the threshold are masked
@@ -288,7 +282,6 @@ _add:
         addressOffset: 0x207000
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           THRESHOLD:
             description: Sources with a priority less than or equal to the threshold are masked
@@ -311,7 +304,6 @@ _add:
         addressOffset: 0x208000
         size: 32
         access: read-write
-        resetValue: 0x0
         fields:
           THRESHOLD:
             description: Sources with a priority less than or equal to the threshold are masked
