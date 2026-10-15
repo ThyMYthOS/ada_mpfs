@@ -3,10 +3,15 @@
 # source: svd/base/mmuart.yaml, RBR description: the register is loaded with data from the receive FIFO
 # source: 16550-compatible UART: reading RBR removes the oldest character from the receive FIFO
 # source: Linux drivers/tty/serial/8250/8250_port.c: serial8250_read_char reads UART_RX once per received character (16550 behaviour, MMUART silicon not checked)
+# source: measurement on an Icicle Kit MPFS250T, boot mode 0, MMUART0 (0x20000000) clocked (SYSREG.SUBBLK_CLOCK_CR 0x21, SOFT_RESET_CR 0x3FFFFFDE): with LCR 0 (DLAB 0) the addresses +0x100..+0x11C read the registers at +0x00..+0x1C; +0x108 reads IIR (0xC1)
+# source: platform driver mss_uart.h: the register struct has RBR/THR/DLR at offset 0 and IIR/FCR at offset 8 (one address, the access type selects the register)
 # status: unverified
 # owner: Manuel Stahl
 
 # Reading RBR pops the receive FIFO: a read with a side effect on state outside the register.
+# THR (0x100) and FCR (0x108) are the write-only names of the data ports at offset 0 and 8 (RBR/THR, IIR/FCR share an
+# address; the access type selects the register). They are write-only and carry no readAction: a read of either address
+# returns RBR resp. IIR (and pops the receive FIFO for THR), it is not an access to THR or FCR.
 # The other MMUART instances are derivedFrom MMUART0_LO and inherit it.
 MMUART0_LO:
   RBR:
