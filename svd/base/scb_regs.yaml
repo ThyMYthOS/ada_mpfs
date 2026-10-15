@@ -546,14 +546,14 @@ _add:
             bitWidth: 32
             access: read-write
       BOOT_ROM0:
-        description: 32-byte ROM for CPU booting Holds eight 32-bit Instructions
+        description: 32-byte ROM for CPU booting Holds eight 32-bit Instructions. After power-on the eight registers (BOOT_ROM0 to BOOT_ROM7, 0x20003120 to 0x2000313C, the reset vector BOOT_ADDR) hold the boot stub of the silicon, which starts with csrr a0,mhartid (0xF1402573); these words are the reset values. The boot software replaces the stub with a park loop (li a0,0; csrw mip,a0; wfi; j to the start), which the register map of Microchip lists as the reset value; the DATA field descriptions of these registers name the instructions of the park loop
         addressOffset: 0x120
         size: 32
         access: read-write
-        resetValue: 0x513
+        resetValue: 0xF1402573
         fields:
           DATA:
-            description: li a0,0
+            description: Park loop instruction that the boot software writes, li a0,0
             bitOffset: 0
             bitWidth: 32
             access: read-write
@@ -561,10 +561,10 @@ _add:
         addressOffset: 0x124
         size: 32
         access: read-write
-        resetValue: 0x34451073
+        resetValue: 0x2737050A
         fields:
           DATA:
-            description: csrw mip,a0
+            description: Park loop instruction that the boot software writes, csrw mip,a0
             bitOffset: 0
             bitWidth: 32
             access: read-write
@@ -572,10 +572,10 @@ _add:
         addressOffset: 0x128
         size: 32
         access: read-write
-        resetValue: 0x10500073
+        resetValue: 0x67832000
         fields:
           DATA:
-            description: wfi
+            description: Park loop instruction that the boot software writes, wfi
             bitOffset: 0
             bitWidth: 32
             access: read-write
@@ -583,10 +583,10 @@ _add:
         addressOffset: 0x12C
         size: 32
         access: read-write
-        resetValue: 0xFF5FF06F
+        resetValue: 0xDFF50047
         fields:
           DATA:
-            description: j 20003120 <_start>
+            description: Park loop instruction that the boot software writes, j 20003120 <_start>
             bitOffset: 0
             bitWidth: 32
             access: read-write
@@ -594,10 +594,10 @@ _add:
         addressOffset: 0x130
         size: 32
         access: read-write
-        resetValue: 0xFF1FF06F
+        resetValue: 0x100F
         fields:
           DATA:
-            description: j 20003120 <_start>
+            description: Park loop instruction that the boot software writes, j 20003120 <_start>
             bitOffset: 0
             bitWidth: 32
             access: read-write
@@ -605,10 +605,10 @@ _add:
         addressOffset: 0x134
         size: 32
         access: read-write
-        resetValue: 0xFEDFF06F
+        resetValue: 0xE30397AA
         fields:
           DATA:
-            description: j 20003120 <_start>
+            description: Park loop instruction that the boot software writes, j 20003120 <_start>
             bitOffset: 0
             bitWidth: 32
             access: read-write
@@ -616,10 +616,10 @@ _add:
         addressOffset: 0x138
         size: 32
         access: read-write
-        resetValue: 0xFE9FF06F
+        resetValue: 0x83020007
         fields:
           DATA:
-            description: j 20003120 <_start>
+            description: Park loop instruction that the boot software writes, j 20003120 <_start>
             bitOffset: 0
             bitWidth: 32
             access: read-write
@@ -627,10 +627,10 @@ _add:
         addressOffset: 0x13C
         size: 32
         access: read-write
-        resetValue: 0xFE5FF06F
+        resetValue: 0x0
         fields:
           DATA:
-            description: j 20003120 <_start>
+            description: Park loop instruction that the boot software writes, j 20003120 <_start>
             bitOffset: 0
             bitWidth: 32
             access: read-write
