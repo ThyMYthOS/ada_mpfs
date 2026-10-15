@@ -5,6 +5,8 @@
 # source: probe on the Icicle Kit (MPFS250T, boot mode 0), reset halt with SYSREG.DFIAPB_CR=0x1 (MSS corner clock on; at the power-on value 0x2 every PHY register reads 0): 393 registers, 352 equal the SVD, 39 differ
 # source: official SOFT_RESET_* register tables: PERIPH (bit 8) "asserted and left asserted at power-up" in the text, reset 0 in the table; BLOCKID (bits 31:16) read-only, listed with reset 0
 # source: same probe: bit 8 reads 1 in all ten SOFT_RESET_* registers, bits 31:16 read the block ID (0x0200 DDR_PHY, 0x0800 MAIN_PLL and IOSCB_PLL, 0x0A00 CFM, 0x0B00 BANK_CTRL, 0x0C00 IOCALIB, 0 for DECODER_* and TIP)
+# source: official RPC_RESET_* register tables: soft_reset_periph (bit 0) reset 0
+# source: same probe: all five RPC_RESET_* registers read 1
 # status: unverified
 # owner: Manuel Stahl
 
@@ -36,6 +38,10 @@
 # silicon, so they are excluded from the comparison like DEVICE_ID in SCB_REGS.yaml:
 # resetValue 0x100, resetMask 0x103 (bit 8 and the two write-only bits 1:0 compared,
 # which read 0).
+#
+# RPC_RESET_* (five registers: MAIN_PLL, IOSCB, BANK_CTRL, IOCALIB, CFM): the only
+# field soft_reset_periph (bit 0) reads 1 at reset; the official table lists 0. The
+# evidence is five registers on one board, so it is medium.
 CFG_DDR_SGMII_PHY:
   _modify:
     PLL_DIV_0_1_MAIN:
@@ -82,3 +88,13 @@ CFG_DDR_SGMII_PHY:
     SOFT_RESET_TIP:
       resetValue: 0x100
       resetMask: 0x103
+    RPC_RESET_MAIN_PLL:
+      resetValue: 0x1
+    RPC_RESET_IOSCB:
+      resetValue: 0x1
+    RPC_RESET_BANK_CTRL:
+      resetValue: 0x1
+    RPC_RESET_IOCALIB:
+      resetValue: 0x1
+    RPC_RESET_CFM:
+      resetValue: 0x1
