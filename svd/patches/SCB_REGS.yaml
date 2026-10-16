@@ -3,6 +3,8 @@
 # source: svd/base/scb_regs.yaml, SOFT_RESET description: the register is not readable by the MSS or the debug access
 # source: probe finding on the Icicle Kit: SOFT_RESET (0x20003000) reads 0x0, the SVD resetValue is 0x07200000
 # source: probe finding on the Icicle Kit: DEVICE_ID (0x20003188) reads 0xF81A, the SVD resetValue is 0x0
+# source: svd/base/scb_regs.yaml, MSS_RESET_CR.REASON description: a read-only copy of the reset reason register of SYSREG
+# source: Icicle Kit measurement: MSS_RESET_CR (0x20003100) reads 0x01FF0000 after the boot software and 0x01FF0100 at power-on and after reset halt, the SVD resetValue is 0x107
 # source: svd/base/scb_regs.yaml, MESSAGE.DATA description: the system controller sets MESSAGE on completion of a system service (return status), signalled by MESSAGE_INT
 # source: the annotation of the system controller mailbox with Effective_Reads that tools/pac_gen.py carried before; no read side effect is documented
 # source: Linux drivers/mailbox/mailbox-mpfs.c reads MESSAGE and acknowledges through MESSAGE_INT (0x18C); it shows no read side effect on MESSAGE, the entry stays as the conservative reading
@@ -16,6 +18,10 @@
 # DEVICE_ID holds the device identification (IDV, IDP), a value set by the silicon that
 # the SVD does not know. Keep the reset value and compare no bit.
 #
+# MSS_RESET_CR.REASON (bits 24:16) is a copy of the reset reason of the system, which the
+# register map does not give: compare no bit of it (resetMask 0xFE00FFFF). The other bits
+# stay compared.
+#
 # MESSAGE carries the status of a system service that the system controller wrote. The
 # register map documents no read side effect; it is kept as a mailbox register (the
 # conservative reading for SPARK). Verify on silicon before relying on it.
@@ -26,6 +32,8 @@ SCB_REGS:
       resetMask: 0x0
     DEVICE_ID:
       resetMask: 0x0
+    MSS_RESET_CR:
+      resetMask: 0xFE00FFFF
   MESSAGE:
     _modify:
       DATA:
