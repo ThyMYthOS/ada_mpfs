@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+#
+# Requirements on the board tools. See README.md for the format.
+requirements:
+  - id: HW-001
+    text: >-
+      svd_probe reads no register that the SVD marks write-only, and none that has a readAction
+      unless it is asked to.
+    tsf: false
+    source: hw/README.md

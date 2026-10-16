@@ -44,6 +44,7 @@
 #    - Exact string match. No tolerances.
 #
 #  Plain /bin/sh + awk only: this runs on macOS (BSD userland).
+# @req BLD-003
 
 set -u
 

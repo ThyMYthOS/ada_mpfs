@@ -9,6 +9,7 @@
 # match show that the stand-ins are not what makes the others fail. What this cannot
 # show: that a real OpenOCD, FlashPro6 and CP2108 behave like the stand-ins. Exits
 # non-zero on any failure.
+# @verifies BLD-001
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"

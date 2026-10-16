@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+#
+# Requirements on the register description. See README.md for the format.
+requirements:
+  - id: SVD-001
+    text: >-
+      The merged SVD is built from svd/base, svd/patches and svd/additions alone, and its SHA-256
+      is recorded in svd/PolarfireSoC.sha256; ./x svd check fails when the rebuilt file differs.
+    tsf: false
+    source: svd/README.md

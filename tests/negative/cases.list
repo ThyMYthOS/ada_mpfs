@@ -17,6 +17,7 @@
 #
 # Every kind has its control cases: the same objects or sources, without the
 # fault, must succeed, so that a negative cannot pass because the setup is broken.
+# @verifies BLD-002
 name	kind	arg	expect	pattern
 control_e51	link	e51:e51	links	-
 control_u54	link	u54:u54	links	-

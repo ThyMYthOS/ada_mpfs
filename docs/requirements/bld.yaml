@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+#
+# Requirements on the build and the toolchain. See README.md for the format.
+requirements:
+  - id: BLD-001
+    text: >-
+      The versions of the tools that the build, the analysis and the board scripts use are pinned in
+      tools/toolchain.env, and a script that finds another version refuses to run.
+    tsf: false
+    source: tools/toolchain.env
+  - id: BLD-002
+    text: >-
+      Objects built for different floating-point ABIs (E51 lp64, U54 lp64d) are not linked into one
+      image: the link fails.
+    tsf: false
+    source: tests/negative/README.md
+  - id: BLD-003
+    text: >-
+      The sizes of the example images are recorded per image and compiler in metrics.golden, and
+      ./x metrics verify fails on a deviation or on an image without a row.
+    tsf: false
+    source: tools/metrics.sh

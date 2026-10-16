@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
+# @req SVD-001
 """Merge, validate and check the PolarFire SoC SVD.
 
   svd.py merge   build build/svd/PolarfireSoC.svd and record its hash in svd/PolarfireSoC.sha256

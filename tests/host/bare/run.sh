@@ -7,6 +7,7 @@
 # tools/metrics.sh (with stand-ins for size and readelf), each with positive and
 # negative cases that must really fail, and properties of the committed
 # metrics.golden. Exits non-zero on any failure.
+# @verifies BLD-003
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"

@@ -7,6 +7,7 @@
 # nor an Ada compiler: the check of the peripheral groups svd2ada shares types for,
 # the SPARK aspects with their expected counts, the header, the LO/HI base address
 # check. Exits non-zero on any failure.
+# @verifies PAC-001
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"

@@ -7,6 +7,7 @@
 # cases.list and fixtures. Each negative case must make the runner exit
 # non-zero, for the reason it names, and the positive cases show that the
 # stand-ins are not what makes it fail. Exits non-zero on any failure.
+# @verifies BLD-002
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
