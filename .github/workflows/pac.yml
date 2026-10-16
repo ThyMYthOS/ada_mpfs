@@ -8,8 +8,7 @@ name: pac
 
 on:
   push:
-    branches: [main]
-  pull_request:
+    branches: ["**"]
     paths:
       - ".github/workflows/pac.yml"
       - "svd/**"
@@ -17,6 +16,20 @@ on:
       - "tools/**"
       - "tests/host/**"
       - "x"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/pac.yml"
+      - "svd/**"
+      - "libs/mpfs_pac/**"
+      - "tools/**"
+      - "tests/host/**"
+      - "x"
+
+# One run per branch: a newer push cancels the run of the older one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -26,9 +39,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v6.0.2
 
-      - uses: actions/setup-python@v5.6.0
+      - uses: actions/setup-python@v6.2.0
         with:
           python-version: "3.13"
 
@@ -41,7 +54,7 @@ jobs:
       # tool prefixes (alr, svdtools, svd2ada, ...): every version is pinned in
       # tools/toolchain.env, so the cache key follows that file.
       - name: Cache the toolchains and the svd2ada build
-        uses: actions/cache@v4.2.3
+        uses: actions/cache@v5.0.4
         with:
           path: |
             ~/.local/share/alire

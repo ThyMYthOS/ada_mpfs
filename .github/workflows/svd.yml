@@ -7,8 +7,7 @@ name: svd
 
 on:
   push:
-    branches: [main]
-  pull_request:
+    branches: ["**"]
     paths:
       - ".github/workflows/svd.yml"
       - "svd/**"
@@ -16,6 +15,20 @@ on:
       - "tools/**"
       - "tests/host/**"
       - "x"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/svd.yml"
+      - "svd/**"
+      - "hw/svd_probe.py"
+      - "tools/**"
+      - "tests/host/**"
+      - "x"
+
+# One run per branch: a newer push cancels the run of the older one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -25,9 +38,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v6.0.2
 
-      - uses: actions/setup-python@v5.6.0
+      - uses: actions/setup-python@v6.2.0
         with:
           python-version: "3.13"
           cache: pip
@@ -42,7 +55,7 @@ jobs:
       # The release binary and its pin are in tools/toolchain.env; the cache key follows it.
       - name: Cache svdtools
         id: svdtools
-        uses: actions/cache@v4.2.3
+        uses: actions/cache@v5.0.4
         with:
           path: ~/.local/share/ada_mpfs/tools
           key: svdtools-${{ runner.os }}-${{ hashFiles('tools/toolchain.env') }}

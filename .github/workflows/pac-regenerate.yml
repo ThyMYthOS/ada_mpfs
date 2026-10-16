@@ -26,11 +26,11 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v6.0.2
         with:
           ref: ${{ github.head_ref || github.ref_name }}
 
-      - uses: actions/setup-python@v5.6.0
+      - uses: actions/setup-python@v6.2.0
         with:
           python-version: "3.13"
 
@@ -40,7 +40,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends libxml2-utils
 
       - name: Cache the toolchains and the svd2ada build
-        uses: actions/cache@v4.2.3
+        uses: actions/cache@v5.0.4
         with:
           path: |
             ~/.local/share/alire
