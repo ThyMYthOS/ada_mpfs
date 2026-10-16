@@ -1,0 +1,103 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# Static analysis: the pinned adalang_analyzer analyses the projects of tools/analyze.list
+# against the baselines in tools/analyzer-baselines/ and fails on a new finding. The logic
+# lives in ./x analyze.
+#
+# The analysis job runs only when the baselines are committed (a project without a baseline
+# fails by design, so the job would only say that nothing was analysed). To write them, run
+# this workflow by hand (Actions > analyze > Run workflow, "Write the baselines") and commit
+# the files of the artifact `analyzer-baselines` to tools/analyzer-baselines/.
+name: analyze
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - ".github/workflows/analyze.yml"
+      - ".github/actions/**"
+      - "libs/**"
+      - "examples/**"
+      - "tools/analyze.*"
+      - "tools/analyzer-baselines/**"
+      - "tools/toolchain.env"
+      - "x"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/analyze.yml"
+      - ".github/actions/**"
+      - "libs/**"
+      - "examples/**"
+      - "tools/analyze.*"
+      - "tools/analyzer-baselines/**"
+      - "tools/toolchain.env"
+      - "x"
+  workflow_dispatch:
+    inputs:
+      update-baseline:
+        description: "Write the baselines (defect and style rule set) and upload them as an artifact"
+        type: boolean
+        default: false
+
+# One run per branch: a newer push cancels the run of the older one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # hashFiles is not available in a job-level `if`, so a step looks for the baselines.
+  has-baselines:
+    if: ${{ !inputs.update-baseline }}
+    runs-on: ubuntu-24.04
+    outputs:
+      found: ${{ steps.find.outputs.found }}
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - id: find
+        run: |
+          if compgen -G 'tools/analyzer-baselines/*.baseline' >/dev/null; then echo found=true; else echo found=false; fi >>"$GITHUB_OUTPUT"
+
+  analyze:
+    needs: has-baselines
+    if: ${{ needs.has-baselines.outputs.found == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - uses: ./.github/actions/toolchain
+        with:
+          target: adalang_analyzer
+
+      - name: Analyze (defect rule set)
+        run: ./x analyze
+
+      - name: Analyze (readability rule set)
+        run: ./x analyze --style
+
+  baseline:
+    if: ${{ inputs.update-baseline }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - uses: ./.github/actions/toolchain
+        with:
+          target: adalang_analyzer
+
+      - name: Write the baselines
+        run: |
+          ./x analyze --update-baseline
+          ./x analyze --style --update-baseline
+
+      - uses: actions/upload-artifact@v6.0.0
+        with:
+          name: analyzer-baselines
+          path: tools/analyzer-baselines/
+          retention-days: 14

@@ -10,7 +10,11 @@
 | `images.yml` | `build` | The pinned compilers (target `gnat`). `./x test examples` and `./x metrics verify` against `metrics.golden` build every image once, then `./x test negative` and the host suites that need no svdtools (`bare`, `report`, `negative`, `qemu_tests`, `stack`, `hw`, `analyze`, `prove` with its stand-in cases). Keeps the images as the artifact `images`. |
 | | `qemu` (after `build`) | Ubuntu 26.04 with QEMU from apt. `./x test qemu` on the images of `build`: the smoke test and the `Test_Report` applications of `tests/qemu/tests.list`. Needs no toolchain and builds nothing (`MPFS_PREBUILT_IMAGES=1`). |
 | | `renode` (after `build`) | The pinned Renode release with its SHA-256. `./x test renode` on the images of `build`. Needs no toolchain and builds nothing. Not required for a merge. |
-| `quality.yml` | `prove` | The pinned compilers and the pinned gnatprove (target `gnatprove`), `./x prove`, and `tests/host/prove/run.sh` with the real gnatprove. `./x analyze` is not in a workflow yet: it needs the baselines in `tools/analyzer-baselines/`, which are written with the pinned adalang_analyzer (`./x analyze --update-baseline`, and with `--style`). |
+| `quality.yml` | `prove` | The pinned compilers and the pinned gnatprove (target `gnatprove`), `./x prove`, and `tests/host/prove/run.sh` with the real gnatprove. |
+| `hygiene.yml` | `reuse` | `reuse lint` and `tools/headers.py check`. Needs no toolchain. |
+| | `trace` | `tools/trace.py --check` (every `@req` and `@verifies` reference resolves, every TSF requirement has a test, the committed `docs/assurance/trace-matrix.md` is current) and `tests/host/trace/run.sh`. Needs no toolchain. |
+| `analyze.yml` | `analyze` | The pinned adalang_analyzer (target `adalang_analyzer`), `./x analyze` and `./x analyze --style` against the baselines. Runs only when `tools/analyzer-baselines/*.baseline` exist, because a project without a baseline fails by design. |
+| | `baseline` | Only when the workflow is run by hand with "Write the baselines": `./x analyze --update-baseline` (both rule sets), uploads `tools/analyzer-baselines/` as the artifact `analyzer-baselines`, to be committed. |
 
 | Workflow | Runs on |
 |---|---|
@@ -18,6 +22,10 @@
 | `pac-regenerate.yml` | request (`workflow_dispatch`) and a pull request that changes the workflow or the actions |
 | `images.yml` | a push to any branch and a pull request against `main` that touch the examples, `hw/`, the tests, the tools, `metrics.golden`, `x` or the actions |
 | `quality.yml` | a push to any branch and a pull request against `main` that touch the proof projects, `tools/prove.*`, the pins, `libs/`, `x` or the actions |
+| `hygiene.yml` | every push to any branch and every pull request against `main` |
+| `analyze.yml` | a push to any branch and a pull request against `main` that touch `libs/`, the examples, the analyzer files, the baselines, the pins or `x`; by hand for the baselines |
+
+The workflows stay separate on purpose: each installs only what it needs (the `svd` job and `hygiene` no Ada toolchain, `pac` and `images` the compilers, `quality` and `analyze` the proof and analysis tools; the `toolchain` action caches them) and runs only for the paths it depends on, so a change to a README does not start a gnatprove build. All logic is in `./x` and the tools, so a workflow only installs, caches and calls; moving to a runner of our own means changing the `runs-on` lines. A push to any branch starts the workflows whose paths it touches and a pull request against `main` runs them again as a pull request, on the merge result (a pull request against another branch shows the checks of its head commit); a newer push to the same branch cancels the run in progress. A path filter means a workflow does not report for a change outside its paths, so a status must not be required for merging unless the workflow has no filter (`hygiene.yml`).
 
 The composite action `.github/actions/toolchain` restores the cached tools and runs `./x toolchain install <target>` (the cache key follows `tools/toolchain.env`; a target that needs the compilers and has no cache of its own starts from the cache of the compilers). Every workflow uses it instead of repeating the cache and install steps, and a job that needs the result of an earlier job takes it as an artifact.
 
