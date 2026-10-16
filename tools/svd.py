@@ -35,7 +35,17 @@ import sys
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-import yaml
+
+
+class _LazyYaml:
+    """PyYAML, imported when a fragment is first read: `ensure` of an SVD that has its hash needs no YAML."""
+
+    def __getattr__(self, name):
+        import yaml as module
+        return getattr(module, name)
+
+
+yaml = _LazyYaml()
 
 ROOT = Path(__file__).resolve().parent.parent
 SVD = ROOT / "svd"

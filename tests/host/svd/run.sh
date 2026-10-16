@@ -51,6 +51,12 @@ echo "<!-- x -->" >> "$W/build/svd/PolarfireSoC.svd"
   && pass "ensure rebuilds an SVD with a different hash" || fail "ensure rebuilds an SVD with a different hash"
 out="$(cd "$W" && "$MPFS_PYTHON" tools/svd.py ensure 2>&1)"
 [ -z "$out" ] && pass "ensure is silent when the hash fits" || fail "ensure is silent when the hash fits ($out)"
+# ... and needs no PyYAML: a module of that name that cannot be imported is put first on the path
+mkdir -p "$tmp/noyaml"; echo 'raise ImportError("PyYAML is not installed")' > "$tmp/noyaml/yaml.py"
+out="$(cd "$W" && PYTHONPATH="$tmp/noyaml" "$MPFS_PYTHON" tools/svd.py ensure 2>&1)"
+[ $? -eq 0 ] && [ -z "$out" ] && pass "ensure of a current SVD needs no PyYAML" || fail "ensure of a current SVD needs no PyYAML ($out)"
+out="$(cd "$W" && PYTHONPATH="$tmp/noyaml" "$MPFS_PYTHON" tools/svd.py merge 2>&1)"
+[ $? -ne 0 ] && printf '%s' "$out" | grep -q 'PyYAML' && pass "merge without PyYAML says so" || fail "merge without PyYAML says so ($out)"
 
 # probe without a peripheral reads all of them
 all="$("$MPFS_PYTHON" "$ROOT/hw/svd_probe.py" --svd "$tmp/clean/build/svd/PolarfireSoC.svd" --list | wc -l)"
