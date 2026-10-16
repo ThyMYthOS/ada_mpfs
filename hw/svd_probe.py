@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
+# @req HW-001
 """Compare the reset values of SVD registers with a running target.
 
   svd_probe.py [--svd FILE] [--host H] [--port P] [--target T] [--no-halt] [--block [PATTERN=]N] [--timeout S]

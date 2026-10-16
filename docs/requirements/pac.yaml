@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+#
+# Requirements on the register package. See README.md for the format.
+requirements:
+  - id: PAC-001
+    text: >-
+      Every peripheral of the register package carries the SPARK aspects that follow from the SVD:
+      Volatile, Async_Readers, Async_Writers, Effective_Writes, and Effective_Reads where a register
+      has a readAction.
+    tsf: false
+    source: libs/mpfs_pac/README.md

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
+# @verifies HW-001
 """Tests for hw/svd_probe.py against stand-ins for the OpenOCD telnet port.
 
     probe_test.py [MERGED_SVD]

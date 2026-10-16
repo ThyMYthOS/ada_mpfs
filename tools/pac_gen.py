@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
+# @req PAC-001
 """Post-process the output of svd2ada into the register package MPFS_Registers.
 
   pac_gen.py postprocess DIR --svd SVD --svd-sha256 HASH --svd2ada-commit COMMIT

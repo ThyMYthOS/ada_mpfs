@@ -6,6 +6,7 @@
 # `./x svd check` (XSD, mandatory headers, patch targets, local interrupt schema)
 # rejects a violation. Works on a copy of the repository parts involved.
 # Exits non-zero on any failure.
+# @verifies SVD-001
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"

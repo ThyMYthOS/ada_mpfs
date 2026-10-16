@@ -32,6 +32,7 @@
 #   GPRBUILD   gprbuild for build cases (default gprbuild)
 #   OBJROOT    directory that holds bare_hello/obj-<hart>/ (default examples/)
 #   SRCROOT    the examples directory copied for build cases (default examples/)
+# @req BLD-002
 
 set -u
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
