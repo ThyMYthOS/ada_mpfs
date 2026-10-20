@@ -16,6 +16,7 @@
 | `trace/` | `tools/trace.py` on fixture trees: the matrix, every way the check fails, the comment styles, and the committed catalogue. |
 | `stack/` | `tools/stack_report` on `.su`/`.ci` fixtures with known frames, a recursion, a dynamic frame and a call into code without a frame (the summed chain is checked; a missing directory, no `.su` files and no argument fail), and `./x stack` on a copy of the tree: the real compiler on an example, and an example that ignores `STACK_ANALYSIS`, which must fail. |
 | `qemu_tests/` | `tests/qemu/run_tests.sh` against a stand-in for QEMU: every way a test can pass or fail (verdict, FAIL line, hang, stray port output, `console.expected`, xfail signature, malformed list, old QEMU). |
+| `repro/` | `tools/repro.sh` on a fixture tree with a stand-in `./x` and stand-ins for the toolchain directories: the same input twice passes; an image that embeds its build directory or changes from run to run fails and is named; a missing or incomplete toolchain, a failing build, a build without an image, an image in one copy only, no example, no epoch and an argument fail; the examples carry the prefix map. |
 | `report/` | The shared `Host_Report` package (`common/`): a program whose checks hold exits 0; a failed check, no check, a missing `Finish` and an unhandled exception each exit non-zero. |
 
 ## `Host_Report`

@@ -22,6 +22,20 @@ project App is
       when "0" => null;
    end case;
 
+   --  The build directory must not reach the image (./x repro compares two
+   --  builds made in different directories): the paths the compiler records
+   --  are made relative to the repository root, which ./x exports (without
+   --  ADA_MPFS_SDK, gprbuild called by hand, they stay absolute), and the
+   --  switches are not recorded: they name a temporary file of gprbuild.
+   Sdk_Root := external ("ADA_MPFS_SDK", "");
+   Repro_Switches := ("-gno-record-gcc-switches");
+   case Sdk_Root is
+      when ""     => null;
+      when others =>
+         Repro_Switches := Repro_Switches
+           & ("-ffile-prefix-map=" & Sdk_Root & "=.");
+   end case;
+
    --  The ABI of the image. The E51 has no FPU.
    Arch := "";
    Abi  := "";
@@ -47,7 +61,7 @@ project App is
    package Compiler is
       for Default_Switches ("Ada") use Common &
         ("-O2", "-g", "-gnat2022", "-gnatwa", "-gnatwe", "-gnaty",
-         "-ffunction-sections", "-fdata-sections") & Analysis;
-      for Default_Switches ("Asm_Cpp") use Common & ("-g");
+         "-ffunction-sections", "-fdata-sections") & Repro_Switches & Analysis;
+      for Default_Switches ("Asm_Cpp") use Common & ("-g") & Repro_Switches;
    end Compiler;
 end App;
