@@ -36,7 +36,12 @@ The project must
 
 - write objects to `obj-<hart>/` and the executable to `bin-<hart>/`, with the suffix `.elf`
   (`./x clean`, `./x qemu` and `./x mem` rely on this);
-- compile with `-gnatwa -gnatwe`: warnings are errors (generated code is exempt).
+- compile with `-gnatwa -gnatwe`: warnings are errors (generated code is exempt);
+- not record the build directory in the image: `./x repro` builds every image twice, in two directories,
+  and compares the ELFs. `./x` exports `ADA_MPFS_SDK` (the repository root), and the project adds
+  `-ffile-prefix-map=$ADA_MPFS_SDK=.` and `-gno-record-gcc-switches` (the recorded switches name a
+  temporary file of gprbuild) to the compiler switches (Ada, and Asm_Cpp where used); `./x new` writes the same into
+  its template. A build script that links adds no path of its own to the image (`bare_link` passes none).
 
 ## Files
 

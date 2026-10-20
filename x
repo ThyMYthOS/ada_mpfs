@@ -32,6 +32,10 @@
 #                                      (qemu [smoke|tests [name...]]: the smoke test, then
 #                                      the Test_Report applications of tests/qemu/tests.list)
 #    ./x metrics verify|bless          compare / re-bless metrics.golden
+#    ./x repro                         reproducible images: build every image of every example
+#                                      twice, in two directories, with the same SOURCE_DATE_EPOCH
+#                                      (default: the commit time), and compare the SHA-256 of
+#                                      the ELFs; the differing ones are listed
 #    ./x analyze [--style] [--update-baseline]   static analysis
 #    ./x stack <ex> [--hart e51|u54] [--top N]
 #                                      static stack analysis: per-frame sizes and the
@@ -522,6 +526,20 @@ project App is
       when "0" => null;
    end case;
 
+   --  The build directory must not reach the image (./x repro compares two
+   --  builds made in different directories): the paths the compiler records
+   --  are made relative to the repository root, which ./x exports (without
+   --  ADA_MPFS_SDK, gprbuild called by hand, they stay absolute), and the
+   --  switches are not recorded: they name a temporary file of gprbuild.
+   Sdk_Root := external ("ADA_MPFS_SDK", "");
+   Repro_Switches := ("-gno-record-gcc-switches");
+   case Sdk_Root is
+      when ""     => null;
+      when others =>
+         Repro_Switches := Repro_Switches
+           & ("-ffile-prefix-map=" & Sdk_Root & "=.");
+   end case;
+
    for Target use "riscv64-elf";
    for Runtime ("Ada") use "light-polarfiresoc";
    for Source_Dirs use ("src");
@@ -535,7 +553,8 @@ project App is
 
    package Compiler is
       for Default_Switches ("Ada") use
-        ("-O2", "-g", "-gnat2022", "-gnatwa", "-gnatwe", "-gnaty") & Analysis;
+        ("-O2", "-g", "-gnat2022", "-gnatwa", "-gnatwe", "-gnaty")
+        & Repro_Switches & Analysis;
    end Compiler;
 end App;
 EOF
@@ -786,6 +805,7 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
     test)            cmd_test "$@" ;;
     metrics)         cmd_metrics "$@" ;;
     analyze)         delegate tools/analyze.sh "$@" ;;
+    repro)           delegate tools/repro.sh "$@" ;;
     stack)           cmd_stack "$@" ;;
     svd)             cmd_svd "$@" ;;
     pac)             cmd_pac "$@" ;;
