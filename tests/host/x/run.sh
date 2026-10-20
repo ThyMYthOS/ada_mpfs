@@ -29,7 +29,7 @@ expect_rc () {
 # Every verb appears in the help text.
 help="$("$X" help)"
 for verb in help list toolchain build clean new qemu mem test metrics analyze stack \
-            svd pac trace prove hw completion; do
+            svd pac trace tools-doc prove hw completion; do
   case "$help" in *"./x $verb"*) pass "help lists $verb" ;; *) fail "help lists $verb" ;; esac
 done
 

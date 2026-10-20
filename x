@@ -49,6 +49,7 @@
 #                                      --help lists all options
 #    ./x pac generate|check            register package generation and checks
 #    ./x trace [--check]               requirement trace matrix
+#    ./x tools-doc [--check]           write / check the pinned-version table of docs/assurance/tools.md
 #    ./x prove                         SPARK proofs
 #    ./x hw bootmode|openocd|run|probe|monitor|reset  the Icicle Kit: switch the boot mode (bootmode N [ELF]
 #                                      [--yes] [--dry-run]: PERMANENT, reprograms the FPGA part; stop OpenOCD
@@ -784,6 +785,13 @@ cmd_completion () {
   esac
 }
 
+cmd_tools_doc () {
+  case "${1:-}" in
+    ""|--check) delegate tools/tools_table.py "$@" ;;
+    *) die "usage: ./x tools-doc [--check]" ;;
+  esac
+}
+
 cmd_hw () {
   case "${1:-}" in
     bootmode|openocd|run|probe|monitor|reset) delegate tools/hw.sh "$@" ;;
@@ -812,6 +820,7 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
     svd)             cmd_svd "$@" ;;
     pac)             cmd_pac "$@" ;;
     trace)           cmd_trace "$@" ;;
+    tools-doc)       cmd_tools_doc "$@" ;;
     prove)           delegate tools/prove.sh "$@" ;;
     hw)              cmd_hw "$@" ;;
     completion)      cmd_completion "$@" ;;
