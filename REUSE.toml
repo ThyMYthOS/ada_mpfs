@@ -21,6 +21,7 @@ SPDX-License-Identifier = "CC-BY-4.0"
 path = [
   "**/*.conf",
   "**/*.list",
+  "tools/analyzer-baselines/*.baseline",
   "**/README.md",
   "CONTRIBUTING.md",
   "NOTICE",
