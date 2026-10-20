@@ -5,7 +5,9 @@
 # job `build` builds them, checks metrics.golden, runs the negative cases and the host tests of
 # the harnesses, and hands the images to the emulator jobs as the artifact `images`; the jobs
 # `qemu` (smoke test, Test_Report applications) and `renode` (smoke test) run them without a
-# toolchain. The logic lives in ./x.
+# toolchain. The job `repro` builds every image twice in two directories; the SHA-256 of the
+# ELFs must be equal. The images, the measured metrics and the logs of the QEMU and Renode
+# tests are uploaded as artifacts. The logic lives in ./x.
 name: images
 
 on:
@@ -55,12 +57,35 @@ jobs:
       # Builds every example for every hart it names; the next steps and the emulator jobs
       # use these images.
       - name: Build all images
-        run: ./x test examples && ./x metrics verify
+        run: ./x test examples
 
-      # Size, entry point, e_flags and Tag_RISCV_arch of every image against metrics.golden
-      # (verified by the step above); the images are packed for the emulator jobs.
+      # Size, entry point, e_flags and Tag_RISCV_arch of every image against metrics.golden.
+      # MEASURED receives the rows measured here, in the format of metrics.golden: on a
+      # compiler without a baseline they are the rows to add. Metrics builds every hart of
+      # BUILD_HARTS, so after this step all the images are there.
+      - name: Metrics
+        run: |
+          mkdir -p build
+          MEASURED="$PWD/build/metrics.measured" ./x metrics verify
+
       - name: Pack the images
         run: tar -cf images.tar examples/*/bin-*
+
+      - name: Keep the images
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: images
+          path: images.tar
+          retention-days: 14
+
+      - name: Keep the measured metrics
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: metrics-measured
+          path: build/metrics.measured
+          retention-days: 14
 
       - name: Negative cases
         run: ./x test negative
@@ -70,17 +95,10 @@ jobs:
       # stand-in cases only).
       - name: Host tests
         run: |
-          for suite in bare report negative qemu_tests stack hw analyze prove; do
+          for suite in bare report negative qemu_tests stack hw analyze prove repro; do
             echo "== host suite $suite"
             bash "tests/host/$suite/run.sh"
           done
-
-      - name: Keep the images
-        uses: actions/upload-artifact@v7.0.2
-        with:
-          name: images
-          path: images.tar
-          retention-days: 14
 
   qemu:
     needs: build
@@ -102,10 +120,23 @@ jobs:
           name: images
 
       # Boots the images of the build job under QEMU and checks what they print.
+      # The output is kept as the log (pipefail: the exit status is that of ./x).
       - name: QEMU smoke test
+        shell: bash
         env:
           MPFS_PREBUILT_IMAGES: "1"
-        run: tar -xf images.tar && ./x test qemu
+        run: |
+          tar -xf images.tar
+          mkdir -p build/logs
+          ./x test qemu 2>&1 | tee build/logs/qemu.log
+
+      - name: Keep the QEMU log
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: qemu-log
+          path: build/logs/qemu.log
+          retention-days: 14
 
   renode:
     needs: build
@@ -128,6 +159,45 @@ jobs:
       # The Renode model of the board has 16 PMP entries where QEMU has 8; its
       # expectations are kept apart in tests/renode/smoke.expected.
       - name: Renode smoke test
+        shell: bash
         env:
           MPFS_PREBUILT_IMAGES: "1"
-        run: tar -xf images.tar && ./x test renode
+        run: |
+          tar -xf images.tar
+          mkdir -p build/logs
+          ./x test renode 2>&1 | tee build/logs/renode.log
+
+      - name: Keep the Renode log
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: renode-log
+          path: build/logs/renode.log
+          retention-days: 14
+
+  # Every image is built twice, in two directories, with the same SOURCE_DATE_EPOCH, and the
+  # SHA-256 of the ELFs must be equal (tools/repro.sh). Not in `build`: it builds each image twice.
+  repro:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: ./.github/actions/toolchain
+        with:
+          target: gnat
+
+      # The commit time is the default SOURCE_DATE_EPOCH. After a failure the two copies and the
+      # build logs are kept, so the differing images can be compared.
+      - name: Reproducible images
+        run: REPRO_WORK="$RUNNER_TEMP/repro" ./x repro
+
+      - name: Keep the two builds
+        if: failure()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: repro-builds
+          path: |
+            ${{ runner.temp }}/repro/*.log
+            ${{ runner.temp }}/repro/*/*/examples/*/bin-*/*.elf
+          retention-days: 14

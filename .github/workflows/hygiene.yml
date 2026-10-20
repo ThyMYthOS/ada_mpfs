@@ -1,9 +1,10 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# Repository hygiene, no toolchain needed: licences and SPDX headers, and the requirement
-# trace (every reference resolves, every TSF requirement has a test, the matrix is current).
-# The logic lives in tools/headers.py, tools/trace.py and ./x.
+# Repository hygiene, no toolchain needed: licences and SPDX headers, the requirement
+# trace (every reference resolves, every TSF requirement has a test, the matrix is current)
+# and the links of the Markdown files (every relative link and #anchor resolves).
+# The logic lives in tools/headers.py, tools/trace.py, tools/check_docs.py and ./x.
 name: hygiene
 
 on:
@@ -60,3 +61,20 @@ jobs:
 
       - name: Tests of trace.py
         run: bash tests/host/trace/run.sh
+
+  docs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.13"
+
+      # Standard library only: no packages to install. This is `./x docs`.
+      - name: Links and anchors of the Markdown files
+        run: python3 tools/check_docs.py
+
+      - name: Tests of check_docs.py
+        run: bash tests/host/docs/run.sh
