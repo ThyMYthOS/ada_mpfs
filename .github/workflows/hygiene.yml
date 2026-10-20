@@ -2,9 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Repository hygiene, no toolchain needed: licences and SPDX headers, the requirement
-# trace (every reference resolves, every TSF requirement has a test, the matrix is current)
-# and the links of the Markdown files (every relative link and #anchor resolves).
-# The logic lives in tools/headers.py, tools/trace.py, tools/check_docs.py and ./x.
+# trace (every reference resolves, every TSF requirement has a test, the matrix is current),
+# the version table of docs/assurance/tools.md and the links of the Markdown files (every
+# relative link and #anchor resolves).
+# The logic lives in tools/headers.py, tools/trace.py, tools/tools_table.py, tools/check_docs.py
+# and ./x.
 name: hygiene
 
 on:
@@ -61,6 +63,12 @@ jobs:
 
       - name: Tests of trace.py
         run: bash tests/host/trace/run.sh
+
+      - name: Table of the tools document
+        run: python3 tools/tools_table.py --check
+
+      - name: Tests of tools_table.py
+        run: bash tests/host/tools_doc/run.sh
 
   docs:
     runs-on: ubuntu-24.04
