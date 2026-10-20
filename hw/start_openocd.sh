@@ -7,8 +7,8 @@
 #
 #   start_openocd.sh [openocd arguments]
 #
-# The SoftConsole directory is SC of hw/lab.conf (or of the file named by LAB_CONF); the environment
-# variable SC overrides both. Telnet is on :4444, gdb on :3333. A missing SoftConsole or OpenOCD is an
+# The SoftConsole directory is SOFT_CONSOLE of hw/lab.conf (hw/lab.conf.example if there is none, or the file named by LAB_CONF); the environment
+# variable SOFT_CONSOLE overrides both. Telnet is on :4444, gdb on :3333. A missing SoftConsole or OpenOCD is an
 # error with the path that was tried.
 #
 # OpenOCD runs as a child of this script, which makes sure that Ctrl+C ends it: OpenOCD only looks at
@@ -22,14 +22,15 @@
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 conf=${LAB_CONF:-$here/lab.conf}
-if [ -z "${SC:-}" ]; then
+if [ -z "${SOFT_CONSOLE:-}" ]; then
+  if [ ! -f "$conf" ] && [ -z "${LAB_CONF:-}" ]; then conf=$here/lab.conf.example; fi   # no hw/lab.conf: the defaults
   [ -f "$conf" ] || { echo "start_openocd: lab.conf '$conf' does not exist" >&2; exit 2; }
-  SC=$(sed -n 's/^SC=//p' "$conf" | tail -n 1)
-  [ -n "$SC" ] || { echo "start_openocd: SC is not set in $conf" >&2; exit 2; }
+  SOFT_CONSOLE=$(sed -n 's/^SOFT_CONSOLE=//p' "$conf" | tail -n 1)
+  [ -n "$SOFT_CONSOLE" ] || { echo "start_openocd: SOFT_CONSOLE is not set in $conf" >&2; exit 2; }
 fi
-bin=$SC/openocd/bin/openocd
-[ -x "$bin" ] || { echo "start_openocd: $bin not found or not executable (is SoftConsole installed in $SC? set SC in $conf)" >&2; exit 2; }
-export LD_LIBRARY_PATH=$SC/openocd/bin
+bin=$SOFT_CONSOLE/openocd/bin/openocd
+[ -x "$bin" ] || { echo "start_openocd: $bin not found or not executable (is SoftConsole installed in $SOFT_CONSOLE? set SOFT_CONSOLE in $conf)" >&2; exit 2; }
+export LD_LIBRARY_PATH=$SOFT_CONSOLE/openocd/bin
 grace=${START_OPENOCD_GRACE:-3}
 case $grace in ''|*[!0-9]*) echo "start_openocd: START_OPENOCD_GRACE must be a number of seconds, got '$grace'" >&2; exit 2 ;; esac
 
@@ -40,7 +41,7 @@ trap 'if [ -n "$stopping" ]; then again=1; fi; signalled=130' INT
 trap 'if [ -n "$stopping" ]; then again=1; fi; signalled=143' TERM
 trap 'if [ -n "$stopping" ]; then again=1; fi; signalled=129' HUP
 
-"$bin" -s "$SC/openocd/share/openocd/scripts" \
+"$bin" -s "$SOFT_CONSOLE/openocd/share/openocd/scripts" \
        --command "set DEVICE MPFS" --file board/microsemi-riscv.cfg "$@" &
 child=$!
 
