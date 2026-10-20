@@ -15,6 +15,7 @@
 | | `trace` | `tools/trace.py --check` (every `@req` and `@verifies` reference resolves, every TSF requirement has a test, the committed `docs/assurance/trace-matrix.md` is current) and `tests/host/trace/run.sh`. Needs no toolchain. |
 | `analyze.yml` | `analyze` | The pinned adalang_analyzer (target `adalang_analyzer`), `./x analyze` and `./x analyze --style` against the baselines. Runs only when `tools/analyzer-baselines/*.baseline` exist, because a project without a baseline fails by design. |
 | | `baseline` | Only when the workflow is run by hand with "Write the baselines": `./x analyze --update-baseline` (both rule sets), uploads `tools/analyzer-baselines/` as the artifact `analyzer-baselines`, to be committed. |
+| `macos.yml` | `install` (one run per target) | On a `macos-latest` runner: `./x toolchain install <target>` and then the check the target is for (`./x svd check`, `./x pac check`, `./x test examples` or `./x toolchain check`), for `svdtools`, `svd2ada`, `pac`, `gnat`, `gnatprove`, `adalang_analyzer` and `renode`. It shows which tools install on macOS; informational and not required for a merge. At the moment only the `adalang_analyzer` target is in the matrix. |
 
 | Workflow | Runs on |
 |---|---|
@@ -24,6 +25,7 @@
 | `quality.yml` | a push to any branch and a pull request against `main` that touch the proof projects, `tools/prove.*`, the pins, `libs/`, `x` or the actions |
 | `hygiene.yml` | every push to any branch and every pull request against `main` |
 | `analyze.yml` | a push to any branch and a pull request against `main` that touch `libs/`, the examples, the analyzer files, the baselines, the pins or `x`; by hand for the baselines |
+| `macos.yml` | by hand only (the runner minutes are limited) |
 
 The workflows stay separate on purpose: each installs only what it needs (the `svd` job and `hygiene` no Ada toolchain, `pac` and `images` the compilers, `quality` and `analyze` the proof and analysis tools; the `toolchain` action caches them) and runs only for the paths it depends on, so a change to a README does not start a gnatprove build. All logic is in `./x` and the tools, so a workflow only installs, caches and calls; moving to a runner of our own means changing the `runs-on` lines. A push to any branch starts the workflows whose paths it touches and a pull request against `main` runs them again as a pull request, on the merge result (a pull request against another branch shows the checks of its head commit); a newer push to the same branch cancels the run in progress. A path filter means a workflow does not report for a change outside its paths, so a status must not be required for merging unless the workflow has no filter (`hygiene.yml`).
 
