@@ -68,7 +68,7 @@ serve () {
   local i
   for i in $(seq 1 50); do [ -s "$tmp/$name.port" ] && break; sleep 0.1; done
   [ -s "$tmp/$name.port" ] || { echo "FAIL: the stand-in OpenOCD did not start" >&2; exit 1; }
-  printf 'SC=%s\nOCD_PORT=%s\nUART_PATTERN=%s\nUART_COUNT=4\n' "$tmp/sc" "$(cat "$tmp/$name.port")" "$tmp/uart/$name/mmuart{n}.log" > "$tmp/lab-$name.conf"
+  printf 'SOFT_CONSOLE=%s\nOCD_PORT=%s\nUART_PATTERN=%s\nUART_COUNT=4\n' "$tmp/sc" "$(cat "$tmp/$name.port")" "$tmp/uart/$name/mmuart{n}.log" > "$tmp/lab-$name.conf"
 }
 
 run_image () { "$PY" "$HW/run_image.py" "$@"; }
@@ -157,7 +157,7 @@ done
 mkdir -p "$tmp/uart/mon"
 for n in 0 1 2 3; do : > "$tmp/uart/mon/mmuart$n.log"; done
 printf 'hello from MMUART1\r\n' > "$tmp/uart/mon/mmuart1.log"
-printf 'SC=%s\nOCD_PORT=1\nUART_PATTERN=%s\nUART_COUNT=4\n' "$tmp/sc" "$tmp/uart/mon/mmuart{n}.log" > "$tmp/lab-mon.conf"
+printf 'SOFT_CONSOLE=%s\nOCD_PORT=1\nUART_PATTERN=%s\nUART_COUNT=4\n' "$tmp/sc" "$tmp/uart/mon/mmuart{n}.log" > "$tmp/lab-mon.conf"
 monitor () { "$PY" "$HW/monitor.py" "$@"; }
 expect_rc  "monitor: shows the ports and exits 0 without --expect" 0 monitor --secs 0.3 --lab "$tmp/lab-mon.conf"
 expect_out "monitor: names the port that printed" "MMUART1:" monitor --secs 0.3 --lab "$tmp/lab-mon.conf"
@@ -178,10 +178,10 @@ grep -qx -- "$tmp/sc/openocd/share/openocd/scripts" "$tmp/openocd.args" && grep 
   && pass "start_openocd: passes the script path, the board file, the device and further arguments" \
   || fail "start_openocd: passes the script path, the board file, the device and further arguments"
 grep -qx "$tmp/sc/openocd/bin" "$tmp/openocd.ld" && pass "start_openocd: sets LD_LIBRARY_PATH to the OpenOCD bin" || fail "start_openocd: sets LD_LIBRARY_PATH to the OpenOCD bin"
-printf 'SC=%s\n' "$tmp/nosoftconsole" > "$tmp/lab-nosc.conf"
+printf 'SOFT_CONSOLE=%s\n' "$tmp/nosoftconsole" > "$tmp/lab-nosc.conf"
 expect_rc  "start_openocd: a missing SoftConsole exits 2" 2 env LAB_CONF="$tmp/lab-nosc.conf" sh "$HW/start_openocd.sh"
 expect_out "start_openocd: names the path it tried" "$tmp/nosoftconsole/openocd/bin/openocd" env LAB_CONF="$tmp/lab-nosc.conf" sh "$HW/start_openocd.sh"
-expect_rc  "start_openocd: SC in the environment overrides lab.conf" 0 env LAB_CONF="$tmp/lab-nosc.conf" SC="$tmp/sc" sh "$HW/start_openocd.sh"
+expect_rc  "start_openocd: SOFT_CONSOLE in the environment overrides lab.conf" 0 env LAB_CONF="$tmp/lab-nosc.conf" SOFT_CONSOLE="$tmp/sc" sh "$HW/start_openocd.sh"
 expect_rc  "start_openocd: a missing lab.conf exits 2" 2 env LAB_CONF="$tmp/none.conf" sh "$HW/start_openocd.sh"
 
 # --- ./x hw -----------------------------------------------------------------------
@@ -195,6 +195,184 @@ expect_rc  "x hw run: an invalid hart for an example exits 2" 2 "$X" hw run repo
 expect_rc  "x hw monitor: --expect passes through" 1 "$X" hw monitor --secs 0.3 --lab "$tmp/lab-mon.conf" --expect 'goodbye'
 expect_rc  "x hw probe: --expect passes through" 0 "$X" hw probe probe_time.S 1 --secs 0.2 --lab "$LP" --expect '0x1234'
 expect_rc  "x hw openocd: starts OpenOCD" 0 env LAB_CONF="$L" "$X" hw openocd
+
+# --- bootmode.py --------------------------------------------------------------------
+# A stand-in java records its arguments and the PATH it got, prints what STANDIN_OUT says (default: a line)
+# and ends with STANDIN_RC (default 0). The stand-in jar is an empty file. The real jar was not run.
+mkdir -p "$tmp/bm/sc/extras/mpfs" "$tmp/bm/bin" "$tmp/bm/libero"
+: > "$tmp/bm/sc/extras/mpfs/mpfsBootmodeProgrammer.jar"
+printf '#!/bin/sh\nprintf "%%s\\n" "$@" > "%s/bm/java.args"\necho "$PATH" > "%s/bm/java.path"\necho "$SC_INSTALL_DIR" > "%s/bm/java.sc"\necho "$FPGENPROG" > "%s/bm/java.fp"\n[ "${STANDIN_SILENT:-}" = 1 ] || echo "standin: programming"\nexit "${STANDIN_RC:-0}"\n' "$tmp" "$tmp" "$tmp" "$tmp" > "$tmp/bm/bin/java"
+printf '#!/bin/sh\nexit 0\n' > "$tmp/bm/libero/fpgenprog"
+chmod +x "$tmp/bm/bin/java" "$tmp/bm/libero/fpgenprog"
+printf 'SOFT_CONSOLE=%s/bm/sc\nJAVA=%s/bm/bin/java\nFPGENPROG=%s/bm/libero/fpgenprog\nOCD_PORT=1\n' "$tmp" "$tmp" "$tmp" > "$tmp/lab-bm.conf"
+LB="$tmp/lab-bm.conf"
+BME="$tmp/bm/app.elf"; BMW="$tmp/bm/work"   # the boot program and the working directory of the programmer
+printf 'ELF stand-in\n' > "$BME"
+bootmode () {  # the boot mode, then the ELF and the working directory, then the rest
+  case "${1:-}" in -*|"") "$PY" "$HW/bootmode.py" "$@" ;; *) local n="$1"; shift; "$PY" "$HW/bootmode.py" "$n" "$BME" --workdir "$BMW" "$@" ;; esac
+}
+rm -f "$tmp/bm/java.args"
+expect_rc  "bootmode: --yes runs the jar and exits 0" 0 bootmode 2 --yes --lab "$LB"
+args="$(tr '\n' ' ' < "$tmp/bm/java.args" 2>/dev/null)"
+[ "$args" = "-jar $tmp/bm/sc/extras/mpfs/mpfsBootmodeProgrammer.jar --workdir $BMW --bootmode 2 --die MPFS250T_ES --package FCVG484 app.elf " ] \
+  && pass "bootmode: passes -jar, the jar below SOFT_CONSOLE, --workdir, --bootmode, --die, --package and the ELF by name (the defaults)" \
+  || fail "bootmode: passes -jar, the jar below SOFT_CONSOLE, --workdir, --bootmode, --die, --package and the ELF by name (got: $args)"
+[ -f "$BMW/app.elf" ] && cmp -s "$BME" "$BMW/app.elf" && pass "bootmode: copies the ELF to the working directory" || fail "bootmode: copies the ELF to the working directory"
+grep -q "^$tmp/bm/libero:" "$tmp/bm/java.path" && pass "bootmode: puts the directory of fpgenprog on PATH for the jar" || fail "bootmode: puts the directory of fpgenprog on PATH for the jar"
+expect_out "bootmode: shows the output of the jar" "standin: programming" bootmode 0 --yes --lab "$LB"
+expect_out "bootmode: prints the duration" "the programmer took" bootmode 0 --yes --lab "$LB"
+expect_out "bootmode: says what to do next" "Power-cycle the board" bootmode 0 --yes --lab "$LB"
+expect_out "bootmode: names the PC to check" "0x2000312E" bootmode 0 --yes --lab "$LB"
+# die, package and the jar path from lab.conf
+printf 'BOOTMODE_DIE=MPFS250T\nBOOTMODE_PACKAGE=FCG1152\nBOOTMODE_JAR=%s/bm/other.jar\n' "$tmp" | cat "$LB" - > "$tmp/lab-bm2.conf"
+: > "$tmp/bm/other.jar"
+bootmode 3 --yes --lab "$tmp/lab-bm2.conf" >/dev/null 2>&1
+args="$(tr '\n' ' ' < "$tmp/bm/java.args")"
+[ "$args" = "-jar $tmp/bm/other.jar --workdir $BMW --bootmode 3 --die MPFS250T --package FCG1152 app.elf " ] \
+  && pass "bootmode: die, package and jar come from lab.conf" || fail "bootmode: die, package and jar come from lab.conf (got: $args)"
+printf 'SOFT_CONSOLE=%s/bm/nosc\nJAVA=%s/bm/bin/java\nFPGENPROG=%s/bm/libero/fpgenprog\n' "$tmp" "$tmp" "$tmp" > "$tmp/lab-bm-nojar.conf"
+# --dry-run
+rm -f "$tmp/bm/java.args"
+expect_rc  "bootmode: --dry-run exits 0" 0 bootmode 1 --dry-run --lab "$LB"
+expect_out "bootmode: --dry-run prints the command" "--bootmode 1 --die MPFS250T_ES --package FCVG484 app.elf" bootmode 1 --dry-run --lab "$LB"
+[ ! -e "$tmp/bm/java.args" ] && pass "bootmode: --dry-run does not run java" || fail "bootmode: --dry-run does not run java"
+expect_rc  "bootmode: --dry-run with a missing jar still exits 2" 2 bootmode 1 --dry-run --lab "$tmp/lab-bm-nojar.conf"
+# refusal without --yes (no terminal here)
+expect_rc  "bootmode: without --yes and without a terminal exits 2" 2 bootmode 1 --lab "$LB" </dev/null
+expect_out "bootmode: the refusal says nothing was done" "nothing was done" bootmode 1 --lab "$LB" </dev/null
+[ ! -e "$tmp/bm/java.args" ] && pass "bootmode: the refusal does not run java" || fail "bootmode: the refusal does not run java"
+# the prompt, on a pseudo terminal: "yes" writes, anything else does not
+ptyrun () {  # ptyrun <answer> <args...>: bootmode with a terminal on stdin that types <answer>
+  local answer="$1"; shift
+  "$PY" -I -c 'import os, pty, sys, time
+answer, argv = sys.argv[1], sys.argv[2:]
+pid, fd = pty.fork()
+if pid == 0:
+    os.execvp(argv[0], argv)
+time.sleep(1)
+os.write(fd, (answer + "\n").encode())
+while True:
+    try:
+        if not os.read(fd, 4096): break
+    except OSError: break
+_, st = os.waitpid(pid, 0)
+sys.exit(os.waitstatus_to_exitcode(st))' "$answer" "$PY" "$HW/bootmode.py" "$@"
+}
+rm -f "$tmp/bm/java.args"
+expect_rc  "bootmode: the answer 'no' exits 1" 1 ptyrun no 2 "$BME" --workdir "$BMW" --lab "$LB"
+[ ! -e "$tmp/bm/java.args" ] && pass "bootmode: the answer 'no' does not run java" || fail "bootmode: the answer 'no' does not run java"
+expect_rc  "bootmode: the answer 'yes' runs the jar and exits 0" 0 ptyrun yes 2 "$BME" --workdir "$BMW" --lab "$LB"
+[ -e "$tmp/bm/java.args" ] && pass "bootmode: the answer 'yes' ran java" || fail "bootmode: the answer 'yes' ran java"
+# failures
+expect_rc  "bootmode: boot mode 4 exits 2" 2 bootmode 4 --yes --lab "$LB"
+expect_rc  "bootmode: boot mode -1 exits 2" 2 bootmode -1 --yes --lab "$LB"
+expect_rc  "bootmode: boot mode 'x' exits 2" 2 bootmode x --yes --lab "$LB"
+expect_rc  "bootmode: no boot mode exits 2" 2 bootmode --yes --lab "$LB"
+printf 'SOFT_CONSOLE=%s/bm/sc\nJAVA=%s/bm/bin/none\nFPGENPROG=%s/bm/libero/fpgenprog\n' "$tmp" "$tmp" "$tmp" > "$tmp/lab-bm-nojava.conf"
+expect_rc  "bootmode: a missing java exits 2" 2 bootmode 0 --yes --lab "$tmp/lab-bm-nojava.conf"
+expect_out "bootmode: a missing java says what to do" "install a JRE or set JAVA" bootmode 0 --yes --lab "$tmp/lab-bm-nojava.conf"
+expect_rc  "bootmode: a missing jar exits 2" 2 bootmode 0 --yes --lab "$tmp/lab-bm-nojar.conf"
+expect_out "bootmode: a missing jar says what to do" "set SOFT_CONSOLE or BOOTMODE_JAR" bootmode 0 --yes --lab "$tmp/lab-bm-nojar.conf"
+printf 'SOFT_CONSOLE=%s/bm/sc\nJAVA=%s/bm/bin/java\nFPGENPROG=%s/bm/libero/none\n' "$tmp" "$tmp" "$tmp" > "$tmp/lab-bm-nofp.conf"
+expect_rc  "bootmode: a missing fpgenprog exits 2" 2 bootmode 0 --yes --lab "$tmp/lab-bm-nofp.conf"
+expect_out "bootmode: a missing fpgenprog says what to do" "set FPGENPROG" bootmode 0 --yes --lab "$tmp/lab-bm-nofp.conf"
+rm -f "$tmp/bm/java.args"
+expect_rc  "bootmode: a jar that fails exits 1" 1 env STANDIN_RC=3 "$PY" "$HW/bootmode.py" 0 "$BME" --workdir "$BMW" --yes --lab "$LB"
+expect_out "bootmode: a failed jar is named with its status" "ended with status 3" env STANDIN_RC=3 "$PY" "$HW/bootmode.py" 0 "$BME" --workdir "$BMW" --yes --lab "$LB"
+if STANDIN_RC=3 "$PY" "$HW/bootmode.py" 0 "$BME" --workdir "$BMW" --yes --lab "$LB" 2>&1 | grep -q "Power-cycle the board"; then fail "bootmode: a failed jar does not say 'power-cycle'"; else pass "bootmode: a failed jar does not say 'power-cycle'"; fi
+expect_rc  "bootmode: a jar without any output exits 1" 1 env STANDIN_SILENT=1 "$PY" "$HW/bootmode.py" 0 "$BME" --workdir "$BMW" --yes --lab "$LB"
+expect_out "bootmode: no output is named" "printed nothing" env STANDIN_SILENT=1 "$PY" "$HW/bootmode.py" 0 "$BME" --workdir "$BMW" --yes --lab "$LB"
+expect_rc  "bootmode: a lab.conf that does not exist exits 2" 2 bootmode 0 --yes --lab "$tmp/none.conf"
+# every set-up error comes with the help text and its description of the boot modes
+expect_out "bootmode: a bad boot mode prints the error and the help text" "non-secure boot from eNVM" bootmode 4 --yes --lab "$LB"
+expect_out "bootmode: a bad boot mode names the error" "is not a boot mode" bootmode 4 --yes --lab "$LB"
+expect_out "bootmode: no arguments print the error and the help text" "user secure boot from sNVM" "$PY" "$HW/bootmode.py"
+expect_out "bootmode: a missing jar prints the help text too" "factory secure boot from eNVM" bootmode 0 --yes --lab "$tmp/lab-bm-nojar.conf"
+expect_out "bootmode: a missing java prints the help text too" "idle boot" bootmode 0 --yes --lab "$tmp/lab-bm-nojava.conf"
+expect_out "bootmode: the refusal without --yes prints the help text too" "idle boot" bootmode 1 --lab "$LB" </dev/null
+expect_rc  "bootmode: --help exits 0" 0 "$PY" "$HW/bootmode.py" --help
+expect_out "bootmode: --help says PERMANENT" "PERMANENT" "$PY" "$HW/bootmode.py" --help
+# the boot program
+expect_rc  "bootmode: a missing ELF exits 2" 2 "$PY" "$HW/bootmode.py" 0 "$tmp/none.elf" --yes --lab "$LB"
+expect_out "bootmode: a missing ELF names it and prints the help text" "none.elf' does not exist" "$PY" "$HW/bootmode.py" 0 "$tmp/none.elf" --yes --lab "$LB"
+expect_out "bootmode: --dry-run without an ELF names bare_hello" "bare_hello.elf" "$PY" "$HW/bootmode.py" 1 --dry-run --lab "$LB"
+# without an ELF the example bare_hello is built (./x build bare_hello --hart e51): a tree with a stand-in x
+mkdir -p "$tmp/bmroot/hw" "$tmp/bmroot/examples/bare_hello/bin-e51"
+cp "$HW/bootmode.py" "$HW/lab.py" "$HW/lab.conf.example" "$tmp/bmroot/hw/"
+printf '#!/bin/sh\necho "$@" > "%s/bmroot/x.args"\n' "$tmp" > "$tmp/bmroot/x"; chmod +x "$tmp/bmroot/x"
+printf 'bare_hello ELF\n' > "$tmp/bmroot/examples/bare_hello/bin-e51/bare_hello.elf"
+rm -f "$tmp/bm/java.args"
+"$PY" "$tmp/bmroot/hw/bootmode.py" 1 --yes --lab "$LB" >/dev/null 2>&1
+[ "$(cat "$tmp/bmroot/x.args" 2>/dev/null)" = "build bare_hello --hart e51" ] && pass "bootmode: without an ELF it builds bare_hello for the E51" || fail "bootmode: without an ELF it builds bare_hello for the E51"
+args="$(tr '\n' ' ' < "$tmp/bm/java.args" 2>/dev/null)"
+case "$args" in *"--workdir $tmp/bmroot/build/bootmode --bootmode 1 "*" bare_hello.elf ") pass "bootmode: the default working directory is build/bootmode and the ELF is bare_hello.elf" ;; *) fail "bootmode: the default working directory is build/bootmode and the ELF is bare_hello.elf (got: $args)" ;; esac
+[ -f "$tmp/bmroot/build/bootmode/bare_hello.elf" ] && pass "bootmode: bare_hello.elf is copied to the working directory" || fail "bootmode: bare_hello.elf is copied to the working directory"
+printf '#!/bin/sh\nexit 3\n' > "$tmp/bmroot/x"
+expect_rc  "bootmode: a failing build of bare_hello exits 2" 2 "$PY" "$tmp/bmroot/hw/bootmode.py" 1 --yes --lab "$LB"
+# boot mode 0 needs no boot program: none is built, none is passed
+printf '#!/bin/sh\necho "$@" > "%s/bmroot/x.args"\n' "$tmp" > "$tmp/bmroot/x"
+rm -f "$tmp/bm/java.args" "$tmp/bmroot/x.args"
+"$PY" "$tmp/bmroot/hw/bootmode.py" 0 --yes --lab "$LB" >/dev/null 2>&1
+args="$(tr '\n' ' ' < "$tmp/bm/java.args" 2>/dev/null)"
+case "$args" in *"--bootmode 0 --die MPFS250T_ES --package FCVG484 ") pass "bootmode: mode 0 without an ELF passes none" ;; *) fail "bootmode: mode 0 without an ELF passes none (got: $args)" ;; esac
+[ ! -e "$tmp/bmroot/x.args" ] && pass "bootmode: mode 0 without an ELF builds nothing" || fail "bootmode: mode 0 without an ELF builds nothing"
+# the jar finds SoftConsole and fpgenprog by environment variables
+[ "$(cat "$tmp/bm/java.sc")" = "$tmp/bm/sc" ] && pass "bootmode: sets SC_INSTALL_DIR to SOFT_CONSOLE for the jar" || fail "bootmode: sets SC_INSTALL_DIR to SOFT_CONSOLE for the jar (got: $(cat "$tmp/bm/java.sc"))"
+[ "$(cat "$tmp/bm/java.fp")" = "$tmp/bm/libero/fpgenprog" ] && pass "bootmode: sets FPGENPROG to the full path for the jar" || fail "bootmode: sets FPGENPROG to the full path for the jar (got: $(cat "$tmp/bm/java.fp"))"
+# without --lab, LAB_CONF and hw/lab.conf, hw/lab.conf.example is copied to hw/lab.conf
+rm -f "$tmp/bmroot/hw/lab.conf"
+env -u LAB_CONF "$PY" "$tmp/bmroot/hw/bootmode.py" 0 --dry-run >"$tmp/bmroot/copy.out" 2>&1
+grep -q '^OCD_PORT=4444$' "$tmp/bmroot/hw/lab.conf" 2>/dev/null && grep -q '^BOOTMODE_PACKAGE=FCVG484$' "$tmp/bmroot/hw/lab.conf" && pass "bootmode: creates lab.conf from lab.conf.example when there is none" || fail "bootmode: creates lab.conf from lab.conf.example when there is none"
+grep -q "created it from lab.conf.example" "$tmp/bmroot/copy.out" && pass "bootmode: says that it copied the example" || fail "bootmode: says that it copied the example"
+printf 'OCD_PORT=1234\n' > "$tmp/bmroot/hw/lab.conf"
+env -u LAB_CONF "$PY" "$tmp/bmroot/hw/bootmode.py" 0 --dry-run >/dev/null 2>&1
+grep -q '^OCD_PORT=1234$' "$tmp/bmroot/hw/lab.conf" && pass "bootmode: leaves an existing lab.conf alone" || fail "bootmode: leaves an existing lab.conf alone"
+rm -f "$tmp/bmroot/hw/lab.conf"
+"$PY" "$tmp/bmroot/hw/bootmode.py" 0 --dry-run --lab "$LB" >/dev/null 2>&1
+[ ! -e "$tmp/bmroot/hw/lab.conf" ] && pass "bootmode: --lab does not create lab.conf" || fail "bootmode: --lab does not create lab.conf"
+LAB_CONF="$LB" "$PY" "$tmp/bmroot/hw/bootmode.py" 0 --dry-run >/dev/null 2>&1
+[ ! -e "$tmp/bmroot/hw/lab.conf" ] && pass "bootmode: LAB_CONF does not create lab.conf" || fail "bootmode: LAB_CONF does not create lab.conf"
+# FPGENPROG is the full path of the executable, a name on PATH is not enough
+printf 'SOFT_CONSOLE=%s/bm/sc\nJAVA=%s/bm/bin/java\nFPGENPROG=fpgenprog\n' "$tmp" "$tmp" > "$tmp/lab-bm-fpname.conf"
+expect_rc  "bootmode: a bare fpgenprog name exits 2 even when it is on PATH" 2 env PATH="$tmp/bm/libero:$PATH" "$PY" "$HW/bootmode.py" 0 --yes --lab "$tmp/lab-bm-fpname.conf"
+expect_out "bootmode: a bare fpgenprog name says it needs the full path" "full path of the fpgenprog executable" env PATH="$tmp/bm/libero:$PATH" "$PY" "$HW/bootmode.py" 0 --yes --lab "$tmp/lab-bm-fpname.conf"
+printf 'SOFT_CONSOLE=%s/bm/sc\nJAVA=%s/bm/bin/java\nFPGENPROG=%s/bm/libero\n' "$tmp" "$tmp" "$tmp" > "$tmp/lab-bm-fpdir.conf"
+expect_rc  "bootmode: a directory as FPGENPROG exits 2" 2 "$PY" "$HW/bootmode.py" 0 --yes --lab "$tmp/lab-bm-fpdir.conf"
+# the copy of lab.conf.example has no header lines; the keys and their notes stay
+cp "$HW/bootmode.py" "$HW/lab.py" "$HW/lab.conf.example" "$tmp/bmroot/hw/"
+rm -f "$tmp/bmroot/hw/lab.conf"
+env -u LAB_CONF "$PY" "$tmp/bmroot/hw/bootmode.py" 0 --dry-run >/dev/null 2>&1
+if [ -f "$tmp/bmroot/hw/lab.conf" ] && ! grep -q 'lab.conf.example --' "$tmp/bmroot/hw/lab.conf" && ! grep -q 'Copy it to' "$tmp/bmroot/hw/lab.conf" \
+   && grep -q '^SOFT_CONSOLE=' "$tmp/bmroot/hw/lab.conf" && grep -q '^#   FPGENPROG ' "$tmp/bmroot/hw/lab.conf"; then
+  pass "bootmode: the new lab.conf has no header lines, but the keys and the notes on them"
+else fail "bootmode: the new lab.conf has no header lines, but the keys and the notes on them"; fi
+rm -f "$tmp/bmroot/hw/lab.conf"
+# colour only where the terminal supports it
+out="$("$PY" "$HW/bootmode.py" 0 --dry-run --lab "$LB" 2>&1)"
+case "$out" in *$'\033'*) fail "bootmode: no colour when the output is not a terminal" ;; *) pass "bootmode: no colour when the output is not a terminal" ;; esac
+out="$(FORCE_COLOR=1 "$PY" "$HW/bootmode.py" 0 --dry-run --lab "$LB" 2>&1)"
+case "$out" in *$'\033['*) pass "bootmode: FORCE_COLOR colours the messages" ;; *) fail "bootmode: FORCE_COLOR colours the messages" ;; esac
+out="$(NO_COLOR=1 FORCE_COLOR=1 "$PY" "$HW/bootmode.py" 0 --dry-run --lab "$LB" 2>&1)"
+case "$out" in *$'\033'*) fail "bootmode: NO_COLOR wins over FORCE_COLOR" ;; *) pass "bootmode: NO_COLOR wins over FORCE_COLOR" ;; esac
+out="$(FORCE_COLOR=1 "$PY" "$HW/bootmode.py" 4 --yes --lab "$LB" 2>&1)"
+case "$out" in *$'\033[1;31m'*) pass "bootmode: an error is red" ;; *) fail "bootmode: an error is red" ;; esac
+# OpenOCD must not run while the boot mode changes
+"$PY" -c 'import socket,sys,time; s=socket.socket(); s.bind(("127.0.0.1",0)); s.listen(5); print(s.getsockname()[1], flush=True); time.sleep(30)' > "$tmp/ocdport" &
+ocdpid=$!
+for _ in 1 2 3 4 5 6 7 8 9 10; do [ -s "$tmp/ocdport" ] && break; sleep 0.2; done
+printf 'OCD_HOST=127.0.0.1\nOCD_PORT=%s\n' "$(cat "$tmp/ocdport")" | cat "$LB" - > "$tmp/lab-bm-ocd.conf"
+rm -f "$tmp/bm/java.args"
+expect_rc  "bootmode: refuses while OpenOCD answers on its port" 2 bootmode 0 --yes --lab "$tmp/lab-bm-ocd.conf"
+expect_out "bootmode: says OpenOCD has to be stopped first" "stop it first" bootmode 0 --yes --lab "$tmp/lab-bm-ocd.conf"
+[ ! -e "$tmp/bm/java.args" ] && pass "bootmode: does not run the programmer while OpenOCD runs" || fail "bootmode: does not run the programmer while OpenOCD runs"
+expect_rc  "bootmode: --dry-run is allowed while OpenOCD runs" 0 bootmode 0 --dry-run --lab "$tmp/lab-bm-ocd.conf"
+kill "$ocdpid" 2>/dev/null; wait "$ocdpid" 2>/dev/null
+printf 'OCD_HOST=127.0.0.1\nOCD_PORT=1\n' | cat "$LB" - > "$tmp/lab-bm-noocd.conf"
+expect_rc  "bootmode: runs when nothing answers on the OpenOCD port" 0 bootmode 0 --yes --lab "$tmp/lab-bm-noocd.conf"
+expect_rc  "x hw bootmode: --dry-run passes through" 0 "$X" hw bootmode 0 --dry-run --lab "$LB"
+expect_rc  "x hw bootmode: a bad boot mode exits 2" 2 "$X" hw bootmode 9 --yes --lab "$LB"
+grep -q '^BOOTMODE_DIE=MPFS250T_ES$' "$HW/lab.conf.example" && grep -q '^BOOTMODE_PACKAGE=FCVG484$' "$HW/lab.conf.example" \
+  && pass "lab.conf.example: the die and the package of the bootmode programmer" || fail "lab.conf.example: the die and the package of the bootmode programmer"
 
 # --- Ctrl+C -------------------------------------------------------------------------
 # run_signal <signal> <delay> <limit> <out> <command...>: start the command (default signal dispositions) in a session of its own, send
@@ -265,7 +443,7 @@ exit 7"
 # supervise <signal> <stand-in> <grace> [second signal delay]: start_openocd.sh over the stand-in and signal it once it runs
 supervise () {
   rm -f "$tmp/$2.pid"
-  ready="$tmp/$2.pid" again="${4:-}" START_OPENOCD_GRACE="$3" SC="$tmp/sc-$2" LAB_CONF="$tmp/none.conf" \
+  ready="$tmp/$2.pid" again="${4:-}" START_OPENOCD_GRACE="$3" SOFT_CONSOLE="$tmp/sc-$2" LAB_CONF="$tmp/none.conf" \
     run_signal "$1" 0.3 20 "$tmp/sup.out" sh "$HW/start_openocd.sh"
   ready="" again=""
 }
@@ -288,22 +466,27 @@ supervise INT stubborn 10 0.5
 [ $rc -eq 130 ] && [ $ms -lt 2000 ] && gone "$tmp/stubborn.pid" && pass "start_openocd: a second Ctrl+C kills OpenOCD at once" \
   || fail "start_openocd: a second Ctrl+C kills OpenOCD at once (rc $rc, $ms ms)"
 rm -f "$tmp/quits.pid"
-START_OPENOCD_GRACE=1 SC="$tmp/sc-quits" LAB_CONF="$tmp/none.conf" sh "$HW/start_openocd.sh" >/dev/null 2>&1; rc=$?
+START_OPENOCD_GRACE=1 SOFT_CONSOLE="$tmp/sc-quits" LAB_CONF="$tmp/none.conf" sh "$HW/start_openocd.sh" >/dev/null 2>&1; rc=$?
 [ $rc -eq 7 ] && pass "start_openocd: the exit status of OpenOCD is passed on" || fail "start_openocd: the exit status of OpenOCD is passed on (exit $rc)"
-expect_rc  "start_openocd: a bad grace period exits 2" 2 env START_OPENOCD_GRACE=soon SC="$tmp/sc-quits" LAB_CONF="$tmp/none.conf" sh "$HW/start_openocd.sh"
+expect_rc  "start_openocd: a bad grace period exits 2" 2 env START_OPENOCD_GRACE=soon SOFT_CONSOLE="$tmp/sc-quits" LAB_CONF="$tmp/none.conf" sh "$HW/start_openocd.sh"
 
 # ./x hw openocd: the signal goes to x, hw.sh, the supervisor and OpenOCD alike, and none of them may hold it up
 rm -f "$tmp/stubborn.pid"
-ready="$tmp/stubborn.pid" START_OPENOCD_GRACE=1 SC="$tmp/sc-stubborn" LAB_CONF="$tmp/none.conf" run_signal INT 0.3 20 "$tmp/sup.out" "$X" hw openocd
+ready="$tmp/stubborn.pid" START_OPENOCD_GRACE=1 SOFT_CONSOLE="$tmp/sc-stubborn" LAB_CONF="$tmp/none.conf" run_signal INT 0.3 20 "$tmp/sup.out" "$X" hw openocd
 ready=""
 [ $rc -eq 130 ] && [ $ms -lt 3000 ] && gone "$tmp/stubborn.pid" && pass "x hw openocd: Ctrl+C ends OpenOCD, exit 130, nothing left behind" \
   || fail "x hw openocd: Ctrl+C ends OpenOCD, exit 130, nothing left behind (rc $rc, $ms ms: $(cat "$tmp/sup.out"))"
 
 # --- lab.conf ---------------------------------------------------------------------
-grep -Eq '^SC=/opt/Microchip_SoftConsole' "$HW/lab.conf" && grep -q '^UART_PATTERN=.*{n}' "$HW/lab.conf" \
-  && grep -q '^OCD_PORT=4444$' "$HW/lab.conf" \
-  && pass "lab.conf: the SoftConsole path, the OpenOCD port and the serial pattern" \
-  || fail "lab.conf: the SoftConsole path, the OpenOCD port and the serial pattern"
+grep -Eq '^SOFT_CONSOLE=/opt/Microchip_SoftConsole' "$HW/lab.conf.example" && grep -q '^UART_PATTERN=.*{n}' "$HW/lab.conf.example" \
+  && grep -q '^OCD_PORT=4444$' "$HW/lab.conf.example" \
+  && pass "lab.conf.example: the SoftConsole path, the OpenOCD port and the serial pattern" \
+  || fail "lab.conf.example: the SoftConsole path, the OpenOCD port and the serial pattern"
+git -C "$HW" check-ignore -q lab.conf 2>/dev/null && pass "lab.conf is ignored by git" || fail "lab.conf is ignored by git"
+printf 'OCD_PORT=5555\n' > "$tmp/lab-onlyport.conf"
+[ "$("$PY" -c 'import sys; sys.path.insert(0, sys.argv[1]); import lab; v = lab.load(sys.argv[2]); print(v["OCD_PORT"], v["SOFT_CONSOLE"], v["BOOTMODE_DIE"])' "$HW" "$tmp/lab-onlyport.conf")" = "5555 /opt/Microchip_SoftConsole-v2022.2 MPFS250T_ES" ] \
+  && pass "lab.py: a key that the conf does not set takes its default from lab.conf.example" \
+  || fail "lab.py: a key that the conf does not set takes its default from lab.conf.example"
 
 echo "summary: $fails failure(s)"
 [ $fails -eq 0 ]

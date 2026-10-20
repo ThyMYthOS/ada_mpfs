@@ -1,0 +1,33 @@
+# lab.conf.example -- where the lab setup of a machine keeps its tools and ports. Copy it to
+# hw/lab.conf (which git ignores; ./x hw bootmode does it when there is none, without these
+# header lines) and change what differs on this machine; a key that hw/lab.conf does not set
+# takes its value from this file. Read by hw/lab.py (and hw/start_openocd.sh); KEY=value
+# lines, no quoting. Another file is named with --lab FILE or the environment variable
+# LAB_CONF. The values below are the setup the project was developed on.
+#
+#   SOFT_CONSOLE  install directory of Microchip SoftConsole. Its OpenOCD has the
+#                 microsemi-flashpro interface that the distribution's OpenOCD lacks,
+#                 and talks to the embedded FlashPro6 of the Icicle Kit.
+#   OCD_HOST      host of the OpenOCD telnet port (the Tcl RPC port is not used: the
+#   OCD_PORT      SoftConsole OpenOCD has no read_memory, and md[bhwd] output does
+#                 not come back through it)
+#   UART_PATTERN  device path (a glob) of the serial port of MMUART <n>; {n} is the
+#                 number. The CP2108 of the board shows interface if0<n> as MMUART<n>.
+#   UART_COUNT    number of serial ports to read (MMUART0 .. MMUART<count-1>)
+#   JAVA          java for hw/bootmode.py (a name on PATH or a full path)
+#   BOOTMODE_JAR  mpfsBootmodeProgrammer.jar of SoftConsole; empty: <SOFT_CONSOLE>/extras/mpfs/mpfsBootmodeProgrammer.jar
+#   FPGENPROG     the fpgenprog executable of Libero SoC or of the Program Debug Tool: the full path
+#                 including the file name (a name on PATH is not enough); the jar needs it
+#   BOOTMODE_DIE  --die of the jar: MPFS250T_ES is the engineering sample that most Icicle Kits carry;
+#                 series silicon uses another die name
+#   BOOTMODE_PACKAGE  --package of the jar
+SOFT_CONSOLE=/opt/Microchip_SoftConsole-v2022.2
+OCD_HOST=localhost
+OCD_PORT=4444
+UART_PATTERN=/dev/serial/by-id/usb-Silicon_Labs_CP2108_*-if0{n}-port0
+UART_COUNT=4
+JAVA=java
+BOOTMODE_JAR=
+FPGENPROG=/opt/Microchip/Libero_SoC/Libero/bin/fpgenprog
+BOOTMODE_DIE=MPFS250T_ES
+BOOTMODE_PACKAGE=FCVG484

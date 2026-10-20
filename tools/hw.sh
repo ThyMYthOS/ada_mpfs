@@ -4,6 +4,13 @@
 #
 # hw.sh -- the Icicle Kit from the command line; a shell around hw/*.py. Driven by `./x hw`.
 #
+#   hw.sh bootmode N [ELF] [--yes] [--dry-run] [--workdir DIR] [--lab F]
+#                              switch the boot mode (0..3) with the programmer of SoftConsole (hw/bootmode.py). ELF is the boot program
+#                              (default: the example bare_hello, built). Errors come with the help text, which
+#                              describes the boot modes. PERMANENT: it reprograms the FPGA part; nothing is written without --yes or a
+#                              typed "yes". --dry-run prints the command only. Stop OpenOCD first: it and the
+#                              programmer both use the FlashPro, and the script refuses while OpenOCD answers
+#                              on the port of lab.conf.
 #   hw.sh openocd [args]       start the SoftConsole OpenOCD (hw/start_openocd.sh)
 #   hw.sh run <ex|file.elf> [--hart N] [--secs S] [--expect RE] [--expect-port N] [--uart-standin] [--lab F]
 #                              build the example (or take the ELF), load it onto hart N
@@ -19,7 +26,7 @@
 #                              abstractcs, reset halt, check SUBBLK_CLOCK_CR and SOFT_RESET_CR), also after a
 #                              hung debug module; exit 0 only if the check passed, 2 otherwise
 #
-# Ports, SoftConsole path and the serial devices come from hw/lab.conf (--lab FILE or
+# Ports, SoftConsole path and the serial devices come from hw/lab.conf (a copy of hw/lab.conf.example; --lab FILE or
 # LAB_CONF names another one). Exit status: 0 success, 1 the expectation was not met,
 # 2 set-up error (no OpenOCD, no serial port, bad arguments), 130 ended with Ctrl+C.
 
@@ -32,8 +39,8 @@ die () { echo "hw: $*" >&2; exit 2; }
 verb="${1:-}"; shift || true
 case "$verb" in
   openocd) exec sh "$root/hw/start_openocd.sh" "$@" ;;
-  run|probe|monitor|reset) ;;
-  *) die "usage: ./x hw openocd|run|probe|monitor|reset" ;;
+  bootmode|run|probe|monitor|reset) ;;
+  *) die "usage: ./x hw bootmode|openocd|run|probe|monitor|reset" ;;
 esac
 
 # shellcheck source=tools/mpfs-env.sh
@@ -44,6 +51,7 @@ case "$verb" in
   probe)   exec "$MPFS_PYTHON" "$root/hw/run_probe.py" "$@" ;;
   monitor) exec "$MPFS_PYTHON" "$root/hw/monitor.py" "$@" ;;
   reset)   exec "$MPFS_PYTHON" "$root/hw/reset.py" "$@" ;;
+  bootmode) exec "$MPFS_PYTHON" "$root/hw/bootmode.py" "$@" ;;
 esac
 
 # run

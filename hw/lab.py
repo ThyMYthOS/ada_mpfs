@@ -3,7 +3,8 @@
 """The lab setup and the pinned toolchain, shared by the scripts of hw/.
 
 lab.conf holds what differs between machines (the SoftConsole path, the OpenOCD
-port, the serial ports). The RISC-V cross compiler comes from the version pinned
+port, the serial ports). It is not in the repository: lab.conf.example is, and gives
+the default of every key. The RISC-V cross compiler comes from the version pinned
 in tools/toolchain.env, never from "the last directory that matches a glob".
 """
 import glob
@@ -14,13 +15,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 
-DEFAULTS = {
-    "SC": "/opt/Microchip_SoftConsole-v2022.2",
-    "OCD_HOST": "localhost",
-    "OCD_PORT": "4444",
-    "UART_PATTERN": "/dev/serial/by-id/usb-Silicon_Labs_CP2108_*-if0{n}-port0",
-    "UART_COUNT": "4",
-}
+EXAMPLE = HERE / "lab.conf.example"
 
 
 def read_env_file(path: Path) -> dict[str, str]:
@@ -36,12 +31,14 @@ def read_env_file(path: Path) -> dict[str, str]:
 
 
 def load(path: str | None = None) -> dict[str, str]:
-    """The lab settings: the defaults, then lab.conf (or the file named by <path> or
-    the environment variable LAB_CONF) on top. A named file that does not exist is an
-    error, not a fallback to the defaults."""
+    """The lab settings: lab.conf.example, then hw/lab.conf (or the file named by <path> or
+    the environment variable LAB_CONF) on top. hw/lab.conf may be missing, a named file may
+    not: that is an error, not a fallback to the defaults."""
     named = path or os.environ.get("LAB_CONF")
     conf = Path(named) if named else HERE / "lab.conf"
-    values = dict(DEFAULTS)
+    if not EXAMPLE.is_file():
+        raise SystemExit(f"lab: {EXAMPLE} does not exist")
+    values = read_env_file(EXAMPLE)
     if conf.is_file():
         values.update(read_env_file(conf))
     elif named:
