@@ -36,6 +36,7 @@
 #                                      twice, in two directories, with the same SOURCE_DATE_EPOCH
 #                                      (default: the commit time), and compare the SHA-256 of
 #                                      the ELFs; the differing ones are listed
+#    ./x docs                          check the relative links and #anchors of the Markdown files
 #    ./x analyze [--style] [--update-baseline]   static analysis
 #    ./x stack <ex> [--hart e51|u54] [--top N]
 #                                      static stack analysis: per-frame sizes and the
@@ -806,6 +807,7 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
     metrics)         cmd_metrics "$@" ;;
     analyze)         delegate tools/analyze.sh "$@" ;;
     repro)           delegate tools/repro.sh "$@" ;;
+    docs)            delegate tools/check_docs.py "$@" ;;
     stack)           cmd_stack "$@" ;;
     svd)             cmd_svd "$@" ;;
     pac)             cmd_pac "$@" ;;
