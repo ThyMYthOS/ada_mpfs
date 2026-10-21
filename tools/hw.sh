@@ -14,6 +14,10 @@
 #                              run a probe of hw/ and print its result block
 #   hw.sh monitor [--secs N] [--port N] [--expect RE] [--lab F]
 #                              show what the serial ports print
+#   hw.sh reset [--svd FILE] [--target T] [--lab F]
+#                              reset the board to its power-on state through OpenOCD (dmi_read/dmi_write of
+#                              abstractcs, reset halt, check SUBBLK_CLOCK_CR and SOFT_RESET_CR), also after a
+#                              hung debug module; exit 0 only if the check passed, 2 otherwise
 #
 # Ports, SoftConsole path and the serial devices come from hw/lab.conf (--lab FILE or
 # LAB_CONF names another one). Exit status: 0 success, 1 the expectation was not met,
@@ -28,8 +32,8 @@ die () { echo "hw: $*" >&2; exit 2; }
 verb="${1:-}"; shift || true
 case "$verb" in
   openocd) exec sh "$root/hw/start_openocd.sh" "$@" ;;
-  run|probe|monitor) ;;
-  *) die "usage: ./x hw openocd|run|probe|monitor" ;;
+  run|probe|monitor|reset) ;;
+  *) die "usage: ./x hw openocd|run|probe|monitor|reset" ;;
 esac
 
 # shellcheck source=tools/mpfs-env.sh
@@ -39,6 +43,7 @@ mpfs_find_python
 case "$verb" in
   probe)   exec "$MPFS_PYTHON" "$root/hw/run_probe.py" "$@" ;;
   monitor) exec "$MPFS_PYTHON" "$root/hw/monitor.py" "$@" ;;
+  reset)   exec "$MPFS_PYTHON" "$root/hw/reset.py" "$@" ;;
 esac
 
 # run

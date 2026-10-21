@@ -64,8 +64,9 @@ read priv register") stops the probe at once, whatever --keep-going or --max-fai
 hung access (the first one to CAN_A_LO after the --enable-clocks writes did). The probe makes
 one attempt to recover (riscv dmi_write 0x16 0x700 clears cmderr, riscv dmi_read 0x16 reads abstractcs; without
 these commands in OpenOCD there is no attempt). If the debug module stays busy, the probe does not even resume the
-hart, names the block and the register and says: power-cycle the board and restart OpenOCD. If it is idle again,
-the register is reported as unreadable and the run goes on with the next peripheral.
+hart, names the block and the register and says: run ./x hw reset (or reset halt in the OpenOCD console); if that
+fails, power-cycle the board and restart OpenOCD. With --recover the probe does the reset itself, see below. If it is idle again
+(and --recover is not given), the register is reported as unreadable and the run goes on with the next peripheral.
 
 The registers of a peripheral are read with one command per 512 registers at consecutive addresses; a "block" rule
 of the rules file lowers that for peripherals that were never measured cleanly (CAN, GEM, USB, QSPIXIP, CRYPTO: 16).
@@ -82,12 +83,20 @@ per peripheral, the registers that were not reached), then the cause, which also
 a plain > has it. The counts keep apart: skipped (not read after an unreadable register), readAction, DLAB, noref,
 state and excluded (blocks that a rule of hw/svd_probe.list left out).
 
+--recover (opt-in) answers a stalled debug module with the sequence of ./x hw reset (hw/recover.py: clear cmderr, reset halt,
+check SYSREG.SUBBLK_CLOCK_CR and SOFT_RESET_CR against their reset values): the peripheral whose access hung is reported as
+"hung (recovered)" and not read further (counted as hung in the summary), the --poke writes and --enable-clocks are applied again
+(the reset undoes them), and the probe goes on. After --max-recoveries N (default 3), or if the check fails, it stops with
+exit code 2 and without resuming the hart. A stall is a reply that says "stuck busy", also when clearing cmderr already made the
+debug module idle again: the next accesses failed after such a stall (measured on the Icicle Kit: three unreadable registers in a row),
+so --recover resets the board in that case too.
+
 Ctrl+C stops the probe at once, even if OpenOCD does not answer (a hung bus). It makes
 one attempt to resume the hart with a 2 s timeout (none with --no-halt), says whether
 the hart may still be halted, and exits with status 130; a second Ctrl+C leaves
 immediately. After an interrupt the hart can remain halted: send "resume" to OpenOCD.
 
-The exit code is 1 if any register is not ok (state, noref and skipped registers
+The exit code is 1 if any register is not ok or its peripheral hung and was recovered (state, noref and skipped registers
 are not failures), 2 if the probe stopped early or could not resume the hart, 130
 after Ctrl+C. With
 --list nothing is read: the registers, their addresses and expected values are
@@ -102,7 +111,11 @@ import sys
 import dataclasses
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 from xml.etree import ElementTree as ET
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import recover  # noqa: E402  (hw/recover.py, shared with hw/reset.py)
 
 ROOT = Path(__file__).resolve().parent.parent
 INTERRUPT_TIMEOUT = 2.0  # seconds the resume after Ctrl+C may take
@@ -266,6 +279,7 @@ class OpenOcd:
     def __init__(self, host: str, port: int, timeout: float = 30.0):
         self.sock = socket.create_connection((host, port), timeout=timeout)
         self._seq = 0
+        self.reset_after_busy = False  # --recover: a stuck busy always ends in the reset of the board
         self._read()
 
     def _read(self, echo: bytes = b"") -> str:
@@ -403,6 +417,7 @@ class Result:
     state: int = 0
     excluded: int = 0
     dlab: int = 0
+    hung: int = 0  # registers not read because their peripheral hung the debug module and was recovered
     last: str = ""  # the register accessed last, "0x<address> <name>"
     done: collections.Counter[str] = dataclasses.field(default_factory=collections.Counter)  # per peripheral: registers with a line
 
@@ -435,8 +450,11 @@ def hang_error(target: OpenOcd, where: str, reply: str) -> OSError:
     """
     failed = recover_debug_module(target)
     if failed:
-        raise Hung(f"the debug module is stuck busy {where}: OpenOCD replied {reply!r}; {failed}; power-cycle the board and "
-                   "restart OpenOCD (the hart was not resumed)", stuck=True)
+        raise Hung(f"the debug module is stuck busy {where}: OpenOCD replied {reply!r}; {failed}; run ./x hw reset (or reset halt in "
+                   "the OpenOCD console); if that fails, power-cycle the board and restart OpenOCD (the hart was not resumed)", stuck=True)
+    if target.reset_after_busy:  # --recover: a debug module that was busy once is not trusted, even if it is idle again
+        raise Hung(f"the debug module was stuck busy {where}: OpenOCD replied {reply!r}; it is idle again after clearing cmderr, "
+                   "but --recover resets the board", stuck=True)
     print(f"svd_probe: note: the debug module was stuck busy {where} (OpenOCD replied {reply!r}); it is not busy after clearing "
           "cmderr, reading on", file=sys.stderr)
     return OSError(f"the debug module was stuck busy: {reply}")
@@ -510,7 +528,7 @@ def parse_blocks(specs: list[str], rules: list[Rule] | None = None) -> list[tupl
 
 def probe(regs: list[Reg], target: OpenOcd, blocks: list[tuple[str, int]], keep_going: bool = False,
           max_failures: int = 3, read_destructive: bool = False, state: list[Rule] | None = None,
-          result: Result | None = None, identical: int = 0) -> Result:
+          result: Result | None = None, identical: int = 0, on_hang: Callable[["Hung"], bool] | None = None) -> Result:
     """Read and compare all <regs>; print one line each and return the counts.
 
     The counts go into <result> if one is given, so that the caller still has them when the run ends in an exception.
@@ -526,9 +544,12 @@ def probe(regs: list[Reg], target: OpenOcd, blocks: list[tuple[str, int]], keep_
     that matches one of the <state> rules and differs from its reset value is
     reported as "state", not as "mismatch". If more than <identical> registers of one peripheral read the same
     nonzero value that is not their reset value (0: no check), one note says that the block probably does not
-    respond: a gated block can answer every read with the same word.
+    respond: a gated block can answer every read with the same word. If the debug module hangs (Hung with
+    <stuck>) and <on_hang> returns True (it recovered the target), the peripheral is reported as "hung (recovered)",
+    its remaining registers are not read, and the probe goes on with the next peripheral.
     """
     result = result if result is not None else Result()
+    hung_names: set[str] = set()
     same: dict[str, collections.Counter[int]] = {}  # per peripheral: the values that are not a reset value
     dead: dict[str, int] = {}
     in_a_row = 0
@@ -553,7 +574,9 @@ def probe(regs: list[Reg], target: OpenOcd, blocks: list[tuple[str, int]], keep_
         if isinstance(chunk, tuple):
             r, why = chunk
             result.done[r.name.split(".")[0]] += 1
-            if r.name.split(".")[0] in dead:
+            if r.name.split(".")[0] in hung_names:
+                result.hung += 1
+            elif r.name.split(".")[0] in dead:
                 dead[r.name.split(".")[0]] += 1
                 result.skipped += 1
             elif why == "DLAB":
@@ -572,10 +595,20 @@ def probe(regs: list[Reg], target: OpenOcd, blocks: list[tuple[str, int]], keep_
                 result.read_action += 1
             continue
         name = chunk[0].name.split(".")[0]
-        if name in lcr and not read_destructive and name not in dead:
+        if name in lcr and not read_destructive and name not in dead and name not in hung_names:
             if name not in lcr_read:  # LCR first: DLR and THR read receive data unless DLAB is 1
                 lcr_read.add(name)
-                first = read_run([lcr[name]], target)[0]
+                try:
+                    first = read_run([lcr[name]], target)[0]
+                except Hung as h:
+                    if not (h.stuck and on_hang and on_hang(h)):
+                        raise
+                    result.last = f"0x{lcr[name].address:08X} {lcr[name].name}"
+                    print(f"hung (recovered)  {result.last} (the debug module stalled and was recovered with reset halt; "
+                          f"the rest of {name} is not read)")
+                    hung_names.add(name)
+                    chunks.appendleft(chunk)
+                    continue
                 if isinstance(first, int) and not first & LCR_DLAB:
                     dlab_off.add(name)
             if name in dlab_off and any(r.name.split(".")[1] in DLAB_REGS for r in chunk):
@@ -590,13 +623,28 @@ def probe(regs: list[Reg], target: OpenOcd, blocks: list[tuple[str, int]], keep_
                 chunks.extendleft(reversed(pieces))
                 continue
         for run in runs(chunk, block_limit(name, blocks)):
+            if name in hung_names:
+                result.hung += len(run)
+                result.done[name] += len(run)
+                continue
             if name in dead:
                 dead[name] += len(run)
                 result.skipped += len(run)
                 result.done[name] += len(run)
                 continue
             result.last = f"0x{run[0].address:08X} {run[0].name}"
-            values = read_run(run, target)
+            try:
+                values = read_run(run, target)
+            except Hung as h:
+                if not (h.stuck and on_hang and on_hang(h)):
+                    raise
+                print(f"hung (recovered)  {result.last} (the debug module stalled and was recovered with reset halt; "
+                      f"the rest of {name} is not read)")
+                hung_names.add(name)
+                result.hung += len(run)
+                result.done[name] += len(run)
+                in_a_row = 0
+                continue
             for r, value in zip(run, values):
                 result.done[name] += 1
                 result.last = f"0x{r.address:08X} {r.name}"
@@ -803,8 +851,8 @@ def partial_summary(regs: list[Reg], result: Result) -> list[str]:
     total = collections.Counter(r.name.split(".")[0] for r in regs)
     left = {name: n - result.done[name] for name, n in total.items() if n > result.done[name]}
     lines = [f"svd_probe: partial summary: {sum(result.done.values())} of {len(regs)} register(s) have a line, {result.failures} not ok, "
-             f"{result.skipped} skipped, {result.read_action} readAction, {result.dlab} DLAB, {result.noref} noref, "
-             f"{result.state} state, {result.excluded} excluded",
+             f"{result.skipped} skipped, {result.read_action} readAction, {result.dlab} DLAB, {result.hung} hung, "
+             f"{result.noref} noref, {result.state} state, {result.excluded} excluded",
              f"svd_probe: last register accessed: {result.last or 'none'}"]
     lines.append("svd_probe: not reached: " + (", ".join(f"{name} {n}" for name, n in left.items()) + f" ({sum(left.values())} register(s))"
                                                 if left else "nothing"))
@@ -838,6 +886,12 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--identical-reads", type=int, default=8, metavar="N",
                     help="note a peripheral of which more than N registers read the same nonzero value that is not their reset "
                          "value: the block probably does not respond (clock or reset?); 0 = never (default: %(default)s)")
+    ap.add_argument("--recover", action="store_true",
+                    help="when a read stalls the debug module, bring the board back with a reset halt (hw/recover.py, as ./x hw reset), "
+                         "mark the peripheral as 'hung (recovered)' and go on with the next one after the --poke writes and "
+                         "--enable-clocks have been applied again; the reset undoes them, and any PLL or boot state")
+    ap.add_argument("--max-recoveries", type=int, default=3, metavar="N",
+                    help="with --recover, stop (exit code 2) after N recoveries (default: %(default)s)")
     ap.add_argument("--keep-going", action="store_true",
                     help="read the rest of a peripheral after an unreadable register (default: skip it)")
     ap.add_argument("--skip", action="append", default=[], metavar="PERIPHERAL[,PERIPHERAL...]",
@@ -970,11 +1024,41 @@ def main(argv: list[str]) -> int:
             poke(target, address, value, name)
         if args.enable_clocks:
             enable_clocks(root, target)
+        target.reset_after_busy = args.recover
+        recoveries = 0
+        checks = [recover.Check(f"SYSREG.{r.name.split('.')[1]}", r.address, r.reset)
+                  for r in (peripheral_registers(root, "SYSREG") if args.recover else [])
+                  if r.name in ("SYSREG.SUBBLK_CLOCK_CR", "SYSREG.SOFT_RESET_CR") and r.reset is not None]
+
+        def on_hang(hung: Hung) -> bool:
+            """--recover: reset the board, then redo what the reset undid (halt, pokes, clocks). True if the probe can go on."""
+            nonlocal recoveries
+            if not args.recover:
+                return False
+            if recoveries >= args.max_recoveries:
+                print(f"svd_probe: --recover: {recoveries} recoveries done (--max-recoveries), not recovering again", file=sys.stderr)
+                return False
+            recoveries += 1
+            print(f"svd_probe: --recover: the debug module stalled ({hung}); recovery {recoveries} of at most {args.max_recoveries}")
+            if not recover.recover(target.command, lambda address: target.read(address, 32), checks,
+                                   lambda text: print(text, flush=True)):
+                return False
+            target.command(f"targets {args.target}")
+            verify_halted(target, args.target, "")
+            target.command("riscv set_prefer_sba off")
+            print(power_state(root, target).replace("power state:", "power state after the recovery:", 1))
+            for address, value, name in pokes:
+                poke(target, address, value, name)
+            if args.enable_clocks:
+                enable_clocks(root, target)
+            return True
+
         probe(regs, target, blocks, args.keep_going, args.max_failures, args.read_destructive, state_rules, result,
-              args.identical_reads)
+              args.identical_reads, on_hang)
     except Hung as e:
         keep_halted = e.stuck
-        abort = str(e) if e.stuck else f"{e}; the bus is probably hung, reset the board; try --enable-clocks or --skip"
+        abort = str(e) if e.stuck else (f"{e}; the bus is probably hung: run ./x hw reset (or reset halt in the OpenOCD console), "
+                                        "if that fails power-cycle the board; try --enable-clocks or --skip")
     except NotHalted as e:
         abort = str(e)
     except Dead as e:
@@ -984,7 +1068,8 @@ def main(argv: list[str]) -> int:
     except TooManyFailures as e:
         abort = f"{e}; the rest would fail as well, check OpenOCD and the board (--max-failures to change)"
     except TimeoutError:
-        abort = "OpenOCD did not answer a command; the bus is probably hung, reset the board"
+        abort = ("OpenOCD did not answer a command; the bus is probably hung: run ./x hw reset (or reset halt in the OpenOCD "
+                 "console), if that fails power-cycle the board")
     except KeyboardInterrupt:
         # Stop at once. The cleanup below must not wait for an OpenOCD that may be stuck: one resume with a
         # short timeout, no retry, and a second Ctrl+C leaves immediately.
@@ -1022,8 +1107,9 @@ def main(argv: list[str]) -> int:
         print(f"svd_probe: {problem}")
         return 2
     print(f"svd_probe: {len(regs)} register(s), {result.failures} not ok, {result.skipped} skipped, "
-          f"{result.read_action} readAction, {result.dlab} DLAB, {result.noref} noref, {result.state} state, {result.excluded} excluded")
-    return 1 if result.failures else 0
+          f"{result.read_action} readAction, {result.dlab} DLAB, {result.hung} hung, {result.noref} noref, {result.state} state, "
+          f"{result.excluded} excluded")
+    return 1 if result.failures or result.hung else 0
 
 
 if __name__ == "__main__":

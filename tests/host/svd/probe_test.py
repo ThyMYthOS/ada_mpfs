@@ -602,8 +602,178 @@ def test_abort_output(tmp: Path) -> None:
     stub = Stub(script=lambda conn, cmd, n: "Error: bus error" if cmd.startswith("mdw 0x2000") else None)
     r = run(svd2, stub, "--skip-file", str(rules2), "--block", "1")
     check("abort output: rule-excluded, readAction and not-reached registers have their own counts",
-          "svd_probe: 6 register(s), 1 not ok, 2 skipped, 1 readAction, 0 DLAB, 0 noref, 0 state, 2 excluded" in r.stdout, r.stdout)
+          "svd_probe: 6 register(s), 1 not ok, 2 skipped, 1 readAction, 0 DLAB, 0 hung, 0 noref, 0 state, 2 excluded" in r.stdout, r.stdout)
     stub.close()
+
+
+class Board:
+    """A stand-in board for the recovery: a first read of a "hang" address stalls the debug module (every md and mww
+    answers with the busy text) until "reset halt" arrives; the reset restores the power-on values of SYSREG and
+    forgets what was written. With fixed=False the reset does not help."""
+
+    def __init__(self, hang=(0x2000,), fixed=True, dmi=True, toggle_fixes=False, clearable=False):
+        self.hang, self.fixed, self.dmi, self.toggle_fixes, self.clearable = set(hang), fixed, dmi, toggle_fixes, clearable
+        self.stuck = False
+        self.toggled = False
+        self.stub = None
+
+    def reset_mem(self):
+        self.stub.mem.clear()
+        self.stub.mem.update({0x5084: 1, 0x5088: 0x3FFFFFFE})
+
+    def script(self, conn, cmd, n):
+        if cmd == "reset halt":
+            if self.fixed or (self.toggle_fixes and self.toggled):
+                self.stuck = False
+                self.reset_mem()
+            return ""
+        if cmd.startswith("riscv dmi"):
+            if not self.dmi:
+                return 'invalid command name "dmi_read"'
+            if cmd == "riscv dmi_write 0x10 0x1":
+                self.toggled = True
+            if cmd == "riscv dmi_write 0x16 0x700" and self.clearable:
+                self.stuck = False  # clearing cmderr is enough: the debug module is idle again
+            return ("0x10001002" if self.stuck else "0x00000102") if cmd == "riscv dmi_read 0x16" else ""
+        if cmd.startswith(("mdw", "mww")):
+            address = int(cmd.split()[1], 16)
+            if self.stuck:
+                return BUSY
+            if cmd.startswith("mdw") and address in self.hang:
+                self.hang.discard(address)
+                self.stuck = True
+                return BUSY
+        return None
+
+
+def board_svd(tmp: Path) -> Path:
+    """P1, P2 (hangs), P3 (hangs when asked to) and SYSREG with the two registers the recovery checks."""
+    (tmp / "b").mkdir(exist_ok=True)
+    return make_svd(tmp / "b", {"P1@0x1000": [reg("R0", 0)], "P2@0x2000": [reg("R0", 0), reg("R1", 4)], "P3@0x3000": [reg("R0", 0)],
+                                "P4@0x4000": [reg("R0", 0)],
+                                "SYSREG@0x5000": [reg("SUBBLK_CLOCK_CR", 0x84, reset=1), reg("SOFT_RESET_CR", 0x88, reset=0x3FFFFFFE)]})
+
+
+def test_recover(tmp: Path) -> None:
+    """--recover resets the board after a stall and goes on; without it the run stops; ./x hw reset does the same sequence."""
+    svd = board_svd(tmp)
+    rules = tmp / "empty.list"
+    rules.write_text("# no rules\n")
+    common = ["--skip-file", str(rules), "--poke", "0x6000=0x5", "--enable-clocks", "--max-failures", "0"]
+
+    def serve(**kw):
+        board = Board(**kw)
+        board.stub = Stub(script=board.script)
+        board.reset_mem()
+        return board
+
+    # --recover: the sequence, the mark, the re-applied pokes and clocks, the rest of the run
+    board = serve()
+    r = run(svd, board.stub, "--recover", *common)
+    log = [c for c in board.stub.commands("") if c]
+    seq = [c for c in log if c.startswith("riscv dmi") or c == "reset halt"]
+    check("recover: after the stall dmi_read, dmi_write 0x16 0x700 and reset halt are sent (the probe's own try comes first)",
+          seq[-3:] == ["riscv dmi_read 0x16", "riscv dmi_write 0x16 0x700", "reset halt"], str(seq))
+    check("recover: the peripheral is marked hung (recovered), its other register is not read",
+          "hung (recovered)  0x00002000 P2.R0" in r.stdout and "mdw 0x2004 1" not in log and "mdw 0x2000 2" not in log[log.index("reset halt"):], r.stdout)
+    check("recover: the run goes on with the next peripherals", "P3.R0" in r.stdout and "P4.R0" in r.stdout and board.stub.commands("resume") == ["resume"], r.stdout)
+    after = log[log.index("reset halt"):]
+    check("recover: the pokes and the clock writes are applied again after the reset", "mww 0x6000 0x5" in after and "mww 0x5084 0xFFFFFFFF" in after and "mww 0x5088 0x0" in after, str(after))
+    check("recover: the hart is halted again before the reads (targets, set_prefer_sba)", "riscv set_prefer_sba off" in after, str(after))
+    check("recover: every step prints the reply of OpenOCD",
+          "recover: riscv dmi_read 0x16 -> '0x10001002'" in r.stdout and "recover: reset halt -> ''" in r.stdout and "recover: verify SYSREG.SUBBLK_CLOCK_CR" in r.stdout, r.stdout)
+    check("recover: the summary counts the hung registers and the exit status is 1",
+          r.returncode == 1 and "2 hung" in r.stdout and "svd_probe: 7 register(s)" in r.stdout and "svd_probe: --recover:" in r.stdout, f"{r.returncode} {r.stdout[-300:]!r}")
+    check("recover: the power state is printed again after the recovery", "power state after the recovery:" in r.stdout, r.stdout)
+    board.stub.close()
+    # a hung peripheral alone makes the exit status 1
+    board = serve()
+    r = run(svd, board.stub, "--recover", "--skip-file", str(rules), "--skip", "SYSREG")
+    check("recover: a recovered hang is not a clean run: exit status 1 although every register read is ok",
+          r.returncode == 1 and "mismatch" not in r.stdout and "unreadable" not in r.stdout and "hung (recovered)" in r.stdout, f"{r.returncode} {r.stdout!r}")
+    board.stub.close()
+    # without --recover: stop, no resume, the advice names ./x hw reset
+    board = serve()
+    r = run(svd, board.stub, *common)
+    check("recover: without --recover the run stops, does not reset and advises ./x hw reset",
+          r.returncode == 2 and "reset halt" not in board.stub.commands("") and not board.stub.commands("resume") and "./x hw reset" in r.stderr
+          and "power-cycle" in r.stderr, f"{r.returncode} {r.stderr!r}")
+    board.stub.close()
+    # the reset does not help: toggle, second reset halt, abort without resume
+    board = serve(fixed=False)
+    r = run(svd, board.stub, "--recover", *common)
+    log = [c for c in board.stub.commands("") if c]
+    check("recover: when the check fails the debug module is toggled and the reset halt repeated",
+          "riscv dmi_write 0x10 0x0" in log and "riscv dmi_write 0x10 0x1" in log and log.count("reset halt") == 2, str(log))
+    check("recover: when that fails too the run ends with 2, without resume, and says to power-cycle",
+          r.returncode == 2 and not board.stub.commands("resume") and "power-cycle the board and restart OpenOCD" in r.stderr, f"{r.returncode} {r.stderr!r}")
+    board.stub.close()
+    # the toggle helps
+    board = serve(fixed=False, toggle_fixes=True)
+    r = run(svd, board.stub, "--recover", *common)
+    check("recover: the toggle can fix it, the run goes on", r.returncode == 1 and "P4.R0" in r.stdout and "after toggling the debug module" in r.stdout, f"{r.returncode} {r.stdout[-400:]!r}")
+    board.stub.close()
+    # at most N recoveries
+    board = serve(hang=(0x2000, 0x3000))
+    r = run(svd, board.stub, "--recover", "--max-recoveries", "1", *common)
+    check("recover: --max-recoveries N stops the second recovery with exit 2",
+          r.returncode == 2 and board.stub.commands("reset halt") == ["reset halt"] and not board.stub.commands("resume") and "--max-recoveries" in r.stderr, f"{r.returncode} {r.stderr!r}")
+    board.stub.close()
+    board = serve(hang=(0x2000, 0x3000))
+    r = run(svd, board.stub, "--recover", *common)
+    check("recover: two stalls are recovered within the default limit", r.returncode == 1 and board.stub.commands("reset halt") == ["reset halt"] * 2 and "P4.R0" in r.stdout, f"{r.returncode} {r.stdout[-300:]!r}")
+    board.stub.close()
+    # a stall that clearing cmderr already cures: with --recover the board is reset all the same, without it the run goes on
+    board = serve(clearable=True)
+    r = run(svd, board.stub, "--recover", *common)
+    check("recover: a debug module that is idle again after clearing cmderr is still reset with --recover",
+          board.stub.commands("reset halt") == ["reset halt"] and "hung (recovered)  0x00002000 P2.R0" in r.stdout
+          and "unreadable" not in r.stdout and "P4.R0" in r.stdout and r.returncode == 1, f"{r.returncode} {r.stdout[-500:]!r}")
+    board.stub.close()
+    board = serve(clearable=True)
+    r = run(svd, board.stub, "--skip-file", str(rules), "--max-failures", "0", "--keep-going")
+    check("recover: without --recover the same stall is one unreadable register and the run goes on, no reset",
+          not board.stub.commands("reset halt") and "unreadable  0x00002000 P2.R0" in r.stdout and "P4.R0" in r.stdout, f"{r.returncode} {r.stdout[-500:]!r}")
+    board.stub.close()
+    # OpenOCD without the riscv dmi commands
+    board = serve(dmi=False)
+    r = run(svd, board.stub, "--recover", *common)
+    check("recover: without riscv dmi_read it says so and still resets and verifies",
+          "riscv dmi_read is not available" in r.stdout and "reset halt" in board.stub.commands("") and r.returncode == 1 and "P4.R0" in r.stdout, f"{r.returncode} {r.stdout[-400:]!r}")
+    board.stub.close()
+
+    # ./x hw reset and hw/reset.py
+    lab_dir = tmp / "lab"
+    lab_dir.mkdir()
+    def lab_for(port: int) -> str:
+        path = lab_dir / f"lab{port}.conf"
+        path.write_text(f"OCD_HOST=127.0.0.1\nOCD_PORT={port}\n")
+        return str(path)
+    for how in ("hw/reset.py", "x hw reset"):
+        board = Board(hang=())
+        board.stub = Stub(script=board.script)
+        board.reset_mem()
+        board.stuck = True  # a hung debug module that nothing else has noticed
+        cmd = ([sys.executable, str(TOOL.parent / "reset.py")] if how.endswith(".py") else [str(TOOL.parent.parent / "x"), "hw", "reset"])  # next to the tool: SVD_PROBE selects a copy
+        proc = subprocess.run(cmd + ["--svd", str(svd), "--lab", lab_for(board.stub.port)], capture_output=True, text=True, timeout=60)
+        check(f"reset ({how}): exit 0 when the verification passed, with every step on stdout",
+              proc.returncode == 0 and "recover: riscv dmi_read 0x16 -> '0x10001002'" in proc.stdout and "recover: reset halt" in proc.stdout
+              and "= 0x00000001, power-on value 0x00000001" in proc.stdout, f"{proc.returncode} {proc.stdout!r} {proc.stderr!r}")
+        board.stub.close()
+        board = Board(hang=(), fixed=False)
+        board.stub = Stub(script=board.script)
+        board.reset_mem()
+        board.stub.mem[0x5084] = 0xFFFFFFFF
+        proc = subprocess.run(cmd + ["--svd", str(svd), "--lab", lab_for(board.stub.port)], capture_output=True, text=True, timeout=60)
+        check(f"reset ({how}): exit 2 when the verification fails, says to power-cycle",
+              proc.returncode == 2 and "DIFFERS" in proc.stdout and "power-cycle the board and restart OpenOCD" in proc.stderr, f"{proc.returncode} {proc.stdout!r} {proc.stderr!r}")
+        board.stub.close()
+        proc = subprocess.run(cmd + ["--svd", str(svd), "--lab", lab_for(1)], capture_output=True, text=True, timeout=60)
+        check(f"reset ({how}): no OpenOCD is exit 2", proc.returncode == 2 and "cannot connect" in proc.stderr, f"{proc.returncode} {proc.stderr!r}")
+        proc = subprocess.run(cmd + ["--svd", str(tmp / "nope.svd"), "--lab", lab_for(1)], capture_output=True, text=True, timeout=60)
+        check(f"reset ({how}): a missing SVD is exit 2", proc.returncode == 2 and "svd" in proc.stderr, f"{proc.returncode} {proc.stderr!r}")
+    r = run(svd, None, "--help")
+    check("recover: --help documents --recover and --max-recoveries", "--recover" in r.stdout and "--max-recoveries" in r.stdout and "./x hw reset" in r.stdout, r.stdout[:200])
 
 
 def test_resume(tmp: Path) -> None:
@@ -1167,7 +1337,7 @@ def main() -> int:
     if not TOOL.is_file():
         print(f"probe_test: {TOOL} not found", file=sys.stderr)
         return 2
-    for case in (test_dead_connection, test_hang, test_noise, test_halt, test_power_state, test_enable_clocks, test_reset_halt, test_poke, test_abort_output, test_resume, test_interrupt, test_failures, test_block, test_read_action, test_dlab, test_identical, test_noref, test_state, test_skip, test_write_only):
+    for case in (test_dead_connection, test_hang, test_noise, test_halt, test_power_state, test_enable_clocks, test_reset_halt, test_poke, test_abort_output, test_recover, test_resume, test_interrupt, test_failures, test_block, test_read_action, test_dlab, test_write_only, test_identical, test_noref, test_state, test_skip):
         with tempfile.TemporaryDirectory() as d:
             case(Path(d))
     print(f"summary: {failures} failure(s)")

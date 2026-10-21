@@ -12,11 +12,12 @@
 | `run_image.py` | Loads an ELF onto one hart, runs it, prints the serial ports and the first trap. `--expect REGEX` sets the exit status (0 matched, 1 not matched or no output); `--expect-port N` restricts it to one port. `--uart-standin` (off by default) clocks and sets up the UARTs for an image that expects a boot stage to have done it. |
 | `run_probe.py` | Runs a probe (`probe_*.S`, `trap.S` is the trap recorder `run_image.py` loads) on one hart and prints its result block; `--expect REGEX` as above. |
 | `monitor.py` | Shows what the serial ports print; `--expect REGEX` as above. |
+| `reset.py`, `recover.py` | `./x hw reset`: resets the board to its power-on state through OpenOCD, also after a hung debug module (`recover.py` is the sequence, shared with `svd_probe.py --recover`); see "Reset and recovery" below. |
 | `svd_probe.py` | Compares the reset values of SVD registers with the board (`./x svd probe [--enable-clocks] [PERIPHERAL...]`); see below. |
 | `svd_probe.list` | The rules of `svd_probe.py`: blocks it does not read by default (`skip`), registers that hold runtime state (`state`) and the registers per read command of peripherals that were never measured cleanly (`block PATTERN N reason`), and registers of which only some bits are live (`state-mask PATTERN MASK reason`: QSPIXIP.DirectAccess bits 23-16, the pin levels; CRYPTO.CONFIG bits 27-24, a fabric handshake). |
 
 Exit status of `run_image.py`, `run_probe.py` and `monitor.py`: 0 success, 1 the expectation was not met, 2 a set-up error (no OpenOCD,
-no serial port, no toolchain, bad arguments); 130 after Ctrl+C. `./x hw openocd|run|probe|monitor` is the shell around them (`tools/hw.sh`).
+no serial port, no toolchain, bad arguments); 130 after Ctrl+C. `./x hw openocd|run|probe|monitor|reset` is the shell around them (`tools/hw.sh`).
 `tests/host/hw/run.sh` tests the scripts against a stand-in for the OpenOCD telnet port and files in place of the serial ports; the
 hardware itself is not part of any automatic test.
 
@@ -73,3 +74,22 @@ Ctrl+C stops the probe at once, also when OpenOCD does not answer because the bu
 Exit status: 0 all registers `ok`, `state`, `noref` or `skipped`; 1 at least one `mismatch` or `unreadable`; 2 the probe stopped early, could not resume the hart, or the arguments or the set-up are wrong; 130 interrupted with Ctrl+C.
 
 `tests/host/svd/probe_test.py` tests the probe against stand-ins for the telnet port that reset the connection, refuse the resume, hang or answer with errors, and that receive Ctrl+C; real hardware is not part of any automatic test.
+
+## Reset and recovery
+
+The probe frames every command it sends with two `echo` commands (`echo svd_probe_begin_N`, the command, `echo svd_probe_end_N`) and takes what lies between their outputs as the reply. OpenOCD prints the lines `unable to halt hart N` (with `dmcontrol` and `dmstatus`) and a prompt after each of them while a hart does not halt, so a prompt does not tell that a reply is complete, and without the framing the reply of one command was taken for the next one (`./x hw reset` then reported a value that was not there and asked for a power cycle although the board was fine).
+
+A hung debug module (see `svd_probe.py` above: `Timed out after 2s waiting for busy to go low (abstractcs=0x10001002)`) does not need a power cycle. Measured on the Icicle Kit in boot mode 0 after `mdw 0x2010C000` had hung, this sequence in the OpenOCD console recovered the debug module and the MSS:
+
+1. `riscv dmi_read 0x16` replied `0x10000102` (abstractcs: busy clear, cmderr=1),
+2. `riscv dmi_write 0x16 0x700` (clears cmderr),
+3. `reset halt`,
+4. `mdw 0x20002084` (`SYSREG.SUBBLK_CLOCK_CR`) read `0x00000001`, its power-on value.
+
+`./x hw reset` (`hw/reset.py`, host and port from `lab.conf`, `--svd FILE`, `--target T`, `--lab FILE`) runs this sequence and prints the reply of every step. It then reads `SYSREG.SUBBLK_CLOCK_CR` and `SYSREG.SOFT_RESET_CR` and compares them with the `resetValue` of the SVD. If they differ it toggles the debug module (`riscv dmi_write 0x10 0x0`, `riscv dmi_write 0x10 0x1`), sends `reset halt` again and checks again. If an OpenOCD does not know `riscv dmi_read` (an `invalid command` reply) the script says so and tries only the `reset halt`. Exit status: 0 only if the check passed (the hart is halted, the platform is in its power-on state), 2 if it failed (power-cycle the board and restart OpenOCD), if there is no OpenOCD or no merged SVD; 130 after Ctrl+C. It is also fine to run it when nothing is hung.
+
+The reset returns the platform to its power-on state: everything that was written (`--enable-clocks`, `--poke`) is undone, and a PLL or boot state that software had set up is lost. In boot mode 0 that is the state in which the probes start anyway.
+
+`svd_probe.py --recover` (opt-in) does this by itself: when an access stalls the debug module the probe runs the sequence, prints `hung (recovered)` for the peripheral whose access hung (its remaining registers are not read; they are counted as `hung` in the summary, and the exit status is 1), applies the `--poke` writes and `--enable-clocks` again, halts the hart again and goes on with the next peripheral. After `--max-recoveries N` (default 3) recoveries, or when the check fails, it stops with exit status 2 and without resuming the hart. Without `--recover` the probe stops at the first stall and advises `./x hw reset` (or `reset halt` in the OpenOCD console), and a power cycle if that fails. A debug module that was stuck busy is reset also if clearing `cmderr` has made it idle again: without `--recover` the register is reported as `unreadable` and the run goes on, but on the board the next accesses then failed (three `unreadable` in a row at `MMUART1_LO.IER` after the hangs of `EMMC_SD` and `DDR_CSR_APB`), so `--recover` does not trust such a module.
+
+**Unattended use.** The only writes the probe makes to the board are the ones it is asked for: `--poke`, `--enable-clocks` and the recovery (`riscv dmi_write` to `abstractcs` and `dmcontrol`, `reset halt`). Do not poke `SCB_REGS.DEVICE_CONFIG_CR`, `SCB_REGS.RAM_SHUTDOWN_CR` or `SCB_REGS.MSS_RESET_CR`, and never read or write `THR` of an MMUART in an unattended run (a read of `DLR` or `THR` with `DLAB=0` takes receive data; the probe skips them by default). `--read-destructive` consumes data and clears status flags and does not belong in an unattended run either.
