@@ -27,6 +27,8 @@
 #    ./x mem <ex> [--hart e51|u54]     section sizes per memory region
 #    ./x test host|lib|examples|qemu|renode|negative|metrics
 #                                      everything checkable without a board
+#                                      (qemu [smoke|tests [name...]]: the smoke test, then
+#                                      the Test_Report applications of tests/qemu/tests.list)
 #    ./x metrics verify|bless          compare / re-bless metrics.golden
 #    ./x analyze [--style] [--update-baseline]   static analysis
 #    ./x stack <ex>                    static stack analysis
@@ -602,8 +604,15 @@ cmd_test () {
     renode)     [ -f "$ROOT/tests/renode/smoke.sh" ] || die "not available yet: tests/renode/smoke.sh is missing"
                 build_matrix; delegate tests/renode/smoke.sh "$@" ;;
     lib)        delegate tools/test_lib.sh "$@" ;;
-    qemu)       [ -f "$ROOT/tests/qemu/smoke.sh" ] || die "not available yet: tests/qemu/smoke.sh is missing"
-                build_matrix; delegate tests/qemu/smoke.sh "$@" ;;
+    qemu)       local part="${1:-all}" qrc=0
+                case "$part" in smoke|tests|all) shift || true ;; *) part=all ;; esac
+                [ -f "$ROOT/tests/qemu/smoke.sh" ] || die "not available yet: tests/qemu/smoke.sh is missing"
+                [ -f "$ROOT/tests/qemu/run_tests.sh" ] || die "not available yet: tests/qemu/run_tests.sh is missing"
+                build_matrix
+                #  Both parts always run, so one failure does not hide the other.
+                [ "$part" = tests ] || delegate tests/qemu/smoke.sh || qrc=1
+                [ "$part" = smoke ] || delegate tests/qemu/run_tests.sh "$@" || qrc=1
+                [ $qrc -eq 0 ] || die "QEMU tests failed" ;;
     negative)   [ -f "$ROOT/tests/negative/run_negative.sh" ] || die "not available yet: tests/negative/run_negative.sh is missing"
                 build_matrix; toolchain_ready; delegate tests/negative/run_negative.sh "$@" ;;
     metrics)    cmd_metrics verify ;;

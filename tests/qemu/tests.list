@@ -1,0 +1,26 @@
+# tests.list -- the test applications `./x test qemu` boots under QEMU after the
+# smoke test. Read by tests/qemu/run_tests.sh. Edit by hand. One row per test,
+# TAB-separated, six fields:
+#
+#   name     the <name> in the "TEST <name>: PASS" line. A name ending in _e51 or
+#            _u54 names the image <dir>/bin-<e51|u54>/<rest>.elf, any other name
+#            <dir>/bin/<name>.elf
+#   dir      the example directory, relative to the repository root
+#   serial   0..4: which QEMU serial port (MMUART0 .. MMUART4) the verdict is on.
+#            A `pass` test must also leave every OTHER port silent.
+#   expect   pass | xfail
+#   observe  xfail only: a grep -E regexp that MUST match QEMU's
+#            `-d int,guest_errors` trace or a serial port -- the signature of the
+#            documented failure. "-" for a pass row.
+#   why      xfail only: the documented defect, one line. "-" for a pass row.
+#
+# `xfail` is not a skip. The test is still booted, and the run fails if it passes
+# (the defect is fixed -- flip the row) or fails in any way other than `observe`
+# describes (a different failure is a regression, not a known defect). See the
+# comment at the top of run_tests.sh.
+#
+# The images are built by `./x test qemu` for the harts named in BUILD_HARTS of the
+# example's example.conf.
+name	dir	serial	expect	observe	why
+report_test_e51	examples/report_test	0	pass	-	-
+report_test_u54	examples/report_test	0	pass	-	-
