@@ -157,6 +157,15 @@ sed -i 's/TEST good:/TEST good_u54:/' "$tmp/t/hart/bin-u54/good.elf"
 list "$tmp/hart.list" "good_u54${tab}$tmp/t/hart${tab}0${tab}pass${tab}-${tab}-"
 expect_rc  "runner: the _u54 suffix selects bin-u54" 0 run "$tmp/hart.list"
 
+# _u54h<N> names the image of one U54 hart: bin-u54-h<N>/<rest>.elf
+mkdir -p "$tmp/t/hart/bin-u54-h3"
+cp "$good/bin/good.elf" "$tmp/t/hart/bin-u54-h3/good.elf"
+sed -i 's/TEST good:/TEST good_u54h3:/' "$tmp/t/hart/bin-u54-h3/good.elf"
+list "$tmp/hart3.list" "good_u54h3${tab}$tmp/t/hart${tab}0${tab}pass${tab}-${tab}-"
+expect_rc  "runner: the _u54h3 suffix selects bin-u54-h3" 0 run "$tmp/hart3.list"
+list "$tmp/hart4.list" "good_u54h4${tab}$tmp/t/hart${tab}0${tab}pass${tab}-${tab}-"
+expect_rc  "runner: _u54h4 without bin-u54-h4 fails (no image)" nonzero run "$tmp/hart4.list"
+
 # the verdict on another port than the row says
 list "$tmp/port.list" "good${tab}$good${tab}1${tab}pass${tab}-${tab}-"
 expect_rc  "runner: a verdict on another serial port fails" nonzero run "$tmp/port.list"
