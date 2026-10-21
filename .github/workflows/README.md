@@ -29,4 +29,4 @@ The workflows stay separate on purpose: each installs only what it needs (the `s
 
 The composite action `.github/actions/toolchain` restores the cached tools and runs `./x toolchain install <target>` (the cache key follows `tools/toolchain.env`; a target that needs the compilers and has no cache of its own starts from the cache of the compilers). Every workflow uses it instead of repeating the cache and install steps, and a job that needs the result of an earlier job takes it as an artifact.
 
-Actions are pinned by version tag, to versions that run on Node.js 24 (`actions/checkout` v6, `actions/setup-python` v6, `actions/cache` v5, `actions/upload-artifact` v6, `actions/download-artifact` v7).
+Actions are pinned by version tag (`actions/checkout`, `actions/setup-python`, `actions/cache`, `actions/upload-artifact`, `actions/download-artifact`). Dependabot (`.github/dependabot.yml`) proposes the updates once a week, in one pull request for all actions, and only for versions that are at least 14 days old. Review that pull request for the Node.js runtime of the new versions (Node.js 24 or later) before merging.
