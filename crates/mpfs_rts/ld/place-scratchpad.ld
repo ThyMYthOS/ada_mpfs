@@ -26,4 +26,4 @@ REGION_ALIAS("REGION_FAST_LOAD", scratchpad)
 ASSERT(LENGTH(scratchpad) != 0,
        "place-scratchpad.ld: MPFS_SCRATCHPAD_LENGTH is 0, the image has no scratchpad to run in")
 
-INCLUDE app-sections.ld
+INCLUDE sections.ld

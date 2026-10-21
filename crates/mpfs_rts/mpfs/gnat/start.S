@@ -13,7 +13,7 @@
  *
  * Both are mandatory: an image linked without one fails with "undefined reference". The
  * layout symbols (__global_pointer$, __stack_end, __data_*, __bss_*, __mpfs_trap_record)
- * come from the placement script (ld/app-sections.ld).
+ * come from the placement script (ld/sections.ld).
  *
  * Order, as in master plan #41, work package P1.3:
  *   1. mtvec to the trap stub (before any other instruction can trap), then gp and sp

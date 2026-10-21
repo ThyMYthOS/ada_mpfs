@@ -17,6 +17,9 @@
 --     MPFS_HARTS       0 (the hart of the class: E51 hart 0, U54 hart 1) or the one U54
 --                      hart 1 .. 4 of the image (./x build --harts)
 --     MPFS_STACK_SIZE, MPFS_INTERRUPT_STACK_SIZE   bytes (a multiple of 16: checked by the script)
+--     MPFS_APP_LD      a directory with an app-sections.ld of the application (the hook at the
+--                      end of the SECTIONS, empty in the runtime); its -L goes ahead of the
+--                      runtime's. Not set: the runtime's empty hook.
 --     MPFS_OMIT        none | harts_mask | boot_role | stack_size | interrupt_stack_size
 --                      leaves one mandatory symbol out. A test seam of the negative builds
 --                      (tests/host/rts_boot): the link must fail.
@@ -69,6 +72,10 @@ abstract project Mpfs_Link is
 
    Ld := Mpfs_Rts.Runtime_Path & "/ld";
 
+   --  The hook of the application comes first in the -L order; without one it is the runtime's
+   --  own directory, so the empty hook is found.
+   App_Ld := external ("MPFS_APP_LD", Ld);
+
    Values := ();
    case Omit is
       when "harts_mask" => null;
@@ -89,7 +96,7 @@ abstract project Mpfs_Link is
    end case;
 
    Switches :=
-     ("-static", "-L", Ld, "-T", Ld & "/place-" & Placement & ".ld",
+     ("-static", "-L", App_Ld, "-L", Ld, "-T", Ld & "/place-" & Placement & ".ld",
       "-Wl,-u,_start", "-Wl,--gc-sections", "-Wl,--no-warn-rwx-segments",
       "-Wl,--defsym=MPFS_ENVM_LENGTH=0x1ff00",
       "-Wl,--defsym=MPFS_DTIM_LENGTH=0",
