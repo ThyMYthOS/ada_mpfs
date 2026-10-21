@@ -1,0 +1,84 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# Windows: does ./x install the pinned tools there? One job per install target, so that one that
+# fails does not hide the others, each followed by the check that the target is for. Informational:
+# no job of this workflow is required for a merge. ./x is a bash script, so every step runs in the
+# Git Bash of the runner. A manual run needs the workflow on the default branch, so until this
+# workflow is on main, a push to the branch ci-windows that changes it, ./x or the pins runs it too
+# (push only, not pull_request: both would start the same job twice).
+name: windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ci-windows]
+    paths: [.github/workflows/windows.yml, x, tools/toolchain.env, tools/mpfs-env.sh]
+
+# One run per branch: a newer push cancels the run of the older one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  install:
+    name: install ${{ matrix.target }}
+    runs-on: windows-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: svdtools
+            then: ./x svd check
+          - target: alire
+            then: ./x toolchain check | tee check.log || true; grep -Eq '^ +alr +ok' check.log
+          - target: svd2ada
+            then: ./x toolchain check | tee check.log || true; grep -Eq '^ +svd2ada +ok' check.log
+          - target: pac
+            then: ./x pac check
+          - target: gnat
+            then: ./x test examples
+          - target: gnatprove
+            then: ./x toolchain check | tee check.log || true; grep -Eq '^ +gnatprove +ok' check.log
+          - target: adalang_analyzer
+            then: ./x toolchain check | tee check.log || true; grep -Eq '^ +adalang_analyzer +ok' check.log
+          - target: renode
+            then: ./x toolchain check | tee check.log || true; grep -Eq '^ +renode +ok' check.log
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - uses: actions/setup-python@v6.2.0
+        with:
+          python-version: "3.13"
+
+      - name: Install the Python packages
+        run: python -m pip install -r tools/requirements.txt
+
+      # svd2ada and the PAC are built with the pinned native GNAT.
+      - name: ./x toolchain install gnat
+        if: ${{ matrix.target == 'svd2ada' || matrix.target == 'pac' }}
+        run: ./x toolchain install gnat
+
+      # Some crates need system packages (libgpr2 needs make), which alr installs through the
+      # pacman of MSYS2, and it reuses a pacman it finds on PATH: the runner has MSYS2 in C:\msys64,
+      # which goes last on PATH, behind the Git Bash tools. alr builds the dependencies in a
+      # temporary workspace whose long path under C:\Users\RUNNER~1\AppData\Local\Temp made ld.exe
+      # fail to open a linker script (a path over 260 characters), so the temporary directory is short.
+      - name: ./x toolchain install ${{ matrix.target }}
+        env:
+          TEMP: C:\t
+          TMP: C:\t
+        run: |
+          mkdir -p /c/t
+          PATH="$PATH:/c/msys64/usr/bin" ./x toolchain install ${{ matrix.target }}
+
+      - name: ${{ matrix.then }}
+        run: ${{ matrix.then }}
