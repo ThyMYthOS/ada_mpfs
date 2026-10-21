@@ -14,6 +14,8 @@
 #     is the last 32 bytes of the region, the partition data reach the image (mask, role, the
 #     debugger's first CPU id), .data needs no copy;
 #   - the place-envm.ld placement links with .data loaded in the eNVM and running in the LIM;
+#   - the start code: whole 64-bit stores in the trap stub, three clear loops; the hook
+#     app-sections.ld of an application is included, the empty one of the runtime otherwise;
 #   - negative builds: a missing mandatory symbol (undefined reference or undefined symbol in the
 #     linker script), a stack size or interrupt stack size that is not a multiple of 16 or is 0, a
 #     stack that leaves no room, an empty region, and a _start that is not at the start of the
@@ -55,7 +57,7 @@ rts="$ROOT/build/rts"
 e51="$rts/light-e51-cpus1-m"
 u54="$rts/light-u54-cpus1-m"
 
-for f in mpfs-memory.ld place-lim.ld place-scratchpad.ld place-envm.ld app-sections.ld; do
+for f in mpfs-memory.ld place-lim.ld place-scratchpad.ld place-envm.ld sections.ld app-sections.ld; do
   [ -f "$e51/ld/$f" ] && cmp -s "$e51/ld/$f" "$CRATE/ld/$f" \
     && pass "ld/$f of the variant is the one of crates/mpfs_rts/ld" || fail "ld/$f of the variant is the one of crates/mpfs_rts/ld"
 done
@@ -169,6 +171,42 @@ if build "$work/envm.log" e51 MPFS_PLACEMENT=envm; then
     || fail "envm: .bss, the stacks and the heap are in the LIM"
 else
   fail "place-envm.ld links ($(tail -5 "$work/envm.log"))"
+fi
+
+# The start code: the trap stub stores whole 64-bit words only (ECC memory, never written before),
+# and .bss, the interrupt stacks and the stack of the environment task are each cleared by a loop.
+if build "$work/disasm.log" e51; then
+  elf="$ex/bin-e51/trap_test.elf"
+  riscv64-elf-objdump -d --disassemble=__mpfs_trap_stub "$elf" > "$work/stub.dis"
+  if grep -qE '[[:space:]]sd[[:space:]]' "$work/stub.dis" && ! grep -qE '[[:space:]](c\.)?s[wbh][[:space:]]' "$work/stub.dis"; then
+    pass "the trap stub stores only 64-bit words"
+  else fail "the trap stub stores only 64-bit words"; fi
+  riscv64-elf-objdump -d --disassemble=_start "$elf" > "$work/start.dis"
+  n="$(grep -cE '[[:space:]]sd[[:space:]]+zero' "$work/start.dis")"
+  [ "$n" = 3 ] && pass "start.S clears .bss, the interrupt stacks and the stack with three loops" \
+    || fail "start.S clears .bss, the interrupt stacks and the stack with three loops ($n)"
+else
+  fail "disassembly build ($(tail -5 "$work/disasm.log"))"
+fi
+
+# The hook of the application: app-sections.ld of the application is found first (-L order), the
+# empty one of the runtime otherwise (the builds above are the case without one).
+mkdir -p "$work/app"
+cat > "$work/app/app-sections.ld" <<'EOF'
+.app_marker : { __app_marker = .; LONG(0x4d505041) } > REGION_TEXT
+EOF
+if build "$work/app.log" e51 MPFS_APP_LD="$work/app"; then
+  elf="$ex/bin-e51/trap_test.elf"
+  [ -n "$(sym "$elf" __app_marker)" ] && pass "an app-sections.ld of the application is included" \
+    || fail "an app-sections.ld of the application is included"
+else
+  fail "a link with an application hook ($(tail -5 "$work/app.log"))"
+fi
+if build "$work/noapp.log" e51; then
+  [ -z "$(sym "$ex/bin-e51/trap_test.elf" __app_marker)" ] && pass "without one the empty hook of the runtime is used" \
+    || fail "without one the empty hook of the runtime is used"
+else
+  fail "a link without an application hook ($(tail -5 "$work/noapp.log"))"
 fi
 
 # -- negative builds: each must fail with the message that names the fault ------------------------
