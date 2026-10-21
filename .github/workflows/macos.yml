@@ -55,26 +55,24 @@ jobs:
       - name: Install the Python packages
         run: python3 -m pip install -r tools/requirements.txt
 
-      # The GNAT FSF build of Alire links with --sysroot=<first existing of> the SDK of the Command
-      # Line Tools or of /Applications/Xcode.app (see `gcc -v`: --with-specs). With neither on the
-      # runner, ld gets a -syslibroot that does not exist: it finds libSystem.tbd through
-      # LIBRARY_PATH but not the libraries it re-exports, so _write, _waitpid, _unlink ... are
-      # undefined at the final link of adalang_analyzer. Make the second candidate exist.
-      - name: Give the GNAT of Alire the SDK it was configured with
-        run: |
-          sdk="$(xcrun --show-sdk-path)"
-          first=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
-          second=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
-          echo "sdk=$sdk"; ls -d /Library/Developer/CommandLineTools/SDKs/* /Applications/Xcode*.app 2>&1 || true
-          if [ ! -e "$first" ] && [ ! -e "$second" ]; then
-            sudo mkdir -p "$(dirname "$second")" && sudo ln -s "$sdk" "$second"
-          fi
-          ls -ld "$first" "$second" 2>&1 || true
+      # The GNAT of Alire links with --sysroot=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk, which
+      # is MacOSX27.0.sdk on the runner, while the selected Xcode (26.6) brings its own SDK and ld.
+      # A plain gnatmake link fails there ("_write" ... not found) and works with SDKROOT set to the
+      # SDK of `xcrun --show-sdk-path` (or with --sysroot=<that SDK>). SDKROOT goes to every step.
+      - name: Point the build tools at the SDK of the selected Xcode
+        run: echo "SDKROOT=$(xcrun --show-sdk-path)" >> "$GITHUB_ENV"
 
       # svd2ada and the PAC are built with the pinned native GNAT.
       - name: ./x toolchain install gnat
         if: ${{ matrix.target == 'svd2ada' || matrix.target == 'pac' }}
         run: ./x toolchain install gnat
+
+      # The solver of alr gives up after 5 seconds by default, too soon for the dependencies of
+      # adalang_analyzer on a busy runner (the last run timed out before it built anything).
+      - name: ./x toolchain install alire
+        run: |
+          ./x toolchain install alire
+          ~/.local/share/ada_mpfs/tools/alr-*/bin/alr -n settings --global --set solver.timeout 120
 
       - name: ./x toolchain install ${{ matrix.target }}
         run: ./x toolchain install ${{ matrix.target }}
