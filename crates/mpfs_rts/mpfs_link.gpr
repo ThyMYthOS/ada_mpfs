@@ -1,0 +1,109 @@
+--  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+--  SPDX-License-Identifier: Apache-2.0
+--
+--  The link switches of an image that is linked with a runtime variant of this crate: the linker
+--  script of a placement from the variant's ld/ (put there by gen_runtime.sh) and the partition
+--  data as --defsym values, for the examples and tests until the partition generator (P1.12)
+--  writes the values. An application project withs this one next to mpfs_rts.gpr and says
+--
+--     package Linker is
+--        for Default_Switches ("Ada") use Mpfs_Link.Switches;
+--     end Linker;
+--
+--  Scenario variables (the defaults are the first column of each list):
+--
+--     MPFS_PLACEMENT   lim | scratchpad | envm   place-<placement>.ld; the memory lengths follow
+--     MPFS_BOOT_ROLE   primary | secondary       __mpfs_boot_role 1 | 0
+--     MPFS_HARTS       0 (the hart of the class: E51 hart 0, U54 hart 1) or the one U54
+--                      hart 1 .. 4 of the image (./x build --harts)
+--     MPFS_STACK_SIZE, MPFS_INTERRUPT_STACK_SIZE   bytes (a multiple of 16: checked by the script)
+--     MPFS_OMIT        none | harts_mask | boot_role | stack_size | interrupt_stack_size
+--                      leaves one mandatory symbol out. A test seam of the negative builds
+--                      (tests/host/rts_boot): the link must fail.
+--
+--  The memory lengths are those of an Icicle Kit at reset (LIM 1920 KB, no scratchpad) or, for
+--  the scratchpad placement, with two ways (256 KB) taken from the LIM; the ITIM and DTIM are
+--  not used.
+
+with "mpfs_rts.gpr";
+
+abstract project Mpfs_Link is
+
+   type Placement_Kind is ("lim", "scratchpad", "envm");
+   type Role_Kind is ("primary", "secondary");
+   type Harts_Kind is ("0", "1", "2", "3", "4");
+   type Omit_Kind is
+     ("none", "harts_mask", "boot_role", "stack_size", "interrupt_stack_size");
+
+   Placement : Placement_Kind := external ("MPFS_PLACEMENT", "lim");
+   Role      : Role_Kind      := external ("MPFS_BOOT_ROLE", "primary");
+   Harts     : Harts_Kind     := external ("MPFS_HARTS", "0");
+   Stack     := external ("MPFS_STACK_SIZE", "16384");
+   Int_Stack := external ("MPFS_INTERRUPT_STACK_SIZE", "8192");
+   Omit      : Omit_Kind      := external ("MPFS_OMIT", "none");
+
+   Mask := "";
+   case Mpfs_Rts.Hart is
+      when "e51" => Mask := "1";
+      when "u54" =>
+         case Harts is
+            when "0" | "1" => Mask := "2";
+            when "2"      => Mask := "4";
+            when "3"      => Mask := "8";
+            when "4"      => Mask := "16";
+         end case;
+   end case;
+
+   Role_Value := "1";
+   case Role is
+      when "primary"   => Role_Value := "1";
+      when "secondary" => Role_Value := "0";
+   end case;
+
+   Lim_Length  := "";
+   Pad_Length  := "";
+   case Placement is
+      when "lim" | "envm" => Lim_Length := "0x1e0000"; Pad_Length := "0";
+      when "scratchpad"   => Lim_Length := "0x1a0000"; Pad_Length := "0x40000";
+   end case;
+
+   Ld := Mpfs_Rts.Runtime_Path & "/ld";
+
+   Values := ();
+   case Omit is
+      when "harts_mask" => null;
+      when others => Values := Values & ("-Wl,--defsym=__mpfs_harts_mask=" & Mask);
+   end case;
+   case Omit is
+      when "boot_role" => null;
+      when others => Values := Values & ("-Wl,--defsym=__mpfs_boot_role=" & Role_Value);
+   end case;
+   case Omit is
+      when "stack_size" => null;
+      when others => Values := Values & ("-Wl,--defsym=__stack_size=" & Stack);
+   end case;
+   case Omit is
+      when "interrupt_stack_size" => null;
+      when others =>
+         Values := Values & ("-Wl,--defsym=__interrupt_stack_size=" & Int_Stack);
+   end case;
+
+   Switches :=
+     ("-static", "-L", Ld, "-T", Ld & "/place-" & Placement & ".ld",
+      "-Wl,-u,_start", "-Wl,--gc-sections", "-Wl,--no-warn-rwx-segments",
+      "-Wl,--defsym=MPFS_ENVM_LENGTH=0x1ff00",
+      "-Wl,--defsym=MPFS_DTIM_LENGTH=0",
+      "-Wl,--defsym=MPFS_E51_ITIM_LENGTH=0",
+      "-Wl,--defsym=MPFS_U54_1_ITIM_LENGTH=0",
+      "-Wl,--defsym=MPFS_U54_2_ITIM_LENGTH=0",
+      "-Wl,--defsym=MPFS_U54_3_ITIM_LENGTH=0",
+      "-Wl,--defsym=MPFS_U54_4_ITIM_LENGTH=0",
+      "-Wl,--defsym=MPFS_LOCAL_ITIM_ORIGIN=0x01800000",
+      "-Wl,--defsym=MPFS_LOCAL_ITIM_LENGTH=0",
+      "-Wl,--defsym=MPFS_LIM_LENGTH=" & Lim_Length,
+      "-Wl,--defsym=MPFS_SCRATCHPAD_LENGTH=" & Pad_Length,
+      "-Wl,--defsym=MPFS_DDR_CACHED_LENGTH=0",
+      "-Wl,--defsym=MPFS_DDR_NC_LENGTH=0",
+      "-Wl,--defsym=MPFS_DDR_WCB_LENGTH=0") & Values;
+
+end Mpfs_Link;
