@@ -7,7 +7,7 @@
 
 # gnat/
 system.ads              src/system/system-xi-riscv*.ads (one per profile)
-start-ram.S             riscv/mpfs/start-ram.S (replaced by start.S in P1.3)
+start-ram.S             riscv/mpfs/start-ram.S (the pack keeps it; gen_runtime.sh deletes it, start.S of P1.3 replaces it: mpfs/remove.list)
 riscv_def.h             riscv/src/riscv_def.h
 i-fe310.ads             riscv/sifive/fe310/svd/i-fe310.ads
 i-fe310-plic.ads        riscv/sifive/fe310/svd/i-fe310-plic.ads
