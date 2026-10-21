@@ -127,12 +127,15 @@ import re, socket, subprocess, sys, threading
 root = sys.argv[1]
 srv = socket.socket(); srv.bind(("127.0.0.1", 0)); srv.listen(1)
 port = srv.getsockname()[1]
+TABLE = ("    TargetName         Type       Endian TapName            State\r\n"
+         "--  ------------------ ---------- ------ ------------------ ------------\r\n"
+         " 0* mpfs.hart0_e51     riscv      little mpfs.cpu           halted")
 seen = []
 def md(line):
     m = re.match(r"md([bhwd]) 0x([0-9A-F]+) (\d+)$", line)
     width = {"b": 1, "h": 2, "w": 4, "d": 8}[m.group(1)]
     addr, count = int(m.group(2), 16), int(m.group(3))
-    if addr >= 0x2004000:
+    if 0x2004000 <= addr < 0x10000000:
         return "invalid"
     return "\n".join(f"0x{addr + i * width:08x}: {5 if addr + i * width == 0x2000004 else 0:0{2 * width}x}" for i in range(count))
 def serve():
@@ -145,21 +148,21 @@ def serve():
         buf += d
         while b"\n" in buf:
             line, buf = buf.split(b"\n", 1)
-            seen.append(line.decode())
-            r = md(line.decode()) if line.startswith(b"md") else ""
+            if not line.startswith(b"echo svd_probe_"): seen.append(line.decode())  # not the frame of a command
+            r = md(line.decode()) if line.startswith(b"md") else TABLE if line == b"targets" else line[5:].decode() if line.startswith(b"echo ") else ""
             c.sendall(line + b"\r\n" + (r.encode() + b"\r\n" if r else b"") + b"> ")
 threading.Thread(target=serve, daemon=True).start()
 r = subprocess.run([sys.executable, root + "/hw/svd_probe.py", "--svd", sys.argv[2], "--port", str(port), "CLINT"],
                    capture_output=True, text=True)
-out = r.stdout.splitlines()
+out = [l for l in r.stdout.splitlines() if l.split()[0] in ("ok", "mismatch", "state", "noref", "unreadable", "skipped")]  # not the header
 assert r.returncode == 1, r
-kinds = [l.split()[0] for l in out[:-1]]
+kinds = [l.split()[0] for l in out]
 assert kinds == ["ok", "mismatch", "ok", "ok", "ok"] + ["unreadable"] * 5 + ["skipped"], out
 assert "'invalid'" in out[5] and "not read after" in out[6], out
-assert out[-1].endswith("11 register(s), 6 not ok, 1 skipped"), out
-assert seen[:3] == ["targets mpfs.hart0_e51", "halt", "riscv set_prefer_sba off"], seen
-assert seen[3] == "mdw 0x2000000 5" and seen[-1] == "resume", seen
-assert sum(l.startswith("mdw") for l in seen) == 1, seen  # the five MSIP registers need one command
+summary = [l for l in r.stdout.splitlines() if l.startswith("svd_probe: 11 register(s)")]
+assert len(summary) == 1 and "11 register(s), 6 not ok, 1 skipped" in summary[0], r.stdout
+assert seen[:2] == ["targets mpfs.hart0_e51", "halt"] and "riscv set_prefer_sba off" in seen, seen
+assert [l for l in seen if l.startswith("mdw 0x2000000")] == ["mdw 0x2000000 5"] and seen[-1] == "resume", seen  # the five MSIP registers need one command
 PY
 
 # --enable-clocks writes the two SYSREG registers before the first read; --skip leaves a peripheral out
@@ -168,6 +171,9 @@ import socket, subprocess, sys, threading
 root = sys.argv[1]
 srv = socket.socket(); srv.bind(("127.0.0.1", 0)); srv.listen(1)
 port = srv.getsockname()[1]
+TABLE = ("    TargetName         Type       Endian TapName            State\r\n"
+         "--  ------------------ ---------- ------ ------------------ ------------\r\n"
+         " 0* mpfs.hart0_e51     riscv      little mpfs.cpu           halted")
 seen = []
 def serve():
     c, _ = srv.accept()
@@ -179,15 +185,16 @@ def serve():
         buf += d
         while b"\n" in buf:
             line, buf = buf.split(b"\n", 1)
-            seen.append(line.decode())
-            c.sendall(line + b"\r\n> ")
+            if not line.startswith(b"echo svd_probe_"): seen.append(line.decode())  # not the frame of a command
+            r = TABLE if line == b"targets" else line[5:].decode() if line.startswith(b"echo ") else ""
+            c.sendall(line + b"\r\n" + (r.encode() + b"\r\n" if r else b"") + b"> ")
 threading.Thread(target=serve, daemon=True).start()
 r = subprocess.run([sys.executable, root + "/hw/svd_probe.py", "--svd", sys.argv[2], "--port", str(port),
                     "--enable-clocks", "--skip", "CLINT,PLIC", "SYSREG", "CLINT"], capture_output=True, text=True)
 assert r.returncode == 1 and "register(s)" in r.stdout, r
 mww = [l for l in seen if l.startswith("mww")]
 assert len(mww) == 2 and mww[0].endswith(" 0xFFFFFFFF") and mww[1].endswith(" 0x0"), seen
-assert seen.index(mww[1]) < next(i for i, l in enumerate(seen) if l.startswith("md")), seen
+assert seen.index(mww[1]) < next(i for i, l in enumerate(seen) if l.startswith("md") and i > seen.index(mww[1])), seen
 assert not any("0x2000000" in l or "0xC000000" in l for l in seen), seen
 r = subprocess.run([sys.executable, root + "/hw/svd_probe.py", "--svd", sys.argv[2], "--skip", "NOPE", "--list"],
                    capture_output=True, text=True)
@@ -200,23 +207,45 @@ import socket, subprocess, sys, threading
 root = sys.argv[1]
 srv = socket.socket(); srv.bind(("127.0.0.1", 0)); srv.listen(1)
 port = srv.getsockname()[1]
+TABLE = ("    TargetName         Type       Endian TapName            State\r\n"
+         "--  ------------------ ---------- ------ ------------------ ------------\r\n"
+         " 0* mpfs.hart0_e51     riscv      little mpfs.cpu           halted")
 def serve():
     c, _ = srv.accept()
     c.sendall(b"> ")
-    buf = b""
+    buf, stuck = b"", False
     while True:
         d = c.recv(4096)
         if not d: break
         buf += d
         while b"\n" in buf:
             line, buf = buf.split(b"\n", 1)
-            if not line.startswith(b"md"):
-                c.sendall(line + b"\r\n> ")
+            if line.startswith(b"mdw 0x2000000"):
+                stuck = True
+                continue  # the first CLINT register does not answer
+            if stuck and line.startswith(b"echo svd_probe_end_"):
+                stuck = False  # nor does the echo that closes it
+                continue
+            if line.startswith(b"md"):
+                c.sendall(line + b"\r\n0x20000000: 00000000\r\n> ")
+            else:
+                r = TABLE if line == b"targets" else line[5:].decode() if line.startswith(b"echo ") else ""
+                c.sendall(line + b"\r\n" + (r.encode() + b"\r\n" if r else b"") + b"> ")
 threading.Thread(target=serve, daemon=True).start()
 r = subprocess.run([sys.executable, root + "/hw/svd_probe.py", "--svd", sys.argv[2], "--port", str(port),
                     "--timeout", "1", "CLINT"], capture_output=True, text=True)
 assert r.returncode == 2 and "probably hung" in r.stderr and "0x02000000" in r.stderr, r
 PY
+
+# svd_probe against stand-ins that die, refuse the resume, answer with errors, ...
+probe_out="$("$MPFS_PYTHON" "$ROOT/tests/host/svd/probe_test.py" "$tmp/clean/build/svd/PolarfireSoC.svd" 2>&1)"; probe_rc=$?
+while IFS= read -r line; do
+  case "$line" in
+    "ok:   "*)   pass "svd_probe: ${line#ok:   }" ;;
+    "FAIL: "*)   fail "svd_probe: ${line#FAIL: }" ;;
+  esac
+done <<< "$probe_out"
+[ "$probe_rc" -eq 0 ] || [ "$fails" -gt 0 ] || fail "svd_probe stand-in tests ended with exit $probe_rc"
 
 echo "summary: $fails failure(s)"
 [ "$fails" -eq 0 ]
