@@ -250,5 +250,17 @@ done
 grep -q '^BUILD_HARTS=e51 u54$' "$ROOT/examples/report_test/example.conf" \
   && pass "report_test is built for both harts" || fail "report_test is built for both harts"
 
+# tasking_test and interrupt_test (P1.4) run on hart 0, hart 1 and on U54 hart 3 (-smp 5 in the runner)
+for ex in tasking_test interrupt_test; do
+  for hart in e51 u54 u54h3; do
+    grep -q "^${ex}_${hart}${tab}examples/${ex}${tab}0${tab}pass${tab}-${tab}-\$" "$list_c" \
+      && pass "tests.list: ${ex}_$hart" || fail "tests.list: ${ex}_$hart"
+  done
+  grep -q '^BUILD_HARTS=e51 u54 u54-h3$' "$ROOT/examples/$ex/example.conf" \
+    && pass "$ex is built for e51, u54 and u54-h3" || fail "$ex is built for e51, u54 and u54-h3"
+done
+grep -q -- '-smp 5' "$ROOT/tests/qemu/run_tests.sh" \
+  && pass "the runner starts all five harts (-smp 5)" || fail "the runner starts all five harts (-smp 5)"
+
 echo "summary: $fails failure(s)"
 [ $fails -eq 0 ]
