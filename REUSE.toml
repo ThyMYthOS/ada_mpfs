@@ -141,6 +141,7 @@ path = [
   "**/*.conf.example",
   "**/*.list",
   "crates/mpfs_rts/packs.sha256",
+  "examples/*/console.expected",
   "tools/analyzer-baselines/*.baseline",
   "**/README.md",
   "CONTRIBUTING.md",
