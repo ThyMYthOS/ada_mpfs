@@ -1,0 +1,14 @@
+  ok: the M mode context is 0, 1, 3, 5, 7 for harts 0 to 4
+  ok: enable, threshold and claim addresses of every hart are the PAC's
+  ok: the source is enabled in the PLIC context of this hart
+  ok: and in no other context (QEMU: clear after reset)
+  ok: the priority of the source is the ceiling of its handler
+  ok: outside a protected object the threshold of this hart is 0
+  ok: inside it the threshold is the ceiling
+  ok: the handler took in as many bytes as console.in has
+  ok: the bytes are those of console.in, in order
+  ok: the source is not pending after the handler
+  ok: msip of this hart reads set
+  ok: and clear after Clear_MSIP
+  ok: mtime runs
+  ok: the mtimecmp of the other harts is untouched (QEMU: 0 after reset)
