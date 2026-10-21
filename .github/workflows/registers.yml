@@ -61,6 +61,7 @@ jobs:
       - uses: ./.github/actions/toolchain
         with:
           target: svdtools
+          compilers: "false"
 
       - name: Check the SVD
         run: ./x svd check

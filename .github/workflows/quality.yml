@@ -1,0 +1,58 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# SPARK proofs: the pinned gnatprove proves the projects of tools/prove.list, and the
+# tests of tools/prove.sh run with the real gnatprove. The logic lives in ./x.
+name: quality
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - ".github/workflows/quality.yml"
+      - ".github/actions/**"
+      - "tests/prove/**"
+      - "tests/host/prove/**"
+      - "tools/prove.*"
+      - "tools/toolchain.env"
+      - "libs/**"
+      - "x"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/quality.yml"
+      - ".github/actions/**"
+      - "tests/prove/**"
+      - "tests/host/prove/**"
+      - "tools/prove.*"
+      - "tools/toolchain.env"
+      - "libs/**"
+      - "x"
+
+# One run per branch: a newer push cancels the run of the older one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      # The pinned compilers and gprbuild, and the pinned gnatprove (GNATPROVE_VERSION).
+      - uses: ./.github/actions/toolchain
+        with:
+          target: gnatprove
+
+      - name: Prove
+        run: ./x prove
+
+      # With the real gnatprove: the committed project proves, a project with an unprovable
+      # overflow fails (the stand-in cases run in the images workflow, too).
+      - name: Tests of prove.sh
+        run: bash tests/host/prove/run.sh

@@ -1,0 +1,133 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# The bare-metal images (bare_hello, pmp_probe, report_test) for the E51 and the U54, built once:
+# job `build` builds them, checks metrics.golden, runs the negative cases and the host tests of
+# the harnesses, and hands the images to the emulator jobs as the artifact `images`; the jobs
+# `qemu` (smoke test, Test_Report applications) and `renode` (smoke test) run them without a
+# toolchain. The logic lives in ./x.
+name: images
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - ".github/workflows/images.yml"
+      - ".github/actions/**"
+      - "examples/**"
+      - "hw/**"
+      - "tests/**"
+      - "tools/**"
+      - "metrics.golden"
+      - "x"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/images.yml"
+      - ".github/actions/**"
+      - "examples/**"
+      - "hw/**"
+      - "tests/**"
+      - "tools/**"
+      - "metrics.golden"
+      - "x"
+
+# One run per branch: a newer push cancels the run of the older one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      # Only the pinned compilers and gprbuild (and alr, if the runner has none).
+      - uses: ./.github/actions/toolchain
+        with:
+          target: gnat
+
+      # Builds every example for every hart it names; the next steps and the emulator jobs
+      # use these images.
+      - name: Build all images
+        run: ./x test examples && ./x metrics verify
+
+      # Size, entry point, e_flags and Tag_RISCV_arch of every image against metrics.golden
+      # (verified by the step above); the images are packed for the emulator jobs.
+      - name: Pack the images
+        run: tar -cf images.tar examples/*/bin-*
+
+      - name: Negative cases
+        run: ./x test negative
+
+      # The suites that need no svdtools: the svd, pac and x suites run in the registers
+      # workflow, and the prove suite runs with gnatprove in the quality workflow (here its
+      # stand-in cases only).
+      - name: Host tests
+        run: |
+          for suite in bare report negative qemu_tests stack hw analyze prove; do
+            echo "== host suite $suite"
+            bash "tests/host/$suite/run.sh"
+          done
+
+      - name: Keep the images
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: images
+          path: images.tar
+          retention-days: 14
+
+  qemu:
+    needs: build
+    # QEMU 10.1 or newer is needed (QEMU_MIN in tools/toolchain.env); older
+    # Ubuntu releases ship an older QEMU.
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Install QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qemu-system-riscv
+
+      - name: Take the images
+        uses: actions/download-artifact@v7.0.0
+        with:
+          name: images
+
+      # Boots the images of the build job under QEMU and checks what they print.
+      - name: QEMU smoke test
+        env:
+          MPFS_PREBUILT_IMAGES: "1"
+        run: tar -xf images.tar && ./x test qemu
+
+  renode:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      # The release pinned by RENODE_VERSION, checked against RENODE_SHA256_X86_64_LINUX.
+      - uses: ./.github/actions/toolchain
+        with:
+          target: renode
+          compilers: "false"
+
+      - name: Take the images
+        uses: actions/download-artifact@v7.0.0
+        with:
+          name: images
+
+      # The Renode model of the board has 16 PMP entries where QEMU has 8; its
+      # expectations are kept apart in tests/renode/smoke.expected.
+      - name: Renode smoke test
+        env:
+          MPFS_PREBUILT_IMAGES: "1"
+        run: tar -xf images.tar && ./x test renode

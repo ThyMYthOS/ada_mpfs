@@ -3,14 +3,17 @@
 #
 # The pinned tools of one `./x toolchain install <target>`, cached. Every version is pinned in
 # tools/toolchain.env, so the cache key follows that file. The install is idempotent: what the
-# cache restored is detected and not installed again. A target without a cache of its own starts
-# from the cache of the compilers (target gnat) of the same pins. Needs the repository checked out.
+# cache restored is detected and not installed again. A target that needs the compilers and has no cache
+# of its own starts from the cache of the compilers (target gnat) of the same pins. Needs the repository checked out.
 name: toolchain
 description: Restore the cached tools and install the pinned ones with ./x toolchain install
 inputs:
   target:
     description: "svdtools, svd2ada, pac, alire, gnat, gnatprove, adalang_analyzer or renode"
     default: gnat
+  compilers:
+    description: "false for a target that needs no Alire toolchains (svdtools, alire, renode): do not start from the cache of the compilers"
+    default: "true"
 runs:
   using: composite
   steps:
@@ -22,8 +25,7 @@ runs:
           ~/.local/share/ada_mpfs/tools
           ~/.config/alire
         key: toolchain-${{ inputs.target }}-${{ runner.os }}-${{ hashFiles('tools/toolchain.env') }}
-        restore-keys: |
-          toolchain-gnat-${{ runner.os }}-${{ hashFiles('tools/toolchain.env') }}
+        restore-keys: ${{ inputs.compilers == 'true' && format('toolchain-gnat-{0}-{1}', runner.os, hashFiles('tools/toolchain.env')) || '' }}
 
     - name: ./x toolchain install ${{ inputs.target }}
       shell: bash
