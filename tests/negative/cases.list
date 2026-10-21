@@ -1,15 +1,29 @@
-# Link-time cases of tests/negative/run_negative.sh, TAB-separated. Each case links
-# the start file of examples/bare_hello built for one hart class with the other
-# objects built for another one (obj-<hart>/ of the example).
+# Cases of tests/negative/run_negative.sh, TAB-separated, five fields:
 #   name     case name
-#   start    hart class of start.o: e51 | u54
-#   rest     hart class of bare_console.o and bare_hello.o
-#   expect   links: the link must succeed; fails: it must fail, and the output of
-#            the linker must contain the pattern (a failure for another reason
-#            does not count)
-#   pattern  fixed string, required for fails, "-" for links
-name	start	rest	expect	pattern
-control_e51	e51	e51	links	-
-control_u54	u54	u54	links	-
-abi_e51_start_u54_code	e51	u54	fails	float modules with
-abi_u54_start_e51_code	u54	e51	fails	float modules with
+#   kind     link: link the objects of examples/bare_hello built for one hart
+#                  class with objects built for another one (obj-<hart>/ of the
+#                  example). arg is <start>:<rest>, the hart class of start.o and
+#                  of bare_console.o and bare_hello.o.
+#            build: compile examples/bare_hello in a fresh copy of the tree with
+#                  gprbuild. arg is a space-separated list of scenario variables
+#                  (NAME=value, passed as -XNAME=value) and fixture=<name>, the
+#                  directory of tests/negative/fixtures whose files replace those
+#                  of src/ (the "source" of the case).
+#   arg      see kind
+#   expect   links | builds: must succeed; fails: must fail, with the pattern in
+#            the output of the linker or of gprbuild (a failure for another
+#            reason does not count), and, for link, without leaving an image
+#   pattern  fixed string, required for fails, "-" otherwise
+#
+# Every kind has its control cases: the same objects or sources, without the
+# fault, must succeed, so that a negative cannot pass because the setup is broken.
+name	kind	arg	expect	pattern
+control_e51	link	e51:e51	links	-
+control_u54	link	u54:u54	links	-
+abi_e51_start_u54_code	link	e51:u54	fails	float modules with
+abi_u54_start_e51_code	link	u54:e51	fails	float modules with
+control_build_e51	build	MPFS_HART=e51	builds	-
+control_build_u54	build	MPFS_HART=u54	builds	-
+bad_hart_value	build	MPFS_HART=r5	fails	is illegal for typed string "hart"
+unreferenced_constant	build	MPFS_HART=e51 fixture=unreferenced_constant	fails	is not referenced [-gnatwu]
+elaboration_code	build	MPFS_HART=e51 fixture=elaboration_code	fails	violation of restriction "No_Elaboration_Code"

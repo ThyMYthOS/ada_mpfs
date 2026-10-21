@@ -9,6 +9,7 @@
 | `svd/` | SVD merge, check rules, probe. |
 | `pac/` | Register package generator on fixtures, and properties of the committed `libs/mpfs_pac/src/generated`. |
 | `bare/` | The QEMU smoke test (with a stand-in for QEMU), `tools/metrics.sh` (with stand-ins for size and readelf) and the committed `metrics.golden`, each with negative cases. |
+| `negative/` | `tests/negative/run_negative.sh` against stand-ins for the compiler driver and gprbuild: ABI mismatch accepted, a failure for another reason, a leftover image, a missing fixture or object, a fixture that lost its fault, malformed lists. |
 | `qemu_tests/` | `tests/qemu/run_tests.sh` against a stand-in for QEMU: every way a test can pass or fail (verdict, FAIL line, hang, stray port output, `console.expected`, xfail signature, malformed list, old QEMU). |
 | `report/` | The shared `Host_Report` package (`common/`): a program whose checks hold exits 0; a failed check, no check, a missing `Finish` and an unhandled exception each exit non-zero. |
 
