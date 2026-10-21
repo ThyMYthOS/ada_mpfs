@@ -12,19 +12,20 @@
 #  builds the examples that name their harts in BUILD_HARTS of example.conf).
 #
 #  Inputs, all from the environment (./x sets them):
-#    RV_SIZE RV_READELF      riscv64-elf-* tools (default: from PATH)
+#    RV_SIZE RV_READELF RV_STRINGS   riscv64-elf-* tools (default: from PATH)
 #    GOLDEN                  path of the golden file (default: metrics.golden
 #                            in the repository root)
 #    EXAMPLES                directory of the examples (default: examples/)
 #    MEASURED                verify only: where to write this host's measured
 #                            rows, in golden format (CI uploads it as an artifact)
 #
-#  KEYED ON THE COMPILER, NOT THE HOST. Every row carries the compiler string the
-#  linker recorded in the image's .comment section ("GCC: (GNAT-FSF-builds)
-#  15.3.0" for the pinned toolchain), and a measurement is compared only against
-#  the row for the same (image, compiler). Images of the bare examples contain no
-#  GNAT version string (no binder is linked), so .comment is the only record of
-#  what built them. A host whose compiler has no baseline FAILS with "no
+#  KEYED ON THE COMPILER, NOT THE HOST. Every row carries the compiler that built
+#  the image, and a measurement is compared only against the row for the same
+#  (image, compiler). The key is the "GNAT Version: <v>" string that the binder
+#  embeds (__gnat_version) when the image has one, shown as "GNAT <v>"; an image
+#  without a binder (the bare examples) has none, and then the key is the string
+#  the linker recorded in its .comment section ("GCC: (GNAT-FSF-builds) 15.3.0"
+#  for the pinned toolchain), the only record of what built it. A host whose compiler has no baseline FAILS with "no
 #  baseline" and prints the rows to seed it, rather than comparing against
 #  another compiler's numbers or silently passing.
 #
@@ -55,6 +56,7 @@ root=$(cd "$here/.." && pwd)
 : "${EXAMPLES:=$root/examples}"
 RV_SIZE=${RV_SIZE:-riscv64-elf-size}
 RV_READELF=${RV_READELF:-riscv64-elf-readelf}
+RV_STRINGS=${RV_STRINGS:-riscv64-elf-strings}
 
 errors=0
 err() { printf 'ERROR: %s\n' "$*" >&2; errors=$((errors + 1)); }
@@ -74,6 +76,7 @@ check_tool() {   # path  what
 tools_ok=1
 check_tool "$RV_SIZE"    "RISC-V size"    || tools_ok=0
 check_tool "$RV_READELF" "RISC-V readelf" || tools_ok=0
+check_tool "$RV_STRINGS" "RISC-V strings" || tools_ok=0
 if [ "$tools_ok" = 0 ]; then
   echo "       Run './x toolchain install' (installs the pinned cross compiler), or use ./x metrics, which puts it on PATH." >&2
   echo "FAIL: toolchain missing; nothing was measured" >&2
@@ -97,14 +100,21 @@ measure() {   # name path
   at=$("$RV_READELF" -A "$img") || { err "$app: $RV_READELF -A failed on $img"; return; }
   cm=$("$RV_READELF" -p .comment "$img") || { err "$app: $RV_READELF -p .comment failed on $img"; return; }
 
-  #  The compiler that built THIS image, as the linker recorded it in .comment --
-  #  not whatever happens to be installed. Exactly one distinct value is
-  #  required: none means the section is missing (the key would be empty), more
-  #  than one would mean objects from two compilers.
-  compiler=$(printf '%s\n' "$cm" | sed -n 's/^[ \t]*\[[ \t]*[0-9a-f]*\][ \t]*//p' | sort -u)
+  #  The compiler that built THIS image -- not whatever happens to be installed.
+  #  The "GNAT Version:" string of the binder (__gnat_version) if the image has
+  #  one, else what the linker recorded in .comment. Exactly one distinct value
+  #  is required: none means the key would be empty, more than one would mean
+  #  objects from two compilers.
+  st=$("$RV_STRINGS" -a "$img") || { err "$app: $RV_STRINGS failed on $img"; return; }
+  compiler=$(printf '%s\n' "$st" | sed -n 's/^GNAT Version: /GNAT /p' | sort -u)
+  src="GNAT Version"
+  if [ -z "$compiler" ]; then
+    compiler=$(printf '%s\n' "$cm" | sed -n 's/^[ \t]*\[[ \t]*[0-9a-f]*\][ \t]*//p' | sort -u)
+    src=".comment"
+  fi
   ncomp=$(printf '%s' "$compiler" | awk 'END { print NR }')
   if [ "$ncomp" -gt 1 ]; then
-    err "$app: $ncomp different .comment strings in one image: $(printf '%s' "$compiler" | tr '\n' '|')"
+    err "$app: $ncomp different $src strings in one image: $(printf '%s' "$compiler" | tr '\n' '|')"
     return
   fi
 
@@ -132,7 +142,7 @@ measure() {   # name path
   attrs=${parsed#*	}
 
   bad=
-  nonblank "$compiler" || bad="$bad compiler(no .comment string in the image)"
+  nonblank "$compiler" || bad="$bad compiler(neither a GNAT Version string nor a .comment string in the image)"
   shape "$text"   '^[0-9]+$'    || bad="$bad text"
   shape "$data"   '^[0-9]+$'    || bad="$bad data"
   shape "$bss"    '^[0-9]+$'    || bad="$bad bss"

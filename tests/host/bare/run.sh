@@ -181,26 +181,35 @@ case "$mode" in
   -p) printf 'String dump of section .comment:\n  [     0]  %s\n' "$COMMENT" ;;
 esac
 EOF
-chmod +x "$tmp/m/bin/fake-size" "$tmp/m/bin/fake-readelf"
+cat > "$tmp/m/bin/fake-strings" <<'EOF'
+#!/bin/sh
+[ "$1" = --version ] && { echo "fake strings"; exit 0; }
+[ "$1" = -a ] && shift
+. "$1.fx" || exit 1
+printf 'some string\n'
+for v in ${GNATVER:-}; do printf 'GNAT Version: %s\n' "$v"; done
+EOF
+chmod +x "$tmp/m/bin/fake-size" "$tmp/m/bin/fake-readelf" "$tmp/m/bin/fake-strings"
 
 E51_ARCH="rv64i2p1_m2p0_a2p1_c2p0_zicsr2p0_zifencei2p0"
 U54_ARCH="rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zifencei2p0"
 CC="GCC: (GNAT-FSF-builds) 15.3.0"
 
-# image <example> <hart> <name> <text> <flags> <arch> [comment]
+# image <example> <hart> <name> <text> <flags> <arch> [comment [GNAT version(s)]]
 image () {
   local d="$tmp/m/ex/$1/bin-$2"
   mkdir -p "$d"
   : > "$d/$3.elf"
   printf 'TEXT=%s\nDATA=0\nBSS=16384\nENTRY=0x8000000\nFLAGS="%s"\nARCH="%s"\nCOMMENT="%s"\n' \
     "$4" "$5" "$6" "${7:-$CC}" > "$d/$3.elf.fx"
+  [ -z "${8:-}" ] || printf 'GNATVER="%s"\n' "$8" >> "$d/$3.elf.fx"
 }
 image hello e51 hello 538 "0x1, RVC, soft-float ABI"   "$E51_ARCH"
 image hello u54 hello 548 "0x5, RVC, double-float ABI" "$U54_ARCH"
 
 metrics () {   # metrics verify|bless [env...]
   local m="$1"; shift
-  env RV_SIZE="$tmp/m/bin/fake-size" RV_READELF="$tmp/m/bin/fake-readelf" \
+  env RV_SIZE="$tmp/m/bin/fake-size" RV_READELF="$tmp/m/bin/fake-readelf" RV_STRINGS="$tmp/m/bin/fake-strings" \
       EXAMPLES="$tmp/m/ex" GOLDEN="$tmp/m/golden" "$@" sh "$ROOT/tools/metrics.sh" "$m"
 }
 
@@ -245,6 +254,25 @@ cmp -s "$tmp/m/golden" "$tmp/m/golden.keep" && pass "metrics: a refused bless le
   || fail "metrics: a refused bless leaves the golden file alone"
 image hello e51 hello 538 "0x1, RVC, soft-float ABI" "$E51_ARCH"
 expect_rc  "metrics: a missing tool fails" nonzero metrics verify RV_SIZE="$tmp/m/bin/none"
+# An image with a binder carries "GNAT Version:" (__gnat_version): that is the key, not .comment.
+image hello e51 hello 538 "0x1, RVC, soft-float ABI" "$E51_ARCH" "$CC" "15.3.1"
+expect_rc  "metrics: an image with a GNAT Version string has another key than its .comment" nonzero metrics verify
+expect_out "metrics: the key is the GNAT Version" "GNAT 15.3.1" metrics verify
+expect_rc  "metrics: bless keys it on the GNAT Version" 0 metrics bless
+grep -q "^hello/e51/hello${tab}GNAT 15.3.1${tab}" "$tmp/m/golden" \
+  && pass "metrics: the golden row carries 'GNAT 15.3.1' as the compiler" \
+  || fail "metrics: the golden row carries 'GNAT 15.3.1' as the compiler"
+expect_rc  "metrics: verify passes on it" 0 metrics verify
+image hello e51 hello 538 "0x1, RVC, soft-float ABI" "$E51_ARCH" "$CC" "15.3.2"
+expect_rc  "metrics: another GNAT Version has no baseline and fails" nonzero metrics verify
+expect_out "metrics: says no baseline for the other GNAT Version" "no baseline" metrics verify
+image hello e51 hello 538 "0x1, RVC, soft-float ABI" "$E51_ARCH" "$CC" "15.3.1 15.3.2"
+expect_rc  "metrics: two GNAT Versions in one image fail" nonzero metrics verify
+expect_out "metrics: says it found two" "2 different GNAT Version strings" metrics verify
+expect_rc  "metrics: a missing strings tool fails" nonzero metrics verify RV_STRINGS="$tmp/m/bin/none"
+image hello e51 hello 538 "0x1, RVC, soft-float ABI" "$E51_ARCH"
+cp "$tmp/m/golden.keep" "$tmp/m/golden"
+expect_rc  "metrics: the .comment golden verifies again after the GNAT cases" 0 metrics verify
 { grep '^#' "$tmp/m/golden"; printf 'image\tcompiler\n'; } > "$tmp/m/badgolden"
 expect_rc  "metrics: a golden file without rows fails" nonzero metrics verify GOLDEN="$tmp/m/badgolden"
 { grep -v "^hello/u54" "$tmp/m/golden"; } > "$tmp/m/partial"
@@ -265,7 +293,7 @@ while IFS="$tab" read -r img comp text data bss entry eflags isa attrs; do
              case "$isa" in *_f2p2_d2p2_*) ;; *) bad=1; echo "u54 without f/d: $img $isa" >&2 ;; esac ;;
     *) bad=1; echo "unexpected image $img" >&2 ;;
   esac
-  case "$comp" in GCC:*) ;; *) bad=1; echo "compiler of $img: $comp" >&2 ;; esac
+  case "$comp" in GCC:*|"GNAT "*) ;; *) bad=1; echo "compiler of $img: $comp" >&2 ;; esac
 done <<< "$rows"
 [ $bad -eq 0 ] && pass "metrics.golden: the ABI of every image is in its e_flags and Tag_RISCV_arch" \
   || fail "metrics.golden: the ABI of every image is in its e_flags and Tag_RISCV_arch"
