@@ -14,7 +14,8 @@ package body Early_Trap is
    use type Interfaces.Unsigned_32;
    use type Interfaces.Unsigned_64;
 
-   --  The layout of the trap record (start.S).
+   --  The layout of the trap record (start.S): Magic and Hart are the two
+   --  halves of one 64-bit store.
    type Trap_Record is record
       Mcause : Interfaces.Unsigned_64;
       Mepc   : Interfaces.Unsigned_64;
