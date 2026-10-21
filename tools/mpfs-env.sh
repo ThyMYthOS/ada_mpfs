@@ -89,7 +89,7 @@ mpfs_toolchain_on_path () {
     done
     # Renode's portable build has its launcher in the prefix itself, not in bin/.
     d="$(mpfs_opt_prefix renode "$RENODE_VERSION")"
-    if [ -n "$RENODE_VERSION" ] && [ -x "$d/renode" ]; then
+    if [ -n "$RENODE_VERSION" ] && { [ -x "$d/renode" ] || [ -x "$d/renode.exe" ]; }; then
         case ":$PATH:" in *":$d:"*) ;; *) PATH="$d:$PATH" ;; esac
     fi
     export PATH

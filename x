@@ -145,12 +145,14 @@ mpfs_install_svdtools () {
 mpfs_install_renode () {
   local pfx url tmp want mnt bin
   pfx="$(mpfs_opt_prefix renode "$RENODE_VERSION")"
-  if [ -x "$pfx/renode" ]; then
+  if [ -x "$pfx/renode" ] || [ -x "$pfx/renode.exe" ]; then
     echo "x: renode $RENODE_VERSION already installed in $pfx"; return 0
   fi
   case "$(uname -sm)" in
     "Linux x86_64")  want="${RENODE_SHA256_X86_64_LINUX:-}"; url="renode-$RENODE_VERSION.linux-portable.tar.gz" ;;
     "Darwin arm64")  want="${RENODE_SHA256_AARCH64_DARWIN:-}"; url="renode-$RENODE_VERSION.osx-arm64-portable.dmg" ;;
+    MINGW*" x86_64"|MSYS*" x86_64"|CYGWIN*" x86_64")
+                     want="${RENODE_SHA256_X86_64_WINDOWS:-}"; url="renode-$RENODE_VERSION.windows-portable.zip" ;;
     *) die "no pinned Renode release for $(uname -sm); install one and set RENODE" ;;
   esac
   [ -n "$want" ] || die "the Renode checksum for $(uname -sm) is not pinned in tools/toolchain.env"
@@ -169,6 +171,12 @@ mpfs_install_renode () {
       bin="$(find "$pfx.tmp" -type f -name renode -perm -u+x 2>/dev/null | head -1)"
       [ -n "$bin" ] || { rm -rf "$pfx.tmp" "$tmp"; die "no renode launcher in $url"; }
       [ "$bin" = "$pfx.tmp/renode" ] || ln -s "${bin#"$pfx.tmp"/}" "$pfx.tmp/renode" ;;
+    *.zip)
+      # one top-level directory (renode_<version>-portable/) holding renode.exe: strip it
+      "$MPFS_PYTHON" -c 'import sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); top=z.namelist()[0]
+for m in z.infolist():
+    if m.filename != top:
+        m.filename = m.filename[len(top):]; z.extract(m, sys.argv[2])' "$tmp" "$pfx.tmp" ;;
     *) tar -xzf "$tmp" -C "$pfx.tmp" --strip-components=1 ;;
   esac || { rm -rf "$pfx.tmp" "$tmp"; die "unpacking Renode failed"; }
   rm -rf "$pfx" && mv "$pfx.tmp" "$pfx" || { rm -rf "$pfx.tmp" "$tmp"; die "unpacking Renode failed"; }
