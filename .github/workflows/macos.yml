@@ -55,19 +55,21 @@ jobs:
       - name: Install the Python packages
         run: python3 -m pip install -r tools/requirements.txt
 
-      # The native GNAT does not find libSystem by itself: the final link of adalang_analyzer fails
-      # with "_write", "_waitpid" ... not found. These are the variables of a working Darwin shell
-      # (the SDK on SDKROOT, LIBRARY_PATH, LD_LIBRARY_PATH and, as -L, on LDFLAGS). They are set
-      # here and not in ./x, to learn first whether they fix the install.
-      - name: Point the build tools at the Xcode SDK
+      # The GNAT FSF build of Alire links with --sysroot=<first existing of> the SDK of the Command
+      # Line Tools or of /Applications/Xcode.app (see `gcc -v`: --with-specs). With neither on the
+      # runner, ld gets a -syslibroot that does not exist: it finds libSystem.tbd through
+      # LIBRARY_PATH but not the libraries it re-exports, so _write, _waitpid, _unlink ... are
+      # undefined at the final link of adalang_analyzer. Make the second candidate exist.
+      - name: Give the GNAT of Alire the SDK it was configured with
         run: |
           sdk="$(xcrun --show-sdk-path)"
-          {
-            echo "SDKROOT=$sdk"
-            echo "LIBRARY_PATH=$sdk/usr/lib"
-            echo "LD_LIBRARY_PATH=$sdk/usr/lib"
-            echo "LDFLAGS=-L$sdk/usr/lib"
-          } >> "$GITHUB_ENV"
+          first=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+          second=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
+          echo "sdk=$sdk"; ls -d /Library/Developer/CommandLineTools/SDKs/* /Applications/Xcode*.app 2>&1 || true
+          if [ ! -e "$first" ] && [ ! -e "$second" ]; then
+            sudo mkdir -p "$(dirname "$second")" && sudo ln -s "$sdk" "$second"
+          fi
+          ls -ld "$first" "$second" 2>&1 || true
 
       # svd2ada and the PAC are built with the pinned native GNAT.
       - name: ./x toolchain install gnat
@@ -90,11 +92,12 @@ jobs:
           echo "sdk=$sdk"; gcc -print-sysroot; gcc -dumpspecs | grep -n -i 'sysroot\|SDKROOT' | head
           mkdir -p /tmp/t && cd /tmp/t
           printf 'with Ada.Text_IO; procedure T is begin Ada.Text_IO.Put_Line ("x"); end T;\n' > t.adb
-          try () { echo "== $1"; shift; ( env -u SDKROOT -u LIBRARY_PATH -u LD_LIBRARY_PATH -u LDFLAGS "$@" gnatmake -q t.adb -o t 2>&1 | grep -c 'not found' || true; ls t >/dev/null 2>&1 && echo linked ); rm -f t t.o t.ali b~t.* ; }
+          try () { echo "== $1"; shift; ( env -u SDKROOT -u LIBRARY_PATH -u LD_LIBRARY_PATH -u LDFLAGS "$@" gnatmake -q t.adb -o t 2>&1 | grep -c 'not found' || true; ls t >/dev/null 2>&1 && echo linked || true ); rm -f t t.o t.ali b~t.* ; }
           try none A=1
           try SDKROOT SDKROOT="$sdk"
           try LDFLAGS LDFLAGS="-L$sdk/usr/lib"
           try LIBRARY_PATH LIBRARY_PATH="$sdk/usr/lib"
           try both SDKROOT="$sdk" LIBRARY_PATH="$sdk/usr/lib"
+          echo "== --sysroot"; ( gnatmake -q t.adb -o t -largs --sysroot="$sdk" 2>&1 | grep -c 'not found' || true; ls t >/dev/null 2>&1 && echo linked || true ); rm -f t t.o t.ali b~t.*
           try all SDKROOT="$sdk" LIBRARY_PATH="$sdk/usr/lib" LD_LIBRARY_PATH="$sdk/usr/lib" LDFLAGS="-L$sdk/usr/lib"
           echo "== -v with SDKROOT"; SDKROOT="$sdk" gnatmake -v t.adb -largs -v 2>&1 | grep -i 'collect2\|syslibroot\|/ld ' | head -5
