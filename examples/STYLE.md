@@ -20,6 +20,12 @@ variables
 | `MPFS_PROFILE` | `auto`, `light`, `light-tasking`, `embedded` | runtime profile |
 
 `./x build` validates all values before calling `gprbuild`; an SMP set with `--hart e51` is rejected.
+`MPFS_HARTS` is not passed when it is empty, because `gprbuild` treats an empty value as undefined.
+
+An example that must not bind or link the runtime (a bare image) has a `build.sh` in its directory. `./x
+build` runs it instead of `gprbuild -p -P app.gpr`, in the example directory, with the four variables
+above in the environment, and it must still produce `bin-<hart>/*.elf`. `app.gpr` then compiles the
+sources (`gprbuild -c`); see `examples/common/bare_build.sh`.
 
 The project must
 
@@ -33,5 +39,6 @@ The project must
 |---|---|
 | `app.gpr` | project file |
 | `src/` | sources |
-| `example.conf` | `KEY=value` lines; `HART=` is the default hart of the example (`e51` if absent) |
+| `example.conf` | `KEY=value` lines; `HART=` is the default hart of the example (`e51` if absent); `BUILD_HARTS=` (e.g. `e51 u54`) the harts that `./x test qemu` and `./x metrics` build, and whose images the smoke test and `metrics.golden` cover |
+| `build.sh` | optional, builds instead of `gprbuild` (see above) |
 | `README.md` | what the example shows, how to build and run it |

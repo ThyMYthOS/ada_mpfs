@@ -342,9 +342,17 @@ build_example () {
   toolchain_ready
   local log rc=0
   log="$(mktemp)"
-  ( cd "$EXROOT/$e" && gprbuild -p -P app.gpr \
-        -XMPFS_HART="$B_HART" -XMPFS_PRIV="$B_PRIV" -XMPFS_PROFILE="$B_PROF" \
-        -XMPFS_HARTS="$B_HARTS" ) >"$log" 2>&1 || rc=$?
+  if [ -f "$EXROOT/$e/build.sh" ]; then
+    #  The example builds itself (e.g. bare images that bind and link nothing of
+    #  the runtime); the scenario variables arrive in the environment.
+    ( cd "$EXROOT/$e" && \
+      MPFS_HART="$B_HART" MPFS_PRIV="$B_PRIV" MPFS_PROFILE="$B_PROF" MPFS_HARTS="$B_HARTS" \
+        bash build.sh ) >"$log" 2>&1 || rc=$?
+  else
+    ( cd "$EXROOT/$e" && gprbuild -p -P app.gpr \
+          -XMPFS_HART="$B_HART" -XMPFS_PRIV="$B_PRIV" -XMPFS_PROFILE="$B_PROF" \
+          ${B_HARTS:+-XMPFS_HARTS="$B_HARTS"} ) >"$log" 2>&1 || rc=$?
+  fi
   cat "$log"
   #  Compiler warnings only (file.ad[sb]:line:col: warning:); linker notes about
   #  the shipped runtime's link script are not ours to fix.
@@ -362,6 +370,18 @@ cmd_build () {
   local e; e="$(resolve "${1:-}")"; shift || true
   build_example "$e" "$@"
   echo "x: built ${B_ELF#"$ROOT"/}"
+}
+
+#  Build every example for the harts it names in BUILD_HARTS (example.conf), so
+#  that the QEMU smoke test and the metrics see all its images.
+build_matrix () {
+  local e h rc=0
+  for e in $(list_dirs); do
+    for h in $(conf_get "$e" BUILD_HARTS ""); do
+      ( build_example "$e" --hart "$h" ) || rc=1
+    done
+  done
+  [ $rc -eq 0 ] || die "building the images failed"
 }
 
 cmd_clean () {
@@ -549,16 +569,18 @@ cmd_test () {
       [ $rc -eq 0 ] || die "example builds failed"
       ;;
     lib)        delegate tools/test_lib.sh "$@" ;;
-    qemu)       delegate tests/qemu/run_tests.sh "$@" ;;
+    qemu)       [ -f "$ROOT/tests/qemu/smoke.sh" ] || die "not available yet: tests/qemu/smoke.sh is missing"
+                build_matrix; delegate tests/qemu/smoke.sh "$@" ;;
     negative)   delegate tests/negative/run_negative.sh "$@" ;;
-    metrics)    delegate tools/metrics.sh verify ;;
+    metrics)    cmd_metrics verify ;;
     *) die "usage: ./x test host|lib|examples|qemu|negative|metrics" ;;
   esac
 }
 
 cmd_metrics () {
   case "${1:-}" in
-    verify|bless) delegate tools/metrics.sh "$@" ;;
+    verify|bless) [ -f "$ROOT/tools/metrics.sh" ] || die "not available yet: tools/metrics.sh is missing"
+                  build_matrix; toolchain_ready; delegate tools/metrics.sh "$@" ;;
     *) die "usage: ./x metrics verify|bless" ;;
   esac
 }

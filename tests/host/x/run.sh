@@ -77,7 +77,7 @@ expect_rc "qemu: invalid hart number"     nonzero "$TX" qemu smoke --hart 9
 expect_rc "clean exits 0"                 0       "$TX" clean smoke
 
 # Verbs with a missing implementation script must fail, not succeed silently.
-for v in "analyze" "stack smoke" "prove" "svd merge" "pac generate" "hw probe" "metrics verify"; do
+for v in "analyze" "stack smoke" "prove" "svd merge" "pac generate" "hw probe" "metrics verify" "test qemu"; do
   # shellcheck disable=SC2086
   expect_rc "missing script: $v fails" nonzero "$TX" $v
 done
