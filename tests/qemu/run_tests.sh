@@ -14,8 +14,9 @@
 #  THE LIST (tests.list, TAB-separated, edited by hand): name, dir, serial,
 #  expect, observe, why. `name` is the <name> of the "TEST <name>: PASS" line;
 #  `dir` is the example directory relative to the repository root (or absolute). The image of
-#  a name ending in _e51 or _u54 is <dir>/bin-<e51|u54>/<rest of the name>.elf,
-#  otherwise <dir>/bin/<name>.elf.
+#  a name ending in _e51 or _u54 is <dir>/bin-<e51|u54>/<rest of the name>.elf, one ending in
+#  _u54h2, _u54h3 or _u54h4 (the U54 image of that hart, built with --harts N) is
+#  <dir>/bin-u54-h<N>/<rest of the name>.elf, otherwise <dir>/bin/<name>.elf.
 #
 #  THE PROTOCOL (tests/common/test_report.ads, tests/host/common/host_report.ads):
 #  a test prints
@@ -147,6 +148,7 @@ for name in $names; do
   case "$name" in
     *_e51) img="$base/bin-e51/${name%_e51}.elf" ;;
     *_u54) img="$base/bin-u54/${name%_u54}.elf" ;;
+    *_u54h[234]) img="$base/bin-u54-h${name##*_u54h}/${name%_u54h*}.elf" ;;
     *)     img="$base/bin/$name.elf" ;;
   esac
   printf '==> %s%s\n' "$name" "$([ "$expect" = xfail ] && echo ' (expected failure)')"
@@ -165,7 +167,9 @@ for name in $names; do
   q0=$(printf '%s' "${conbase}0" | sed 's/,/,,/g')
   qlog=$(printf '%s' "$log" | sed 's/,/,,/g')
 
-  set -- -M "$QEMU_MACHINE" -m 2G -display none -monitor none -bios none -kernel "$img" -no-reboot
+  #  -smp 5: all five harts of the SoC. The default of the machine has the E51 and ONE U54
+  #  (hart 1): an image of hart 2 to 4 would never run, and not fail either.
+  set -- -M "$QEMU_MACHINE" -smp 5 -m 2G -display none -monitor none -bios none -kernel "$img" -no-reboot
   if [ -f "$base/console.in" ]; then
     qin=$(printf '%s' "$base/console.in" | sed 's/,/,,/g')
     set -- "$@" -chardev "file,id=con0,path=$q0,input-path=$qin" -serial chardev:con0
