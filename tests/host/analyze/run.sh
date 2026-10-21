@@ -43,13 +43,14 @@ tmp="$(mktemp -d)"
 trap 'rm -r "$tmp"' EXIT
 tab="$(printf '\t')"
 . "$ROOT/tools/toolchain.env"
+export FAKE_PIN="$ADALANG_ANALYZER_VERSION"   # what the stand-in reports unless a test sets FAKE_VERSION
 
 # The stand-in. FAKE_MODE: clean (exit 0, "Baseline matches"), new (a finding, exit 1),
 # silent (exit 0 and no output), nowrite (--write-baseline writes nothing).
 mkdir -p "$tmp/bin" "$tmp/p" "$tmp/base"
 cat > "$tmp/bin/adalang_analyzer" <<'EOF2'
 #!/bin/bash
-if [ "$1" = --version ]; then echo "adalang_analyzer ${FAKE_VERSION:-1.6.0}"; exit 0; fi
+if [ "$1" = --version ]; then echo "adalang_analyzer ${FAKE_VERSION:-$FAKE_PIN}"; exit 0; fi
 echo "$*" >> "$FAKE_DIR/args.log"
 mode="${FAKE_MODE:-clean}"
 for a in "$@"; do
