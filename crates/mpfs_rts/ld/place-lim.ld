@@ -23,4 +23,4 @@ REGION_ALIAS("REGION_FAST_LOAD", l2lim)
 
 ASSERT(LENGTH(l2lim) != 0, "place-lim.ld: MPFS_LIM_LENGTH is 0, the image has no LIM to run in")
 
-INCLUDE app-sections.ld
+INCLUDE sections.ld
