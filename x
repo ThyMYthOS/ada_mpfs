@@ -598,7 +598,8 @@ cmd_test () {
     lib)        delegate tools/test_lib.sh "$@" ;;
     qemu)       [ -f "$ROOT/tests/qemu/smoke.sh" ] || die "not available yet: tests/qemu/smoke.sh is missing"
                 build_matrix; delegate tests/qemu/smoke.sh "$@" ;;
-    negative)   delegate tests/negative/run_negative.sh "$@" ;;
+    negative)   [ -f "$ROOT/tests/negative/run_negative.sh" ] || die "not available yet: tests/negative/run_negative.sh is missing"
+                build_matrix; toolchain_ready; delegate tests/negative/run_negative.sh "$@" ;;
     metrics)    cmd_metrics verify ;;
     *) die "usage: ./x test host|lib|examples|qemu|renode|negative|metrics" ;;
   esac

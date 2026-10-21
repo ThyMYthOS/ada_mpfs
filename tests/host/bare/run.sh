@@ -155,6 +155,60 @@ grep -Eq '^RENODE_SHA256_X86_64_LINUX=[0-9a-f]{64}$' "$ROOT/tools/toolchain.env"
   && pass "toolchain.env pins a SHA-256 for Renode" || fail "toolchain.env pins a SHA-256 for Renode"
 
 # ---------------------------------------------------------------------------
+# tests/negative/run_negative.sh with stand-ins for the compiler driver. The
+# objects are empty files; "mixed" means objects from obj-e51 and obj-u54.
+mkdir -p "$tmp/n/obj/bare_hello/obj-e51" "$tmp/n/obj/bare_hello/obj-u54"
+for h in e51 u54; do
+  for o in start bare_console bare_hello; do : > "$tmp/n/obj/bare_hello/obj-$h/$o.o"; done
+done
+# FAKE_CC_MODE: abi = what a real ld does (refuse mixed ABIs); accept = link
+# anything, as a broken setup would; other = always fail for another reason;
+# leave = refuse mixed ABIs but leave an image behind.
+cat > "$tmp/n/cc" <<'EOF2'
+#!/bin/bash
+out=""; mixed=0; e=0; u=0
+while [ $# -gt 0 ]; do
+  case "$1" in -o) out="$2"; shift ;; *obj-e51/*) e=1 ;; *obj-u54/*) u=1 ;; esac
+  shift
+done
+[ $e = 1 ] && [ $u = 1 ] && mixed=1
+case "${FAKE_CC_MODE:-abi}" in
+  accept) : > "$out" ;;
+  other)  echo "ld: cannot find something else" >&2; exit 1 ;;
+  leave)  : > "$out"; [ $mixed = 1 ] && { echo "ld: x.o: can't link double-float modules with soft-float modules" >&2; exit 1; } ;;
+  *)      if [ $mixed = 1 ]; then echo "ld: x.o: can't link double-float modules with soft-float modules" >&2; exit 1; fi; : > "$out" ;;
+esac
+EOF2
+chmod +x "$tmp/n/cc"
+negative () {   # negative [env...]
+  env BARE_CC="$tmp/n/cc" OBJROOT="$tmp/n/obj" "$@" bash "$ROOT/tests/negative/run_negative.sh"
+}
+expect_rc  "negative: the committed cases pass against a linker that refuses mixed ABIs" 0 negative
+expect_rc  "negative: fails when the mixed-ABI link unexpectedly succeeds" nonzero negative FAKE_CC_MODE=accept
+expect_out "negative: says the link succeeded" "the link succeeded, it must fail" negative FAKE_CC_MODE=accept
+expect_rc  "negative: fails when everything fails for another reason" nonzero negative FAKE_CC_MODE=other
+expect_out "negative: a failure for another reason is not the failure under test" "but not with" negative FAKE_CC_MODE=other
+expect_out "negative: the control case reports a failed link" "control_e51: the link failed" negative FAKE_CC_MODE=other
+expect_rc  "negative: fails when a failed link leaves an image" nonzero negative FAKE_CC_MODE=leave
+rm "$tmp/n/obj/bare_hello/obj-u54/start.o"
+expect_rc  "negative: fails when an object is missing" nonzero negative
+: > "$tmp/n/obj/bare_hello/obj-u54/start.o"
+expect_rc  "negative: fails without the compiler driver" nonzero negative BARE_CC="$tmp/n/none"
+hdr="name${tab}start${tab}rest${tab}expect${tab}pattern"
+printf '%s\n' "$hdr" > "$tmp/n/empty.list"
+expect_rc  "negative: an empty case list fails" nonzero negative CASES="$tmp/n/empty.list"
+printf '%s\n%s\n' "$hdr" "only${tab}e51${tab}u54${tab}fails${tab}float modules with" > "$tmp/n/nocontrol.list"
+expect_rc  "negative: a list without a control case fails" nonzero negative CASES="$tmp/n/nocontrol.list"
+printf '%s\n%s\n' "$hdr" "c${tab}e51${tab}e51${tab}links${tab}-" > "$tmp/n/nonegative.list"
+expect_rc  "negative: a list without a negative case fails" nonzero negative CASES="$tmp/n/nonegative.list"
+printf '%s\n%s\n%s\n' "$hdr" "c${tab}e51${tab}e51${tab}links${tab}-" "x${tab}e51${tab}u54${tab}fails${tab}-" > "$tmp/n/nopattern.list"
+expect_rc  "negative: a fails case without a pattern is malformed" nonzero negative CASES="$tmp/n/nopattern.list"
+# The committed list has the two controls and both directions of the ABI mismatch.
+nl="$ROOT/tests/negative/cases.list"
+[ "$(grep -c "${tab}links${tab}" "$nl")" = 2 ] && [ "$(grep -c "${tab}fails${tab}" "$nl")" = 2 ] \
+  && pass "cases.list: two control cases and two ABI mismatches" || fail "cases.list: two control cases and two ABI mismatches"
+
+# ---------------------------------------------------------------------------
 # metrics.sh with stand-ins for size and readelf. The "image" X.elf has a
 # fixture X.elf.fx that sets TEXT DATA BSS ENTRY FLAGS ARCH COMMENT.
 mkdir -p "$tmp/m/bin"

@@ -20,6 +20,7 @@ SPDX-License-Identifier = "CC-BY-4.0"
 [[annotations]]
 path = [
   "**/*.conf",
+  "**/*.list",
   "**/README.md",
   "CONTRIBUTING.md",
   "NOTICE",

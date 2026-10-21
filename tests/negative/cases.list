@@ -1,0 +1,15 @@
+# Link-time cases of tests/negative/run_negative.sh, TAB-separated. Each case links
+# the start file of examples/bare_hello built for one hart class with the other
+# objects built for another one (obj-<hart>/ of the example).
+#   name     case name
+#   start    hart class of start.o: e51 | u54
+#   rest     hart class of bare_console.o and bare_hello.o
+#   expect   links: the link must succeed; fails: it must fail, and the output of
+#            the linker must contain the pattern (a failure for another reason
+#            does not count)
+#   pattern  fixed string, required for fails, "-" for links
+name	start	rest	expect	pattern
+control_e51	e51	e51	links	-
+control_u54	u54	u54	links	-
+abi_e51_start_u54_code	e51	u54	fails	float modules with
+abi_u54_start_e51_code	u54	e51	fails	float modules with

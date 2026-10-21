@@ -20,7 +20,7 @@
 
 bare_build () {
   local image="$1"; shift
-  local hart="${MPFS_HART:-e51}" harts="${MPFS_HARTS:-}" mask objs=() o ld
+  local hart="${MPFS_HART:-e51}" harts="${MPFS_HARTS:-}" mask objs=() o
   case "$hart" in
     e51) [ -z "$harts" ] || { echo "bare_build: --harts needs the u54" >&2; return 1; }
          mask=1 ;;
@@ -30,7 +30,6 @@ bare_build () {
          esac ;;
     *) echo "bare_build: invalid MPFS_HART '$hart'" >&2; return 1 ;;
   esac
-  ld="$(cd ../common/ld && pwd)"
 
   gprbuild -c -p -P app.gpr -XMPFS_HART="$hart" || return 1
   for o in "$@"; do
@@ -38,10 +37,20 @@ bare_build () {
     objs+=("obj-$hart/$o.o")
   done
   mkdir -p "bin-$hart"
-  # Memory regions: literal ORIGINs in mpfs-memory.ld, LENGTHs by symbol. Only the
-  # L2 LIM (1920 KB at reset, no setup needed) and the eNVM are non-zero.
-  riscv64-elf-gcc -nostdlib -static -L "$ld" -T "$ld/place-lim.ld" \
-    -Wl,--gc-sections -Wl,--no-warn-rwx-segments -Wl,-Map,"bin-$hart/$image.map" \
+  bare_link "$mask" "bin-$hart/$image" "${objs[@]}"
+}
+
+# bare_link <mask> <output base> <object>...
+# Links the objects into <base>.elf (and <base>.map) with the linker script of
+# examples/common/ld, from any directory. The compiler driver is BARE_CC
+# (default riscv64-elf-gcc). The memory regions: literal ORIGINs in
+# mpfs-memory.ld, LENGTHs by symbol; only the L2 LIM (1920 KB at reset, no setup
+# needed) and the eNVM are non-zero.
+bare_link () {
+  local mask="$1" base="$2" ld; shift 2
+  ld="$(cd "$(dirname "${BASH_SOURCE[0]}")/ld" && pwd)"
+  "${BARE_CC:-riscv64-elf-gcc}" -nostdlib -static -L "$ld" -T "$ld/place-lim.ld" \
+    -Wl,--gc-sections -Wl,--no-warn-rwx-segments -Wl,-Map,"$base.map" \
     -Wl,--defsym=__mpfs_harts_mask="$mask" \
     -Wl,--defsym=__stack_size=16384 \
     -Wl,--defsym=MPFS_ENVM_LENGTH=0x1ff00 \
@@ -58,5 +67,5 @@ bare_build () {
     -Wl,--defsym=MPFS_DDR_CACHED_LENGTH=0 \
     -Wl,--defsym=MPFS_DDR_NC_LENGTH=0 \
     -Wl,--defsym=MPFS_DDR_WCB_LENGTH=0 \
-    "${objs[@]}" -o "bin-$hart/$image.elf"
+    "$@" -o "$base.elf"
 }
