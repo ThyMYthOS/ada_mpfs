@@ -1,0 +1,18 @@
+--  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+--  SPDX-License-Identifier: Apache-2.0
+--
+--  Native programs that exercise Host_Report: one that must exit 0 and several
+--  that must not.
+
+project Report is
+   for Source_Dirs use ("src", "../common");
+   for Object_Dir use "obj";
+   for Exec_Dir use "bin";
+   for Main use ("report_ok.adb", "report_fail.adb", "report_none.adb",
+                 "report_unfinished.adb", "report_raises.adb");
+
+   package Compiler is
+      for Default_Switches ("Ada") use
+        ("-g", "-O1", "-gnat2022", "-gnatwa", "-gnatwe", "-gnaty");
+   end Compiler;
+end Report;
