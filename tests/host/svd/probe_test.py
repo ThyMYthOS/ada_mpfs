@@ -676,6 +676,48 @@ def test_block(tmp: Path) -> None:
     check("block: --block PATTERN=N limits only the matching peripherals",
           stub.commands("md") == ["mdw 0x1000 2", "mdw 0x1008 2", "mdw 0x1010 2", "mdw 0x2000 6"], str(stub.commands("md")))
     stub.close()
+    # block rules of the rules file: a default per peripheral
+    rules = tmp / "block.list"
+    rules.write_text("block big 4 never measured cleanly\nblock NOPE* 2 matches nothing\n")
+    stub = Stub()
+    r = run(svd, stub, "--skip-file", str(rules))
+    check("block rule: a peripheral that a rule names is read in small blocks, others with the global default (case does not matter)",
+          stub.commands("md") == ["mdw 0x1000 4", "mdw 0x1010 2", "mdw 0x2000 6"], str(stub.commands("md")))
+    stub.close()
+    stub = Stub()
+    r = run(svd, stub, "--skip-file", str(rules), "--block", "BIG=2")
+    check("block rule: --block PATTERN=N overrides the rule", stub.commands("md") == ["mdw 0x1000 2", "mdw 0x1008 2", "mdw 0x1010 2", "mdw 0x2000 6"], str(stub.commands("md")))
+    stub.close()
+    stub = Stub()
+    r = run(svd, stub, "--skip-file", str(rules), "--block", "1")
+    check("block rule: a plain --block N overrides the rule, so --block 1 reads one by one",
+          len(stub.commands("md")) == 12 and all(c.endswith(" 1") for c in stub.commands("md")), str(stub.commands("md")))
+    stub.close()
+    stub = Stub()
+    r = run(svd, stub, "--skip-file", str(rules), "--block", "SMALL=3")
+    check("block rule: a PATTERN=N for another peripheral leaves the rule in place",
+          stub.commands("md") == ["mdw 0x1000 4", "mdw 0x1010 2", "mdw 0x2000 3", "mdw 0x200C 3"], str(stub.commands("md")))
+    stub.close()
+    for bad_line in ("block BIG 0 zero\n", "block BIG x why\n", "block BIG 4\n", "block BIG\n"):
+        bad = tmp / "badblock.list"
+        bad.write_text(bad_line)
+        r = run(svd, None, "--skip-file", str(bad), "--list")
+        check(f"block rule: {bad_line.strip()!r} is a malformed rule", r.returncode == 2 and "badblock.list:1" in r.stderr, f"{r.returncode} {r.stderr!r}")
+    if REAL_SVD.is_file():
+        stub = Stub()
+        r = run(REAL_SVD, stub, "CRYPTO", "CFG_DDR_SGMII_PHY", "GEM_A_LO")
+        counts = {}
+        for c in stub.commands("md"):
+            addr, n = int(c.split()[1], 16), int(c.split()[2])
+            counts.setdefault("CRYPTO" if 0x20127000 <= addr < 0x20128000 else "GEM" if 0x20110000 <= addr < 0x20111000 else "PHY" if 0x20007000 <= addr < 0x20008000 else "?", []).append(n)
+        check("block rule: the default rules read CRYPTO and GEM in blocks of at most 16 and CFG_DDR_SGMII_PHY in longer ones",
+              max(counts.get("CRYPTO", [99])) <= 16 and max(counts.get("GEM", [99])) <= 16 and max(counts.get("PHY", [0])) > 16, str(counts))
+        stub.close()
+        rules_text = (TOOL.parent / "svd_probe.list").read_text()
+        check("block rule: the rules file has block rules for the peripherals that were never measured cleanly",
+              all(f"block {name} " in rules_text for name in ("CAN_*", "GEM_*", "USB", "QSPIXIP", "CRYPTO")), "")
+        r = run(REAL_SVD, None, "--help")
+        check("block rule: --help says that rules set the default block", "block" in r.stdout and "rules file" in r.stdout, "")
     r = run(svd, None, "--block", "0")
     check("block: --block 0 is refused", r.returncode != 0 and "--block 0" in r.stderr, r.stderr)
 
@@ -711,6 +753,72 @@ def test_read_action(tmp: Path) -> None:
         want = {"PLIC.CLAIM_COMPLETE_H0_M", "MMUART0_LO.RBR", "SPI_A_LO.RX_DATA", "CAN_A_LO.RX_MSG0_DATA_LOW", "USB.FIFO[0]",
                 "QSPIXIP.ReceiveData", "SCB_REGS.MESSAGE", "USB.USB_IRQ", "USB.DMA_INTR"}
         check("readAction: the merged SVD marks the known destructive registers", want <= names, str(sorted(want - names)))
+
+
+def test_dlab(tmp: Path) -> None:
+    """DLR and DMR of an MMUART are not read while LCR.DLAB is 0 (aliases of RBR and IER); THR and FCR never (a read pops the FIFO)."""
+    regs = [reg("RBR", 0x00), reg("IER", 0x04), reg("LCR", 0x0C), reg("MSR", 0x18), reg("DLR", 0x80, reset=1), reg("DMR", 0x84),
+            reg("THR", 0x100), reg("FCR", 0x108, reset=0xC1)]
+    svd = make_svd(tmp, {"MMUART0_LO@0x2000": regs, "OTHER@0x3000": [reg("DLR", 0), reg("THR", 4)]})
+    rules = tmp / "empty.list"
+    rules.write_text("# no rules\n")
+    stub = Stub(mem={0x2000 + 0x0C: 0x03, 0x2080: 0x55, 0x2084: 0x56, 0x2100: 0x66, 0x2108: 0xC1})
+    r = run(svd, stub, "--skip-file", str(rules))
+    reads = stub.commands("md")
+    check("dlab: LCR is the first access to the MMUART", reads[0] == "mdw 0x200C 1", str(reads))
+    check("dlab: DLR and DMR are not read while DLAB is 0, THR and FCR are never read",
+          not any(c.split()[1] in ("0x2080", "0x2084", "0x2100", "0x2108") or c.startswith("mdw 0x2000 ") and int(c.split()[2]) > 32 for c in reads), str(reads))
+    check("dlab: the lines say so, with the reason, in address order",
+          "skipped (DLAB=0)  0x00002080 MMUART0_LO.DLR (alias of RBR/IER while DLAB=0; reads DLL/DLM only with DLAB=1" in r.stdout
+          and "skipped (DLAB=0)  0x00002084 MMUART0_LO.DMR (alias of RBR/IER while DLAB=0" in r.stdout
+          and "skipped (alias of RBR/IIR)  0x00002100 MMUART0_LO.THR (THR reads RBR, FCR reads IIR" in r.stdout
+          and "skipped (alias of RBR/IIR)  0x00002108 MMUART0_LO.FCR" in r.stdout
+          and r.stdout.index("MMUART0_LO.MSR") < r.stdout.index("MMUART0_LO.DLR") < r.stdout.index("MMUART0_LO.DMR")
+          < r.stdout.index("MMUART0_LO.THR") < r.stdout.index("MMUART0_LO.FCR"), r.stdout)
+    check("dlab: the other registers are read, a register of another peripheral with the same name too",
+          kinds(r.stdout).count("ok") + kinds(r.stdout).count("mismatch") == 6, f"{kinds(r.stdout)} {r.stdout!r}")
+    check("dlab: DLAB and alias skips are counted apart", "2 DLAB" in r.stdout and "2 readAction" in r.stdout, r.stdout)
+    check("dlab: no failure, nothing counted as not reached", r.returncode in (0, 1) and "0 skipped," in r.stdout, r.stdout)
+    stub.close()
+    # DLAB is 1: everything is read
+    stub = Stub(mem={0x200C: 0x83, 0x2080: 1})
+    r = run(svd, stub, "--skip-file", str(rules))
+    check("dlab: with DLAB=1 DLR and DMR are read, THR and FCR still not", "skipped (DLAB=0)" not in r.stdout
+          and "ok          0x00002080 MMUART0_LO.DLR = 0x00000001" in r.stdout and "MMUART0_LO.THR =" not in r.stdout
+          and "skipped (alias of RBR/IIR)  0x00002100 MMUART0_LO.THR" in r.stdout, f"{stub.commands('md')} {r.stdout!r}")
+    stub.close()
+    # --read-destructive reads them anyway
+    stub = Stub(mem={0x200C: 0x03})
+    r = run(svd, stub, "--skip-file", str(rules), "--read-destructive")
+    check("dlab: --read-destructive reads DLR, DMR, THR and FCR with DLAB=0", "skipped (DLAB=0)" not in r.stdout and "alias of RBR/IIR" not in r.stdout
+          and "MMUART0_LO.THR =" in r.stdout and "MMUART0_LO.FCR =" in r.stdout and "MMUART0_LO.DMR =" in r.stdout, r.stdout)
+    stub.close()
+    # an unreadable LCR does not make up a DLAB value
+    stub = Stub(script=lambda conn, cmd, n: "Error: bus error" if cmd == "mdw 0x200C 1" else None)
+    r = run(svd, stub, "--skip-file", str(rules), "--max-failures", "0")
+    check("dlab: an unreadable LCR is no DLAB=0", "skipped (DLAB=0)" not in r.stdout, r.stdout)
+    stub.close()
+    if REAL_SVD.is_file():
+        stub = Stub()
+        r = run(REAL_SVD, stub, "MMUART1_LO")
+        check("dlab: the merged SVD gives LCR first, skips DLR and DMR while DLAB is 0 and never reads the write-only THR and FCR",
+              [c for c in stub.commands("md") if c.startswith("mdw 0x2010")][0] == "mdw 0x2010000C 1" and r.stdout.count("skipped (DLAB=0)") == 2 and r.stdout.count("skipped (alias of RBR/IIR)") + r.stdout.count("skipped (write-only)") == 2, r.stdout[:300])
+        stub.close()
+
+
+def test_write_only(tmp: Path) -> None:
+    """A register that the SVD marks write-only is never read."""
+    svd = make_svd(tmp, {"P1@0x1000": [reg("R0", 0), reg("WO", 4, extra="<access>write-only</access>"), reg("R2", 8),
+                                       reg("RW", 12, extra="<access>read-write</access>")]})
+    for extra in ((), ("--read-destructive",)):
+        stub = Stub()
+        r = run(svd, stub, *extra)
+        check(f"write-only{' with ' + extra[0] if extra else ''}: the register is not read and the line says so",
+              not any(c.split()[1] == "0x1004" for c in stub.commands("md")) and "skipped (write-only)  0x00001004 P1.WO" in r.stdout
+              and kinds(r.stdout).count("ok") == 3 and stub.commands("md")[0] == "mdw 0x1000 1", f"{stub.commands('md')} {r.stdout!r}")
+        check(f"write-only{' with ' + extra[0] if extra else ''}: counted with the registers that are not read, no failure",
+              r.returncode == 0 and "1 readAction" in r.stdout and "0 skipped," in r.stdout, r.stdout)
+        stub.close()
 
 
 def test_noref(tmp: Path) -> None:
@@ -965,7 +1073,7 @@ def main() -> int:
     if not TOOL.is_file():
         print(f"probe_test: {TOOL} not found", file=sys.stderr)
         return 2
-    for case in (test_dead_connection, test_hang, test_noise, test_halt, test_power_state, test_enable_clocks, test_reset_halt, test_poke, test_resume, test_interrupt, test_failures, test_block, test_read_action, test_noref, test_state, test_skip):
+    for case in (test_dead_connection, test_hang, test_noise, test_halt, test_power_state, test_enable_clocks, test_reset_halt, test_poke, test_resume, test_interrupt, test_failures, test_block, test_read_action, test_dlab, test_write_only, test_noref, test_state, test_skip):
         with tempfile.TemporaryDirectory() as d:
             case(Path(d))
     print(f"summary: {failures} failure(s)")

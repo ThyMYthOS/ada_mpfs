@@ -22,7 +22,10 @@ command line is read, with a note on stderr) through the OpenOCD telnet port (de
   noref       nothing to compare: the SVD has no <resetValue>, or <resetMask> is 0
   unreadable  the access failed; the text OpenOCD replied is shown
   skipped     not read: a register with a readAction (reading it consumes data or clears status; --read-destructive
-              reads it anyway), the rest of a peripheral after an unreadable register, or a block excluded
+              reads it anyway), DLR and DMR of an MMUART while LCR.DLAB is 0 ("skipped (DLAB=0)": they are aliases
+              of RBR and IER then; the probe reads LCR first), a register that the SVD marks write-only ("skipped (write-only)", never
+              read, counted with the readAction registers; the merged SVD marks THR and FCR of an MMUART so, and a read of
+              THR would pop the receive FIFO; for an SVD that does not, THR and FCR are skipped as "skipped (alias of RBR/IIR)"), the rest of a peripheral after an unreadable register, or a block excluded
               by hw/svd_probe.list (ATHENA, TRACE, ...; --include reads it, and so does naming the
               peripheral on the command line)
 
@@ -64,6 +67,10 @@ these commands in OpenOCD there is no attempt). If the debug module stays busy, 
 hart, names the block and the register and says: power-cycle the board and restart OpenOCD. If it is idle again,
 the register is reported as unreadable and the run goes on with the next peripheral.
 
+The registers of a peripheral are read with one command per 512 registers at consecutive addresses; a "block" rule
+of the rules file lowers that for peripherals that were never measured cleanly (CAN, GEM, USB, QSPIXIP, CRYPTO: 16).
+--block PATTERN=N and a plain --block N override the rules.
+
 Ctrl+C stops the probe at once, even if OpenOCD does not answer (a hung bus). It makes
 one attempt to resume the hart with a 2 s timeout (none with --no-halt), says whether
 the hart may still be halted, and exits with status 130; a second Ctrl+C leaves
@@ -76,6 +83,7 @@ after Ctrl+C. With
 printed, so the tool can be checked without a board.
 """
 import argparse
+import collections
 import fnmatch
 import re
 import socket
@@ -97,6 +105,9 @@ HANG_REPLY = re.compile(r"Timed out|waiting for busy|abstractcs|Failed to read p
 NOISE_LINE = re.compile(r"^(unable to halt hart \d+|\s+dm(control|status)\s*=\s*0x[0-9a-fA-F]+)\s*$")
 # What OpenOCD replies to a command it does not know
 UNKNOWN_COMMAND = re.compile(r"invalid command name|\bunknown\b|no such command|not recognized", re.IGNORECASE)
+DLAB_REGS = ("DLR", "DMR")  # of an MMUART: while LCR.DLAB (bit 7) is 0 they read RBR and IER; DLL and DLM only with DLAB=1
+ALIAS_REGS = ("THR", "FCR")  # of an MMUART: at +0x100 and +0x108 they read RBR (a read pops the receive FIFO) and IIR
+LCR_DLAB = 1 << 7
 POWER_STATE_REGS = ("DFIAPB_CR", "CLOCK_CONFIG_CR", "DEVICE_STATUS", "PLL_STATUS_SR", "MSS_RESET_CR")  # of SYSREG
 ABSTRACTCS = 0x16  # DMI address of the abstractcs register of the debug module
 ABSTRACTCS_BUSY = 1 << 12
@@ -113,6 +124,7 @@ class Reg:
     mask: int
     read_action: str = ""  # readAction of the register or of one of its fields: reading has a side effect
     field_mask: int = 0  # the bits that have a field in the SVD; 0 if the register has no fields
+    write_only: bool = False  # <access>write-only</access>: a read returns nothing meaningful, or an alias
 
 
 def int_of(text: str | None, default: int = 0) -> int:
@@ -167,6 +179,7 @@ def peripheral_registers(root: ET.Element, name: str) -> list[Reg]:
                 mask=int_of(r.findtext("resetMask"), (1 << size) - 1),
                 read_action=read_action,
                 field_mask=field_mask,
+                write_only=(r.findtext("access") or "").strip() == "write-only",
             ))
     return regs
 
@@ -182,6 +195,7 @@ class Rule:
     pattern: str
     reason: str
     mask: int = 0
+    block: int = 0  # block rule: the registers per read command for the peripherals that match
 
     def matches(self, name: str) -> bool:
         """Whether <name> matches the pattern (* and ?, case does not matter)."""
@@ -205,10 +219,15 @@ def load_rules(path: Path) -> list[Rule]:
         line = line.strip()
         if not line or line.startswith("#"):
             continue
-        parts = line.split(None, 3 if line.startswith("state-mask ") else 2)
+        parts = line.split(None, 3 if line.startswith(("state-mask ", "block ")) else 2)
         if len(parts) < 3 or parts[0] not in RULE_KINDS:
             raise ValueError(f"{path}:{n}: expected '<{'|'.join(RULE_KINDS)}> <pattern> <reason>' "
-                             f"('state-mask <pattern> <mask> <reason>'), got {line!r}")
+                             f"('state-mask <pattern> <mask> <reason>', 'block <pattern> <N> <reason>'), got {line!r}")
+        if parts[0] == "block":
+            if len(parts) < 4 or not parts[2].isnumeric() or int(parts[2]) < 1:
+                raise ValueError(f"{path}:{n}: expected 'block <peripheral pattern> <N >= 1> <reason>', got {line!r}")
+            rules.append(Rule(parts[0], parts[1], parts[3], block=int(parts[2])))
+            continue
         if parts[0] == "state-mask":
             try:
                 mask = int(parts[2], 0)
@@ -371,6 +390,7 @@ class Result:
     noref: int = 0
     state: int = 0
     excluded: int = 0
+    dlab: int = 0
 
 
 def recover_debug_module(target: OpenOcd) -> str:
@@ -449,16 +469,20 @@ def read_run(run: list[Reg], target: OpenOcd) -> list[int | OSError]:
 
 
 def block_limit(name: str, blocks: list[tuple[str, int]]) -> int:
-    """Largest block for peripheral <name>: the first PATTERN=N that matches, else the plain N."""
+    """Largest block for peripheral <name>: the first PATTERN=N that matches (case does not matter), else 512."""
     for pattern, n in blocks:
-        if pattern == "*" or fnmatch.fnmatchcase(name, pattern):
+        if re.fullmatch(fnmatch.translate(pattern), name, re.IGNORECASE):
             return n
     return 512
 
 
-def parse_blocks(specs: list[str]) -> list[tuple[str, int]]:
-    """Parse the --block arguments ("N" or "PATTERN=N") in order; the plain N comes last, 512 if none."""
-    named, plain = [], 512
+def parse_blocks(specs: list[str], rules: list[Rule] | None = None) -> list[tuple[str, int]]:
+    """Parse the --block arguments ("N" or "PATTERN=N") and the block rules into (pattern, N) in order of precedence.
+
+    First the PATTERN=N of the command line, then a plain N of the command line (it replaces the defaults of the
+    rules file, so --block 1 reads one register at a time everywhere), then the block rules, and 512 for the rest.
+    """
+    named, plain = [], None
     for spec in specs:
         pattern, sep, number = spec.rpartition("=")
         if not number.isdigit() or int(number) < 1 or (sep and not pattern):
@@ -467,7 +491,7 @@ def parse_blocks(specs: list[str]) -> list[tuple[str, int]]:
             named.append((pattern, int(number)))
         else:
             plain = int(number)
-    return named + [("*", plain)]
+    return named + ([("*", plain)] if plain else [(x.pattern, x.block) for x in rules or [] if x.kind == "block"] + [("*", 512)])
 
 
 def probe(regs: list[Reg], target: OpenOcd, blocks: list[tuple[str, int]], keep_going: bool = False,
@@ -482,30 +506,70 @@ def probe(regs: list[Reg], target: OpenOcd, blocks: list[tuple[str, int]], keep_
     <keep_going>. Raises Hung if OpenOCD stops answering, Dead if the connection is
     lost and TooManyFailures after <max_failures> unreadable registers in a row
     (0: never). A register with a readAction is not read (one line) unless
-    <read_destructive>: the read would consume data or clear status. A register
+    <read_destructive>: the read would consume data or clear status. The same holds for DLR and DMR of an MMUART
+    while its LCR.DLAB is 0 ("skipped (DLAB=0)": they are aliases of RBR and IER then) and, whatever DLAB is, for
+    THR and FCR ("skipped (alias of RBR/IIR)", counted as readAction): a read of THR would pop the receive FIFO. A register
     that matches one of the <state> rules and differs from its reset value is
     reported as "state", not as "mismatch".
     """
     result = result if result is not None else Result()
     dead: dict[str, int] = {}
     in_a_row = 0
-    chunks: list[Reg | list[Reg]] = []  # a register that is not read, or registers of one peripheral to read
+    # a register that is not read (with the reason: "readAction" or "DLAB"), or registers of one peripheral to read
+    chunks: collections.deque[tuple[Reg, str] | list[Reg]] = collections.deque()
     for r in regs:
-        if r.read_action and not read_destructive:
-            chunks.append(r)
+        if r.write_only:
+            chunks.append((r, "write-only"))  # never read, --read-destructive does not change that
+        elif r.read_action and not read_destructive:
+            chunks.append((r, "readAction"))
+        elif r.name.startswith("MMUART") and r.name.split(".")[1] in ALIAS_REGS and not read_destructive:
+            chunks.append((r, "alias"))  # the SVD gives them no readAction, but a read of THR would pop the receive FIFO
         elif chunks and isinstance(chunks[-1], list) and chunks[-1][0].name.split(".")[0] == r.name.split(".")[0]:
             chunks[-1].append(r)
         else:
             chunks.append([r])
-    for chunk in chunks:
-        if isinstance(chunk, Reg):
-            if chunk.name.split(".")[0] in dead:
-                dead[chunk.name.split(".")[0]] += 1
+    lcr = {r.name.split(".")[0]: r for r in regs if r.name.endswith(".LCR") and r.name.startswith("MMUART")}
+    dlab_off: set[str] = set()  # the MMUARTs whose LCR.DLAB is 0
+    lcr_read: set[str] = set()
+    while chunks:
+        chunk = chunks.popleft()
+        if isinstance(chunk, tuple):
+            r, why = chunk
+            if r.name.split(".")[0] in dead:
+                dead[r.name.split(".")[0]] += 1
+            elif why == "DLAB":
+                print(f"skipped (DLAB=0)  0x{r.address:08X} {r.name} (alias of RBR/IER while DLAB=0; reads DLL/DLM only with "
+                      "DLAB=1; --read-destructive reads it)")
+                result.dlab += 1
+            elif why == "write-only":
+                print(f"skipped (write-only)  0x{r.address:08X} {r.name} (write-only register: a read returns nothing meaningful)")
+                result.read_action += 1
+            elif why == "alias":
+                print(f"skipped (alias of RBR/IIR)  0x{r.address:08X} {r.name} (THR reads RBR, FCR reads IIR: a read could pop "
+                      "the receive FIFO; --read-destructive reads it)")
+                result.read_action += 1
             else:
-                print(f"skipped (readAction)  0x{chunk.address:08X} {chunk.name} (readAction {chunk.read_action}; --read-destructive reads it)")
+                print(f"skipped (readAction)  0x{r.address:08X} {r.name} (readAction {r.read_action}; --read-destructive reads it)")
                 result.read_action += 1
             continue
         name = chunk[0].name.split(".")[0]
+        if name in lcr and not read_destructive and name not in dead:
+            if name not in lcr_read:  # LCR first: DLR and THR read receive data unless DLAB is 1
+                lcr_read.add(name)
+                first = read_run([lcr[name]], target)[0]
+                if isinstance(first, int) and not first & LCR_DLAB:
+                    dlab_off.add(name)
+            if name in dlab_off and any(r.name.split(".")[1] in DLAB_REGS for r in chunk):
+                pieces: list[tuple[Reg, str] | list[Reg]] = []
+                for r in chunk:
+                    if r.name.split(".")[1] in DLAB_REGS:
+                        pieces.append((r, "DLAB"))
+                    elif pieces and isinstance(pieces[-1], list):
+                        pieces[-1].append(r)
+                    else:
+                        pieces.append([r])
+                chunks.extendleft(reversed(pieces))
+                continue
         for run in runs(chunk, block_limit(name, blocks)):
             if name in dead:
                 dead[name] += len(run)
@@ -721,8 +785,10 @@ def main(argv: list[str]) -> int:
                     help="send 'reset halt' to OpenOCD before the halt and the reads, and print the PC afterwards. Not the default: "
                          "it destroys the state of the board (not with --no-halt)")
     ap.add_argument("--block", action="append", default=[], metavar="[PATTERN=]N",
-                    help="read up to N registers at consecutive addresses with one command (default: 512; 1 = one by one). "
-                         "PATTERN=N (a peripheral name with * and ?, e.g. 'CAN*=16') limits only these peripherals; repeatable")
+                    help="read up to N registers at consecutive addresses with one command (default: 512, less for the peripherals "
+                         "that a 'block' rule of the rules file names; 1 = one by one). "
+                         "PATTERN=N (a peripheral name with * and ?, e.g. 'CAN*=16') limits only these peripherals; repeatable. "
+                         "PATTERN=N comes before a plain N, a plain N before the rules file")
     ap.add_argument("--max-failures", type=int, default=3, metavar="N",
                     help="stop after N unreadable registers in a row, 0 = never (default: %(default)s)")
     ap.add_argument("--timeout", type=float, default=10.0, metavar="S",
@@ -825,7 +891,7 @@ def main(argv: list[str]) -> int:
                   + state_marker(r.name, state_rules))
         return 0
     try:
-        blocks = parse_blocks(args.block)
+        blocks = parse_blocks(args.block, rules)
     except ValueError as e:
         print(f"svd_probe: {e}", file=sys.stderr)
         return 2
@@ -906,7 +972,7 @@ def main(argv: list[str]) -> int:
     if abort or problem:
         return 2
     print(f"svd_probe: {len(regs)} register(s), {result.failures} not ok, {result.skipped} skipped, "
-          f"{result.read_action} readAction, {result.noref} noref, {result.state} state, {result.excluded} excluded")
+          f"{result.read_action} readAction, {result.dlab} DLAB, {result.noref} noref, {result.state} state, {result.excluded} excluded")
     return 1 if result.failures else 0
 
 

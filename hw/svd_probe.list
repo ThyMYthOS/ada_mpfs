@@ -2,6 +2,7 @@
 #
 #   <kind> <pattern> <reason>
 #   state-mask <pattern> <mask> <reason>
+#   block <peripheral pattern> <N> <reason>
 #
 # kind     skip                 do not read the peripheral at all; --include PATTERN reads it
 #          state                a difference to the reset value is reported as "state", not as "mismatch":
@@ -9,6 +10,9 @@
 #                               value after a reset-halt; --compare-state reports it as mismatch again
 #          state-mask           like state, but only for the bits in <mask> (the live bits of the register);
 #                               a difference in the other bits is a mismatch
+#          block                read at most N registers per command from the peripherals that match (the
+#                               default is 512): a small block narrows down a hang; --block PATTERN=N and a plain
+#                               --block N on the command line override it
 #          skip-enable-clocks   like skip, but only with --enable-clocks
 #          skip-no-clocks       like skip, but only without --enable-clocks (the block hangs the bus while its clock is off)
 #          state-enable-clocks  like state, but only with --enable-clocks (the registers hold what it wrote)
@@ -30,6 +34,14 @@ skip-enable-clocks CAN_?_*   the first access after --enable-clocks stalled the 
 skip-no-clocks EMMC_SD      without --enable-clocks the first access hangs the debug module (the clock is off); use --enable-clocks or --include EMMC_SD
 skip-no-clocks DDR_CSR_APB  without --enable-clocks the first access hangs the debug module (the clock is off); use --enable-clocks or --include DDR_CSR_APB
 skip *_HI      alias of the _LO block at the upper address range, not measured separately yet
+
+# Small read blocks for the peripherals that were never measured cleanly: a failing access then
+# shows up within a few registers of the block that was read.
+block CAN_*    16  never measured cleanly
+block GEM_*    16  never measured cleanly
+block USB      16  never measured cleanly
+block QSPIXIP  16  never measured cleanly
+block CRYPTO   16  never measured cleanly
 
 # CAN message RAM: undefined until a message is written.
 state CAN_*.TX_MSG*   CAN message RAM, undefined at reset
