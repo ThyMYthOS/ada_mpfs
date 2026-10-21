@@ -431,11 +431,18 @@ cmd_build () {
 
 #  Build every example for the harts it names in BUILD_HARTS (example.conf), so
 #  that the QEMU smoke test and the metrics see all its images.
+#  With MPFS_PREBUILT_IMAGES=1 nothing is built: the images of an earlier build
+#  (CI hands them from one job to the next) must be there, and a missing one fails.
 build_matrix () {
   local e h rc=0
   for e in $(list_dirs); do
     for h in $(conf_get "$e" BUILD_HARTS ""); do
-      ( build_example "$e" --hart "$h" ) || rc=1
+      if [ "${MPFS_PREBUILT_IMAGES:-}" = 1 ]; then
+        [ -n "$(find "$EXROOT/$e/bin-$h" -maxdepth 1 -name '*.elf' 2>/dev/null | head -1)" ] \
+          || { echo "x: prebuilt image missing: examples/$e/bin-$h/*.elf" >&2; rc=1; }
+      else
+        ( build_example "$e" --hart "$h" ) || rc=1
+      fi
     done
   done
   [ $rc -eq 0 ] || die "building the images failed"

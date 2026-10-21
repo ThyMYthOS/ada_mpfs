@@ -33,6 +33,19 @@ for verb in help list toolchain build clean new qemu mem test metrics analyze st
   case "$help" in *"./x $verb"*) pass "help lists $verb" ;; *) fail "help lists $verb" ;; esac
 done
 
+# MPFS_PREBUILT_IMAGES=1 builds nothing: without the images of an earlier build the QEMU and
+# Renode tests fail and say which image is missing (in a tree that has none).
+if [ -z "$(find "$ROOT/examples" -path '*/bin-*' -name '*.elf' 2>/dev/null | head -1)" ]; then
+  out="$(MPFS_PREBUILT_IMAGES=1 "$X" test qemu 2>&1)"; rc=$?
+  case "$out" in
+    *"prebuilt image missing"*) [ $rc -ne 0 ] && pass "prebuilt images: a missing image fails the QEMU test" \
+                                              || fail "prebuilt images: a missing image fails the QEMU test (exit 0)" ;;
+    *) fail "prebuilt images: a missing image fails the QEMU test (no message)" ;;
+  esac
+else
+  echo "skip: prebuilt images (this tree has built images)"
+fi
+
 expect_rc "help exits 0"            0       "$X" help
 expect_rc "list exits 0"            0       "$X" list
 expect_rc "list --json exits 0"     0       "$X" list --json
