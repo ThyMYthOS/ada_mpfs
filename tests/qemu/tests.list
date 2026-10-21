@@ -24,3 +24,5 @@
 name	dir	serial	expect	observe	why
 report_test_e51	examples/report_test	0	pass	-	-
 report_test_u54	examples/report_test	0	pass	-	-
+trap_test_e51	examples/trap_test	0	pass	-	-
+trap_test_u54	examples/trap_test	0	pass	-	-
