@@ -18,6 +18,7 @@
 #   --hashes FILE    the hash file of the packs (default: crates/mpfs_rts/packs.sha256)
 #   --port-dir DIR   own port units (default: crates/mpfs_rts/mpfs)
 #   --overlay-dir DIR  the overlays (default: crates/mpfs_rts/overlays)
+#   --ld-dir DIR     the linker scripts (default: crates/mpfs_rts/ld)
 #
 # Environment: MPFS_RTS_BUILD = Production (default) | Debug | Assert, the BUILD switch of the
 # pack's target_options.gpr.
@@ -29,7 +30,10 @@
 #      next to the result; --check does not generate, a missing pack is "not up to date";
 #   2. lay the own port units (--port-dir) and then the overlays (--overlay-dir, one directory
 #      per overlay, in the order of their names) over it: <dir>/gnat/*, <dir>/gnarl/* replace
-#      or add sources, <dir>/ld/* goes to ld/;
+#      or add sources, <dir>/ld/* goes to ld/; the files named in <dir>/remove.list (paths in the
+#      pack, one per line) are deleted from the pack first, which is how an own port unit
+#      replaces a source of the pack that has another name (start.S for start-ram.S);
+#      then the linker scripts (--ld-dir) go to ld/, whatever the overlays brought;
 #   3. build libgnat.a with runtime_build.gpr and, except for light, libgnarl.a with
 #      ravenscar_build.gpr. Both are ordinary library projects (static, no binder, no ar by hand);
 #   4. leave the result as a runtime directory: adainclude/ (all sources), adalib/ (.ali files,
@@ -58,6 +62,7 @@ packs="${MPFS_RTS_PACKS:-$ROOT/build/rts/packs}"
 hashes="$HERE/packs.sha256"
 port_dir="$HERE/mpfs"
 overlay_dir="$HERE/overlays"
+ld_dir="$HERE/ld"
 check=0
 force=0
 args=()
@@ -70,6 +75,7 @@ while [ $# -gt 0 ]; do
     --hashes)      shift; [ $# -gt 0 ] || die "--hashes needs a file"; hashes="$1" ;;
     --port-dir)    shift; [ $# -gt 0 ] || die "--port-dir needs a directory"; port_dir="$1" ;;
     --overlay-dir) shift; [ $# -gt 0 ] || die "--overlay-dir needs a directory"; overlay_dir="$1" ;;
+    --ld-dir)      shift; [ $# -gt 0 ] || die "--ld-dir needs a directory"; ld_dir="$1" ;;
     -h|--help) sed -n '2,/^$/p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) die "unknown option '$1'" ;;
     *) args+=("$1") ;;
@@ -152,6 +158,7 @@ key="$( {
   echo "pack $pack_sha"
   echo "port-units $(tree_hash "$port_dir")"
   echo "overlays $(overlay_hash "$overlay_dir")"
+  echo "ld $(tree_hash "$ld_dir")"
   echo "switches $variant build=$build"
   echo "script $(sha < "${BASH_SOURCE[0]}")"
   echo "toolchain $toolchain"
@@ -200,11 +207,26 @@ overlay_from () {   # overlay_from <directory>
     cp -R "$1/$sub/." "$work/$sub/"
   done
 }
+# Files of the pack that an own port unit replaces under another name.
+if [ -f "$port_dir/remove.list" ]; then
+  while IFS= read -r f; do
+    case "$f" in ''|'#'*) continue ;; esac
+    case "$f" in /*|*..*) die "$port_dir/remove.list: '$f' is not a path inside the pack" ;; esac
+    [ -f "$work/$f" ] || die "$port_dir/remove.list: $(basename "$pack") has no $f"
+    rm -f "$work/$f"
+  done <"$port_dir/remove.list"
+fi
 overlay_from "$port_dir"
 if [ -d "$overlay_dir" ]; then
   for d in "$overlay_dir"/*/; do
     [ -d "$d" ] && overlay_from "${d%/}"
   done
+fi
+
+# The linker scripts of the runtime (the partition data brings the values, not the scripts).
+if [ -d "$ld_dir" ]; then
+  mkdir -p "$work/ld"
+  cp -R "$ld_dir/." "$work/ld/"
 fi
 
 # The link directory of the runtime is ld/ (the pack names it ld_user).
