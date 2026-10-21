@@ -1,0 +1,31 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+#
+# smoke.expected -- what each console-producing image must print under QEMU.
+# Read by `./x test qemu` (smoke.sh). Edit by hand, in the same commit as the
+# change to the application that moves the text; unlike metrics.golden there is
+# no `bless`, because a wrong string here would be blessed silently.
+#
+# One row per (image, string), TAB-separated:
+#   image    the ELF, as a path relative to the repository root
+#   string   a FIXED string (not a regexp) that must occur somewhere on the
+#            guest console, i.e. what the program wrote to MMUART0. QEMU's own
+#            messages go to stderr and are never searched. A line may be listed
+#            several times for several strings; all must appear. Lines end in
+#            CR LF on the wire, so do not anchor or include a line ending.
+#
+# Each image prints the id of the hart it runs on, read from mhartid, so the
+# hart gate of start.S is checked as well: the E51 image runs on hart 0 only,
+# the U54 image on hart 1 only.
+#
+# The pmp_probe rows record how many PMP entries (pmpaddr0 .. 15 that read back
+# what was written) QEMU gives the harts of the icicle kit: 8 with QEMU 10.1.0,
+# where the Renode model of the same board has 16. The rows are here so that a
+# QEMU that changes the number fails the smoke test instead of going unnoticed.
+image	string
+examples/bare_hello/bin-e51/bare_hello.elf	bare hello E51 hart 0
+examples/bare_hello/bin-u54/bare_hello.elf	bare hello U54 hart 1
+examples/pmp_probe/bin-e51/pmp_probe.elf	pmp probe hart 0
+examples/pmp_probe/bin-e51/pmp_probe.elf	pmp entries 8
+examples/pmp_probe/bin-u54/pmp_probe.elf	pmp probe hart 1
+examples/pmp_probe/bin-u54/pmp_probe.elf	pmp entries 8
