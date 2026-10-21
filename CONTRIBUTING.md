@@ -42,7 +42,7 @@ Imported files additionally carry a provenance and modification note and an entr
 Files that cannot carry a header are annotated in `REUSE.toml`. Checks: `reuse lint` and
 `tools/headers.py check` (`fix` adds missing default headers).
 
-Licenses: project code Apache-2.0; documentation CC-BY-4.0; copied files keep their original license; runtime `crates/mpfs_rts` GPL-3.0-or-later WITH GCC-exception-3.1;
+Licenses: project code Apache-2.0; documentation CC-BY-4.0; copied files keep their original license; runtime sources (`crates/mpfs_rts`, and the Ada, C and assembler sources of `crates/bb-runtimes`) GPL-3.0-or-later WITH GCC-exception-3.1; the Python generator of `crates/bb-runtimes` (and our changes to it) GPL-3.0-or-later without the exception, which concerns only code that is compiled into a program; specifications derived from the Ada Reference Manual `LicenseRef-Ada-RM-permissive`; the scripts and tests that call the generator Apache-2.0;
 SVD and the PAC generated from it CC-BY-4.0; SPARKNaCl BSD-3-Clause.
 
 ## Generated files
