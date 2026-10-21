@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# The pinned tools of one `./x toolchain install <target>`, cached. Every version is pinned in
+# tools/toolchain.env, so the cache key follows that file. The install is idempotent: what the
+# cache restored is detected and not installed again. A target without a cache of its own starts
+# from the cache of the compilers (target gnat) of the same pins. Needs the repository checked out.
+name: toolchain
+description: Restore the cached tools and install the pinned ones with ./x toolchain install
+inputs:
+  target:
+    description: "svdtools, svd2ada, pac, alire, gnat, gnatprove, adalang_analyzer or renode"
+    default: gnat
+runs:
+  using: composite
+  steps:
+    - name: Cache the tools (${{ inputs.target }})
+      uses: actions/cache@v5.0.4
+      with:
+        path: |
+          ~/.local/share/alire
+          ~/.local/share/ada_mpfs/tools
+          ~/.config/alire
+        key: toolchain-${{ inputs.target }}-${{ runner.os }}-${{ hashFiles('tools/toolchain.env') }}
+        restore-keys: |
+          toolchain-gnat-${{ runner.os }}-${{ hashFiles('tools/toolchain.env') }}
+
+    - name: ./x toolchain install ${{ inputs.target }}
+      shell: bash
+      run: ./x toolchain install ${{ inputs.target }}

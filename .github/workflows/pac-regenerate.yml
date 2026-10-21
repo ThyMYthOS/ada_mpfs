@@ -11,6 +11,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/pac-regenerate.yml"
+      - ".github/actions/**"
 
 permissions:
   contents: write
@@ -39,17 +40,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libxml2-utils
 
-      - name: Cache the toolchains and the svd2ada build
-        uses: actions/cache@v5.0.4
+      - uses: ./.github/actions/toolchain
         with:
-          path: |
-            ~/.local/share/alire
-            ~/.local/share/ada_mpfs/tools
-            ~/.config/alire
-          key: pac-${{ runner.os }}-${{ hashFiles('tools/toolchain.env') }}
-
-      - name: Install the toolchains
-        run: ./x toolchain install pac
+          target: pac
 
       - name: Rebuild the merged SVD and check it
         run: |

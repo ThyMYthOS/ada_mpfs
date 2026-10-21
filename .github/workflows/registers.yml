@@ -1,0 +1,114 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# The registers: job `svd` rebuilds the merged SVD, verifies its recorded hash and runs the host
+# tests of the SVD tooling and of ./x (no Ada toolchain). Job `pac` takes that merged SVD from
+# the `svd` job, regenerates libs/mpfs_pac/src/generated with the svd2ada built at the pinned
+# commit, fails on any difference and compiles the package for the E51 and the U54 ABI.
+name: registers
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - ".github/workflows/registers.yml"
+      - ".github/actions/**"
+      - "svd/**"
+      - "hw/svd_probe.py"
+      - "libs/mpfs_pac/**"
+      - "tools/**"
+      - "tests/host/**"
+      - "x"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/registers.yml"
+      - ".github/actions/**"
+      - "svd/**"
+      - "hw/svd_probe.py"
+      - "libs/mpfs_pac/**"
+      - "tools/**"
+      - "tests/host/**"
+      - "x"
+
+# One run per branch: a newer push cancels the run of the older one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  svd:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - uses: actions/setup-python@v6.2.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: tools/requirements.txt
+
+      - name: Install Python packages and xmllint
+        run: |
+          python3 -m pip install -r tools/requirements.txt
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libxml2-utils
+
+      - uses: ./.github/actions/toolchain
+        with:
+          target: svdtools
+
+      - name: Check the SVD
+        run: ./x svd check
+
+      - name: Host tests of the SVD tooling
+        run: tests/host/svd/run.sh
+
+      - name: Host tests of x
+        run: tests/host/x/run.sh
+
+      # The merged SVD, whose hash `./x svd check` has just verified: the pac job takes it
+      # instead of merging again (svd.py ensure accepts a file with the recorded hash).
+      - name: Keep the merged SVD
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: svd
+          path: build/svd/PolarfireSoC.svd
+          retention-days: 14
+
+  pac:
+    needs: svd
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - uses: actions/setup-python@v6.2.0
+        with:
+          python-version: "3.13"
+
+      - name: Install xmllint
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libxml2-utils
+
+      - name: Take the merged SVD
+        uses: actions/download-artifact@v7.0.0
+        with:
+          name: svd
+          path: build/svd
+
+      # Only what `./x pac check` needs (no gnatprove, no adalang_analyzer).
+      - uses: ./.github/actions/toolchain
+        with:
+          target: pac
+
+      - name: Host tests of the register package tooling
+        run: tests/host/pac/run.sh
+
+      - name: Check the register package
+        run: ./x pac check
