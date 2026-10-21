@@ -1,0 +1,31 @@
+# Port units of the board mpfs: files of the packs that are board code, not common GNAT or GNARL
+# source. compare_toolchain.sh lets these differ from the runtimes of the toolchain (or be missing
+# on one side) and requires every other file in gnat/ and gnarl/ to be identical. One file name
+# per line (the name in the pack), the source in crates/bb-runtimes after the name. A file stays
+# here until the own port unit replaces it (master plan #41, section 4.3); a name is never added
+# to hide a difference in a common source.
+
+# gnat/
+system.ads              src/system/system-xi-riscv*.ads (one per profile)
+start-ram.S             riscv/mpfs/start-ram.S (replaced by start.S in P1.3)
+riscv_def.h             riscv/src/riscv_def.h
+i-fe310.ads             riscv/sifive/fe310/svd/i-fe310.ads
+i-fe310-plic.ads        riscv/sifive/fe310/svd/i-fe310-plic.ads
+s-macres.adb            riscv/sifive/fe310/s-macres.adb
+s-textio.adb            src/s-textio__ns16550.adb
+s-bbbopa.ads            src/s-bbbopa__polarfiresoc.ads
+
+# gnarl/
+a-intnam.ads            riscv/mpfs/a-intnam.ads
+s-bbpara.ads            src/s-bbpara__polarfiresoc.ads
+s-bbbosu.adb            src/s-bbbosu__riscv.adb
+s-bbsuti.adb            src/s-bbsuti__riscv_clint.adb
+s-bbsumu.adb            src/s-bbsumu__generic.adb
+s-bbcppr.ads            src/s-bbcppr__new.ads
+s-bbcppr.adb            src/s-bbcppr__riscv.adb
+s-bbcpsp.ads            src/s-bbcpsp__riscv.ads
+s-bbcpsp.adb            src/s-bbcpsp__riscv.adb
+context_switch.S        riscv/src/context_switch.S
+trap_handler.S          riscv/src/trap_handler.S
+s-bbripl.ads            riscv/src/s-bbripl.ads
+s-bbripl.adb            riscv/mpfs/s-bbripl.adb
