@@ -7,7 +7,7 @@
 |---|---|
 | `lab.conf` | What differs between machines: the SoftConsole path (`SC`), the OpenOCD host and port, the serial devices (`UART_PATTERN`, `{n}` is the MMUART number) and their number. `--lab FILE` or `LAB_CONF` names another one. |
 | `lab.py` | Reads `lab.conf` and finds the RISC-V compiler: the version pinned in `tools/toolchain.env` (`GNAT_RISCV64_VERSION`) below `MPFS_ADA_TOOLCHAINS`; another version, or none, is an error. `run` turns a message-carrying exit into status 2. |
-| `start_openocd.sh` | Starts the OpenOCD of SoftConsole (the distribution's has no `microsemi-flashpro` interface). Telnet on :4444, gdb on :3333. |
+| `start_openocd.sh` | Starts the OpenOCD of SoftConsole (the distribution's has no `microsemi-flashpro` interface). Telnet on :4444, gdb on :3333. Runs OpenOCD as a child and ends it on Ctrl+C (see below). |
 | `ocd.py` | OpenOCD telnet client and serial capture. |
 | `run_image.py` | Loads an ELF onto one hart, runs it, prints the serial ports and the first trap. `--expect REGEX` sets the exit status (0 matched, 1 not matched or no output); `--expect-port N` restricts it to one port. `--uart-standin` (off by default) clocks and sets up the UARTs for an image that expects a boot stage to have done it. |
 | `run_probe.py` | Runs a probe (`probe_*.S`, `trap.S` is the trap recorder `run_image.py` loads) on one hart and prints its result block; `--expect REGEX` as above. |
@@ -16,9 +16,15 @@
 | `svd_probe.list` | The rules of `svd_probe.py`: blocks it does not read by default (`skip`), registers that hold runtime state (`state`) and registers of which only some bits are live (`state-mask PATTERN MASK reason`: QSPIXIP.DirectAccess bits 23-16, the pin levels; CRYPTO.CONFIG bits 27-24, a fabric handshake). |
 
 Exit status of `run_image.py`, `run_probe.py` and `monitor.py`: 0 success, 1 the expectation was not met, 2 a set-up error (no OpenOCD,
-no serial port, no toolchain, bad arguments). `./x hw openocd|run|probe|monitor` is the shell around them (`tools/hw.sh`).
+no serial port, no toolchain, bad arguments); 130 after Ctrl+C. `./x hw openocd|run|probe|monitor` is the shell around them (`tools/hw.sh`).
 `tests/host/hw/run.sh` tests the scripts against a stand-in for the OpenOCD telnet port and files in place of the serial ports; the
 hardware itself is not part of any automatic test.
+
+## Ctrl+C
+
+- `run_image.py`, `run_probe.py` and `monitor.py` end at once, also while OpenOCD does not answer (a hung bus), with one line on stderr and exit status 130. They do not clean up: after an interrupt the hart can be halted or still running the image; send `resume` or `halt` to OpenOCD (telnet :4444) or reset the board.
+- `start_openocd.sh` (`./x hw openocd`) runs OpenOCD as a child and does not `exec` it. OpenOCD looks at SIGINT only between two passes of its event loop, so while it is stuck in a JTAG or abstract-command timeout it ignores Ctrl+C. On SIGINT, SIGTERM or SIGHUP (closed terminal) the script sends OpenOCD SIGTERM, waits for it for a grace period of 3 s (`START_OPENOCD_GRACE`, seconds) and then kills it with SIGKILL; a second Ctrl+C kills it at once. The exit status is 130 after Ctrl+C (143 after SIGTERM, 129 after SIGHUP), otherwise the status of OpenOCD. Only a SIGKILL of the script itself leaves OpenOCD running.
+- `svd_probe.py`: see below.
 
 ## `svd_probe.py`
 

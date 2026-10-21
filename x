@@ -44,7 +44,8 @@
 #    ./x pac generate|check            register package generation and checks
 #    ./x trace [--check]               requirement trace matrix
 #    ./x prove                         SPARK proofs
-#    ./x hw run|probe|monitor          run images on the Icicle Kit
+#    ./x hw openocd|run|probe|monitor  the Icicle Kit: start OpenOCD, run an image (--expect RE sets
+#                                      the exit status), run a probe, show the serial ports
 #
 #  <ex> is the directory name below examples/.  Every failure exits non-zero.
 
@@ -719,8 +720,8 @@ cmd_trace () {
 
 cmd_hw () {
   case "${1:-}" in
-    run|probe|monitor) delegate tools/hw.sh "$@" ;;
-    *) die "usage: ./x hw run|probe|monitor" ;;
+    openocd|run|probe|monitor) delegate tools/hw.sh "$@" ;;
+    *) die "usage: ./x hw openocd|run|probe|monitor" ;;
   esac
 }
 
