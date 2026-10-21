@@ -19,6 +19,8 @@
 #   --port-dir DIR   own port units (default: crates/mpfs_rts/mpfs)
 #   --overlay-dir DIR  the overlays (default: crates/mpfs_rts/overlays)
 #   --ld-dir DIR     the linker scripts (default: crates/mpfs_rts/ld)
+#   --pac-dir DIR    the generated register packages (default: libs/mpfs_pac/src/generated, made
+#                    current by tools/pac.sh ensure; a directory named here is used as it is, never generated)
 #
 # Environment: MPFS_RTS_BUILD = Production (default) | Debug | Assert, the BUILD switch of the
 # pack's target_options.gpr.
@@ -33,7 +35,13 @@
 #      or add sources, <dir>/ld/* goes to ld/; the files named in <dir>/remove.list (paths in the
 #      pack, one per line) are deleted from the pack first, which is how an own port unit
 #      replaces a source of the pack that has another name (start.S for start-ram.S);
-#      then the linker scripts (--ld-dir) go to ld/, whatever the overlays brought;
+#      then the linker scripts (--ld-dir) go to ld/, whatever the overlays brought; the
+#      register packages that the port units use (MPFS_Registers, .PLIC and .CLINT of
+#      --pac-dir: the PAC of libs/mpfs_pac, which is not committed, only its hash) go to gnat/;
+#      unless --pac-dir names a directory, tools/pac.sh ensure makes the default one current
+#      first (it generates it with the pinned svd2ada, ./x toolchain install pac, only if it is
+#      missing or has not the hash of libs/mpfs_pac/MPFS_Registers.sha256); --check does not
+#      generate, a missing package is "not up to date";
 #   3. build libgnat.a with runtime_build.gpr and, except for light, libgnarl.a with
 #      ravenscar_build.gpr. Both are ordinary library projects (static, no binder, no ar by hand);
 #   4. leave the result as a runtime directory: adainclude/ (all sources), adalib/ (.ali files,
@@ -41,7 +49,9 @@
 #      scripts), runtime.xml, the license texts, and the stamp .mpfs_rts.stamp.
 #
 # Cache: the stamp holds the key, the sha256 of everything that goes into the result: the pack,
-# the port units, the overlays, the switches (variant, build mode, this script) and the toolchain
+# the three register packages (their content, so the key follows the files that are copied; the
+# recorded hash of the whole PAC would also change with the packages the runtime does not use), the
+# port units, the overlays, the switches (variant, build mode, this script) and the toolchain
 # (the directory name of the installed GNAT, which carries the Alire version and a hash, and the
 # versions reported by gcc and gprbuild). A variant whose stamp has the same key and whose files
 # are all there is reused; anything else is rebuilt into a work directory and then moved into
@@ -63,6 +73,11 @@ hashes="$HERE/packs.sha256"
 port_dir="$HERE/mpfs"
 overlay_dir="$HERE/overlays"
 ld_dir="$HERE/ld"
+# Empty: the PAC of libs/mpfs_pac, made current by tools/pac.sh ensure. A directory given with
+# --pac-dir is taken as it is (the host tests name a copy of it).
+pac_dir=""
+# The register packages of the PAC that the port units of the runtime use (s-bbripl, s-bbsuti).
+pac_files="mpfs_registers.ads mpfs_registers-plic.ads mpfs_registers-clint.ads"
 check=0
 force=0
 args=()
@@ -76,6 +91,7 @@ while [ $# -gt 0 ]; do
     --port-dir)    shift; [ $# -gt 0 ] || die "--port-dir needs a directory"; port_dir="$1" ;;
     --overlay-dir) shift; [ $# -gt 0 ] || die "--overlay-dir needs a directory"; overlay_dir="$1" ;;
     --ld-dir)      shift; [ $# -gt 0 ] || die "--ld-dir needs a directory"; ld_dir="$1" ;;
+    --pac-dir)     shift; [ $# -gt 0 ] || die "--pac-dir needs a directory"; [ -n "$1" ] || die "--pac-dir needs a directory"; pac_dir="$1" ;;
     -h|--help) sed -n '2,/^$/p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) die "unknown option '$1'" ;;
     *) args+=("$1") ;;
@@ -154,8 +170,34 @@ else
 fi
 pack_sha="$(stream_sha "$pack")" || die "cannot read the pack $pack"
 
+# The register packages: libs/mpfs_pac/src/generated is not committed (its hash is, like the one of the
+# SVD), so tools/pac.sh ensure makes it current, as make_packs.sh --ensure does for the pack above:
+# it generates it, with the pinned svd2ada, only if it is missing or has not the recorded hash, and
+# prints nothing otherwise. --check does not generate. A directory named with --pac-dir is used as it is.
+pac_missing=""
+if [ -z "$pac_dir" ]; then
+  pac_dir="$ROOT/libs/mpfs_pac/src/generated"
+  if [ "$check" = 0 ]; then
+    ens="$(bash "$ROOT/tools/pac.sh" ensure 2>&1)" \
+      || { echo "$ens" >&2; die "tools/pac.sh ensure failed (the register package is not generated; ./x toolchain install pac)"; }
+    [ -z "$ens" ] || echo "$ens"
+  fi
+fi
+for f in $pac_files; do
+  [ -f "$pac_dir/$f" ] || pac_missing="$pac_missing $f"
+done
+if [ -n "$pac_missing" ]; then
+  if [ "$check" = 1 ]; then
+    echo "gen_runtime: $variant is not up to date (no$pac_missing in $pac_dir)"
+    exit 1
+  fi
+  die "no$pac_missing in $pac_dir (./x pac ensure)"
+fi
+pac_hash () { for f in $pac_files; do printf '%s %s\n' "$f" "$(sha < "$pac_dir/$f")"; done | sha; }
+
 key="$( {
   echo "pack $pack_sha"
+  echo "pac $(pac_hash)"
   echo "port-units $(tree_hash "$port_dir")"
   echo "overlays $(overlay_hash "$overlay_dir")"
   echo "ld $(tree_hash "$ld_dir")"
@@ -222,6 +264,22 @@ if [ -d "$overlay_dir" ]; then
     [ -d "$d" ] && overlay_from "${d%/}"
   done
 fi
+
+# The register packages of the PAC: the port units that use them are compiled with the runtime,
+# so the registers have one definition, the SVD, for the runtime and for the application. They
+# replace nothing of the pack.
+mkdir -p "$work/gnat"
+for f in $pac_files; do
+  [ ! -e "$work/gnat/$f" ] || die "the pack has a gnat/$f of its own"
+  # Byte for byte the file of the PAC: an application that compiles the PAC itself (mpfs_pac.gpr)
+  # has the same units, and the binder compares their checksums.
+  cp "$pac_dir/$f" "$work/gnat/$f"
+done
+# The runtime is compiled with -gnatg, whose style checks reject the header of the generated
+# files (a line longer than 79, also when a unit that withs them is compiled): the line length
+# limit is 120 for the runtime. The other style checks of -gnatg stay.
+sed -i 's|^  ADAFLAGS := ("-gnatg", |  ADAFLAGS := ("-gnatg", "-gnatyM120", |' "$work/target_options.gpr"
+grep -q 'gnatyM120' "$work/target_options.gpr" || die "target_options.gpr of $(basename "$pack") has no ADAFLAGS to extend"
 
 # The linker scripts of the runtime (the partition data brings the values, not the scripts).
 if [ -d "$ld_dir" ]; then
