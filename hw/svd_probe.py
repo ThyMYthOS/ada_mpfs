@@ -71,6 +71,17 @@ The registers of a peripheral are read with one command per 512 registers at con
 of the rules file lowers that for peripherals that were never measured cleanly (CAN, GEM, USB, QSPIXIP, CRYPTO: 16).
 --block PATTERN=N and a plain --block N override the rules.
 
+If more than --identical-reads N (default 8) registers of one peripheral read the same nonzero value and none of
+them matches its reset value, the probe prints one note, "svd_probe: note: <block>: <n> registers read <value>,
+identical reads: block probably not responding (clock/reset?)": a block without clock or reset can answer every read
+with the same word. Only registers with a reset value and a nonzero mask count: a register without a reference
+(the PLIC priorities, which power up with random values from 0 to 7) has no wrong value, and 63 of 186 reading 7 is chance.
+
+When the probe stops early it prints a partial summary on stdout (the counts so far, the last register accessed and,
+per peripheral, the registers that were not reached), then the cause, which also goes to stderr, so a log made with
+a plain > has it. The counts keep apart: skipped (not read after an unreadable register), readAction, DLAB, noref,
+state and excluded (blocks that a rule of hw/svd_probe.list left out).
+
 Ctrl+C stops the probe at once, even if OpenOCD does not answer (a hung bus). It makes
 one attempt to resume the hart with a 2 s timeout (none with --no-halt), says whether
 the hart may still be halted, and exits with status 130; a second Ctrl+C leaves
@@ -88,6 +99,7 @@ import fnmatch
 import re
 import socket
 import sys
+import dataclasses
 from dataclasses import dataclass
 from pathlib import Path
 from xml.etree import ElementTree as ET
@@ -391,6 +403,8 @@ class Result:
     state: int = 0
     excluded: int = 0
     dlab: int = 0
+    last: str = ""  # the register accessed last, "0x<address> <name>"
+    done: collections.Counter[str] = dataclasses.field(default_factory=collections.Counter)  # per peripheral: registers with a line
 
 
 def recover_debug_module(target: OpenOcd) -> str:
@@ -496,7 +510,7 @@ def parse_blocks(specs: list[str], rules: list[Rule] | None = None) -> list[tupl
 
 def probe(regs: list[Reg], target: OpenOcd, blocks: list[tuple[str, int]], keep_going: bool = False,
           max_failures: int = 3, read_destructive: bool = False, state: list[Rule] | None = None,
-          result: Result | None = None) -> Result:
+          result: Result | None = None, identical: int = 0) -> Result:
     """Read and compare all <regs>; print one line each and return the counts.
 
     The counts go into <result> if one is given, so that the caller still has them when the run ends in an exception.
@@ -510,9 +524,12 @@ def probe(regs: list[Reg], target: OpenOcd, blocks: list[tuple[str, int]], keep_
     while its LCR.DLAB is 0 ("skipped (DLAB=0)": they are aliases of RBR and IER then) and, whatever DLAB is, for
     THR and FCR ("skipped (alias of RBR/IIR)", counted as readAction): a read of THR would pop the receive FIFO. A register
     that matches one of the <state> rules and differs from its reset value is
-    reported as "state", not as "mismatch".
+    reported as "state", not as "mismatch". If more than <identical> registers of one peripheral read the same
+    nonzero value that is not their reset value (0: no check), one note says that the block probably does not
+    respond: a gated block can answer every read with the same word.
     """
     result = result if result is not None else Result()
+    same: dict[str, collections.Counter[int]] = {}  # per peripheral: the values that are not a reset value
     dead: dict[str, int] = {}
     in_a_row = 0
     # a register that is not read (with the reason: "readAction" or "DLAB"), or registers of one peripheral to read
@@ -535,8 +552,10 @@ def probe(regs: list[Reg], target: OpenOcd, blocks: list[tuple[str, int]], keep_
         chunk = chunks.popleft()
         if isinstance(chunk, tuple):
             r, why = chunk
+            result.done[r.name.split(".")[0]] += 1
             if r.name.split(".")[0] in dead:
                 dead[r.name.split(".")[0]] += 1
+                result.skipped += 1
             elif why == "DLAB":
                 print(f"skipped (DLAB=0)  0x{r.address:08X} {r.name} (alias of RBR/IER while DLAB=0; reads DLL/DLM only with "
                       "DLAB=1; --read-destructive reads it)")
@@ -573,9 +592,14 @@ def probe(regs: list[Reg], target: OpenOcd, blocks: list[tuple[str, int]], keep_
         for run in runs(chunk, block_limit(name, blocks)):
             if name in dead:
                 dead[name] += len(run)
+                result.skipped += len(run)
+                result.done[name] += len(run)
                 continue
+            result.last = f"0x{run[0].address:08X} {run[0].name}"
             values = read_run(run, target)
             for r, value in zip(run, values):
+                result.done[name] += 1
+                result.last = f"0x{r.address:08X} {r.name}"
                 if isinstance(value, OSError):
                     print(f"unreadable  0x{r.address:08X} {r.name} ({value})")
                     result.failures += 1
@@ -590,6 +614,8 @@ def probe(regs: list[Reg], target: OpenOcd, blocks: list[tuple[str, int]], keep_
                 in_a_row = 0
                 w = r.size // 4  # hex digits of the register
                 diff = 0 if r.reset is None else (value ^ r.reset) & r.mask
+                if value and r.reset is not None and r.mask and diff:  # a register without a reference has no "wrong" value
+                    same.setdefault(name, collections.Counter())[value] += 1
                 rule = next((x for x in state or [] if x.matches(r.name)), None) if diff else None
                 if r.reset is None or r.mask == 0:
                     why = "no resetValue" if r.reset is None else "resetMask is 0"
@@ -608,7 +634,10 @@ def probe(regs: list[Reg], target: OpenOcd, blocks: list[tuple[str, int]], keep_
     for name, n in dead.items():
         if n:
             print(f"skipped     {name}: {n} more register(s) after the first unreadable one")
-            result.skipped += n
+    for name, counter in same.items():
+        value, n = counter.most_common(1)[0]
+        if identical and n > identical:
+            print(f"svd_probe: note: {name}: {n} registers read 0x{value:X}, identical reads: block probably not responding (clock/reset?)")
     return result
 
 
@@ -769,6 +798,19 @@ def resume_after_interrupt(target: OpenOcd) -> str:
                 "send 'resume' to OpenOCD or reset the board")
 
 
+def partial_summary(regs: list[Reg], result: Result) -> list[str]:
+    """Lines for stdout when the run ends early: the counts so far, the last register accessed, what was not reached."""
+    total = collections.Counter(r.name.split(".")[0] for r in regs)
+    left = {name: n - result.done[name] for name, n in total.items() if n > result.done[name]}
+    lines = [f"svd_probe: partial summary: {sum(result.done.values())} of {len(regs)} register(s) have a line, {result.failures} not ok, "
+             f"{result.skipped} skipped, {result.read_action} readAction, {result.dlab} DLAB, {result.noref} noref, "
+             f"{result.state} state, {result.excluded} excluded",
+             f"svd_probe: last register accessed: {result.last or 'none'}"]
+    lines.append("svd_probe: not reached: " + (", ".join(f"{name} {n}" for name, n in left.items()) + f" ({sum(left.values())} register(s))"
+                                                if left else "nothing"))
+    return lines
+
+
 def main(argv: list[str]) -> int:
     """Command line entry point; returns the exit code."""
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0], formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -793,6 +835,9 @@ def main(argv: list[str]) -> int:
                     help="stop after N unreadable registers in a row, 0 = never (default: %(default)s)")
     ap.add_argument("--timeout", type=float, default=10.0, metavar="S",
                     help="give up when OpenOCD does not answer for S seconds, probably a hung bus (default: %(default)s)")
+    ap.add_argument("--identical-reads", type=int, default=8, metavar="N",
+                    help="note a peripheral of which more than N registers read the same nonzero value that is not their reset "
+                         "value: the block probably does not respond (clock or reset?); 0 = never (default: %(default)s)")
     ap.add_argument("--keep-going", action="store_true",
                     help="read the rest of a peripheral after an unreadable register (default: skip it)")
     ap.add_argument("--skip", action="append", default=[], metavar="PERIPHERAL[,PERIPHERAL...]",
@@ -906,7 +951,7 @@ def main(argv: list[str]) -> int:
     abort = None
     interrupted = False
     keep_halted = False  # the debug module is stuck: nothing more may be sent to it, not even the resume
-    result = Result()
+    result = Result(excluded=sum(count for _, _, count in excluded))
     try:
         # Reads go through the debug module of a halted hart (not the system bus).
         target.command(f"targets {args.target}")
@@ -925,8 +970,8 @@ def main(argv: list[str]) -> int:
             poke(target, address, value, name)
         if args.enable_clocks:
             enable_clocks(root, target)
-        probe(regs, target, blocks, args.keep_going, args.max_failures, args.read_destructive, state_rules, result)
-        result.excluded = sum(count for _, _, count in excluded)
+        probe(regs, target, blocks, args.keep_going, args.max_failures, args.read_destructive, state_rules, result,
+              args.identical_reads)
     except Hung as e:
         keep_halted = e.stuck
         abort = str(e) if e.stuck else f"{e}; the bus is probably hung, reset the board; try --enable-clocks or --skip"
@@ -962,14 +1007,19 @@ def main(argv: list[str]) -> int:
     if interrupted:
         if abort:
             print(f"svd_probe: {abort}", file=sys.stderr)
-        print(f"svd_probe: interrupted; of {len(regs)} register(s) selected, {result.failures} not ok before the interrupt "
-              "(the lines above are what was read); " + hart, file=sys.stderr)
+        message = (f"svd_probe: interrupted; of {len(regs)} register(s) selected, {result.failures} not ok before the interrupt "
+                   "(the lines above are what was read); " + hart)
+        print(message, file=sys.stderr)
+        print("\n".join(partial_summary(regs, result) + [message]))  # a log made with > shows the cause, too
         return EXIT_INTERRUPTED
-    if abort:
-        print(f"svd_probe: {abort}", file=sys.stderr)
+    if abort:  # the cause goes to stderr and, as the last lines, to stdout, so a log made with plain > has it
+        causes = [f"svd_probe: {abort}"] + ([f"svd_probe: {problem}"] if problem else [])
+        print("\n".join(causes), file=sys.stderr)
+        print("\n".join(partial_summary(regs, result) + causes))
+        return 2
     if problem:
         print(f"svd_probe: {problem}", file=sys.stderr)
-    if abort or problem:
+        print(f"svd_probe: {problem}")
         return 2
     print(f"svd_probe: {len(regs)} register(s), {result.failures} not ok, {result.skipped} skipped, "
           f"{result.read_action} readAction, {result.dlab} DLAB, {result.noref} noref, {result.state} state, {result.excluded} excluded")

@@ -541,6 +541,71 @@ def test_poke(tmp: Path) -> None:
     check("poke: --help documents it", "--poke ADDR=VALUE" in r.stdout and "PERIPHERAL.REGISTER" in r.stdout, r.stdout[:200])
 
 
+def test_abort_output(tmp: Path) -> None:
+    """An aborted run prints a partial summary and the cause on stdout, too; the counts of the skipped kinds stay apart."""
+    svd = make_svd(tmp, {"P1@0x1000": [reg("R0", 0), reg("R1", 4)], "P2@0x2000": [reg("R0", 0), reg("R1", 4), reg("R2", 8)],
+                         "P3@0x3000": [reg("R0", 0)], "P4@0x4000": [reg("R0", 0), reg("R1", 4)]})
+    rules = tmp / "empty.list"
+    rules.write_text("# no rules\n")
+
+    def last_lines(out: str, n: int) -> list[str]:
+        return out.rstrip("\n").splitlines()[-n:]
+
+    # a dead connection in P2: counts so far, last register, the registers of P2 to P4 not reached
+    stub = Stub(script=lambda conn, cmd, n: EOF if conn == 0 and cmd.startswith("mdw 0x2000") else None)
+    r = run(svd, stub, "--skip-file", str(rules))
+    check("abort output: the partial summary has the counts so far", "svd_probe: partial summary: 2 of 8 register(s) have a line, 0 not ok" in r.stdout, r.stdout)
+    check("abort output: it names the last register accessed", "svd_probe: last register accessed: 0x00002000 P2.R0" in r.stdout, r.stdout)
+    check("abort output: it counts what was not reached per peripheral", "svd_probe: not reached: P2 3, P3 1, P4 2 (6 register(s))" in r.stdout, r.stdout)
+    cause = [line for line in r.stderr.splitlines() if line.startswith("svd_probe: the connection to OpenOCD is lost after 'mdw")][0]
+    check("abort output: the cause is on stderr and the last lines of stdout", cause in last_lines(r.stdout, 3) and "connection to OpenOCD is lost" in cause, f"{r.stdout!r} {r.stderr!r}")
+    check("abort output: the summary lines come before the cause", r.stdout.index("partial summary") < r.stdout.index("connection to OpenOCD is lost"), r.stdout)
+    stub.close()
+    # a hung debug module
+    stub = Stub(script=lambda conn, cmd, n: BUSY if cmd.startswith("mdw 0x3000") else None)
+    r = run(svd, stub, "--skip-file", str(rules))
+    check("abort output: a hung debug module has the partial summary and the cause on stdout",
+          "last register accessed: 0x00003000 P3.R0" in r.stdout and "not reached: P3 1, P4 2 (3 register(s))" in r.stdout
+          and "power-cycle the board" in last_lines(r.stdout, 1)[0], r.stdout)
+    stub.close()
+    # too many unreadable registers
+    stub = Stub(script=lambda conn, cmd, n: "Error: bus error" if cmd.startswith("md") else None)
+    r = run(svd, stub, "--skip-file", str(rules), "--max-failures", "2")
+    check("abort output: too many failures: partial summary and cause on stdout",
+          "partial summary: 3 of 8 register(s) have a line, 3 not ok, 0 skipped" in r.stdout and "2 unreadable registers in a row" in last_lines(r.stdout, 1)[0], r.stdout)
+    stub.close()
+    # a hart that is not halted: nothing was read
+    stub = Stub(state="running")
+    r = run(svd, stub, "--skip-file", str(rules))
+    check("abort output: not halted: nothing reached, cause last", "last register accessed: none" in r.stdout and "not reached: P1 2, P2 3, P3 1, P4 2 (8 register(s))" in r.stdout
+          and "is not halted" in last_lines(r.stdout, 1)[0], r.stdout)
+    stub.close()
+    # Ctrl+C
+    stub = Stub(script=lambda conn, cmd, n: HANG if cmd.startswith("mdw 0x2000") else None)
+    rc, out, err, secs = interrupt(svd, stub, ["--skip-file", str(rules), "--timeout", "30"], "mdw 0x2000")
+    check("abort output: Ctrl+C prints the partial summary and the interrupt line on stdout",
+          rc == 130 and "partial summary: 2 of 8 register(s)" in out and "last register accessed: 0x00002000 P2.R0" in out
+          and "svd_probe: interrupted;" in last_lines(out, 1)[0], f"{rc} {out!r}")
+    stub.close()
+    # a normal run has no partial summary
+    stub = Stub()
+    r = run(svd, stub, "--skip-file", str(rules))
+    check("abort output: a complete run has none", r.returncode == 0 and "partial summary" not in r.stdout and "not reached" not in r.stdout, r.stdout)
+    stub.close()
+    # the three kinds of skipped lines are counted apart
+    field = "<fields><field><name>F</name><readAction>clear</readAction></field></fields>"
+    (tmp / "k").mkdir()
+    svd2 = make_svd(tmp / "k", {"A@0x1000": [reg("R0", 0), reg("R1", 4, extra=field), reg("R2", 8)], "B@0x2000": [reg("R0", 0), reg("R1", 4), reg("R2", 8)],
+                                "X@0x3000": [reg("R0", 0), reg("R1", 4)]})
+    rules2 = tmp / "x.list"
+    rules2.write_text("skip X not measured\n")
+    stub = Stub(script=lambda conn, cmd, n: "Error: bus error" if cmd.startswith("mdw 0x2000") else None)
+    r = run(svd2, stub, "--skip-file", str(rules2), "--block", "1")
+    check("abort output: rule-excluded, readAction and not-reached registers have their own counts",
+          "svd_probe: 6 register(s), 1 not ok, 2 skipped, 1 readAction, 0 DLAB, 0 noref, 0 state, 2 excluded" in r.stdout, r.stdout)
+    stub.close()
+
+
 def test_resume(tmp: Path) -> None:
     """A failed resume is reported and retried once over a new connection."""
     svd = make_svd(tmp, {"P1@0x1000": [reg("R0", 0)]})
@@ -821,6 +886,35 @@ def test_write_only(tmp: Path) -> None:
         stub.close()
 
 
+def test_identical(tmp: Path) -> None:
+    """Many identical nonzero reads that are not the reset value say that the block does not respond."""
+    svd = make_svd(tmp, {"GATED@0x1000": [reg(f"R{i}", 4 * i, reset=0) for i in range(12)],
+                         "NOREF@0x6000": [reg(f"R{i}", 4 * i, reset=None) for i in range(12)],
+                         "SAME0@0x2000": [reg(f"R{i}", 4 * i) for i in range(12)],
+                         "RESET@0x3000": [reg(f"R{i}", 4 * i, reset=0xA8148A) for i in range(12)],
+                         "FEW@0x4000": [reg(f"R{i}", 4 * i) for i in range(8)],
+                         "MIXED@0x5000": [reg(f"R{i}", 4 * i) for i in range(12)]})
+    mem = {**{0x1000 + 4 * i: 0xA8148A for i in range(12)}, **{0x3000 + 4 * i: 0xA8148A for i in range(12)},
+           **{0x4000 + 4 * i: 7 for i in range(8)}, **{0x6000 + 4 * i: 7 for i in range(12)}, **{0x5000 + 4 * i: i % 3 + 1 for i in range(12)}}
+    stub = Stub(mem=mem)
+    r = run(svd, stub)
+    notes = [line for line in r.stdout.splitlines() if "identical reads" in line]
+    check("identical: 12 identical nonzero reads of a block give one note, naming the block, the count and the value",
+          len(notes) == 1 and notes[0] == "svd_probe: note: GATED: 12 registers read 0xA8148A, identical reads: block probably not responding (clock/reset?)",
+          f"{notes} {r.stdout!r}")
+    check("identical: zeros, matching reset values, 8 reads (not more than 8), mixed values and registers without a reference (a PLIC that powers up with random priorities) give no note", len(notes) == 1, str(notes))
+    check("identical: the note is no register line and no failure of its own", "svd_probe: 68 register(s)," in r.stdout, r.stdout[-200:])
+    stub.close()
+    stub = Stub(mem=mem)
+    r = run(svd, stub, "--identical-reads", "7")
+    check("identical: --identical-reads N sets the limit (8 identical reads are more than 7)", "FEW: 8 registers read 0x7" in r.stdout, r.stdout)
+    stub.close()
+    stub = Stub(mem=mem)
+    r = run(svd, stub, "--identical-reads", "0")
+    check("identical: --identical-reads 0 switches the note off", "identical reads" not in r.stdout, r.stdout)
+    stub.close()
+
+
 def test_noref(tmp: Path) -> None:
     """A register without reference value is reported as noref, not as mismatch."""
     svd = make_svd(tmp, {"P1@0x1000": [reg("NORESET", 0, reset=None), reg("NOMASK", 4, reset=5, mask=0), reg("OK", 8, reset=0),
@@ -1073,7 +1167,7 @@ def main() -> int:
     if not TOOL.is_file():
         print(f"probe_test: {TOOL} not found", file=sys.stderr)
         return 2
-    for case in (test_dead_connection, test_hang, test_noise, test_halt, test_power_state, test_enable_clocks, test_reset_halt, test_poke, test_resume, test_interrupt, test_failures, test_block, test_read_action, test_dlab, test_write_only, test_noref, test_state, test_skip):
+    for case in (test_dead_connection, test_hang, test_noise, test_halt, test_power_state, test_enable_clocks, test_reset_halt, test_poke, test_abort_output, test_resume, test_interrupt, test_failures, test_block, test_read_action, test_dlab, test_identical, test_noref, test_state, test_skip, test_write_only):
         with tempfile.TemporaryDirectory() as d:
             case(Path(d))
     print(f"summary: {failures} failure(s)")
