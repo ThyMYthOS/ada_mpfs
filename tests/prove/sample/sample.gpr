@@ -1,0 +1,17 @@
+--  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+--  SPDX-License-Identifier: Apache-2.0
+--
+--  A small SPARK project for tools/prove.sh: native, no runtime, no register
+--  access. It is the model of a proof project (see tools/prove.list) and shows
+--  that the pinned gnatprove runs.
+
+project Sample is
+   for Source_Dirs use ("src");
+   for Object_Dir use "obj";
+   for Create_Missing_Dirs use "True";
+   for Languages use ("Ada");
+
+   package Compiler is
+      for Default_Switches ("Ada") use ("-gnat2022", "-gnatwa", "-gnatwe");
+   end Compiler;
+end Sample;

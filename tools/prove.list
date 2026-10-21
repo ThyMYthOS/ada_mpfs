@@ -1,0 +1,14 @@
+# prove.list -- the SPARK projects `./x prove` proves. Read by tools/prove.sh.
+# Edit by hand. One row per project, TAB-separated, three fields:
+#
+#   project   gnatprove project file, relative to the repository root
+#   label     what is proved, one line (shown in the report)
+#   switches  gnatprove switches for this project, or "-" for the default
+#             (--level=1 --prover=z3 --timeout=10). A project that needs more
+#             (a higher level, more provers, a unit selection) states it here, with
+#             a comment above the row that says why.
+#
+# A project joins the list in the commit that adds it. Every project must prove
+# with 0 unproved checks; `./x prove` fails otherwise.
+project	label	switches
+tests/prove/sample/sample.gpr	Sample_Math: byte join and split, saturating add (silver, and contracts that state the result)	-
