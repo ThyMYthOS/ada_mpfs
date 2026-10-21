@@ -59,9 +59,9 @@ out="$(cd "$W" && PYTHONPATH="$tmp/noyaml" "$MPFS_PYTHON" tools/svd.py merge 2>&
 [ $? -ne 0 ] && printf '%s' "$out" | grep -q 'PyYAML' && pass "merge without PyYAML says so" || fail "merge without PyYAML says so ($out)"
 
 # probe without a peripheral reads all of them
-all="$("$MPFS_PYTHON" "$ROOT/hw/svd_probe.py" --svd "$tmp/clean/build/svd/PolarfireSoC.svd" --list | wc -l)"
-one="$("$MPFS_PYTHON" "$ROOT/hw/svd_probe.py" --svd "$tmp/clean/build/svd/PolarfireSoC.svd" --list CLINT | wc -l)"
-[ "$all" -gt "$one" ] && [ "$all" = "$("$MPFS_PYTHON" "$ROOT/hw/svd_probe.py" --svd "$tmp/clean/build/svd/PolarfireSoC.svd" --list --all | wc -l)" ] \
+all="$("$MPFS_PYTHON" "$ROOT/hw/svd_probe.py" --svd "$tmp/clean/build/svd/PolarfireSoC.svd" --list 2>/dev/null | wc -l)"
+one="$("$MPFS_PYTHON" "$ROOT/hw/svd_probe.py" --svd "$tmp/clean/build/svd/PolarfireSoC.svd" --list CLINT 2>/dev/null | wc -l)"
+[ "$all" -gt "$one" ] && [ "$all" = "$("$MPFS_PYTHON" "$ROOT/hw/svd_probe.py" --svd "$tmp/clean/build/svd/PolarfireSoC.svd" --list --all 2>/dev/null | wc -l)" ] \
   && pass "probe without a peripheral lists all registers" || fail "probe without a peripheral lists all registers"
 
 fresh stale
@@ -152,15 +152,15 @@ def serve():
             r = md(line.decode()) if line.startswith(b"md") else TABLE if line == b"targets" else line[5:].decode() if line.startswith(b"echo ") else ""
             c.sendall(line + b"\r\n" + (r.encode() + b"\r\n" if r else b"") + b"> ")
 threading.Thread(target=serve, daemon=True).start()
-r = subprocess.run([sys.executable, root + "/hw/svd_probe.py", "--svd", sys.argv[2], "--port", str(port), "CLINT"],
-                   capture_output=True, text=True)
+r = subprocess.run([sys.executable, root + "/hw/svd_probe.py", "--svd", sys.argv[2], "--port", str(port), "--skip-file", "/dev/null", "CLINT"],
+                   capture_output=True, text=True)  # no rules: MSIP1 is a mismatch, not state
 out = [l for l in r.stdout.splitlines() if l.split()[0] in ("ok", "mismatch", "state", "noref", "unreadable", "skipped")]  # not the header
 assert r.returncode == 1, r
 kinds = [l.split()[0] for l in out]
 assert kinds == ["ok", "mismatch", "ok", "ok", "ok"] + ["unreadable"] * 5 + ["skipped"], out
 assert "'invalid'" in out[5] and "not read after" in out[6], out
 summary = [l for l in r.stdout.splitlines() if l.startswith("svd_probe: 11 register(s)")]
-assert len(summary) == 1 and "11 register(s), 6 not ok, 1 skipped" in summary[0], r.stdout
+assert len(summary) == 1 and "11 register(s), 6 not ok, 1 skipped, 0 readAction, " in summary[0] and '0 noref' in summary[0] and '0 state' in summary[0] and summary[0].endswith('0 excluded'), r.stdout
 assert seen[:2] == ["targets mpfs.hart0_e51", "halt"] and "riscv set_prefer_sba off" in seen, seen
 assert [l for l in seen if l.startswith("mdw 0x2000000")] == ["mdw 0x2000000 5"] and seen[-1] == "resume", seen  # the five MSIP registers need one command
 PY

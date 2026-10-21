@@ -8,19 +8,23 @@
                [--read-destructive] [--enable-clocks] [--list] [--all | PERIPHERAL...]
 
 Reads the registers of the named peripherals (all of them with --all or without
-a name) through the OpenOCD telnet port (default localhost:4444) and compares them with <resetValue> under <resetMask>
-(all bits if the SVD has no mask). One line per register:
+a name; a block that hw/svd_probe.list excludes is skipped only in such a whole-device run, a block named on the
+command line is read, with a note on stderr) through the OpenOCD telnet port (default localhost:4444) and compares them with <resetValue> under <resetMask>
+(all bits if the SVD has no mask). One line per register, "<kind>  0x<address> <PERIPHERAL.REGISTER>" and, after
+" = ", the value read in hex, as wide as the register (ok  0x20002008 SYSREG.CLOCK_CONFIG_CR = 0x00000010):
 
   ok          the value matches
-  mismatch    the value differs; read and expected value are shown
+  mismatch    the value differs; the expected value is shown too
   state       the value differs, but the register is runtime state (status, FIFO, message RAM, a register
-              the tool wrote with --enable-clocks, ...) that only has its reset value after a reset-halt;
-              the patterns are in hw/svd_probe.list, --compare-state reports them as mismatch
-  noref       nothing to compare: the SVD has no <resetValue>, or <resetMask> is 0; the value read is shown
+              the tool wrote with --enable-clocks, live pin levels ...) that only has its reset value after a
+              reset-halt; the patterns are in hw/svd_probe.list, which can also name the live bits of a register
+              (state-mask: a difference in the other bits is a mismatch); --compare-state reports them as mismatch
+  noref       nothing to compare: the SVD has no <resetValue>, or <resetMask> is 0
   unreadable  the access failed; the text OpenOCD replied is shown
   skipped     not read: a register with a readAction (reading it consumes data or clears status; --read-destructive
               reads it anyway), the rest of a peripheral after an unreadable register, or a block excluded
-              by hw/svd_probe.list (ATHENA, TRACE, ...; --include reads it)
+              by hw/svd_probe.list (ATHENA, TRACE, ...; --include reads it, and so does naming the
+              peripheral on the command line)
 
 The selected hart (default mpfs.hart0_e51) is halted for the reads and resumed
 afterwards; reads then use the program buffer ("riscv set_prefer_sba off"), as
@@ -31,8 +35,27 @@ stops at once then (exit code 2) and names the register it accessed last; it als
 stops after --max-failures unreadable registers in a row. At the end it tries to
 resume the hart, over a new connection if need be, and says so if that fails.
 
+Before it reads, the probe checks in the target table of OpenOCD ("targets") that the selected hart is halted
+and stops with exit code 2, showing the table, if it is not; it also does this with --no-halt. Other harts that
+did not halt ("unable to halt hart N" in the reply to halt) are mentioned in one line and do not matter: the reads
+go through the selected hart only.
+
+A reply that says the debug module is stuck busy ("Timed out ... waiting for busy", "abstractcs=...", "Failed to
+read priv register") stops the probe at once, whatever --keep-going or --max-failures say, and shows the reply: a
+hung access (the first one to CAN_A_LO after the --enable-clocks writes did). The probe makes
+one attempt to recover (riscv dmi_write 0x16 0x700 clears cmderr, riscv dmi_read 0x16 reads abstractcs; without
+these commands in OpenOCD there is no attempt). If the debug module stays busy, the probe does not even resume the
+hart, names the block and the register and says: power-cycle the board and restart OpenOCD. If it is idle again,
+the register is reported as unreadable and the run goes on with the next peripheral.
+
+Ctrl+C stops the probe at once, even if OpenOCD does not answer (a hung bus). It makes
+one attempt to resume the hart with a 2 s timeout (none with --no-halt), says whether
+the hart may still be halted, and exits with status 130; a second Ctrl+C leaves
+immediately. After an interrupt the hart can remain halted: send "resume" to OpenOCD.
+
 The exit code is 1 if any register is not ok (state, noref and skipped registers
-are not failures), 2 if the probe stopped early or could not resume the hart. With
+are not failures), 2 if the probe stopped early or could not resume the hart, 130
+after Ctrl+C. With
 --list nothing is read: the registers, their addresses and expected values are
 printed, so the tool can be checked without a board.
 """
@@ -48,6 +71,8 @@ from xml.etree import ElementTree as ET
 ROOT = Path(__file__).resolve().parent.parent
 INTERRUPT_TIMEOUT = 2.0  # seconds the resume after Ctrl+C may take
 EXIT_INTERRUPTED = 130  # 128 + SIGINT, as for any program that ends on Ctrl+C
+RULES = Path(__file__).resolve().with_suffix(".list")
+RULE_KINDS = ("skip", "state", "state-mask", "state-enable-clocks", "skip-enable-clocks", "skip-no-clocks", "block")
 MD_SUFFIX = {8: "b", 16: "h", 32: "w", 64: "d"}
 # What OpenOCD replies, as plain text and not as an error of the command, when the debug module is stuck busy
 HANG_REPLY = re.compile(r"Timed out|waiting for busy|abstractcs|Failed to read priv register", re.IGNORECASE)
@@ -66,8 +91,9 @@ class Reg:
     name: str
     address: int
     size: int
-    reset: int
+    reset: int | None  # None: the SVD has no <resetValue>
     mask: int
+    read_action: str = ""  # readAction of the register or of one of its fields: reading has a side effect
 
 
 def int_of(text: str | None, default: int = 0) -> int:
@@ -105,16 +131,69 @@ def peripheral_registers(root: ET.Element, name: str) -> list[Reg]:
     regs = []
     for r in source.iterfind("registers/register"):
         size = int_of(r.findtext("size"), default_size)
+        read_action = next((a.text for a in r.iter("readAction") if a.text and a.text != "none"), "")
         for n, idx in enumerate(dim_indices(r)):
             step = int_of(r.findtext("dimIncrement"))
             regs.append(Reg(
                 name=f"{name}.{r.findtext('name').replace('%s', idx)}",
                 address=base + int_of(r.findtext("addressOffset")) + n * step,
                 size=size,
-                reset=int_of(r.findtext("resetValue")),
+                reset=int_of(r.findtext("resetValue")) if r.findtext("resetValue") else None,
                 mask=int_of(r.findtext("resetMask"), (1 << size) - 1),
+                read_action=read_action,
             ))
     return regs
+
+
+@dataclass(slots=True, eq=False)
+class Rule:
+    """A line of the rules file: a pattern of a kind, with the reason that is shown in the report.
+
+    A state-mask rule also has <mask>, the bits of the register that are live: a difference there is state,
+    a difference in the other bits is a mismatch. For the other kinds <mask> is 0.
+    """
+    kind: str
+    pattern: str
+    reason: str
+    mask: int = 0
+
+    def matches(self, name: str) -> bool:
+        """Whether <name> matches the pattern (* and ?, case does not matter)."""
+        return re.fullmatch(fnmatch.translate(self.pattern), name, re.IGNORECASE) is not None
+
+    def is_state(self, diff: int) -> bool:
+        """Whether a difference <diff> (bits that differ from the reset value) is runtime state under this rule."""
+        return not self.mask or not diff & ~self.mask
+
+
+def state_marker(name: str, state: list[Rule]) -> str:
+    """The text --list appends to a register: " state", " state-mask 0xMASK" or nothing."""
+    rule = next((x for x in state if x.matches(name)), None)
+    return "" if rule is None else f" state-mask 0x{rule.mask:X}" if rule.mask else " state"
+
+
+def load_rules(path: Path) -> list[Rule]:
+    """Read the rules file; raises ValueError with the line number on a malformed line."""
+    rules = []
+    for n, line in enumerate(path.read_text().splitlines(), 1):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split(None, 3 if line.startswith("state-mask ") else 2)
+        if len(parts) < 3 or parts[0] not in RULE_KINDS:
+            raise ValueError(f"{path}:{n}: expected '<{'|'.join(RULE_KINDS)}> <pattern> <reason>' "
+                             f"('state-mask <pattern> <mask> <reason>'), got {line!r}")
+        if parts[0] == "state-mask":
+            try:
+                mask = int(parts[2], 0)
+                if len(parts) < 4 or not mask:
+                    raise ValueError
+            except ValueError:
+                raise ValueError(f"{path}:{n}: expected 'state-mask <pattern> <mask, not 0> <reason>', got {line!r}") from None
+            rules.append(Rule(parts[0], parts[1], parts[3], mask))
+        else:
+            rules.append(Rule(*parts))
+    return rules
 
 
 class OpenOcd:
@@ -262,6 +341,10 @@ class Result:
     """Counts of a probe run."""
     failures: int = 0
     skipped: int = 0
+    read_action: int = 0
+    noref: int = 0
+    state: int = 0
+    excluded: int = 0
 
 
 def recover_debug_module(target: OpenOcd) -> str:
@@ -362,7 +445,8 @@ def parse_blocks(specs: list[str]) -> list[tuple[str, int]]:
 
 
 def probe(regs: list[Reg], target: OpenOcd, blocks: list[tuple[str, int]], keep_going: bool = False,
-          max_failures: int = 3, result: Result | None = None) -> Result:
+          max_failures: int = 3, read_destructive: bool = False, state: list[Rule] | None = None,
+          result: Result | None = None) -> Result:
     """Read and compare all <regs>; print one line each and return the counts.
 
     The counts go into <result> if one is given, so that the caller still has them when the run ends in an exception.
@@ -371,18 +455,30 @@ def probe(regs: list[Reg], target: OpenOcd, blocks: list[tuple[str, int]], keep_
     unreadable register of a peripheral the rest of it is skipped (one line), unless
     <keep_going>. Raises Hung if OpenOCD stops answering, Dead if the connection is
     lost and TooManyFailures after <max_failures> unreadable registers in a row
-    (0: never).
+    (0: never). A register with a readAction is not read (one line) unless
+    <read_destructive>: the read would consume data or clear status. A register
+    that matches one of the <state> rules and differs from its reset value is
+    reported as "state", not as "mismatch".
     """
     result = result if result is not None else Result()
     dead: dict[str, int] = {}
     in_a_row = 0
-    chunks: list[list[Reg]] = []
+    chunks: list[Reg | list[Reg]] = []  # a register that is not read, or registers of one peripheral to read
     for r in regs:
-        if chunks and chunks[-1][0].name.split(".")[0] == r.name.split(".")[0]:
+        if r.read_action and not read_destructive:
+            chunks.append(r)
+        elif chunks and isinstance(chunks[-1], list) and chunks[-1][0].name.split(".")[0] == r.name.split(".")[0]:
             chunks[-1].append(r)
         else:
             chunks.append([r])
     for chunk in chunks:
+        if isinstance(chunk, Reg):
+            if chunk.name.split(".")[0] in dead:
+                dead[chunk.name.split(".")[0]] += 1
+            else:
+                print(f"skipped (readAction)  0x{chunk.address:08X} {chunk.name} (readAction {chunk.read_action}; --read-destructive reads it)")
+                result.read_action += 1
+            continue
         name = chunk[0].name.split(".")[0]
         for run in runs(chunk, block_limit(name, blocks)):
             if name in dead:
@@ -402,11 +498,23 @@ def probe(regs: list[Reg], target: OpenOcd, blocks: list[tuple[str, int]], keep_
                                               f"0x{r.address:08X} ({r.name}): {value}")
                     continue
                 in_a_row = 0
-                if (value ^ r.reset) & r.mask:
-                    print(f"mismatch    0x{r.address:08X} {r.name} read 0x{value:X}, expected 0x{r.reset:X} (mask 0x{r.mask:X})")
-                    result.failures += 1
+                w = r.size // 4  # hex digits of the register
+                diff = 0 if r.reset is None else (value ^ r.reset) & r.mask
+                rule = next((x for x in state or [] if x.matches(r.name)), None) if diff else None
+                if r.reset is None or r.mask == 0:
+                    why = "no resetValue" if r.reset is None else "resetMask is 0"
+                    print(f"noref       0x{r.address:08X} {r.name} = 0x{value:0{w}X} ({why})")
+                    result.noref += 1
+                elif not diff:
+                    print(f"ok          0x{r.address:08X} {r.name} = 0x{value:0{w}X}")
+                elif rule and rule.is_state(diff):
+                    live = f" (bits 0x{rule.mask:X} are live)" if rule.mask else ""
+                    print(f"state       0x{r.address:08X} {r.name} = 0x{value:0{w}X}, reset 0x{r.reset:0{w}X} "
+                          f"(mask 0x{r.mask:0{w}X}); {rule.reason}{live}")
+                    result.state += 1
                 else:
-                    print(f"ok          0x{r.address:08X} {r.name}")
+                    print(f"mismatch    0x{r.address:08X} {r.name} = 0x{value:0{w}X}, expected 0x{r.reset:0{w}X} (mask 0x{r.mask:0{w}X})")
+                    result.failures += 1
     for name, n in dead.items():
         if n:
             print(f"skipped     {name}: {n} more register(s) after the first unreadable one")
@@ -487,7 +595,8 @@ def resume_after_interrupt(target: OpenOcd) -> str:
 
 def main(argv: list[str]) -> int:
     """Command line entry point; returns the exit code."""
-    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0], formatter_class=argparse.RawDescriptionHelpFormatter,
+                                 epilog=__doc__[__doc__.index("Reads the registers"):])
     ap.add_argument("peripherals", nargs="*", metavar="PERIPHERAL", help="peripherals to read (default: all)")
     ap.add_argument("--all", action="store_true", help="read all peripherals (the default without PERIPHERAL)")
     ap.add_argument("--svd", type=Path, default=ROOT / "build" / "svd" / "PolarfireSoC.svd",
@@ -507,6 +616,16 @@ def main(argv: list[str]) -> int:
                     help="read the rest of a peripheral after an unreadable register (default: skip it)")
     ap.add_argument("--skip", action="append", default=[], metavar="PERIPHERAL[,PERIPHERAL...]",
                     help="do not read these peripherals (repeatable)")
+    ap.add_argument("--include", action="append", default=[], metavar="PATTERN[,PATTERN...]",
+                    help="in a whole-device run also read the peripherals that match PATTERN (* and ?) and that the rules file "
+                         "excludes (repeatable); a peripheral named on the command line is read without it")
+    ap.add_argument("--skip-file", type=Path, default=RULES, metavar="FILE",
+                    help="rules file with the excluded blocks and the registers that hold state (default: %(default)s)")
+    ap.add_argument("--compare-state", action="store_true",
+                    help="report the registers that the rules file marks as state as mismatch, too")
+    ap.add_argument("--read-destructive", action="store_true",
+                    help="also read the registers that have a readAction in the SVD (FIFOs, PLIC claim/complete, "
+                         "clear-on-read status). WARNING: the reads consume received data and clear status flags")
     ap.add_argument("--enable-clocks", action="store_true",
                     help="before reading, turn on all MSS peripheral clocks and release all peripheral resets "
                          "(SYSREG.SUBBLK_CLOCK_CR = 0xFFFFFFFF, SYSREG.SOFT_RESET_CR = 0). A peripheral with its clock off "
@@ -525,10 +644,54 @@ def main(argv: list[str]) -> int:
     if unknown:
         print(f"svd_probe: no peripheral {', '.join(sorted(unknown))} in the SVD", file=sys.stderr)
         return 2
-    regs = [r for p in names if p not in skip for r in peripheral_registers(root, p)]
+    try:
+        rules = load_rules(args.skip_file)
+    except (OSError, ValueError) as e:
+        print(f"svd_probe: {e}", file=sys.stderr)
+        return 2
+    include = [x for arg in args.include for x in arg.split(",") if x]
+    for pattern in include:
+        if not fnmatch.filter([p.findtext("name") for p in root.iter("peripheral")], pattern):
+            print(f"svd_probe: --include {pattern}: no such peripheral in the SVD", file=sys.stderr)
+            return 2
+    explicit = set() if args.all else set(args.peripherals)  # named on the command line: not subject to the default skip
+    regs, excluded = [], []
+    for p in names:
+        if p in skip:
+            continue
+        rule = next((x for x in rules if x.matches(p) and (x.kind == "skip" or (x.kind == "skip-enable-clocks" and args.enable_clocks)
+                                                          or (x.kind == "skip-no-clocks" and not args.enable_clocks))), None)
+        if rule and p in explicit:
+            print(f"svd_probe: {p} is on the default skip list ({rule.reason}); reading it because it is named on the "
+                  "command line", file=sys.stderr)
+            regs += peripheral_registers(root, p)
+        elif rule and not any(fnmatch.fnmatchcase(p, pattern) for pattern in include):
+            excluded.append((p, rule, len(peripheral_registers(root, p))))
+        else:
+            regs += peripheral_registers(root, p)
+    state_rules = [] if args.compare_state else [
+        x for x in rules if x.kind in ("state", "state-mask") or (x.kind == "state-enable-clocks" and args.enable_clocks)]
+    # one line per rule, on stderr with --list, which prints the registers on stdout
+    for rule in dict.fromkeys(rule for _, rule, _ in excluded):
+        hit = [(p, count) for p, r, count in excluded if r is rule]
+        total = sum(count for _, count in hit)
+        if len(hit) == 1:
+            what, read = hit[0][0], f"--include {hit[0][0]} reads it"
+        else:
+            what, read = rule.pattern, f"--include '{rule.pattern}' reads them"
+            what += " (" + ", ".join(p for p, _ in hit[:3]) + (", ..." if len(hit) > 3 else "") + ")"
+        print(f"skipped     {what}: {rule.reason} ({len(hit)} block(s), {total} register(s); {read})",
+              file=sys.stderr if args.list else sys.stdout)
+    if args.read_destructive and not args.list:
+        n = sum(1 for r in regs if r.read_action)
+        print(f"svd_probe: WARNING: --read-destructive: {n} register(s) have a read side effect (data is consumed, status "
+              "is cleared); the board state is changed by this run", file=sys.stderr)
     if args.list:
         for r in regs:
-            print(f"0x{r.address:08X} {r.size:2} {r.name} reset 0x{r.reset:X} mask 0x{r.mask:X}")
+            reset = "none" if r.reset is None else f"0x{r.reset:X}"
+            print(f"0x{r.address:08X} {r.size:2} {r.name} reset {reset} mask 0x{r.mask:X}"
+                  + (f" readAction {r.read_action}" if r.read_action else "")
+                  + state_marker(r.name, state_rules))
         return 0
     try:
         blocks = parse_blocks(args.block)
@@ -556,7 +719,8 @@ def main(argv: list[str]) -> int:
         target.command("riscv set_prefer_sba off")
         if args.enable_clocks:
             enable_clocks(root, target)
-        probe(regs, target, blocks, args.keep_going, args.max_failures, result)
+        probe(regs, target, blocks, args.keep_going, args.max_failures, args.read_destructive, state_rules, result)
+        result.excluded = sum(count for _, _, count in excluded)
     except Hung as e:
         keep_halted = e.stuck
         abort = str(e) if e.stuck else f"{e}; the bus is probably hung, reset the board; try --enable-clocks or --skip"
@@ -601,7 +765,8 @@ def main(argv: list[str]) -> int:
         print(f"svd_probe: {problem}", file=sys.stderr)
     if abort or problem:
         return 2
-    print(f"svd_probe: {len(regs)} register(s), {result.failures} not ok, {result.skipped} skipped")
+    print(f"svd_probe: {len(regs)} register(s), {result.failures} not ok, {result.skipped} skipped, "
+          f"{result.read_action} readAction, {result.noref} noref, {result.state} state, {result.excluded} excluded")
     return 1 if result.failures else 0
 
 

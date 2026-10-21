@@ -6,7 +6,7 @@
 | File | Content |
 |---|---|
 | `toolchain.env`, `mpfs-env.sh` | Pinned tool versions and the environment resolving them (including svd2ada, built from source into `$MPFS_TOOLS_PREFIX/svd2ada-<commit>`). `./x toolchain install` installs everything, `install svdtools` only svdtools, `install svd2ada` only svd2ada, `install pac` what `./x pac check` needs (the pinned gprbuild and GNAT toolchains, alr if missing, the python environment, svdtools and svd2ada; no gnatprove, no adalang_analyzer). |
-| `svd.py` | `./x svd merge\|check`. |
+| `svd.py` | `./x svd merge\|check`. (`./x svd probe` is `hw/svd_probe.py`, see `hw/README.md`: a whole-device run skips the blocks of `hw/svd_probe.list`, `./x svd probe ENVM` reads a named block; Ctrl+C stops it at once with exit status 130, and the hart may stay halted.) |
 | `pac.sh`, `pac_gen.py` | `./x pac generate\|check`: svd2ada run and post-processing of the register package. |
 | `headers.py` | SPDX header and provenance check. |
 | `metrics.sh` | `./x metrics verify\|bless`: size, entry point, `e_flags` and `Tag_RISCV_arch` of every built image against `metrics.golden` in the repository root (rows keyed on image and compiler: the `GNAT Version:` string of the binder, `__gnat_version`, if the image has one, else the `.comment` string of the linker, which is all a bare image has). |

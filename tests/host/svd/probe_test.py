@@ -494,12 +494,292 @@ def test_block(tmp: Path) -> None:
     check("block: --block 0 is refused", r.returncode != 0 and "--block 0" in r.stderr, r.stderr)
 
 
+def test_read_action(tmp: Path) -> None:
+    """Registers with a readAction are not read unless --read-destructive says so."""
+    field = "<fields><field><name>F</name><readAction>clear</readAction></field></fields>"
+    svd = make_svd(tmp, {"P1@0x1000": [reg("R0", 0), reg("R1", 4, extra=field), reg("R2", 8, extra="<readAction>modifyExternal</readAction>"),
+                                       reg("R3", 12), reg("R4", 16, extra="<readAction>none</readAction>")]})
+    stub = Stub()
+    r = run(svd, stub)
+    lines = [line for line in r.stdout.splitlines() if line.startswith("skipped (readAction)")]
+    check("readAction: registers with a readAction (register or field level) are not read",
+          stub.commands("md") == ["mdw 0x1000 1", "mdw 0x100C 2"], str(stub.commands("md")))
+    check("readAction: each gets its own status line", len(lines) == 2 and "P1.R1" in lines[0] and "P1.R2" in lines[1], r.stdout)
+    check("readAction: the status lines sit between the others, in address order",
+          [l.split()[2] if l.startswith("ok") else "S" for l in r.stdout.splitlines()[:5]] == ["P1.R0", "S", "S", "P1.R3", "P1.R4"],
+          r.stdout)
+    check("readAction: skipped registers are no failure and are counted apart",
+          r.returncode == 0 and "2 readAction" in r.stdout and "0 not ok" in r.stdout and "0 skipped," in r.stdout, f"{r.returncode} {r.stdout!r}")
+    stub.close()
+    stub = Stub()
+    r = run(svd, stub, "--read-destructive")
+    check("readAction: --read-destructive reads them, in one block", stub.commands("md") == ["mdw 0x1000 5"], str(stub.commands("md")))
+    check("readAction: --read-destructive warns", "WARNING" in r.stderr and "2 register(s)" in r.stderr, r.stderr)
+    check("readAction: --read-destructive leaves no status line for them", "readAction)" not in r.stdout, r.stdout)
+    stub.close()
+    r = run(svd, None, "--list")
+    check("readAction: --list shows the readAction", r.stdout.count("readAction clear") == 1 and r.stdout.count("readAction modifyExternal") == 1, r.stdout)
+    if REAL_SVD.is_file():
+        r = run(REAL_SVD, None, "--list", "--include", "CAN_A_LO")
+        names = {line.split()[2] for line in r.stdout.splitlines() if "readAction" in line}
+        want = {"PLIC.CLAIM_COMPLETE_H0_M", "MMUART0_LO.RBR", "SPI_A_LO.RX_DATA", "CAN_A_LO.RX_MSG0_DATA_LOW", "USB.FIFO[0]",
+                "QSPIXIP.ReceiveData", "SCB_REGS.MESSAGE", "USB.USB_IRQ", "USB.DMA_INTR"}
+        check("readAction: the merged SVD marks the known destructive registers", want <= names, str(sorted(want - names)))
+
+
+def test_noref(tmp: Path) -> None:
+    """A register without reference value is reported as noref, not as mismatch."""
+    svd = make_svd(tmp, {"P1@0x1000": [reg("NORESET", 0, reset=None), reg("NOMASK", 4, reset=5, mask=0), reg("OK", 8, reset=0),
+                                       reg("BAD", 12, reset=1), reg("PARTIAL", 16, reset=0x10, mask=0xF0)]})
+    stub = Stub(mem={0x1000: 0x77, 0x1004: 9, 0x100C: 0, 0x1010: 0x1F})
+    r = run(svd, stub)
+    check("noref: no resetValue gives noref with the value read", "noref       0x00001000 P1.NORESET = 0x00000077 (no resetValue)" in r.stdout, r.stdout)
+    check("noref: a resetMask of 0 gives noref", "noref       0x00001004 P1.NOMASK = 0x00000009 (resetMask is 0)" in r.stdout, r.stdout)
+    check("noref: a missing resetValue is not 0", "mismatch    0x00001000" not in r.stdout and "mismatch    0x00001004" not in r.stdout, r.stdout)
+    check("noref: real mismatches and the mask still count", kinds(r.stdout) == ["noref", "noref", "ok", "mismatch", "ok"], r.stdout)
+    check("noref: counted apart, only the mismatch fails", r.returncode == 1 and "1 not ok" in r.stdout and "2 noref" in r.stdout, f"{r.returncode} {r.stdout!r}")
+    stub.close()
+    svd = make_svd(tmp, {"P1@0x1000": [reg("NORESET", 0, reset=None)]})
+    stub = Stub(mem={0x1000: 3})
+    r = run(svd, stub)
+    check("noref: alone it is no failure", r.returncode == 0, f"{r.returncode} {r.stdout!r}")
+    stub.close()
+    r = run(svd, None, "--list")
+    check("noref: --list shows that there is no reset value", "reset none" in r.stdout, r.stdout)
+    if REAL_SVD.is_file():
+        r = run(REAL_SVD, None, "--list", "CLINT", "USB")
+        check("noref: the merged SVD has no reference for CLINT MTIME and the USB registers",
+              "CLINT.MTIME reset none" in r.stdout and "USB.USB_IRQ reset none" in r.stdout, r.stdout[:300])
+
+
+def test_state(tmp: Path) -> None:
+    """Registers that hold runtime state are reported as state, unless --compare-state says otherwise."""
+    rules = tmp / "rules.list"
+    rules.write_text("# test rules\nstate P1.*STATUS* status register\nstate p1.TX_MSG* message RAM, case does not matter\n"
+                     "state-enable-clocks SYSREG.SUBBLK_CLOCK_CR written by the tool\n")
+    svd = make_svd(tmp, {"P1@0x1000": [reg("A_STATUS", 0), reg("TX_MSG0", 4), reg("PLAIN", 8), reg("B_STATUS", 12)],
+                         "SYSREG@0x2000": [reg("SUBBLK_CLOCK_CR", 0, reset=1), reg("SOFT_RESET_CR", 4, reset=0xFF)]})
+    mem = {0x1000: 5, 0x1004: 6, 0x1008: 7, 0x100C: 0, 0x2000: 0xFFFFFFFF, 0x2004: 0}
+    stub = Stub(mem=mem)
+    r = run(svd, stub, "--skip-file", str(rules), "P1")
+    check("state: a differing register that matches a rule is state, others are mismatch",
+          kinds(r.stdout) == ["state", "state", "mismatch", "ok"], r.stdout)
+    check("state: the reason is shown", "status register" in r.stdout and "message RAM" in r.stdout, r.stdout)
+    check("state: only the mismatch fails; state is counted apart", r.returncode == 1 and "1 not ok" in r.stdout and "2 state" in r.stdout,
+          f"{r.returncode} {r.stdout!r}")
+    check("state: a register that has its reset value is ok, even if it matches a rule", "ok          0x0000100C P1.B_STATUS = 0x00000000" in r.stdout, r.stdout)
+    check("state: the state and mismatch lines show the value read, as wide as the register",
+          "state       0x00001000 P1.A_STATUS = 0x00000005, reset 0x00000000 (mask 0xFFFFFFFF); status register" in r.stdout
+          and "mismatch    0x00001008 P1.PLAIN = 0x00000007, expected 0x00000000 (mask 0xFFFFFFFF)" in r.stdout, r.stdout)
+    stub.close()
+    stub = Stub(mem={0x1000: 5, 0x1004: 6, 0x1008: 0, 0x100C: 0})
+    r = run(svd, stub, "--skip-file", str(rules), "P1")
+    check("state: with state only the run succeeds", r.returncode == 0 and "2 state" in r.stdout, f"{r.returncode} {r.stdout!r}")
+    stub.close()
+    stub = Stub(mem={0x1000: 5, 0x1004: 6, 0x1008: 0, 0x100C: 0})
+    r = run(svd, stub, "--skip-file", str(rules), "--compare-state", "P1")
+    check("state: --compare-state reports them as mismatch", r.returncode == 1 and kinds(r.stdout) == ["mismatch", "mismatch", "ok", "ok"], f"{r.returncode} {r.stdout!r}")
+    stub.close()
+    stub = Stub(mem=mem)
+    r = run(svd, stub, "--skip-file", str(rules), "SYSREG")
+    check("state: a state-enable-clocks rule does not apply without --enable-clocks", kinds(r.stdout) == ["mismatch", "mismatch"], r.stdout)
+    stub.close()
+    stub = Stub(mem=mem)
+    r = run(svd, stub, "--skip-file", str(rules), "--enable-clocks", "SYSREG")
+    check("state: with --enable-clocks the registers the tool wrote are state", kinds(r.stdout) == ["state", "mismatch"], r.stdout)
+    stub.close()
+    # state-mask: only the live bits are state, a difference elsewhere is a mismatch
+    mrules = tmp / "mask.list"
+    mrules.write_text("state-mask M.PINS 0x00FF0000 bits 23-16 are the pin levels\nstate-mask M.HANDSHAKE 0x0C000000 live handshake\n")
+    (tmp / "m").mkdir()
+    msvd = make_svd(tmp / "m", {"M@0x3000": [reg("PINS", 0, reset=0x800000), reg("HANDSHAKE", 4, reset=1), reg("SAME", 8, reset=0),
+                                      reg("HALF", 12, reset=0, size=16)]})
+    for mem, want, label in (
+            ({0x3000: 0xEF0000, 0x3004: 0xC000001, 0x3008: 0, 0x300C: 0}, ["state", "state", "ok", "ok"], "only live bits differ"),
+            ({0x3000: 0xEF0001, 0x3004: 0xC000001, 0x3008: 0, 0x300C: 0}, ["mismatch", "state", "ok", "ok"], "a bit outside the mask differs too"),
+            ({0x3000: 0x800000, 0x3004: 0x4000003, 0x3008: 0, 0x300C: 0}, ["ok", "mismatch", "ok", "ok"], "a live bit and a bit outside differ"),
+            ({0x3000: 0x800000, 0x3004: 1, 0x3008: 0, 0x300C: 0}, ["ok", "ok", "ok", "ok"], "nothing differs")):
+        stub = Stub(mem=mem)
+        r = run(msvd, stub, "--skip-file", str(mrules))
+        check(f"state-mask: {label}", kinds(r.stdout) == want, f"{kinds(r.stdout)} {r.stdout!r}")
+        stub.close()
+    stub = Stub(mem={0x3000: 0xEF0000, 0x3004: 0xC000001, 0x3008: 0, 0x300C: 0x12})
+    r = run(msvd, stub, "--skip-file", str(mrules))
+    check("state-mask: the live bits are named in the line", "(bits 0xFF0000 are live)" in r.stdout and "live handshake (bits 0xC000000 are live)" in r.stdout, r.stdout)
+    check("state-mask: a 16-bit register shows 4 digits", "mismatch    0x0000300C M.HALF = 0x0012, expected 0x0000 (mask 0xFFFF)" in r.stdout, r.stdout)
+    check("state-mask: the run is a failure only for the mismatch", r.returncode == 1 and "2 state" in r.stdout, f"{r.returncode} {r.stdout!r}")
+    stub.close()
+    stub = Stub(mem={0x3000: 0xEF0000, 0x3004: 0xC000001, 0x3008: 0, 0x300C: 0})
+    r = run(msvd, stub, "--skip-file", str(mrules), "--compare-state")
+    check("state-mask: --compare-state reports them as mismatch", kinds(r.stdout) == ["mismatch", "mismatch", "ok", "ok"], r.stdout)
+    stub.close()
+    r = run(msvd, None, "--skip-file", str(mrules), "--list")
+    check("state-mask: --list shows the mask", "M.PINS reset 0x800000 mask 0xFFFFFFFF state-mask 0xFF0000" in r.stdout and r.stdout.count("state-mask") == 2, r.stdout)
+    for bad_line in ("state-mask M.PINS 0x0 no bits\n", "state-mask M.PINS xyz reason\n", "state-mask M.PINS 0xFF\n"):
+        bad = tmp / "badmask.list"
+        bad.write_text(bad_line)
+        r = run(msvd, None, "--skip-file", str(bad), "--list")
+        check(f"state-mask: {bad_line.strip()!r} is a malformed rule", r.returncode == 2 and "badmask.list:1" in r.stderr, f"{r.returncode} {r.stderr!r}")
+    r = run(svd, None, "--skip-file", str(rules), "--list", "P1")
+    check("state: --list marks them", [line.endswith(" state") for line in r.stdout.splitlines()] == [True, True, False, True], r.stdout)
+    bad = tmp / "bad.list"
+    bad.write_text("state P1.X\n")
+    r = run(svd, None, "--skip-file", str(bad), "--list")
+    check("state: a malformed rules file exits 2 with the line", r.returncode == 2 and "bad.list:1" in r.stderr, f"{r.returncode} {r.stderr!r}")
+    bad.write_text("ignore P1.X because\n")
+    r = run(svd, None, "--skip-file", str(bad), "--list")
+    check("state: an unknown kind exits 2", r.returncode == 2 and "bad.list:1" in r.stderr, f"{r.returncode} {r.stderr!r}")
+    r = run(svd, None, "--skip-file", str(tmp / "none.list"), "--list")
+    check("state: a missing rules file exits 2", r.returncode == 2, f"{r.returncode} {r.stderr!r}")
+    if REAL_SVD.is_file():
+        r = run(REAL_SVD, None, "--list", "--include", "*")
+        marked = {line.split()[2] for line in r.stdout.splitlines() if line.endswith(" state")}
+        masks = {line.split()[2]: line.split()[-1] for line in r.stdout.splitlines() if " state-mask " in line}
+        check("state: the mask rules cover the live bits of QSPIXIP.DirectAccess and CRYPTO.CONFIG",
+              masks == {"QSPIXIP.DirectAccess": "0xFF0000", "CRYPTO.CONFIG": "0xF000000"}, str(masks))
+        want_rules = {"QSPIXIP.DirectAccess", "CRYPTO.CONFIG", "SYSREG.DEVICE_STATUS", "SYSREG.ENVM_CR", "SYSREG.MAINTENANCE_INT_SR",
+                      "SYSREG.DLL_STATUS_SR", "EMMC_SD.SRS04", "EMMC_SD.SRS05", "EMMC_SD.SRS06", "EMMC_SD.SRS07", "EMMC_SD.SRS09",
+                      "CLINT.MSIP0", "CLINT.MSIP4", "WDOG0_LO.WDOG_REFRESH", "DDR_CSR_APB.STAT_DFI_ERROR", "DDR_CSR_APB.CTRLR_INIT_DONE",
+                      "DDR_CSR_APB.CTRLR_READY", "DDR_CSR_APB.INIT_ACK", "DDR_CSR_APB.MTC_ACQ_ERROR_CNT", "DDR_CSR_APB.INIT_CAL_L_R_ACK",
+                      "DDR_CSR_APB.PHY_WRITE_REQUEST_DONE", "DDR_CSR_APB.PHY_READ_REQUEST_DONE", "GEM_A_LO.network_status",
+                      "CFG_DDR_SGMII_PHY.BANK_STATUS", "CFG_DDR_SGMII_PHY.DQDQS_STATUS3"}
+        check("state: the default rules cover the state registers seen at power-on", want_rules <= marked | set(masks), str(sorted(want_rules - marked - set(masks))))
+        check("state: SCB_REGS.BOOT_ROM0..7 need no rule (the SVD has the power-on values)", not marked & {f"SCB_REGS.BOOT_ROM{i}" for i in range(8)}, "")
+        check("state: a control register with STATUS in its name is not state",
+              not marked & {"CFG_DDR_SGMII_PHY.EXPERT_DFI_STATUS_OVERRIDE_TO_SHIM", "SYSREG.PLL_STATUS_INTEN_CR", "SYSREG.DLL_STATUS_CR"}, "")
+        rules_text = (TOOL.parent / "svd_probe.list").read_text()
+        reasons = [line.split(None, 2)[2] for line in rules_text.splitlines() if line and not line.startswith("#") and not line.startswith("state-mask")]
+        reasons += [line.split(None, 3)[3] for line in rules_text.splitlines() if line.startswith("state-mask")]
+        check("state: no rule reason mentions boot software", not [x for x in reasons if "boot software" in x.lower()], str([x for x in reasons if "boot" in x.lower()]))
+        check("state: the three PLIC rules (threshold, enable, priority) say that there is no reset value, and PENDING says its bits follow the sources",
+              rules_text.count("no reset value: device-specific power-up pattern, mostly repeatable (hw/probe_irq.S)") == 3
+              and "state PLIC.PENDING*    bits follow the interrupt sources (source 119 / F2M_1 is set at power-on and cleared by reset halt)" in rules_text, "")
+        want = {"CAN_A_LO.TX_MSG0_ID", "CAN_B_LO.RX_MSG31_DATA_LOW", "CLINT.MTIMECMP0", "CLINT.MTIME", "PLIC.PENDING0", "PLIC.THRESHOLD_H1_M",
+                "PLIC.ENABLE_H0_M2", "PLIC.PRIORITY1", "MMUART0_LO.RBR", "MMUART0_LO.DLR", "MMUART0_LO.THR", "MMUART0_LO.MSR",
+                "SYSREG.PLL_STATUS_SR", "SYSREG.DEVICE_STATUS", "SCB_REGS.DLL0_STAT1", "QSPIXIP.StatusRegister"}
+        check("state: the default rules cover the runtime registers seen on the board", want <= marked, str(sorted(want - marked)))
+        check("state: the default rules leave configuration registers alone",
+              not marked & {"SYSREG.SUBBLK_CLOCK_CR", "SYSREG.SOFT_RESET_CR", "MMUART0_LO.LCR", "WDOG0_LO.WDOG_CONTROL", "SYSREG.PLL_STATUS_INTEN_CR",
+                            "SYSREG.DLL_STATUS_CR", "CFG_DDR_SGMII_PHY.EXPERT_DFI_STATUS_OVERRIDE_TO_SHIM", "DDR_CSR_APB.CFG_ZQINIT_CAL_DURATION"},
+              str(sorted(marked)[:5]))
+        r = run(REAL_SVD, None, "--list", "--enable-clocks", "SYSREG")
+        marked = {line.split()[2] for line in r.stdout.splitlines() if line.endswith(" state")}
+        check("state: --enable-clocks adds the two SYSREG registers it writes", {"SYSREG.SUBBLK_CLOCK_CR", "SYSREG.SOFT_RESET_CR"} <= marked, str(sorted(marked)))
+
+
+def test_skip(tmp: Path) -> None:
+    """Excluded blocks are not read in a whole-device run and say why; --include or naming the block reads them."""
+    rules = tmp / "rules.list"
+    rules.write_text("skip BLK* cannot be probed on this board\nskip OTHER never measured\n")
+    svd = make_svd(tmp, {"P1@0x1000": [reg("R0", 0)], "BLK1@0x2000": [reg("R0", 0), reg("R1", 4)],
+                         "BLK2@0x3000": [reg("R0", 0)], "OTHER@0x4000": [reg("R0", 0)]})
+    stub = Stub()
+    r = run(svd, stub, "--skip-file", str(rules))
+    check("skip: excluded blocks are not read", stub.commands("md") == ["mdw 0x1000 1"], str(stub.commands("md")))
+    check("skip: the reason and the way to read them are printed",
+          "cannot be probed on this board" in r.stdout and "--include 'BLK*'" in r.stdout and "never measured" in r.stdout, r.stdout)
+    check("skip: a rule that matches several blocks gets one line", r.stdout.count("cannot be probed") == 1 and "BLK1, BLK2" in r.stdout, r.stdout)
+    check("skip: the summary counts the excluded registers, which are no failure",
+          r.returncode == 0 and "1 register(s)," in r.stdout and "4 excluded" in r.stdout, f"{r.returncode} {r.stdout!r}")
+    stub.close()
+    stub = Stub()
+    r = run(svd, stub, "--skip-file", str(rules), "BLK1", "P1")
+    check("skip: naming a block overrides the rules, with a note on stderr",
+          sorted(stub.commands("md")) == ["mdw 0x1000 1", "mdw 0x2000 2"] and "BLK1 is on the default skip list" in r.stderr
+          and "cannot be probed on this board" in r.stderr and "BLK2" not in r.stderr, f"{stub.commands('md')} {r.stderr!r}")
+    stub.close()
+    stub = Stub()
+    r = run(svd, stub, "--skip-file", str(rules), "--all")
+    check("skip: --all is a whole-device run, the rules still apply", stub.commands("md") == ["mdw 0x1000 1"] and "on the default skip list" not in r.stderr,
+          f"{stub.commands('md')} {r.stderr!r}")
+    stub.close()
+    r = run(svd, None, "--skip-file", str(rules), "NOPE", "--list")
+    check("skip: a name that matches no peripheral is an error", r.returncode != 0 and "NOPE" in r.stderr and r.stdout == "", f"{r.returncode} {r.stdout!r} {r.stderr!r}")
+    r = run(svd, None, "--skip-file", str(rules), "--skip", "BLK1", "BLK1", "--list")
+    check("skip: --skip still wins over a name on the command line", "BLK1" not in r.stdout, r.stdout)
+    stub = Stub()
+    r = run(svd, stub, "--skip-file", str(rules), "--include", "BLK1")
+    check("skip: --include reads an excluded block, only that one", stub.commands("md") == ["mdw 0x1000 1", "mdw 0x2000 2"],
+          str(stub.commands("md")))
+    stub.close()
+    stub = Stub()
+    r = run(svd, stub, "--skip-file", str(rules), "--include", "BLK*,OTHER")
+    check("skip: --include takes patterns and lists", stub.commands("md") == ["mdw 0x1000 1", "mdw 0x2000 2", "mdw 0x3000 1", "mdw 0x4000 1"],
+          str(stub.commands("md")))
+    stub.close()
+    r = run(svd, None, "--skip-file", str(rules), "--include", "NOPE", "--list")
+    check("skip: --include of a name that does not exist exits 2", r.returncode == 2 and "NOPE" in r.stderr, f"{r.returncode} {r.stderr!r}")
+    r = run(svd, None, "--skip-file", str(rules), "--list")
+    check("skip: --list leaves the excluded registers out and names them on stderr",
+          "BLK" not in r.stdout and "P1.R0" in r.stdout and "never measured" in r.stderr, f"{r.stdout!r} {r.stderr!r}")
+    r = run(svd, None, "--skip-file", str(rules), "--skip", "P1,BLK1", "--list")
+    check("skip: --skip still works beside the rules file", "P1.R0" not in r.stdout and "BLK1" not in r.stdout, r.stdout)
+    # a skip-enable-clocks rule applies only with --enable-clocks
+    crules = tmp / "clk.list"
+    crules.write_text("skip-enable-clocks BLK* stalls after the clock writes\n")
+    (tmp / "c").mkdir()
+    svd_c = make_svd(tmp / "c", {"P1@0x1000": [reg("R0", 0)], "BLK1@0x2000": [reg("R0", 0)],
+                                  "SYSREG@0x3000": [reg("SUBBLK_CLOCK_CR", 0x84), reg("SOFT_RESET_CR", 0x88)]})
+    stub = Stub()
+    run(svd_c, stub, "--skip-file", str(crules))
+    check("skip: a skip-enable-clocks rule does not apply without --enable-clocks", "mdw 0x2000 1" in stub.commands("md"), str(stub.commands("md")))
+    stub.close()
+    stub = Stub()
+    r = run(svd_c, stub, "--skip-file", str(crules), "--enable-clocks")
+    check("skip: with --enable-clocks it excludes the block and says why",
+          "mdw 0x2000 1" not in stub.commands("md") and "stalls after the clock writes" in r.stdout, f"{stub.commands('md')} {r.stdout!r} {r.stderr!r}")
+    stub.close()
+    # a skip-no-clocks rule applies only without --enable-clocks (the block hangs the bus while its clock is off)
+    nrules = tmp / "noclk.list"
+    nrules.write_text("skip-no-clocks BLK* hangs the bus without its clock\n")
+    stub = Stub()
+    r = run(svd_c, stub, "--skip-file", str(nrules))
+    check("skip: a skip-no-clocks rule excludes the block without --enable-clocks and says why",
+          "mdw 0x2000 1" not in stub.commands("md") and "hangs the bus without its clock" in r.stdout, f"{stub.commands('md')} {r.stdout!r}")
+    stub.close()
+    stub = Stub()
+    run(svd_c, stub, "--skip-file", str(nrules), "--enable-clocks")
+    check("skip: a skip-no-clocks rule does not apply with --enable-clocks", "mdw 0x2000 1" in stub.commands("md"), str(stub.commands("md")))
+    stub.close()
+    if REAL_SVD.is_file():
+        r = run(REAL_SVD, None, "--list")
+        shown = {line.split()[2].split(".")[0] for line in r.stdout.splitlines()}
+        gone = {"ATHENA", "TRACE", "IOSCBCFG", "ENVM", "CAN_A_HI", "MMUART0_HI", "GEM_B_HI", "CAN_B_HI"}
+        check("skip: by default ATHENA, TRACE, IOSCBCFG, ENVM and the _HI aliases are left out, the _LO CAN blocks are read",
+              not shown & gone and {"MMUART0_LO", "GEM_A_LO", "CAN_A_LO", "CAN_B_LO"} <= shown,
+              str(sorted(shown & gone)))
+        check("skip: the reasons are printed", "not an S device" in r.stderr and "never measured" in r.stderr and "--include ATHENA" in r.stderr, r.stderr)
+        r = run(REAL_SVD, None, "--list", "--include", "ATHENA,*_HI,ENVM")
+        shown = {line.split()[2].split(".")[0] for line in r.stdout.splitlines()}
+        check("skip: --include reads them", {"ATHENA", "ENVM", "CAN_A_HI", "MMUART0_HI"} <= shown and "TRACE" not in shown, str(sorted(shown)[:6]))
+        r = run(REAL_SVD, None, "--list", "--enable-clocks")
+        shown = {line.split()[2].split(".")[0] for line in r.stdout.splitlines()}
+        check("skip: with --enable-clocks the CAN blocks are left out, and their aliases",
+              not shown & {"CAN_A_LO", "CAN_B_LO", "CAN_A_HI", "CAN_B_HI"} and "MMUART0_LO" in shown, str(sorted(shown)[:6]))
+        check("skip: the CAN reason names the stall, what happens without --enable-clocks and the way to read the block",
+              "stalled the debug module" in r.stderr and "without --enable-clocks the block reads 0" in r.stderr
+              and "--include 'CAN_?_*' reads them" in r.stderr and "boot software" not in r.stderr, r.stderr)
+        r = run(REAL_SVD, None, "--list", "--enable-clocks", "--include", "CAN_A_LO")
+        shown = {line.split()[2].split(".")[0] for line in r.stdout.splitlines()}
+        check("skip: --include CAN_A_LO reads that block only, also with --enable-clocks",
+              "CAN_A_LO" in shown and not shown & {"CAN_B_LO", "CAN_A_HI"}, str(sorted(shown)[:6]))
+        r = run(REAL_SVD, None, "--list", "--enable-clocks", "CAN_B_LO")
+        shown = {line.split()[2].split(".")[0] for line in r.stdout.splitlines()}
+        check("skip: naming CAN_B_LO reads it with --enable-clocks, with the reason on stderr",
+              shown == {"CAN_B_LO"} and "CAN_B_LO is on the default skip list" in r.stderr and "stalled the debug module" in r.stderr, f"{sorted(shown)[:3]} {r.stderr!r}")
+        r = run(REAL_SVD, None, "--list", "CAN_B_LO")
+        check("skip: naming CAN_B_LO without --enable-clocks gives no note", "default skip list" not in r.stderr, r.stderr)
+        r = run(REAL_SVD, None, "--list", "ENVM")
+        shown = {line.split()[2].split(".")[0] for line in r.stdout.splitlines()}
+        check("skip: ./x svd probe ENVM reads the block without --include", shown == {"ENVM"} and "ENVM is on the default skip list" in r.stderr, f"{sorted(shown)[:4]} {r.stderr!r}")
+
+
 def main() -> int:
     """Run all cases."""
     if not TOOL.is_file():
         print(f"probe_test: {TOOL} not found", file=sys.stderr)
         return 2
-    for case in (test_dead_connection, test_hang, test_noise, test_halt, test_resume, test_interrupt, test_failures, test_block):
+    for case in (test_dead_connection, test_hang, test_noise, test_halt, test_resume, test_interrupt, test_failures, test_block, test_read_action, test_noref, test_state, test_skip):
         with tempfile.TemporaryDirectory() as d:
             case(Path(d))
     print(f"summary: {failures} failure(s)")

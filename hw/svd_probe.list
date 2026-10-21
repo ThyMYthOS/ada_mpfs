@@ -1,0 +1,110 @@
+# Registers and blocks that hw/svd_probe.py does not take at face value. One rule per line:
+#
+#   <kind> <pattern> <reason>
+#   state-mask <pattern> <mask> <reason>
+#
+# kind     skip                 do not read the peripheral at all; --include PATTERN reads it
+#          state                a difference to the reset value is reported as "state", not as "mismatch":
+#                               the register holds runtime state, status or RAM, which only has its reset
+#                               value after a reset-halt; --compare-state reports it as mismatch again
+#          state-mask           like state, but only for the bits in <mask> (the live bits of the register);
+#                               a difference in the other bits is a mismatch
+#          skip-enable-clocks   like skip, but only with --enable-clocks
+#          skip-no-clocks       like skip, but only without --enable-clocks (the block hangs the bus while its clock is off)
+#          state-enable-clocks  like state, but only with --enable-clocks (the registers hold what it wrote)
+# pattern  skip: peripheral name; the others: PERIPHERAL.REGISTER; * and ? match any text, case does not matter
+# mask     a number (0x...); the bits that are live
+# reason   the rest of the line, shown in the report
+#
+# The first rule that matches a register or a block applies.
+# The probes run in boot mode 0 (power-on, the hart halted by the tool, no software has run), so every
+# register is expected to have its reset value; a reason says why one cannot be compared.
+# --skip-file FILE uses another file in place of this one.
+
+# Blocks that cannot be probed on the Icicle Kit (MPFS250T), or that were never measured.
+skip ATHENA    The Icicle Kit chip is not an S device: an access to the Athena block resets the OpenOCD connection
+skip TRACE     never measured on hardware
+skip IOSCBCFG  never measured on hardware
+skip ENVM      not measured separately yet
+skip-enable-clocks CAN_?_*   the first access after --enable-clocks stalled the debug module at power-on (not yet understood); without --enable-clocks the block reads 0; use --include CAN_A_LO
+skip-no-clocks EMMC_SD      without --enable-clocks the first access hangs the debug module (the clock is off); use --enable-clocks or --include EMMC_SD
+skip-no-clocks DDR_CSR_APB  without --enable-clocks the first access hangs the debug module (the clock is off); use --enable-clocks or --include DDR_CSR_APB
+skip *_HI      alias of the _LO block at the upper address range, not measured separately yet
+
+# CAN message RAM: undefined until a message is written.
+state CAN_*.TX_MSG*   CAN message RAM, undefined at reset
+state CAN_*.RX_MSG*   CAN message RAM, undefined at reset
+
+# Free-running counter, compare and software-interrupt registers of the CLINT.
+state CLINT.MTIME     free-running counter
+state CLINT.MTIMECMP* compare register, no hardware reset
+state CLINT.MSIP*     software-interrupt pending flag of a hart, runtime state
+
+# PLIC. PENDING has the reset value 0, but its bits follow the interrupt sources. THRESHOLD, ENABLE and PRIORITY have no
+# reset value in the SVD (a device-specific power-up pattern, hw/probe_irq.S), so the probe reports them as noref.
+state PLIC.PENDING*    bits follow the interrupt sources (source 119 / F2M_1 is set at power-on and cleared by reset halt)
+state PLIC.THRESHOLD_* no reset value: device-specific power-up pattern, mostly repeatable (hw/probe_irq.S)
+state PLIC.ENABLE_*    no reset value: device-specific power-up pattern, mostly repeatable (hw/probe_irq.S)
+state PLIC.PRIORITY*   no reset value: device-specific power-up pattern, mostly repeatable (hw/probe_irq.S)
+
+# MMUART data and modem registers.
+state MMUART*.RBR      receive data, depends on traffic
+state MMUART*.THR      alias of RBR while DLAB=0, of DLL with DLAB=1 (a read pops the receive FIFO)
+state MMUART*.DLR      alias of RBR while DLAB=0; reads DLL only with DLAB=1
+state MMUART*.MSR      modem state, depends on the wiring
+
+# Live pins and handshakes inside a register that is otherwise configuration.
+state-mask QSPIXIP.DirectAccess 0x00FF0000 bits 23-16 are the live levels of the pins
+state-mask CRYPTO.CONFIG        0x0F000000 bits 27-24 include a live handshake with the fabric (bits 26 and 27 were seen set)
+
+# Single registers whose value is runtime state or differs from run to run.
+state SYSREG.DEVICE_STATUS       status
+state SYSREG.ENVM_CR             differs between runs, no fixed reset value
+state SYSREG.MAINTENANCE_INT_SR  status
+state SYSREG.DLL_STATUS_SR       status
+state WDOG0_LO.WDOG_REFRESH      runtime state of the watchdog, observed with different values
+state EMMC_SD.SRS04              SD host response and present state, live values
+state EMMC_SD.SRS05              SD host response and present state, live values
+state EMMC_SD.SRS06              SD host response and present state, live values
+state EMMC_SD.SRS07              SD host response and present state, live values
+state EMMC_SD.SRS09              SD host response and present state, live values
+
+# DDR controller status and handshake registers (set by the controller and the PHY, not by software).
+state DDR_CSR_APB.STAT_*          DDR controller status
+state DDR_CSR_APB.*_DONE          DDR handshake or status
+state DDR_CSR_APB.*_READY         DDR handshake or status
+state DDR_CSR_APB.*_ACK           DDR handshake or status
+state DDR_CSR_APB.*_ERROR_CNT*    DDR error counter
+state DDR_CSR_APB.INIT_CAL_*      DDR calibration handshake
+state DDR_CSR_APB.*_STATUS        DDR status
+
+# Status registers, by exact name. A control register that only has STATUS in its name
+# (SYSREG.PLL_STATUS_INTEN_CR, SYSREG.DLL_STATUS_CR, CFG_DDR_SGMII_PHY.EXPERT_DFI_STATUS_OVERRIDE_TO_SHIM) is not one.
+state CFG_DDR_SGMII_PHY.BANK_STATUS      status
+state CFG_DDR_SGMII_PHY.TRAINING_STATUS  status
+state CFG_DDR_SGMII_PHY.ADDCMD_STATUS?   status
+state CFG_DDR_SGMII_PHY.DQDQS_STATUS?    status
+state WDOG?_*.WDOG_STATUS               status
+state SPI_?_*.STATUS                    status
+state SPI_?_*.HWSTATUS                  status
+state I2C_?_*.I2C0_STATUS               status
+state CAN_?_*.INT_STATUS                status
+state CAN_?_*.ERROR_STATUS              status
+state CAN_?_*.RX_BUF_STATUS             status
+state CAN_?_*.TX_BUF_STATUS             status
+state H2FINT_*.H2FSTATUS                status
+state H2FINT_*.PLSTATUS?                status
+state IOSCBCFG.STATUS                    status
+state MPUCFG.STATUS_*                    status
+state SCB_REGS.AXI_STATUS                status
+state SCB_REGS.MSS_STATUS                status
+state TRACE.VCON_*STATUS                 status
+state QSPIXIP.StatusRegister             status
+state GEM_?_*.*status                    status (the registers are named *_status)
+state *.*_SR           status
+state *.*_STAT         status
+state *.*_STAT[0-9]*   status
+
+# Written by --enable-clocks.
+state-enable-clocks SYSREG.SUBBLK_CLOCK_CR  written by --enable-clocks
+state-enable-clocks SYSREG.SOFT_RESET_CR    written by --enable-clocks
