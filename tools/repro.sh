@@ -104,7 +104,12 @@ for t in "${dirs[@]}"; do
   n=$((n + 1))
   for p in "${pairs[@]}"; do
     log="$work/build-$n-${p%:*}-${p#*:}.log"
-    if ! ( cd "$t" && bash ./x build "${p%:*}" --hart "${p#*:}" ) >"$log" 2>&1; then
+    # A pair's hart is a hart class (e51, u54) or u54-h<N>, the U54 image of hart N (--harts N).
+    case "${p#*:}" in
+      u54-h[234]) hopts=(--hart u54 --harts "${p#*:u54-h}") ;;
+      *)          hopts=(--hart "${p#*:}") ;;
+    esac
+    if ! ( cd "$t" && bash ./x build "${p%:*}" "${hopts[@]}" ) >"$log" 2>&1; then
       echo "FAIL: build of ${p%:*} (${p#*:}) in $t failed; see $log" >&2
       tail -n 20 "$log" >&2
       fails=$((fails + 1))
