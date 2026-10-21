@@ -1,0 +1,13 @@
+# analyze.list -- the projects `./x analyze` analyses. Read by tools/analyze.sh.
+# Edit by hand. One row per project, TAB-separated, three fields:
+#
+#   name     the name of the project in the baselines (analyzer-baselines/<name>.baseline
+#            and <name>.style.baseline) and the argument of `./x analyze <name>`
+#   project  GNAT project file, relative to the repository root
+#   args     further adalang_analyzer arguments (scenario variables as -XNAME=value,
+#            for instance), or "-" for none
+#
+# The baselines of a project are written with `./x analyze --update-baseline`;
+# without them the project fails.
+name	project	args
+mpfs_pac	libs/mpfs_pac/mpfs_pac.gpr	-

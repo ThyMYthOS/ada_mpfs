@@ -8,13 +8,14 @@
 #  Usage:
 #    ./x help                          this text
 #    ./x list [--json]                 list examples (name, default hart, dir)
-#    ./x toolchain install [svdtools|svd2ada|pac|gnat|renode]|check
+#    ./x toolchain install [svdtools|svd2ada|pac|gnat|gnatprove|adalang_analyzer|renode]|check
 #                                      install the toolchains pinned in
 #                                      tools/toolchain.env (only svdtools or
 #                                      svd2ada if named; pac: only what
 #                                      `./x pac check` needs, without gnatprove
 #                                      and adalang_analyzer; gnat: only the compilers
-#                                      and gprbuild; renode: the pinned Renode
+#                                      and gprbuild; gnatprove, adalang_analyzer: the
+#                                      compilers and that one crate; renode: the pinned Renode
 #                                      release, checksum verified) / report deviations
 #    ./x build <ex> [-P PROFILE] [--hart e51|u54] [--harts 1-4] [--priv m|u]
 #                                      build an example (PROFILE: light|
@@ -212,6 +213,20 @@ mpfs_install_alire_toolchains () {
   alr -n toolchain --select "gnat_native=$GNAT_NATIVE_VERSION"
 }
 
+# An optional crate is installed, not selected, each version into its own prefix,
+# so there is no conflict with other versions and the call is repeatable. The
+# native GNAT must be on PATH: alr resolves the dependencies of the crate against it.
+mpfs_install_crate () {
+  local crate="$1" ver="$2" pfx
+  [ -n "$ver" ] || die "$crate is not pinned in tools/toolchain.env"
+  pfx="$(mpfs_opt_prefix "$crate" "$ver")"
+  if [ -d "$pfx/bin" ]; then echo "x: $crate $ver already installed in $pfx"
+  else
+    mpfs_toolchain_on_path || true
+    alr -n install --prefix="$pfx" "$crate=$ver" || die "installing $crate $ver failed"
+  fi
+}
+
 cmd_toolchain () {
   local sub="${1:-}"; shift || true
   # shellcheck source=tools/mpfs-env.sh
@@ -228,6 +243,13 @@ cmd_toolchain () {
           mpfs_toolchain_on_path || true
           return ;;
         renode) mpfs_install_renode; return ;;      # only the pinned release, no Alire
+        gnatprove|adalang_analyzer)                 # the toolchains and that one crate
+          mpfs_install_alire_toolchains
+          case "$1" in
+            gnatprove) mpfs_install_crate gnatprove "$GNATPROVE_VERSION" ;;
+            *)         mpfs_install_crate adalang_analyzer "$ADALANG_ANALYZER_VERSION" ;;
+          esac
+          return ;;
         pac)    # what `./x pac check` needs: no gnatprove, no adalang_analyzer
           mpfs_install_alire_toolchains
           mpfs_venv_install || die "creating the python environment failed"
@@ -237,20 +259,14 @@ cmd_toolchain () {
           mpfs_toolchain_on_path || true
           mpfs_toolchain_check
           return ;;
-        *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|gnat|renode]" ;;
+        *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|gnat|gnatprove|adalang_analyzer|renode]" ;;
       esac
       mpfs_install_alire_toolchains
       mpfs_venv_install || die "creating the python environment failed"
       # Optional crates are installed, not selected, each version into its own
       # prefix: no conflict with other versions, no --force, repeatable.
-      local crate ver pfx
-      for crate in gnatprove:"$GNATPROVE_VERSION" adalang_analyzer:"$ADALANG_ANALYZER_VERSION"; do
-        ver="${crate#*:}"; crate="${crate%%:*}"
-        [ -n "$ver" ] || continue
-        pfx="$(mpfs_opt_prefix "$crate" "$ver")"
-        if [ -d "$pfx/bin" ]; then echo "x: $crate $ver already installed in $pfx"
-        else alr -n install --prefix="$pfx" "$crate=$ver" || die "installing $crate $ver failed"; fi
-      done
+      mpfs_install_crate gnatprove "$GNATPROVE_VERSION"
+      mpfs_install_crate adalang_analyzer "$ADALANG_ANALYZER_VERSION"
       mpfs_install_svdtools
       mpfs_toolchain_on_path || true
       mpfs_install_svd2ada
@@ -261,7 +277,7 @@ cmd_toolchain () {
       mpfs_toolchain_on_path || true
       mpfs_toolchain_check
       ;;
-    *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|gnat|renode]|check" ;;
+    *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|gnat|gnatprove|adalang_analyzer|renode]|check" ;;
   esac
 }
 

@@ -99,9 +99,9 @@ trap 'rm -r "$tmp" "$stub"' EXIT
   printf '#!/bin/sh\nexit 1\n' > "$stub/tools/venv/bin/python"
   cp "$ROOT/tools/requirements.txt" "$stub/tools/venv/requirements.txt"
   chmod +x "$stub/bin/alr" "$stub/tools"/*/bin/*
-  for target in pac full; do
+  for target in pac full gnatprove adalang_analyzer; do
     : > "$stub/$target.log"
-    arg=pac; [ "$target" = full ] && arg=
+    arg="$target"; [ "$target" = full ] && arg=
     # shellcheck disable=SC2086
     PATH="$stub/bin:$PATH" STUB_ALR_LOG="$stub/$target.log" MPFS_TOOLS_PREFIX="$stub/tools" \
       MPFS_ADA_TOOLCHAINS="$stub/none" "$X" toolchain install $arg >/dev/null 2>&1 || true
@@ -118,6 +118,12 @@ grep -q "gnatprove\|adalang_analyzer" "$stub/pac.log" \
 grep -q "gnatprove" "$stub/full.log" && grep -q "adalang_analyzer" "$stub/full.log" \
   && pass "toolchain install (full) installs gnatprove and adalang_analyzer" \
   || fail "toolchain install (full) installs gnatprove and adalang_analyzer"
+
+# Installing one optional crate installs that crate only.
+grep -q "^-n install --prefix=.*gnatprove-.* gnatprove=" "$stub/gnatprove.log" && ! grep -q "adalang_analyzer" "$stub/gnatprove.log" \
+  && pass "toolchain install gnatprove installs gnatprove only" || fail "toolchain install gnatprove installs gnatprove only"
+grep -q "^-n install --prefix=.*adalang_analyzer-.* adalang_analyzer=" "$stub/adalang_analyzer.log" && ! grep -q "gnatprove=" "$stub/adalang_analyzer.log" \
+  && pass "toolchain install adalang_analyzer installs adalang_analyzer only" || fail "toolchain install adalang_analyzer installs adalang_analyzer only"
 
 echo "summary: $fails failure(s)"
 [ $fails -eq 0 ]
