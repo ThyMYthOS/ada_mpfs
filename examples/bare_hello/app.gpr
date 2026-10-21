@@ -1,0 +1,43 @@
+--  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+--  SPDX-License-Identifier: Apache-2.0
+--
+--  Compiles a bare image to objects (gprbuild -c, see build.sh): start.S and a
+--  main written with No_Elaboration_Code. The light-polarfiresoc runtime is
+--  selected only for its system.ads (word size, address type, ...); build.sh
+--  binds nothing and links no unit of the runtime.
+--
+--  Build contract: see examples/STYLE.md.
+
+project App is
+   type Hart_Kind is ("e51", "u54");
+   Hart : Hart_Kind := external ("MPFS_HART", "e51");
+
+   --  The ABI of the image. The E51 has no FPU.
+   Arch := "";
+   Abi  := "";
+   case Hart is
+      when "e51" =>
+         Arch := "rv64imac_zicsr_zifencei";
+         Abi  := "lp64";
+      when "u54" =>
+         Arch := "rv64imafdc_zicsr_zifencei";
+         Abi  := "lp64d";
+   end case;
+
+   for Languages use ("Ada", "Asm_Cpp");
+   for Target use "riscv64-elf";
+   for Runtime ("Ada") use "light-polarfiresoc";
+   for Source_Dirs use (".", "src");
+   for Object_Dir use "obj-" & Hart;
+   for Exec_Dir use "bin-" & Hart;
+   for Main use ("bare_hello.adb");
+
+   Common := ("-march=" & Arch, "-mabi=" & Abi, "-mcmodel=medany");
+
+   package Compiler is
+      for Default_Switches ("Ada") use Common &
+        ("-O2", "-g", "-gnat2022", "-gnatwa", "-gnatwe", "-gnaty",
+         "-ffunction-sections", "-fdata-sections");
+      for Default_Switches ("Asm_Cpp") use Common & ("-g");
+   end Compiler;
+end App;

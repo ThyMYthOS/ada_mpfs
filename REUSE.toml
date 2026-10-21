@@ -19,6 +19,7 @@ SPDX-License-Identifier = "CC-BY-4.0"
 # Trivial files: no copyright claimed.
 [[annotations]]
 path = [
+  "**/*.conf",
   "**/README.md",
   "CONTRIBUTING.md",
   "NOTICE",
