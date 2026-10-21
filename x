@@ -485,8 +485,14 @@ build_example () {
   fi
   rm -f "$log"
   [ $rc -eq 0 ] || die "build of $e failed"
-  B_ELF="$(find "$EXROOT/$e/bin-$B_HART" -maxdepth 1 -name '*.elf' 2>/dev/null | sort | head -1)"
-  [ -n "$B_ELF" ] || die "build of $e produced no bin-$B_HART/*.elf (see examples/STYLE.md)"
+  #  An example that links one U54 hart other than hart 1 (--harts 2|3|4) may keep that image in
+  #  bin-u54-h<N>/, next to the one of hart 1 (examples/interrupt_test); the others have bin-<hart>/.
+  local bin="bin-$B_HART"
+  case "$B_HARTS" in
+    2|3|4) [ -d "$EXROOT/$e/$bin-h$B_HARTS" ] && bin="$bin-h$B_HARTS" ;;
+  esac
+  B_ELF="$(find "$EXROOT/$e/$bin" -maxdepth 1 -name '*.elf' 2>/dev/null | sort | head -1)"
+  [ -n "$B_ELF" ] || die "build of $e produced no $bin/*.elf (see examples/STYLE.md)"
 }
 
 cmd_build () {
@@ -502,12 +508,17 @@ cmd_build () {
 build_matrix () {
   local e h rc=0
   for e in $(list_dirs); do
+    #  An entry is a hart class (e51, u54) or u54-h<N>: the U54 image of hart N (2 to 4), which
+    #  is built with --harts N and kept in bin-u54-h<N>/.
     for h in $(conf_get "$e" BUILD_HARTS ""); do
       if [ "${MPFS_PREBUILT_IMAGES:-}" = 1 ]; then
         [ -n "$(find "$EXROOT/$e/bin-$h" -maxdepth 1 -name '*.elf' 2>/dev/null | head -1)" ] \
           || { echo "x: prebuilt image missing: examples/$e/bin-$h/*.elf" >&2; rc=1; }
       else
-        ( build_example "$e" --hart "$h" ) || rc=1
+        case "$h" in
+          u54-h[234]) ( build_example "$e" --hart u54 --harts "${h#u54-h}" ) || rc=1 ;;
+          *)          ( build_example "$e" --hart "$h" ) || rc=1 ;;
+        esac
       fi
     done
   done
@@ -649,7 +660,7 @@ cmd_qemu () {
   #  A -kernel image never exits by itself; the watchdog ends the run, and its
   #  expiry is the normal end here.
   local rc=0
-  timeout -s KILL "$timeout" qemu-system-riscv64 -M microchip-icicle-kit -m 2G \
+  timeout -s KILL "$timeout" qemu-system-riscv64 -M microchip-icicle-kit -smp 5 -m 2G \
       -nographic -serial mon:stdio -bios none -kernel "$B_ELF" -no-reboot || rc=$?
   case $rc in 0|124|137) ;; *) die "qemu failed (exit $rc)" ;; esac
 }
