@@ -19,6 +19,7 @@
 #   --port-dir DIR   own port units (default: crates/mpfs_rts/mpfs)
 #   --overlay-dir DIR  the overlays (default: crates/mpfs_rts/overlays)
 #   --ld-dir DIR     the linker scripts (default: crates/mpfs_rts/ld)
+#   --pac-dir DIR    the generated register packages (default: libs/mpfs_pac/src/generated)
 #
 # Environment: MPFS_RTS_BUILD = Production (default) | Debug | Assert, the BUILD switch of the
 # pack's target_options.gpr.
@@ -33,7 +34,9 @@
 #      or add sources, <dir>/ld/* goes to ld/; the files named in <dir>/remove.list (paths in the
 #      pack, one per line) are deleted from the pack first, which is how an own port unit
 #      replaces a source of the pack that has another name (start.S for start-ram.S);
-#      then the linker scripts (--ld-dir) go to ld/, whatever the overlays brought;
+#      then the linker scripts (--ld-dir) go to ld/, whatever the overlays brought; the
+#      register packages that the port units use (MPFS_Registers, .PLIC and .CLINT of
+#      --pac-dir: the PAC of libs/mpfs_pac, not a copy in the repository) go to gnat/;
 #   3. build libgnat.a with runtime_build.gpr and, except for light, libgnarl.a with
 #      ravenscar_build.gpr. Both are ordinary library projects (static, no binder, no ar by hand);
 #   4. leave the result as a runtime directory: adainclude/ (all sources), adalib/ (.ali files,
@@ -63,6 +66,9 @@ hashes="$HERE/packs.sha256"
 port_dir="$HERE/mpfs"
 overlay_dir="$HERE/overlays"
 ld_dir="$HERE/ld"
+pac_dir="$ROOT/libs/mpfs_pac/src/generated"
+# The register packages of the PAC that the port units of the runtime use (s-bbripl, s-bbsuti).
+pac_files="mpfs_registers.ads mpfs_registers-plic.ads mpfs_registers-clint.ads"
 check=0
 force=0
 args=()
@@ -76,6 +82,7 @@ while [ $# -gt 0 ]; do
     --port-dir)    shift; [ $# -gt 0 ] || die "--port-dir needs a directory"; port_dir="$1" ;;
     --overlay-dir) shift; [ $# -gt 0 ] || die "--overlay-dir needs a directory"; overlay_dir="$1" ;;
     --ld-dir)      shift; [ $# -gt 0 ] || die "--ld-dir needs a directory"; ld_dir="$1" ;;
+    --pac-dir)     shift; [ $# -gt 0 ] || die "--pac-dir needs a directory"; pac_dir="$1" ;;
     -h|--help) sed -n '2,/^$/p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) die "unknown option '$1'" ;;
     *) args+=("$1") ;;
@@ -154,8 +161,14 @@ else
 fi
 pack_sha="$(stream_sha "$pack")" || die "cannot read the pack $pack"
 
+for f in $pac_files; do
+  [ -f "$pac_dir/$f" ] || die "no $pac_dir/$f (./x pac generate)"
+done
+pac_hash () { for f in $pac_files; do printf '%s %s\n' "$f" "$(sha < "$pac_dir/$f")"; done | sha; }
+
 key="$( {
   echo "pack $pack_sha"
+  echo "pac $(pac_hash)"
   echo "port-units $(tree_hash "$port_dir")"
   echo "overlays $(overlay_hash "$overlay_dir")"
   echo "ld $(tree_hash "$ld_dir")"
@@ -222,6 +235,22 @@ if [ -d "$overlay_dir" ]; then
     [ -d "$d" ] && overlay_from "${d%/}"
   done
 fi
+
+# The register packages of the PAC: the port units that use them are compiled with the runtime,
+# so the registers have one definition, the SVD, for the runtime and for the application. They
+# replace nothing of the pack.
+mkdir -p "$work/gnat"
+for f in $pac_files; do
+  [ ! -e "$work/gnat/$f" ] || die "the pack has a gnat/$f of its own"
+  # Byte for byte the file of the PAC: an application that compiles the PAC itself (mpfs_pac.gpr)
+  # has the same units, and the binder compares their checksums.
+  cp "$pac_dir/$f" "$work/gnat/$f"
+done
+# The runtime is compiled with -gnatg, whose style checks reject the header of the generated
+# files (a line longer than 79, also when a unit that withs them is compiled): the line length
+# limit is 120 for the runtime. The other style checks of -gnatg stay.
+sed -i 's|^  ADAFLAGS := ("-gnatg", |  ADAFLAGS := ("-gnatg", "-gnatyM120", |' "$work/target_options.gpr"
+grep -q 'gnatyM120' "$work/target_options.gpr" || die "target_options.gpr of $(basename "$pack") has no ADAFLAGS to extend"
 
 # The linker scripts of the runtime (the partition data brings the values, not the scripts).
 if [ -d "$ld_dir" ]; then
