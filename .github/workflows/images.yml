@@ -135,7 +135,7 @@ jobs:
       # stand-in cases only).
       - name: Host tests
         run: |
-          for suite in bare report negative qemu_tests stack hw analyze prove repro rts_packs rts_variants rts_boot; do
+          for suite in bare report negative qemu_tests stack hw analyze prove repro rts_packs rts_variants rts_boot rts_plic; do
             echo "== host suite $suite"
             bash "tests/host/$suite/run.sh"
           done
