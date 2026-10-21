@@ -5,7 +5,7 @@
 
   svd_probe.py [--svd FILE] [--host H] [--port P] [--target T] [--no-halt] [--block [PATTERN=]N] [--timeout S]
                [--keep-going] [--max-failures N] [--skip P] [--include P] [--skip-file FILE] [--compare-state]
-               [--read-destructive] [--enable-clocks] [--list] [--all | PERIPHERAL...]
+               [--read-destructive] [--poke ADDR=VALUE] [--enable-clocks] [--list] [--all | PERIPHERAL...]
 
 Reads the registers of the named peripherals (all of them with --all or without
 a name; a block that hw/svd_probe.list excludes is skipped only in such a whole-device run, a block named on the
@@ -39,6 +39,17 @@ Before it reads, the probe checks in the target table of OpenOCD ("targets") tha
 and stops with exit code 2, showing the table, if it is not; it also does this with --no-halt. Other harts that
 did not halt ("unable to halt hart N" in the reply to halt) are mentioned in one line and do not matter: the reads
 go through the selected hart only.
+
+With --reset-halt the probe first sends "reset halt" to OpenOCD and prints the PC afterwards. That is not the default
+because a reset destroys the state of the board. In boot mode 0 (power-on, the hart halted by the tool, no software
+has run) it changes little: a run after a reset halt and a clean power-on run agreed on all SYSREG and SCB_REGS
+configuration registers; only the PLIC, the CLINT MTIMECMP and the MMUART0 DLR and THR registers differed.
+
+--poke ADDR=VALUE (repeatable) writes a 32-bit word with mww after the halt and the power-state header and before
+--enable-clocks and the reads, to bring a block into the state in which it can be read. ADDR is a number or
+PERIPHERAL.REGISTER from the SVD (--poke SYSREG.DFIAPB_CR=0x1). Each poke is echoed as "poke 0x... = 0x..." and the word
+read back follows as "readback 0x...". A write that stalls the debug module is handled like a hung read. A malformed
+argument or an unknown register ends the run with exit code 2 before anything is sent.
 
 Before the first register line the probe prints one header line, "svd_probe: power state: DFIAPB_CR=0x...
 CLOCK_CONFIG_CR=0x... DEVICE_STATUS=0x... PLL_STATUS_SR=0x... MSS_RESET_CR=0x... pc=0x..." (the SYSREG registers of
@@ -75,6 +86,7 @@ from xml.etree import ElementTree as ET
 
 ROOT = Path(__file__).resolve().parent.parent
 INTERRUPT_TIMEOUT = 2.0  # seconds the resume after Ctrl+C may take
+RESET_TIMEOUT = 30.0  # seconds "reset halt" may take
 EXIT_INTERRUPTED = 130  # 128 + SIGINT, as for any program that ends on Ctrl+C
 RULES = Path(__file__).resolve().with_suffix(".list")
 RULE_KINDS = ("skip", "state", "state-mask", "state-enable-clocks", "skip-enable-clocks", "skip-no-clocks", "block")
@@ -536,6 +548,52 @@ def probe(regs: list[Reg], target: OpenOcd, blocks: list[tuple[str, int]], keep_
     return result
 
 
+def write_word(target: OpenOcd, address: int, value: int, what: str) -> None:
+    """Write a 32-bit word with mww; a reply that says the debug module is stuck busy is handled like a hung read."""
+    try:
+        target.command(f"mww 0x{address:X} 0x{value:X}", hang=True)
+    except DebugHang as e:
+        raise Hung(str(hang_error(target, f"writing {what} (0x{address:08X})", str(e)))) from None
+
+
+def parse_poke(spec: str, root: ET.Element) -> tuple[int, int, str]:
+    """Parse a --poke argument "ADDRESS=VALUE" or "PERIPHERAL.REGISTER=VALUE" into (address, value, name).
+
+    Raises ValueError with the reason if it is malformed or names no 32-bit register of the SVD.
+    """
+    target, sep, text = spec.rpartition("=")
+    try:
+        if not sep or not target:
+            raise ValueError("expected ADDRESS=VALUE or PERIPHERAL.REGISTER=VALUE")
+        value = int(text, 0)
+        if not 0 <= value <= 0xFFFFFFFF:
+            raise ValueError(f"the value {text} does not fit 32 bits")
+        if "." not in target:
+            address = int(target, 0)
+            if not 0 <= address <= 0xFFFFFFFF or address % 4:
+                raise ValueError(f"the address {target} is not a 32-bit word address")
+            return address, value, f"0x{address:08X}"
+    except ValueError as e:
+        raise ValueError(f"--poke {spec}: {e}") from None
+    periph = target.split(".")[0]
+    try:
+        regs = peripheral_registers(root, periph)
+    except SystemExit:
+        raise ValueError(f"--poke {spec}: no peripheral {periph} in the SVD") from None
+    reg = next((r for r in regs if r.name == target), None)
+    if reg is None or reg.size != 32:
+        raise ValueError(f"--poke {spec}: no 32-bit register {target} in the SVD")
+    return reg.address, value, target
+
+
+def poke(target: OpenOcd, address: int, value: int, name: str) -> None:
+    """One --poke: write, echo the write, read the word back and print it."""
+    write_word(target, address, value, f"poke {name}")
+    print(f"poke 0x{address:08X} = 0x{value:08X}" + ("" if name.startswith("0x") else f"  ({name})"))
+    got = read_run([Reg(name, address, 32, None, 0xFFFFFFFF)], target)[0]
+    print(f"readback 0x{got:08X}" if isinstance(got, int) else f"readback unreadable ({got})")
+
+
 def enable_clocks(root: ET.Element, target: OpenOcd) -> None:
     """Turn on all MSS peripheral clocks and release all peripheral resets (SYSREG), then read both back.
 
@@ -546,10 +604,7 @@ def enable_clocks(root: ET.Element, target: OpenOcd) -> None:
     sysreg = {r.name.split(".")[1]: r for r in peripheral_registers(root, "SYSREG")}
     writes = (("SUBBLK_CLOCK_CR", 0xFFFFFFFF), ("SOFT_RESET_CR", 0))
     for name, value in writes:
-        try:
-            target.command(f"mww 0x{sysreg[name].address:X} 0x{value:X}", hang=True)
-        except DebugHang as e:
-            raise Hung(str(hang_error(target, f"writing SYSREG.{name} (0x{sysreg[name].address:08X})", str(e)))) from None
+        write_word(target, sysreg[name].address, value, f"SYSREG.{name}")
     back = {}
     for name, value in writes:
         reg = sysreg[name]
@@ -662,6 +717,9 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--port", type=int, default=4444)
     ap.add_argument("--target", default="mpfs.hart0_e51", help="OpenOCD target (hart) to read through (default: %(default)s)")
     ap.add_argument("--no-halt", action="store_true", help="do not halt the hart; it must be halted already")
+    ap.add_argument("--reset-halt", action="store_true",
+                    help="send 'reset halt' to OpenOCD before the halt and the reads, and print the PC afterwards. Not the default: "
+                         "it destroys the state of the board (not with --no-halt)")
     ap.add_argument("--block", action="append", default=[], metavar="[PATTERN=]N",
                     help="read up to N registers at consecutive addresses with one command (default: 512; 1 = one by one). "
                          "PATTERN=N (a peripheral name with * and ?, e.g. 'CAN*=16') limits only these peripherals; repeatable")
@@ -683,6 +741,10 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--read-destructive", action="store_true",
                     help="also read the registers that have a readAction in the SVD (FIFOs, PLIC claim/complete, "
                          "clear-on-read status). WARNING: the reads consume received data and clear status flags")
+    ap.add_argument("--poke", action="append", default=[], metavar="ADDR=VALUE",
+                    help="write the 32-bit VALUE to ADDR (a number, or PERIPHERAL.REGISTER from the SVD) with mww after the halt and "
+                         "before --enable-clocks and the reads; prints 'poke 0x... = 0x...' and the readback; repeatable, in order. "
+                         "WARNING: changes the state of the board")
     ap.add_argument("--enable-clocks", action="store_true",
                     help="before reading, turn on all MSS peripheral clocks and release all peripheral resets "
                          "(SYSREG.SUBBLK_CLOCK_CR = 0xFFFFFFFF, SYSREG.SOFT_RESET_CR = 0), read both back, print them and warn if "
@@ -690,10 +752,18 @@ def main(argv: list[str]) -> int:
                          "its clock off or in reset can hang the bus, which only a reset of the board recovers")
     ap.add_argument("--list", action="store_true", help="print the registers and expected values, read nothing")
     args = ap.parse_args(argv[1:])
+    if args.reset_halt and args.no_halt:
+        print("svd_probe: --reset-halt halts the hart, it cannot be combined with --no-halt", file=sys.stderr)
+        return 2
     if not args.svd.is_file():
         print(f"svd_probe: {args.svd} not found; run ./x svd merge", file=sys.stderr)
         return 2
     root = ET.parse(args.svd).getroot()
+    try:
+        pokes = [parse_poke(spec, root) for spec in args.poke]
+    except ValueError as e:
+        print(f"svd_probe: {e}", file=sys.stderr)
+        return 2
     names = args.peripherals
     if args.all or not names:
         names = [p.findtext("name") for p in root.iter("peripheral")]
@@ -729,6 +799,9 @@ def main(argv: list[str]) -> int:
             regs += peripheral_registers(root, p)
     state_rules = [] if args.compare_state else [
         x for x in rules if x.kind in ("state", "state-mask") or (x.kind == "state-enable-clocks" and args.enable_clocks)]
+    if not args.compare_state:  # what --poke wrote is state of the board, not a reset value
+        poked = {address for address, _, _ in pokes}
+        state_rules += [Rule("state", r.name, "written by --poke") for r in regs if r.address in poked]
     # one line per rule, on stderr with --list, which prints the registers on stdout
     for rule in dict.fromkeys(rule for _, rule, _ in excluded):
         hit = [(p, count) for p, r, count in excluded if r is rule]
@@ -771,11 +844,19 @@ def main(argv: list[str]) -> int:
     try:
         # Reads go through the debug module of a halted hart (not the system bus).
         target.command(f"targets {args.target}")
+        if args.reset_halt:
+            reset_reply = target.command("reset halt", timeout=max(args.timeout, RESET_TIMEOUT))
+            target.sock.settimeout(args.timeout)
+            note_other_harts(reset_reply, args.target)
         halt_reply = "" if args.no_halt else target.command("halt")
         note_other_harts(halt_reply, args.target)
         verify_halted(target, args.target, halt_reply)
+        if args.reset_halt:
+            print(f"svd_probe: reset halt: {args.target} is halted after the reset, pc={read_pc(target)}")
         target.command("riscv set_prefer_sba off")
         print(power_state(root, target))
+        for address, value, name in pokes:
+            poke(target, address, value, name)
         if args.enable_clocks:
             enable_clocks(root, target)
         probe(regs, target, blocks, args.keep_going, args.max_failures, args.read_destructive, state_rules, result)

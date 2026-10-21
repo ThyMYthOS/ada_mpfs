@@ -451,6 +451,96 @@ def test_enable_clocks(tmp: Path) -> None:
     stub.close()
 
 
+def test_reset_halt(tmp: Path) -> None:
+    """--reset-halt sends "reset halt" before the halt and reports the PC; without it nothing is reset."""
+    svd = make_svd(tmp, {"P1@0x1000": [reg("R0", 0)]})
+    stub = Stub()
+    r = run(svd, stub)
+    check("reset-halt: without the option nothing is reset", not stub.commands("reset") and r.returncode == 0, str(stub.log))
+    stub.close()
+    stub = Stub(script=lambda conn, cmd, n: "pc (/64): 0x0000000000001000" if cmd == "reg pc" else None)
+    r = run(svd, stub, "--reset-halt")
+    cmds = [c for c in stub.commands("") if c]
+    check("reset-halt: 'reset halt' comes after the target is selected and before the halt and the first read",
+          cmds.index("reset halt") == cmds.index("targets mpfs.hart0_e51") + 1 and cmds.index("reset halt") < cmds.index("halt") < cmds.index("mdw 0x1000 1"), str(cmds))
+    check("reset-halt: the PC after the reset is reported", "svd_probe: reset halt: mpfs.hart0_e51 is halted after the reset, pc=0x0000000000001000" in r.stdout, r.stdout)
+    check("reset-halt: the run succeeds and reads the registers", r.returncode == 0 and kinds(r.stdout) == ["ok"], f"{r.returncode} {r.stdout!r}")
+    stub.close()
+    # the hart is not halted after the reset: the verification stops the run
+    stub = Stub(state="running")
+    r = run(svd, stub, "--reset-halt")
+    check("reset-halt: a hart that is not halted afterwards aborts", r.returncode == 2 and not stub.commands("md") and "not halted" in r.stderr, f"{r.returncode} {r.stderr!r}")
+    stub.close()
+    # harts that do not halt are a note, as with the plain halt
+    stub = Stub(script=lambda conn, cmd, n: "unable to halt hart 3" if cmd == "reset halt" else None)
+    r = run(svd, stub, "--reset-halt")
+    check("reset-halt: other harts that do not halt are one note", r.returncode == 0 and r.stdout.count("other harts did not halt") == 1, r.stdout)
+    stub.close()
+    # the connection dies in the reset
+    stub = Stub(script=lambda conn, cmd, n: EOF if cmd == "reset halt" and conn == 0 else None)
+    r = run(svd, stub, "--reset-halt")
+    check("reset-halt: a lost connection is reported and the hart is resumed over a new one",
+          r.returncode == 2 and "reset halt" in r.stderr and stub.commands("resume", 1) == ["resume"] and not stub.commands("md"), f"{r.returncode} {r.stderr!r} {stub.log}")
+    stub.close()
+    r = run(svd, None, "--reset-halt", "--no-halt")
+    check("reset-halt: with --no-halt it is refused", r.returncode == 2 and "--no-halt" in r.stderr, f"{r.returncode} {r.stderr!r}")
+    r = run(svd, None, "--help")
+    check("reset-halt: --help says that it destroys the state", "--reset-halt" in r.stdout and "destroys the state" in " ".join(r.stdout.split()), r.stdout[:200])
+
+
+def test_poke(tmp: Path) -> None:
+    """--poke writes words through the session before the reads, echoes them, and fails safely."""
+    svd = make_svd(tmp, {"SYSREG@0x2000": [reg("DFIAPB_CR", 0x98, reset=2), reg("SUBBLK_CLOCK_CR", 0x84), reg("SOFT_RESET_CR", 0x88)], "SCB_REGS@0x3000": [reg("MSSIO_CONTROL_CR", 0xBC, reset=0x7A0)],
+                         "P1@0x1000": [reg("R0", 0)]})
+    stub = Stub()
+    r = run(svd, stub, "--poke", "SYSREG.DFIAPB_CR=0x1", "--poke", "0x30BC=0x3800", "--enable-clocks", "P1")
+    writes = [c for c in stub.commands("") if c.startswith("mww")]
+    check("poke: symbolic and numeric pokes are written in order, before the clock writes",
+          writes == ["mww 0x2098 0x1", "mww 0x30BC 0x3800", "mww 0x2084 0xFFFFFFFF", "mww 0x2088 0x0"], str(stub.log))
+    check("poke: each poke is echoed and followed by the readback",
+          "poke 0x00002098 = 0x00000001  (SYSREG.DFIAPB_CR)\nreadback 0x00000001\npoke 0x000030BC = 0x00003800\nreadback 0x00003800\n" in r.stdout, r.stdout)
+    check("poke: it comes after the halt and before the first read",
+          (lambda c: c.index("halt") < c.index("mww 0x2098 0x1") < c.index("mdw 0x1000 1"))([x for x in stub.commands("") if x]), str(stub.log))
+    stub.close()
+    stub = Stub()
+    r = run(svd, stub, "--poke", "SYSREG.DFIAPB_CR=0x1", "SYSREG")
+    check("poke: the register that was poked is state (the probe wrote it), not a mismatch",
+          "state       0x00002098 SYSREG.DFIAPB_CR = 0x00000001, reset 0x00000002" in r.stdout and "mismatch" not in r.stdout, r.stdout)
+    stub.close()
+    r = run(svd, Stub(), "--poke", "SYSREG.DFIAPB_CR=0x1", "--compare-state", "SYSREG")
+    check("poke: --compare-state reports it as a mismatch again", "mismatch    0x00002098 SYSREG.DFIAPB_CR = 0x00000001" in r.stdout, r.stdout)
+    stub = Stub(mem={0x2098: 7}, script=lambda conn, cmd, n: "" if cmd.startswith("mww 0x2098") else None)
+    r = run(svd, stub, "--poke", "SYSREG.DFIAPB_CR=0x1", "P1")
+    check("poke: the readback shows what the register holds, not what was written", "poke 0x00002098 = 0x00000001" in r.stdout and "readback 0x00000007" in r.stdout, r.stdout)
+    stub.close()
+    stub = Stub()
+    r = run(svd, stub, "P1")
+    check("poke: nothing is written without --poke", not stub.commands("mww") and "poke " not in r.stdout, str(stub.log))
+    stub.close()
+    # a write that stalls the debug module stops the run, and the hart is not resumed
+    stub = Stub(script=lambda conn, cmd, n: BUSY if cmd.startswith("mww 0x30BC") else None)
+    r = run(svd, stub, "--poke", "SYSREG.DFIAPB_CR=1", "--poke", "SCB_REGS.MSSIO_CONTROL_CR=0x3800", "P1")
+    check("poke: a stall in the second poke aborts with exit 2, names the register, no resume, no read",
+          r.returncode == 2 and "SCB_REGS.MSSIO_CONTROL_CR" in r.stderr and "power-cycle" in r.stderr and not stub.commands("resume")
+          and not stub.commands("mdw 0x1000"), f"{r.returncode} {r.stderr!r} {stub.log}")
+    stub.close()
+    # a dead connection in a poke
+    stub = Stub(script=lambda conn, cmd, n: EOF if cmd.startswith("mww 0x2098") and conn == 0 else None)
+    r = run(svd, stub, "--poke", "SYSREG.DFIAPB_CR=1", "P1")
+    check("poke: a lost connection aborts with exit 2 and the hart is resumed over a new one",
+          r.returncode == 2 and not stub.commands("mdw 0x1000") and stub.commands("resume", 1) == ["resume"], f"{r.returncode} {r.stderr!r} {stub.log}")
+    stub.close()
+    # malformed arguments exit 2 before anything is sent
+    for spec, why in (("SYSREG.DFIAPB_CR", "no ="), ("=1", "no register"), ("0x2098=xyz", "bad value"), ("0x2098=0x100000000", "too wide"),
+                      ("0x2099=1", "unaligned"), ("SYSREG.NOPE=1", "unknown register"), ("NOPE.X=1", "unknown peripheral"), ("abc=1", "bad address")):
+        stub = Stub()
+        r = run(svd, stub, "--poke", spec, "P1")
+        check(f"poke: {spec!r} ({why}) exits 2 and sends nothing", r.returncode == 2 and f"--poke {spec}" in r.stderr and not stub.log, f"{r.returncode} {r.stderr!r} {stub.log}")
+        stub.close()
+    r = run(svd, None, "--help")
+    check("poke: --help documents it", "--poke ADDR=VALUE" in r.stdout and "PERIPHERAL.REGISTER" in r.stdout, r.stdout[:200])
+
+
 def test_resume(tmp: Path) -> None:
     """A failed resume is reported and retried once over a new connection."""
     svd = make_svd(tmp, {"P1@0x1000": [reg("R0", 0)]})
@@ -875,7 +965,7 @@ def main() -> int:
     if not TOOL.is_file():
         print(f"probe_test: {TOOL} not found", file=sys.stderr)
         return 2
-    for case in (test_dead_connection, test_hang, test_noise, test_halt, test_power_state, test_enable_clocks, test_resume, test_interrupt, test_failures, test_block, test_read_action, test_noref, test_state, test_skip):
+    for case in (test_dead_connection, test_hang, test_noise, test_halt, test_power_state, test_enable_clocks, test_reset_halt, test_poke, test_resume, test_interrupt, test_failures, test_block, test_read_action, test_noref, test_state, test_skip):
         with tempfile.TemporaryDirectory() as d:
             case(Path(d))
     print(f"summary: {failures} failure(s)")
