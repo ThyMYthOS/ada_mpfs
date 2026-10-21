@@ -294,7 +294,7 @@ while IFS="$tab" read -r img comp text data bss entry eflags isa attrs; do
   case "$img" in
     */e51/*) case "$eflags" in "0x1,"*"soft-float ABI") ;; *) bad=1; echo "e51 e_flags: $img $eflags" >&2 ;; esac
              case "$isa" in *_f[0-9]*|*_d[0-9]*) bad=1; echo "e51 with f/d: $img $isa" >&2 ;; esac ;;
-    */u54/*) case "$eflags" in "0x5,"*"double-float ABI") ;; *) bad=1; echo "u54 e_flags: $img $eflags" >&2 ;; esac
+    */u54/*|*/u54-h[234]/*) case "$eflags" in "0x5,"*"double-float ABI") ;; *) bad=1; echo "u54 e_flags: $img $eflags" >&2 ;; esac
              case "$isa" in *_f2p2_d2p2_*) ;; *) bad=1; echo "u54 without f/d: $img $isa" >&2 ;; esac ;;
     *) bad=1; echo "unexpected image $img" >&2 ;;
   esac

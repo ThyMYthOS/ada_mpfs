@@ -64,18 +64,22 @@ mkdir -p "$tmp/no-toolchains"
 # The fixture tree: two examples, one with two harts. The stand-in ./x builds an "image"
 # from the sources and SOURCE_DATE_EPOCH; FAKE_MODE selects what else goes into it.
 tree="$tmp/tree"
-mkdir -p "$tree/examples/alpha/src" "$tree/examples/beta"
+mkdir -p "$tree/examples/alpha/src" "$tree/examples/beta" "$tree/examples/gamma"
 printf 'project App is end App;\n' > "$tree/examples/alpha/app.gpr"
 printf 'project App is end App;\n' > "$tree/examples/beta/app.gpr"
+printf 'project App is end App;\n' > "$tree/examples/gamma/app.gpr"
+# gamma: the image of one U54 hart, an entry u54-h<N> of BUILD_HARTS (x build --hart u54 --harts N)
+printf 'HART=u54\nBUILD_HARTS=u54-h3\n' > "$tree/examples/gamma/example.conf"
 printf 'HART=e51\nBUILD_HARTS=e51 u54\n' > "$tree/examples/alpha/example.conf"
 printf 'HART=u54\n' > "$tree/examples/beta/example.conf"
 printf 'procedure Alpha is begin null; end;\n' > "$tree/examples/alpha/src/alpha.adb"
 cat > "$tree/x" <<'XEOF'
 #!/usr/bin/env bash
-# Stand-in for ./x build <example> --hart <hart>.
+# Stand-in for ./x build <example> --hart <hart> [--harts <N>].
 set -eu
 [ "$1" = build ] || exit 2
 ex="$2"; hart="$4"
+if [ "${5:-}" = --harts ]; then hart="$hart-h$6"; fi
 case "${FAKE_MODE:-same}" in
   fail) echo "fake build failed" >&2; exit 1 ;;
   nothing) exit 0 ;;
@@ -103,8 +107,9 @@ repro () {   # repro [env...]: SOURCE_DATE_EPOCH fixed, the stand-in toolchain
 }
 
 expect_rc  "the same input twice passes" 0 repro
-expect_out "it reports the images it compared" "3 image(s) identical" repro
+expect_out "it reports the images it compared" "4 image(s) identical" repro
 expect_out "it compares the harts named in BUILD_HARTS and HART" "examples/beta/bin-u54/beta.elf" repro
+expect_out "an entry u54-h3 is built with --harts 3 into bin-u54-h3" "examples/gamma/bin-u54-h3/gamma.elf" repro
 
 # The comparison is not vacuous: the copies are built in different directories.
 expect_rc  "an image that embeds its build directory fails" 1 repro FAKE_MODE=embed

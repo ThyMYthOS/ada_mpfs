@@ -50,7 +50,7 @@ The project must
 |---|---|
 | `app.gpr` | project file |
 | `src/` | sources |
-| `example.conf` | `KEY=value` lines; `HART=` is the default hart of the example (`e51` if absent); `BUILD_HARTS=` (e.g. `e51 u54`) the harts that `./x test qemu` and `./x metrics` build, and whose images the smoke test and `metrics.golden` cover |
+| `example.conf` | `KEY=value` lines; `HART=` is the default hart of the example (`e51` if absent); `BUILD_HARTS=` (e.g. `e51 u54`) the harts that `./x test qemu` and `./x metrics` build, and whose images the smoke test and `metrics.golden` cover; an entry `u54-h<N>` (N = 2, 3 or 4) is the U54 image of that hart, built with `--harts N` into `bin-u54-h<N>/` (the project adds the suffix to `Object_Dir` and `Exec_Dir`) |
 | `example.conf` keys for the runtime | `RUNTIME=mpfs_rts`: the example is linked with a variant of `crates/mpfs_rts`; `./x build` builds the variant first (`crates/mpfs_rts/gen_runtime.sh`, only when its inputs changed) and the project names it with `Mpfs_Rts.Runtime_Path` (see `examples/tasking_test/app.gpr`); `PROFILE=` is the profile for `-P auto` |
 | `build.sh` | optional, builds instead of `gprbuild` (see above) |
 | `README.md` | what the example shows, how to build and run it |
