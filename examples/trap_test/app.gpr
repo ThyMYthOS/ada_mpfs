@@ -1,0 +1,65 @@
+--  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+--  SPDX-License-Identifier: Apache-2.0
+--
+--  An application that is linked with the light runtime of crates/mpfs_rts: start code, linker
+--  scripts and --defsym values are the runtime's (Mpfs_Link), Test_Report comes from tests/common
+--  and Bare_Console from bare_hello. The scenario variables of ./x build select the hart class;
+--  MPFS_PLACEMENT (lim, scratchpad, envm) and MPFS_BOOT_ROLE (primary, secondary) of Mpfs_Link
+--  select the boot scenario of the four that tests/host/rts_boot builds.
+--
+--  Build contract: see examples/STYLE.md.
+
+with "../../crates/mpfs_rts/mpfs_rts.gpr";
+with "../../crates/mpfs_rts/mpfs_link.gpr";
+
+project App is
+   Hart := Mpfs_Rts.Hart;
+
+   --  STACK_ANALYSIS=1 (./x stack) makes the compiler also write the stack
+   --  usage (.su) and the call graph (.ci) of every unit. The code is the same.
+   type Switch is ("0", "1");
+   Stack_Analysis : Switch := external ("STACK_ANALYSIS", "0");
+   Analysis := ();
+   case Stack_Analysis is
+      when "1" => Analysis := ("-fstack-usage", "-fcallgraph-info=su,da");
+      when "0" => null;
+   end case;
+
+   --  The build directory must not reach the image (./x repro): see examples/STYLE.md.
+   Sdk_Root := external ("ADA_MPFS_SDK", "");
+   Repro_Switches := ("-gno-record-gcc-switches");
+   case Sdk_Root is
+      when ""     => null;
+      when others =>
+         Repro_Switches := Repro_Switches
+           & ("-ffile-prefix-map=" & Sdk_Root & "=.");
+   end case;
+
+   for Languages use ("Ada", "Asm_Cpp");
+   for Target use Mpfs_Rts.Target;
+   for Runtime ("Ada") use Mpfs_Rts.Runtime_Path;
+   for Source_Dirs use ("src", "../bare_hello/src", "../../tests/common");
+   --  Only what the image needs of the shared directories.
+   for Source_Files use
+     ("trap_test.adb", "early_trap.ads", "early_trap.adb", "fault.S",
+      "bare_console.ads", "bare_console.adb",
+      "test_report.ads", "test_report.adb");
+   for Object_Dir use "obj-" & Hart;
+   for Exec_Dir use "bin-" & Hart;
+   for Main use ("trap_test.adb");
+
+   package Builder is
+      for Executable_Suffix use ".elf";
+   end Builder;
+
+   package Compiler is
+      for Default_Switches ("Ada") use
+        ("-O2", "-g", "-gnat2022", "-gnatwa", "-gnatwe", "-gnaty",
+         "-ffunction-sections", "-fdata-sections") & Analysis & Repro_Switches;
+      for Default_Switches ("Asm_Cpp") use ("-g") & Repro_Switches;
+   end Compiler;
+
+   package Linker is
+      for Default_Switches ("Ada") use Mpfs_Link.Switches;
+   end Linker;
+end App;
