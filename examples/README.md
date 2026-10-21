@@ -12,6 +12,7 @@ conventions (project layout, scenario variables, `example.conf`) are in `STYLE.m
 | `bare_hello` | E51, U54 | The smallest image there is, without runtime: prints `bare hello E51 hart 0` or `bare hello U54 hart 1` on MMUART0. | `./x test qemu` (smoke), `./x test renode`, `./x test negative`, `metrics.golden` |
 | `pmp_probe` | E51, U54 | Counts the PMP entries of the hart that runs it and prints the count and a mask. | `./x test qemu` (smoke), `./x test renode` |
 | `report_test` | E51, U54 | The first application of the `Test_Report` protocol: checks the hart id, the compressed extension and the F and D extensions of the hart class. | `./x test qemu` (`tests/qemu/tests.list`) |
+| `tasking_test` | E51, U54 | The smallest program that needs the tasking runtime: a periodic task and an environment task, linked with a runtime variant that `crates/mpfs_rts/gen_runtime.sh` builds (`RUNTIME=mpfs_rts`). It prints nothing and is not run yet. | `./x build tasking_test -P light-tasking --hart e51\|u54`, `./x test examples`, `./x repro`, `metrics.golden` |
 | `common/` | | Not an example: the linker scripts and the build script that the examples share (see its `README.md`). | |
 
 Run an example under QEMU with `./x qemu <name> [--hart N]`, or on the Icicle Kit with
