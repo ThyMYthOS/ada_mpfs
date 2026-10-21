@@ -28,6 +28,24 @@ set -a
 set +a
 
 : "${MPFS_ADA_TOOLCHAINS:=$HOME/.local/share/alire/toolchains}"
+# Alire keeps its toolchains elsewhere on Windows (no ~/.local/share/alire): take the directory that
+# holds the first gnat_native it finds under the usual per-user places (alr puts them in
+# %LOCALAPPDATA%\alire\cache\toolchains). Run again after an install, because there is nothing to
+# find before the first one.
+mpfs_find_toolchains_root () {
+    [ -d "$MPFS_ADA_TOOLCHAINS" ] && return 0
+    case "$(uname -s)" in
+        MINGW*|MSYS*|CYGWIN*)
+            local d t
+            for d in "${LOCALAPPDATA:+$(cygpath -u "$LOCALAPPDATA")}" "$HOME/AppData/Local" "$HOME/.config" "$HOME/.local/share"; do
+                [ -d "$d" ] || continue
+                t="$(find "$d" -maxdepth 4 -type d -name 'gnat_native_*' 2>/dev/null | head -n 1)"
+                if [ -n "$t" ]; then MPFS_ADA_TOOLCHAINS="$(dirname "$t")"; export MPFS_ADA_TOOLCHAINS; return 0; fi
+            done ;;
+    esac
+    return 0
+}
+mpfs_find_toolchains_root
 if [ -n "${ADA_MPFS_SDK:-}" ] && [ -d "$ADA_MPFS_SDK/toolchains" ]; then
     MPFS_ADA_TOOLCHAINS="$ADA_MPFS_SDK/toolchains"   # bundled toolchain wins
 fi
@@ -52,6 +70,7 @@ mpfs_opt_prefix () {
 # Put the pinned gprbuild, cross GNAT and native GNAT on PATH (idempotent).
 # Returns 1 and names what is missing if a pinned version is not installed.
 mpfs_toolchain_on_path () {
+    mpfs_find_toolchains_root
     MPFS_GPRBUILD_BIN="$(mpfs_tc_bin gprbuild "$GPRBUILD_VERSION")"
     MPFS_GNAT_RISCV64_BIN="$(mpfs_tc_bin gnat_riscv64_elf "$GNAT_RISCV64_VERSION")"
     MPFS_GNAT_NATIVE_BIN="$(mpfs_tc_bin gnat_native "$GNAT_NATIVE_VERSION")"

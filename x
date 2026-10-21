@@ -89,31 +89,24 @@ mpfs_install_svdtools_binary () {
   rm -f "$tmp"
 }
 
-# Installs the pinned Alire release into $1 (bin/alr). Returns 2 where no
+# Installs the pinned Alire release into $1 (bin/alr, bin/alr.exe on Windows). Returns 2 where no
 # release binary exists for the platform.
 mpfs_install_alr () {
-  local pfx="$1" asset want ext=zip url tmp
+  local pfx="$1" asset want exe=alr url tmp
   case "$(uname -sm)" in
     "Linux x86_64")   asset=bin-x86_64-linux;    want="$ALR_SHA256_X86_64_LINUX" ;;
     "Darwin "*)       asset=bin-universal-macos; want="$ALR_SHA256_UNIVERSAL_MACOS" ;;
     MINGW*" x86_64"|MSYS*" x86_64"|CYGWIN*" x86_64")
-                      asset=installer-x86_64-windows; want="$ALR_SHA256_X86_64_WINDOWS"
-                      ext=exe ;;
+                      asset=bin-x86_64-windows;  want="$ALR_SHA256_X86_64_WINDOWS"; exe=alr.exe ;;
     *) return 2 ;;
   esac
-  url="https://github.com/alire-project/alire/releases/download/v$ALR_VERSION/alr-$ALR_VERSION-$asset.$ext"
+  url="https://github.com/alire-project/alire/releases/download/v$ALR_VERSION/alr-$ALR_VERSION-$asset.zip"
   tmp="$(mktemp)" || return 1
   if curl -fsSL -o "$tmp" "$url" \
      && [ "$(openssl dgst -sha256 "$tmp" | sed 's/.* //')" = "$want" ]; then
     mkdir -p "$pfx" || return 1
-    if [ "$ext" = zip ]; then
-      "$MPFS_PYTHON" -c 'import sys,zipfile; zipfile.ZipFile(sys.argv[1]).extract("bin/alr", sys.argv[2])' "$tmp" "$pfx" \
-        && chmod +x "$pfx/bin/alr"
-    else
-      # Inno Setup installer: unattended, into the prefix
-      mv "$tmp" "$tmp.exe" && tmp="$tmp.exe" \
-        && "$tmp" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART "/DIR=$(cygpath -w "$pfx")"
-    fi
+    "$MPFS_PYTHON" -c 'import sys,zipfile; zipfile.ZipFile(sys.argv[1]).extract("bin/" + sys.argv[3], sys.argv[2])' "$tmp" "$pfx" "$exe" \
+      && chmod +x "$pfx/bin/$exe"
   else
     echo "x: downloading or verifying $url failed" >&2
     rm -f "$tmp"; return 1
@@ -210,7 +203,7 @@ mpfs_ensure_alr () {
 mpfs_install_svd2ada () {
   local pfx src got
   pfx="$(mpfs_opt_prefix svd2ada "$SVD2ADA_COMMIT")"
-  if [ -x "$pfx/bin/svd2ada" ]; then
+  if [ -x "$pfx/bin/svd2ada" ] || [ -x "$pfx/bin/svd2ada.exe" ]; then
     echo "x: svd2ada ${SVD2ADA_COMMIT:0:7} already installed in $pfx"
     return 0
   fi
@@ -226,9 +219,9 @@ mpfs_install_svd2ada () {
   got="$(git -C "$src" rev-parse HEAD)"
   [ "$got" = "$SVD2ADA_COMMIT" ] || die "svd2ada checkout is $got, not the pinned $SVD2ADA_COMMIT"
   ( cd "$src" && alr -n build ) || { rm -rf "$src"; die "building svd2ada failed"; }
-  [ -x "$src/bin/svd2ada" ] || die "building svd2ada produced no bin/svd2ada"
+  [ -x "$src/bin/svd2ada" ] || [ -x "$src/bin/svd2ada.exe" ] || die "building svd2ada produced no bin/svd2ada"
   # the tool reads the SVD schema from schema/ next to its bin/
-  mkdir -p "$pfx/bin" && cp "$src/bin/svd2ada" "$pfx/bin/svd2ada" && cp -r "$src/schema" "$pfx/schema" \
+  mkdir -p "$pfx/bin" && cp "$src/bin/svd2ada"* "$pfx/bin/" && cp -r "$src/schema" "$pfx/schema" \
     || die "installing svd2ada failed"
   rm -rf "$src"
   echo "x: installed svd2ada ${SVD2ADA_COMMIT:0:7} in $pfx"
@@ -254,7 +247,17 @@ mpfs_install_crate () {
   if [ -d "$pfx/bin" ]; then echo "x: $crate $ver already installed in $pfx"
   else
     mpfs_toolchain_on_path || true
-    alr -n install --prefix="$pfx" "$crate=$ver" || die "installing $crate $ver failed"
+    # Windows: alr 2.1.1 fails to copy the release of a dependency into the shared build directory
+    # ("Could not sync build dir"); building the dependencies inside the workspace avoids that copy.
+    case "$(uname -s)" in
+      MINGW*|MSYS*|CYGWIN*) alr -n settings --global --set dependencies.shared false ;;
+    esac
+    # The solver of alr gives up after 5 seconds by default, too soon for the dependencies of
+    # adalang_analyzer on a slow runner: the first failure is retried with a longer limit.
+    alr -n install --prefix="$pfx" "$crate=$ver" \
+      || { alr -n settings --global --set solver.timeout 120 \
+           && alr -n install --prefix="$pfx" "$crate=$ver"; } \
+      || die "installing $crate $ver failed"
   fi
 }
 
