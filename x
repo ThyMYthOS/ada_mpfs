@@ -8,12 +8,14 @@
 #  Usage:
 #    ./x help                          this text
 #    ./x list [--json]                 list examples (name, default hart, dir)
-#    ./x toolchain install [svdtools|svd2ada|pac|renode]|check
+#    ./x toolchain install [svdtools|svd2ada|pac|gnat|renode]|check
 #                                      install the toolchains pinned in
 #                                      tools/toolchain.env (only svdtools or
 #                                      svd2ada if named; pac: only what
 #                                      `./x pac check` needs, without gnatprove
-#                                      and adalang_analyzer) / report deviations
+#                                      and adalang_analyzer; gnat: only the compilers
+#                                      and gprbuild; renode: the pinned Renode
+#                                      release, checksum verified) / report deviations
 #    ./x build <ex> [-P PROFILE] [--hart e51|u54] [--harts 1-4] [--priv m|u]
 #                                      build an example (PROFILE: light|
 #                                      light-tasking|embedded|auto). --harts is
@@ -217,6 +219,10 @@ cmd_toolchain () {
         "") ;;
         svdtools) mpfs_install_svdtools; return ;;   # only what the SVD check needs, no Alire
         svd2ada) mpfs_install_svd2ada; return ;;    # needs the toolchains and alr
+        gnat)   # only the pinned compilers and gprbuild: what building the examples needs
+          mpfs_install_alire_toolchains
+          mpfs_toolchain_on_path || true
+          return ;;
         renode) mpfs_install_renode; return ;;      # only the pinned release, no Alire
         pac)    # what `./x pac check` needs: no gnatprove, no adalang_analyzer
           mpfs_install_alire_toolchains
@@ -227,7 +233,7 @@ cmd_toolchain () {
           mpfs_toolchain_on_path || true
           mpfs_toolchain_check
           return ;;
-        *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|renode]" ;;
+        *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|gnat|renode]" ;;
       esac
       mpfs_install_alire_toolchains
       mpfs_venv_install || die "creating the python environment failed"
@@ -251,7 +257,7 @@ cmd_toolchain () {
       mpfs_toolchain_on_path || true
       mpfs_toolchain_check
       ;;
-    *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|renode]|check" ;;
+    *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|gnat|renode]|check" ;;
   esac
 }
 
