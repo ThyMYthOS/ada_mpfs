@@ -13,14 +13,15 @@
  *
  * Both are mandatory: an image linked without one fails with "undefined reference". The
  * layout symbols (__global_pointer$, __stack_end, __data_*, __bss_*, __mpfs_trap_record)
- * come from the placement script (ld/app-sections.ld).
+ * come from the placement script (ld/sections.ld).
  *
  * Order, as in master plan #41, work package P1.3:
  *   1. mtvec to the trap stub (before any other instruction can trap), then gp and sp
  *   2. interrupts masked (mstatus.MIE, mie)
  *   3. hart gate: a hart that is not in the mask parks; only on a primary image the parked
  *      hart is prepared for the release of P8 (mie.MSIE, woken by a software interrupt)
- *   4. .data is copied from its load address if that differs from its address; .bss is cleared
+ *   4. .data is copied from its load address if that differs from its address; .bss and the
+ *      stacks are cleared
  *   5. mstatus.FS (images with an FPU); main; then __gnat_exit, which depends on the role
  *
  * The trap stub is what runs a trap until the runtime installs its own handler. It only
@@ -30,10 +31,26 @@
  * very first instruction. Record layout, little endian:
  *
  *   +0  mcause (64 bit)   +8 mepc (64 bit)   +16 mtval (64 bit)
- *   +24 magic 0x54524150 ("TRAP", 32 bit)    +28 mhartid (32 bit)
+ *   +24 magic 0x54524150 ("TRAP", low word) and mhartid (high word): one 64-bit store
  *
+ * Every store of the stub is a whole 64-bit word: the LIM is ECC memory that is uninitialised
+ * at power-up, and a partial store into a word that was never written is a read-modify-write
+ * of garbage (an ECC fault inside the trap handler would be a double trap).
  * The magic tells a record from the random content of RAM after power-up. All harts of the
  * partition share the record: until the SMP work package only one hart writes it.
+ *
+ * The start code also initialises the memory that the program then uses partially: .bss and
+ * both kinds of stack are cleared with 64-bit stores (ECC, as above). .noinit and the heap
+ * are deliberately left alone; whether the LIM needs zeroing as a whole is a question for the
+ * hardware (work packages P1.8 and P1.14).
+ *
+ * Hart gate, a deliberate deviation: a hart outside the mask is parked on EVERY image, also on
+ * a secondary one. The reference runtime of the earlier project and step 1.3 of the work
+ * package gate on the primary image only, but QEMU's reset code sends every hart to the entry
+ * point with no hart gate of its own, so an ungated secondary image would run on all of them.
+ * On hardware nothing but the release of the right hart reaches a secondary image, and the
+ * gate costs nothing there. A parked hart of a secondary image has its mtvec, mie and
+ * mstatus.MIE written (as every hart before the gate) but gets no mie.MSIE.
  *
  * Test seam: if an image defines __mpfs_early_trap_hook, the stub jumps to it with the address
  * of the record in a0 instead of halting (examples/trap_test reports the record on the console
@@ -120,6 +137,24 @@ _start:
 	addi    a0, a0, 8
 	bltu    a0, a1, 3b
 4:
+	/* The interrupt stacks and the stack of the environment task (sp is at the top of the
+	 * latter and nothing has been pushed yet). The sizes are multiples of 16 (ASSERT). */
+	la      a0, __interrupt_stack_start
+	la      a1, __interrupt_stack_end
+	bgeu    a0, a1, 6f
+5:
+	sd      zero, (a0)
+	addi    a0, a0, 8
+	bltu    a0, a1, 5b
+6:
+	la      a0, __stack_start
+	la      a1, __stack_end
+	bgeu    a0, a1, 8f
+7:
+	sd      zero, (a0)
+	addi    a0, a0, 8
+	bltu    a0, a1, 7b
+8:
 
 #ifndef __riscv_float_abi_soft
 	/* 5. Enable the FPU (U54 images; the E51 has none). */
@@ -165,9 +200,10 @@ __mpfs_trap_stub:
 	sd      t1, 16(t0)
 	lui     t2, TRAP_MAGIC_HI
 	addi    t2, t2, TRAP_MAGIC_LO
-	sw      t2, 24(t0)
 	csrr    t1, mhartid
-	sw      t1, 28(t0)
+	slli    t1, t1, 32
+	or      t2, t2, t1
+	sd      t2, 24(t0)
 	fence
 
 	.weak   __mpfs_early_trap_hook
