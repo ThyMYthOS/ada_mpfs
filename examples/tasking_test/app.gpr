@@ -4,12 +4,13 @@
 --  An application that is linked with a runtime built by crates/mpfs_rts (not with a runtime of
 --  the toolchain): the variant comes from Mpfs_Rts, whose scenario variables ./x build sets
 --  (MPFS_PROFILE, MPFS_HART, MPFS_CPUS, MPFS_PRIV) after it has built the runtime. -march and
---  -mabi come from the runtime. start.S is that of bare_hello.
+--  -mabi come from the runtime. The start code and the linker scripts are the runtime's
+--  (start.S in libgnat.a, ld/ of the variant); Mpfs_Link gives the partition data.
 --
 --  Build contract: see examples/STYLE.md.
 
 with "../../crates/mpfs_rts/mpfs_rts.gpr";
-with "../common/link_lim.gpr";
+with "../../crates/mpfs_rts/mpfs_link.gpr";
 
 project App is
    Hart := Mpfs_Rts.Hart;
@@ -34,12 +35,10 @@ project App is
            & ("-ffile-prefix-map=" & Sdk_Root & "=.");
    end case;
 
-   for Languages use ("Ada", "Asm_Cpp");
+   for Languages use ("Ada");
    for Target use Mpfs_Rts.Target;
    for Runtime ("Ada") use Mpfs_Rts.Runtime_Path;
-   for Source_Dirs use ("src", "../bare_hello");
-   for Source_Files use
-     ("tasking_test.adb", "ticker.ads", "ticker.adb", "start.S");
+   for Source_Dirs use ("src");
    for Object_Dir use "obj-" & Hart;
    for Exec_Dir use "bin-" & Hart;
    for Main use ("tasking_test.adb");
@@ -52,10 +51,9 @@ project App is
       for Default_Switches ("Ada") use
         ("-O2", "-g", "-gnat2022", "-gnatwa", "-gnatw.X", "-gnatwe", "-gnaty",
          "-ffunction-sections", "-fdata-sections") & Analysis & Repro_Switches;
-      for Default_Switches ("Asm_Cpp") use ("-g") & Repro_Switches;
    end Compiler;
 
    package Linker is
-      for Default_Switches ("Ada") use Link_Lim.Switches;
+      for Default_Switches ("Ada") use Mpfs_Link.Switches;
    end Linker;
 end App;
