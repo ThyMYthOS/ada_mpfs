@@ -23,4 +23,4 @@ REGION_ALIAS("REGION_FAST_LOAD", envm)
 ASSERT(LENGTH(envm) != 0, "place-envm.ld: MPFS_ENVM_LENGTH is 0, the image has no eNVM to run from")
 ASSERT(LENGTH(l2lim) != 0, "place-envm.ld: MPFS_LIM_LENGTH is 0, the data of the bootloader has no RAM")
 
-INCLUDE app-sections.ld
+INCLUDE sections.ld
