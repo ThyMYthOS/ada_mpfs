@@ -1,0 +1,10 @@
+Permission to copy and modify the specifications that the GNAT runtime derives from the Ada
+Reference Manual. The notice below is the paragraph that alire-project/bb-runtimes (tag
+v15.1.0-1) and the GNAT sources carry, word for word, in the header of each such specification
+(for example gnat_rts_sources/include/rts-sources/containers/a-iteint.ads); only the comment
+markers at the line ends are the ones of the Ada files.
+
+-- This specification is derived from the Ada Reference Manual for use with --
+-- GNAT.  In accordance with the copyright of that document, you can freely --
+-- copy and modify this specification,  provided that if you redistribute a --
+-- modified version,  any changes that you have made are clearly indicated. --
