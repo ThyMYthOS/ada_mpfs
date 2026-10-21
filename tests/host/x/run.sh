@@ -73,6 +73,18 @@ fi
   rm -rf "$ap" "$gb"
 )
 
+# toolchain check finds the pinned Renode in its prefix and accepts its build number
+(
+  . "$ROOT/tools/toolchain.env"
+  rp="$(mktemp -d)"; mkdir -p "$rp/renode-$RENODE_VERSION"
+  printf '#!/bin/sh\necho "Renode v%s.7"\n' "$RENODE_VERSION" > "$rp/renode-$RENODE_VERSION/renode"; chmod +x "$rp/renode-$RENODE_VERSION/renode"
+  case "$(MPFS_TOOLS_PREFIX="$rp" "$X" toolchain check 2>&1)" in
+    *"renode               ok"*) pass "toolchain check finds the Renode of the prefix" ;;
+    *) fail "toolchain check finds the Renode of the prefix" ;;
+  esac
+  rm -rf "$rp"
+)
+
 expect_rc "help exits 0"            0       "$X" help
 expect_rc "list exits 0"            0       "$X" list
 expect_rc "list --json exits 0"     0       "$X" list --json

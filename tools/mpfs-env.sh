@@ -68,6 +68,11 @@ mpfs_toolchain_on_path () {
         d="$(mpfs_opt_prefix "${d%%:*}" "${d#*:}")/bin"
         case ":$PATH:" in *":$d:"*) ;; *) PATH="$d:$PATH" ;; esac
     done
+    # Renode's portable build has its launcher in the prefix itself, not in bin/.
+    d="$(mpfs_opt_prefix renode "$RENODE_VERSION")"
+    if [ -n "$RENODE_VERSION" ] && [ -x "$d/renode" ]; then
+        case ":$PATH:" in *":$d:"*) ;; *) PATH="$d:$PATH" ;; esac
+    fi
     export PATH
     [ -n "$MPFS_GPRBUILD_BIN" ]      || { echo "mpfs: gprbuild $GPRBUILD_VERSION not installed in $MPFS_ADA_TOOLCHAINS" >&2; rc=1; }
     [ -n "$MPFS_GNAT_RISCV64_BIN" ]  || { echo "mpfs: gnat_riscv64_elf $GNAT_RISCV64_VERSION not installed in $MPFS_ADA_TOOLCHAINS" >&2; rc=1; }
@@ -199,7 +204,7 @@ mpfs_toolchain_check () {
     _exact gnatprove "$GNATPROVE_VERSION" "$v" 0
     v=; command -v adalang_analyzer >/dev/null 2>&1 && v="$(mpfs_version_of adalang_analyzer --version)"
     _exact adalang_analyzer "$ADALANG_ANALYZER_VERSION" "$v" 0
-    v=; command -v renode >/dev/null 2>&1 && v="$(mpfs_version_of renode --version)"
+    v=; command -v renode >/dev/null 2>&1 && v="$(mpfs_version_of renode --version | cut -d. -f1-3)"   # Renode adds a build number: 1.17.0.<build>
     _exact renode "$RENODE_VERSION" "$v" 0
     # svd2ada is built from source, into a prefix named after the pinned commit
     b="$(mpfs_opt_prefix svd2ada "$SVD2ADA_COMMIT")/bin"
