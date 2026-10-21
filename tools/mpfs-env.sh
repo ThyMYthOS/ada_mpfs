@@ -61,8 +61,9 @@ mpfs_toolchain_on_path () {
         [ -n "$d" ] || continue
         case ":$PATH:" in *":$d:"*) ;; *) PATH="$d:$PATH" ;; esac
     done
-    # Optional tools: put the pinned version's bin/ on PATH if it is installed.
-    for d in "gnatprove:$GNATPROVE_VERSION" "adalang_analyzer:$ADALANG_ANALYZER_VERSION" "svdtools:$SVDTOOLS_VERSION" "svd2ada:$SVD2ADA_COMMIT"; do
+    # Optional tools (and the pinned alr of ./x toolchain install alire): put the pinned
+    # version's bin/ on PATH if it is installed, before any other one on PATH.
+    for d in "alr:$ALR_VERSION" "gnatprove:$GNATPROVE_VERSION" "adalang_analyzer:$ADALANG_ANALYZER_VERSION" "svdtools:$SVDTOOLS_VERSION" "svd2ada:$SVD2ADA_COMMIT"; do
         [ -n "${d#*:}" ] && [ -d "$(mpfs_opt_prefix "${d%%:*}" "${d#*:}")/bin" ] || continue
         d="$(mpfs_opt_prefix "${d%%:*}" "${d#*:}")/bin"
         case ":$PATH:" in *":$d:"*) ;; *) PATH="$d:$PATH" ;; esac

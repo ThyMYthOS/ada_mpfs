@@ -8,12 +8,13 @@
 #  Usage:
 #    ./x help                          this text
 #    ./x list [--json]                 list examples (name, default hart, dir)
-#    ./x toolchain install [svdtools|svd2ada|pac|gnat|gnatprove|adalang_analyzer|renode]|check
+#    ./x toolchain install [svdtools|svd2ada|pac|alire|gnat|gnatprove|adalang_analyzer|renode]|check
 #                                      install the toolchains pinned in
 #                                      tools/toolchain.env (only svdtools or
 #                                      svd2ada if named; pac: only what
 #                                      `./x pac check` needs, without gnatprove
-#                                      and adalang_analyzer; gnat: only the compilers
+#                                      and adalang_analyzer; alire: only the pinned
+#                                      alr release, checksum verified; gnat: only the compilers
 #                                      and gprbuild; gnatprove, adalang_analyzer: the
 #                                      compilers and that one crate; renode: the pinned Renode
 #                                      release, checksum verified) / report deviations
@@ -169,6 +170,17 @@ mpfs_install_renode () {
   echo "x: installed renode $RENODE_VERSION in $pfx"
 }
 
+# The pinned Alire release (bin/alr) into its per-version prefix, whatever alr is on PATH:
+# that is the one the other installs use when none is on PATH.
+mpfs_install_alire () {
+  local apfs; apfs="$(mpfs_opt_prefix alr "$ALR_VERSION")"
+  if [ -x "$apfs/bin/alr" ] || [ -x "$apfs/bin/alr.exe" ]; then
+    echo "x: alr $ALR_VERSION already installed in $apfs"; return 0
+  fi
+  mpfs_install_alr "$apfs" || die "no Alire $ALR_VERSION could be installed for $(uname -sm); see https://alire.ada.dev"
+  echo "x: installed alr $ALR_VERSION in $apfs"
+}
+
 # Puts alr on PATH: the one that is there, else the pinned release in its prefix.
 mpfs_ensure_alr () {
   command -v alr >/dev/null 2>&1 && return 0
@@ -248,6 +260,7 @@ cmd_toolchain () {
           mpfs_install_alire_toolchains
           mpfs_toolchain_on_path || true
           return ;;
+        alire)  mpfs_install_alire; return ;;       # only the pinned alr, nothing else
         renode) mpfs_install_renode; return ;;      # only the pinned release, no Alire
         gnatprove|adalang_analyzer)                 # the toolchains and that one crate
           mpfs_install_alire_toolchains
@@ -265,7 +278,7 @@ cmd_toolchain () {
           mpfs_toolchain_on_path || true
           mpfs_toolchain_check
           return ;;
-        *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|gnat|gnatprove|adalang_analyzer|renode]" ;;
+        *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|alire|gnat|gnatprove|adalang_analyzer|renode]" ;;
       esac
       mpfs_install_alire_toolchains
       mpfs_venv_install || die "creating the python environment failed"
@@ -283,7 +296,7 @@ cmd_toolchain () {
       mpfs_toolchain_on_path || true
       mpfs_toolchain_check
       ;;
-    *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|gnat|gnatprove|adalang_analyzer|renode]|check" ;;
+    *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|alire|gnat|gnatprove|adalang_analyzer|renode]|check" ;;
   esac
 }
 
