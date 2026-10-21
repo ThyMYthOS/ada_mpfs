@@ -6,6 +6,7 @@ build/
 *.elf
 *.bin
 *.map
+tools/stack_report/stack_report
 alire/
 # Python
 __pycache__/

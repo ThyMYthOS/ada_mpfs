@@ -19,6 +19,11 @@ variables
 | `MPFS_PRIV` | `m`, `u` | privilege model |
 | `MPFS_PROFILE` | `auto`, `light`, `light-tasking`, `embedded` | runtime profile |
 
+One more variable is read from the environment of the project only: `STACK_ANALYSIS` (`0`, the default, or `1`).
+`./x stack` sets it to `1`; the project then adds `-fstack-usage -fcallgraph-info=su,da` to the Ada switches, so that
+the compiler writes the frame sizes (`.su`) and the call graph (`.ci`) next to the objects (`tools/stack_report`
+reads them). The code does not change.
+
 `./x build` validates all values before calling `gprbuild`; an SMP set with `--hart e51` is rejected.
 `MPFS_HARTS` is not passed when it is empty, because `gprbuild` treats an empty value as undefined.
 

@@ -11,6 +11,7 @@
 | `headers.py` | SPDX header and provenance check. |
 | `metrics.sh` | `./x metrics verify\|bless`: size, entry point, `e_flags` and `Tag_RISCV_arch` of every built image against `metrics.golden` in the repository root (rows keyed on image and compiler: the `GNAT Version:` string of the binder, `__gnat_version`, if the image has one, else the `.comment` string of the linker, which is all a bare image has). |
 | `prove.sh`, `prove.list` | `./x prove [filter...]`: runs the pinned gnatprove (`GNATPROVE_VERSION`) on every project of `prove.list` (`project`, `label`, `switches`; `-` is `--level=1 --prover=z3 --timeout=10`). The Unproved column of the summary decides, not the exit status of gnatprove; a different or missing gnatprove, a missing summary, an empty or malformed list and a missing project fail. |
+| `stack_report/` | `./x stack <ex>`: native Ada tool (built on demand, copied unchanged from ada_esp32s3) that reads the `.su` and `.ci` files the compiler writes with `STACK_ANALYSIS=1` and reports the biggest frames, dynamic frames and the deepest call chain per entry; recursion is flagged, calls into code without a frame are marked `+ext`. It fails without `.su` files. |
 | `regmap2svd.py` | One-time import of the Microchip register map into SVD fragments. |
 | `requirements.txt` | Python packages of the host tools. |
 

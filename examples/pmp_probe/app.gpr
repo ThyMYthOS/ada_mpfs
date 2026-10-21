@@ -10,6 +10,16 @@ project App is
    type Hart_Kind is ("e51", "u54");
    Hart : Hart_Kind := external ("MPFS_HART", "e51");
 
+   --  STACK_ANALYSIS=1 (./x stack) makes the compiler also write the stack
+   --  usage (.su) and the call graph (.ci) of every unit. The code is the same.
+   type Switch is ("0", "1");
+   Stack_Analysis : Switch := external ("STACK_ANALYSIS", "0");
+   Analysis := ();
+   case Stack_Analysis is
+      when "1" => Analysis := ("-fstack-usage", "-fcallgraph-info=su,da");
+      when "0" => null;
+   end case;
+
    --  The ABI of the image. The E51 has no FPU.
    Arch := "";
    Abi  := "";
@@ -39,7 +49,7 @@ project App is
    package Compiler is
       for Default_Switches ("Ada") use Common &
         ("-O2", "-g", "-gnat2022", "-gnatwa", "-gnatwe", "-gnaty",
-         "-ffunction-sections", "-fdata-sections");
+         "-ffunction-sections", "-fdata-sections") & Analysis;
       for Default_Switches ("Asm_Cpp") use Common & ("-g");
    end Compiler;
 end App;

@@ -31,7 +31,9 @@
 #                                      the Test_Report applications of tests/qemu/tests.list)
 #    ./x metrics verify|bless          compare / re-bless metrics.golden
 #    ./x analyze [--style] [--update-baseline]   static analysis
-#    ./x stack <ex>                    static stack analysis
+#    ./x stack <ex> [--hart e51|u54] [--top N]
+#                                      static stack analysis: per-frame sizes and the
+#                                      deepest call chain per entry (tools/stack_report)
 #    ./x svd merge|check               merge the SVD and record its hash / verify the hash
 #    ./x svd probe [--all|<periph>...] compare reset values with a target (OpenOCD); regenerates a stale build/svd
 #    ./x pac generate|check            register package generation and checks
@@ -452,6 +454,16 @@ project App is
    Hart : Hart_Kind := external ("MPFS_HART", "e51");
    Priv : Priv_Kind := external ("MPFS_PRIV", "m");
 
+   --  STACK_ANALYSIS=1 (./x stack) makes the compiler also write the stack
+   --  usage (.su) and the call graph (.ci) of every unit. The code is the same.
+   type Switch is ("0", "1");
+   Stack_Analysis : Switch := external ("STACK_ANALYSIS", "0");
+   Analysis := ();
+   case Stack_Analysis is
+      when "1" => Analysis := ("-fstack-usage", "-fcallgraph-info=su,da");
+      when "0" => null;
+   end case;
+
    for Target use "riscv64-elf";
    for Runtime ("Ada") use "light-polarfiresoc";
    for Source_Dirs use ("src");
@@ -465,7 +477,7 @@ project App is
 
    package Compiler is
       for Default_Switches ("Ada") use
-        ("-O2", "-g", "-gnat2022", "-gnatwa", "-gnatwe", "-gnaty");
+        ("-O2", "-g", "-gnat2022", "-gnatwa", "-gnatwe", "-gnaty") & Analysis;
    end Compiler;
 end App;
 EOF
@@ -564,6 +576,38 @@ cmd_mem () {
       for (i = 1; i <= n; i++) if (used[order[i]] > 0)
         printf "   %-12s %9d B\n", order[i], used[order[i]]
     }'
+}
+
+# -- stack analysis ----------------------------------------------------------
+#  GCC's -fstack-usage and -fcallgraph-info are emitted only when STACK_ANALYSIS=1
+#  (a normal build is byte-identical). The analyser is a native Ada host tool,
+#  tools/stack_report, built on demand; the build is incremental.
+cmd_stack () {
+  local e hart="" top=12 log rc=0
+  e="$(resolve "${1:-}")"; shift || true
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --hart) [ $# -ge 2 ] || die "--hart needs a value"; hart="$2"; shift 2 ;;
+      --top)  [ $# -ge 2 ] || die "--top needs a value"; top="$2"; shift 2 ;;
+      *) die "unknown option '$1'" ;;
+    esac
+  done
+  [ -n "$hart" ] || hart="$(conf_get "$e" HART e51)"
+  valid_hart "$hart"
+  case "$top" in ""|*[!0-9]*|0) die "invalid --top '$top' (a positive number)" ;; esac
+  toolchain_ready
+  log="$(mktemp)"
+  gprbuild -q -P "$ROOT/tools/stack_report/stack_report.gpr" >"$log" 2>&1 \
+    || { cat "$log" >&2; rm -f "$log"; die "could not build tools/stack_report (needs the native GNAT toolchain)"; }
+  echo "x: stack analysis build of $e ($hart) with STACK_ANALYSIS=1 (forces a rebuild)..." >&2
+  cmd_clean "$e" >/dev/null
+  ( export STACK_ANALYSIS=1; build_example "$e" --hart "$hart" ) >"$log" 2>&1 \
+    || { cat "$log" >&2; rm -f "$log"; die "analysis build failed (try: STACK_ANALYSIS=1 ./x build $e --hart $hart)"; }
+  rm -f "$log"
+  "$ROOT/tools/stack_report/stack_report" "$EXROOT/$e/obj-$hart" --top "$top" || rc=$?
+  #  Leave no analysis objects behind: the next build is the normal one.
+  cmd_clean "$e" >/dev/null
+  [ $rc -eq 0 ] || die "stack_report failed (exit $rc)"
 }
 
 # -- delegation to tool scripts ----------------------------------------------
@@ -675,7 +719,7 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
     test)            cmd_test "$@" ;;
     metrics)         cmd_metrics "$@" ;;
     analyze)         delegate tools/analyze.sh "$@" ;;
-    stack)           delegate tools/stack.sh "$@" ;;
+    stack)           cmd_stack "$@" ;;
     svd)             cmd_svd "$@" ;;
     pac)             cmd_pac "$@" ;;
     trace)           cmd_trace "$@" ;;
