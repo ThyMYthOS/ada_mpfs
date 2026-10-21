@@ -52,12 +52,13 @@ class Stub:
     log holds (connection number, command) for every command received, without the "echo" commands that frame a
     command (the stand-in answers them with their argument; a command that hangs swallows the closing one). With banner=False the
     stand-in accepts the connection and never says anything. "targets" without argument answers
-    like OpenOCD with a table in which hart 0 is in <state>.
+    like OpenOCD with a table in which hart 0 is in <state>. "mww ADDRESS VALUE" stores VALUE & write_mask.get(ADDRESS, all ones) in mem.
     """
 
-    def __init__(self, mem=None, script=None, accept=None, banner=True, state="halted"):
+    def __init__(self, mem=None, script=None, accept=None, banner=True, state="halted", write_mask=None):
         self.banner = banner
         self.state = state
+        self.write_mask = write_mask or {}
         self.accepted = threading.Event()
         self.mem = mem or {}
         self.script = script
@@ -114,6 +115,9 @@ class Stub:
                         self.log.append((conn_no, cmd))
                     mds += cmd.startswith("md")
                     out = self.script(conn_no, cmd, mds) if self.script else None
+                    if out is None and cmd.startswith("mww "):
+                        _, a, v = cmd.split()
+                        self.mem[int(a, 16)] = int(v, 16) & self.write_mask.get(int(a, 16), 0xFFFFFFFF)
                     if out == EOF:
                         c.close()
                         break
@@ -127,7 +131,7 @@ class Stub:
                     if out is None and cmd.startswith("echo "):
                         out = cmd[5:]
                     if out is None:
-                        out = self._md(cmd) if cmd.startswith("md") else self._targets() if cmd == "targets" else ""
+                        out = self._md(cmd) if cmd.startswith("md") else self._targets() if cmd == "targets" else "pc (/64): 0x0000000008000010" if cmd == "reg pc" else ""
                     c.sendall(cmd.encode() + b"\r\n" + (out.encode() + b"\r\n" if out else b"") + b"> ")
                 else:
                     continue
@@ -355,6 +359,98 @@ def test_halt(tmp: Path) -> None:
     stub.close()
 
 
+def test_power_state(tmp: Path) -> None:
+    """One header line documents the state of the board before the first register line."""
+    svd = make_svd(tmp, {"SYSREG@0x2000": [reg("DFIAPB_CR", 0x98), reg("CLOCK_CONFIG_CR", 0x08), reg("DEVICE_STATUS", 0x24),
+                                           reg("PLL_STATUS_SR", 0x14C), reg("MSS_RESET_CR", 0x18), reg("SUBBLK_CLOCK_CR", 0x84),
+                                           reg("SOFT_RESET_CR", 0x88)]})
+    mem = {0x2098: 2, 0x2008: 0x10, 0x2024: 0x1009, 0x214C: 0x1234, 0x2018: 0x107}
+    stub = Stub(mem=mem)
+    r = run(svd, stub)
+    header = [line for line in r.stdout.splitlines() if line.startswith("svd_probe: power state:")]
+    check("power state: one header line with the five registers and the PC",
+          header == ["svd_probe: power state: DFIAPB_CR=0x00000002 CLOCK_CONFIG_CR=0x00000010 DEVICE_STATUS=0x00001009 "
+                     "PLL_STATUS_SR=0x00001234 MSS_RESET_CR=0x00000107 pc=0x0000000008000010"], f"{header} {r.stdout!r} {r.stderr!r}")
+    check("power state: it comes before the first register line", r.stdout.index("power state") < r.stdout.index("ok  "), r.stdout)
+    check("power state: the PC is read from the selected hart, after the halt",
+          stub.commands("reg pc") == ["reg pc"] and [c for c in stub.commands("") if c in ("halt", "reg pc")] == ["halt", "reg pc"], str(stub.log))
+    check("power state: it is a header, the summary still counts the registers only",
+          "svd_probe: 7 register(s)," in r.stdout and kinds(r.stdout).count("mismatch") == 3, r.stdout)
+    stub.close()
+    # it shows the state before --enable-clocks writes
+    stub = Stub(mem=mem)
+    r = run(svd, stub, "--enable-clocks")
+    order = [c.split()[0] for c in stub.commands("") if c.split()[:1] and c.split()[0] in ("reg", "mww")]
+    check("power state: with --enable-clocks it is read before the first write", order[:3] == ["reg", "mww", "mww"], f"{order} {stub.log}")
+    stub.close()
+    # a SVD without SYSREG, and a read that fails
+    (tmp / "p1").mkdir()
+    svd2 = make_svd(tmp / "p1", {"P1@0x1000": [reg("R0", 0)]})
+    stub = Stub()
+    r = run(svd2, stub)
+    check("power state: without SYSREG the header has the PC only", "svd_probe: power state: pc=0x0000000008000010" in r.stdout, r.stdout)
+    stub.close()
+    stub = Stub(mem=mem, script=lambda conn, cmd, n: "Error: bus error" if cmd.startswith("mdw 0x2024") else None)
+    r = run(svd, stub, "--max-failures", "0")
+    check("power state: an unreadable register is shown as such", "DEVICE_STATUS=unreadable(" in r.stdout and "PLL_STATUS_SR=0x00001234" in r.stdout, r.stdout)
+    stub.close()
+    stub = Stub(script=lambda conn, cmd, n: "" if cmd == "reg pc" else None)
+    r = run(svd2, stub)
+    check("power state: a PC that OpenOCD does not give is shown as ?", "pc=?" in r.stdout, r.stdout)
+    stub.close()
+    r = run(svd, None, "--list")
+    check("power state: --list prints no header and needs no board", "power state" not in r.stdout and r.returncode == 0, r.stdout)
+
+
+def test_enable_clocks(tmp: Path) -> None:
+    """--enable-clocks reads the two registers back, prints them and warns where the readback is not what it should be."""
+    field = lambda off: f"<field><name>F{off}</name><bitOffset>{off}</bitOffset><bitWidth>1</bitWidth></field>"
+    fields = "<fields>" + "".join(field(i) for i in range(32) if i not in (31, 30, 17)) + "</fields>"
+    svd = make_svd(tmp, {"SYSREG@0x2000": [reg("SUBBLK_CLOCK_CR", 0x84, reset=1, extra=fields), reg("SOFT_RESET_CR", 0x88, reset=0x3FFFFFFE)]})
+    (tmp / "empty.list").write_text("# no rules\n")
+    # the MPFS250T: bits 31, 30 and 17 do not read back 1, and that is no reason to warn
+    stub = Stub(write_mask={0x2084: 0x3FFDFFFF})
+    r = run(svd, stub, "--enable-clocks", "--skip-file", str(tmp / "empty.list"))
+    check("clocks: with the usual readback the run goes on", r.returncode in (0, 1), f"{r.returncode} {r.stderr!r}")
+    check("clocks: the readback is printed", "svd_probe: clocks enabled: SUBBLK_CLOCK_CR=0x3FFDFFFF SOFT_RESET_CR=0x00000000" in r.stdout, r.stdout)
+    check("clocks: bits 31, 30 and 17 do not make a warning", "WARNING" not in r.stderr, r.stderr)
+    check("clocks: the readback comes after the writes and before the first read",
+          [c.split()[0] for c in stub.commands("") if c.split()[:1] and c.split()[0] in ("mww", "mdw")][:4] == ["mww", "mww", "mdw", "mdw"], str(stub.log))
+    stub.close()
+    # a clock bit that does not stick, and a peripheral that stays in reset
+    stub = Stub(write_mask={0x2084: 0x3FF5FFFF, 0x2088: 0x00004000})
+    stub.mem[0x2088] = 0x4000
+    r = run(svd, stub, "--enable-clocks", "--skip-file", str(tmp / "empty.list"))
+    check("clocks: a clock bit that reads back 0 is a warning that names the bits",
+          "WARNING" in r.stderr and "SUBBLK_CLOCK_CR reads 0x3FF5FFFF" in r.stderr and "0x00080000" in r.stderr, r.stderr)
+    check("clocks: the readback is printed anyway", "SUBBLK_CLOCK_CR=0x3FF5FFFF" in r.stdout, r.stdout)
+    stub.close()
+    # the write of 0 to SOFT_RESET_CR does not stick (the stand-in ignores the write)
+    stub = Stub(mem={0x2088: 0x4000}, script=lambda conn, cmd, n: "" if cmd == "mww 0x2088 0x0" else None)
+    r = run(svd, stub, "--enable-clocks", "--skip-file", str(tmp / "empty.list"))
+    check("clocks: SOFT_RESET_CR that is not 0 is a warning", "SOFT_RESET_CR reads 0x00004000" in r.stderr and "still in reset" in r.stderr, r.stderr)
+    check("clocks: SOFT_RESET_CR warning leaves the exit status to the registers", r.returncode in (0, 1), str(r.returncode))
+    stub.close()
+    # no warning, no readback line without --enable-clocks
+    stub = Stub()
+    r = run(svd, stub, "--skip-file", str(tmp / "empty.list"))
+    check("clocks: nothing is written or printed without --enable-clocks", not stub.commands("mww") and "clocks enabled" not in r.stdout, str(stub.log))
+    stub.close()
+    # a SVD without fields: all bits are expected
+    svd2dir = tmp / "nf"
+    svd2dir.mkdir()
+    svd2 = make_svd(svd2dir, {"SYSREG@0x2000": [reg("SUBBLK_CLOCK_CR", 0x84), reg("SOFT_RESET_CR", 0x88)]})
+    stub = Stub(write_mask={0x2084: 0x3FFFFFFF})
+    r = run(svd2, stub, "--enable-clocks", "--skip-file", str(tmp / "empty.list"))
+    check("clocks: without fields in the SVD every bit is expected to read back 1", "SUBBLK_CLOCK_CR reads 0x3FFFFFFF" in r.stderr, r.stderr)
+    stub.close()
+    # the readback fails
+    stub = Stub(script=lambda conn, cmd, n: "Error: bus error" if cmd.startswith("mdw 0x2084") else None)
+    r = run(svd, stub, "--enable-clocks", "--skip-file", str(tmp / "empty.list"), "--max-failures", "0")
+    check("clocks: a readback that fails is a warning", "SUBBLK_CLOCK_CR cannot be read back" in r.stderr, r.stderr)
+    stub.close()
+
+
 def test_resume(tmp: Path) -> None:
     """A failed resume is reported and retried once over a new connection."""
     svd = make_svd(tmp, {"P1@0x1000": [reg("R0", 0)]})
@@ -506,7 +602,7 @@ def test_read_action(tmp: Path) -> None:
           stub.commands("md") == ["mdw 0x1000 1", "mdw 0x100C 2"], str(stub.commands("md")))
     check("readAction: each gets its own status line", len(lines) == 2 and "P1.R1" in lines[0] and "P1.R2" in lines[1], r.stdout)
     check("readAction: the status lines sit between the others, in address order",
-          [l.split()[2] if l.startswith("ok") else "S" for l in r.stdout.splitlines()[:5]] == ["P1.R0", "S", "S", "P1.R3", "P1.R4"],
+          [l.split()[2] if l.startswith("ok") else "S" for l in r.stdout.splitlines()[1:6]] == ["P1.R0", "S", "S", "P1.R3", "P1.R4"],
           r.stdout)
     check("readAction: skipped registers are no failure and are counted apart",
           r.returncode == 0 and "2 readAction" in r.stdout and "0 not ok" in r.stdout and "0 skipped," in r.stdout, f"{r.returncode} {r.stdout!r}")
@@ -779,7 +875,7 @@ def main() -> int:
     if not TOOL.is_file():
         print(f"probe_test: {TOOL} not found", file=sys.stderr)
         return 2
-    for case in (test_dead_connection, test_hang, test_noise, test_halt, test_resume, test_interrupt, test_failures, test_block, test_read_action, test_noref, test_state, test_skip):
+    for case in (test_dead_connection, test_hang, test_noise, test_halt, test_power_state, test_enable_clocks, test_resume, test_interrupt, test_failures, test_block, test_read_action, test_noref, test_state, test_skip):
         with tempfile.TemporaryDirectory() as d:
             case(Path(d))
     print(f"summary: {failures} failure(s)")

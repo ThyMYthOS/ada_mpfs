@@ -40,6 +40,11 @@ and stops with exit code 2, showing the table, if it is not; it also does this w
 did not halt ("unable to halt hart N" in the reply to halt) are mentioned in one line and do not matter: the reads
 go through the selected hart only.
 
+Before the first register line the probe prints one header line, "svd_probe: power state: DFIAPB_CR=0x...
+CLOCK_CONFIG_CR=0x... DEVICE_STATUS=0x... PLL_STATUS_SR=0x... MSS_RESET_CR=0x... pc=0x..." (the SYSREG registers of
+that name and the PC of the selected hart, read before --enable-clocks writes anything), so that every log shows
+the state the board was in. Scripts that parse the register lines by their prefix can ignore it.
+
 A reply that says the debug module is stuck busy ("Timed out ... waiting for busy", "abstractcs=...", "Failed to
 read priv register") stops the probe at once, whatever --keep-going or --max-failures say, and shows the reply: a
 hung access (the first one to CAN_A_LO after the --enable-clocks writes did). The probe makes
@@ -80,6 +85,7 @@ HANG_REPLY = re.compile(r"Timed out|waiting for busy|abstractcs|Failed to read p
 NOISE_LINE = re.compile(r"^(unable to halt hart \d+|\s+dm(control|status)\s*=\s*0x[0-9a-fA-F]+)\s*$")
 # What OpenOCD replies to a command it does not know
 UNKNOWN_COMMAND = re.compile(r"invalid command name|\bunknown\b|no such command|not recognized", re.IGNORECASE)
+POWER_STATE_REGS = ("DFIAPB_CR", "CLOCK_CONFIG_CR", "DEVICE_STATUS", "PLL_STATUS_SR", "MSS_RESET_CR")  # of SYSREG
 ABSTRACTCS = 0x16  # DMI address of the abstractcs register of the debug module
 ABSTRACTCS_BUSY = 1 << 12
 ABSTRACTCS_CMDERR = 0x700
@@ -94,6 +100,7 @@ class Reg:
     reset: int | None  # None: the SVD has no <resetValue>
     mask: int
     read_action: str = ""  # readAction of the register or of one of its fields: reading has a side effect
+    field_mask: int = 0  # the bits that have a field in the SVD; 0 if the register has no fields
 
 
 def int_of(text: str | None, default: int = 0) -> int:
@@ -132,6 +139,12 @@ def peripheral_registers(root: ET.Element, name: str) -> list[Reg]:
     for r in source.iterfind("registers/register"):
         size = int_of(r.findtext("size"), default_size)
         read_action = next((a.text for a in r.iter("readAction") if a.text and a.text != "none"), "")
+        field_mask = 0
+        for f in r.iterfind("fields/field"):
+            rng = re.fullmatch(r"\[(\d+):(\d+)\]", f.findtext("bitRange") or "")
+            lsb, width = (int(rng.group(2)), int(rng.group(1)) - int(rng.group(2)) + 1) if rng else \
+                (int_of(f.findtext("bitOffset")), int_of(f.findtext("bitWidth"), 1))
+            field_mask |= ((1 << width) - 1) << lsb
         for n, idx in enumerate(dim_indices(r)):
             step = int_of(r.findtext("dimIncrement"))
             regs.append(Reg(
@@ -141,6 +154,7 @@ def peripheral_registers(root: ET.Element, name: str) -> list[Reg]:
                 reset=int_of(r.findtext("resetValue")) if r.findtext("resetValue") else None,
                 mask=int_of(r.findtext("resetMask"), (1 << size) - 1),
                 read_action=read_action,
+                field_mask=field_mask,
             ))
     return regs
 
@@ -523,13 +537,36 @@ def probe(regs: list[Reg], target: OpenOcd, blocks: list[tuple[str, int]], keep_
 
 
 def enable_clocks(root: ET.Element, target: OpenOcd) -> None:
-    """Turn on all MSS peripheral clocks and release all peripheral resets (SYSREG)."""
+    """Turn on all MSS peripheral clocks and release all peripheral resets (SYSREG), then read both back.
+
+    The readback goes to stdout as one line. A warning on stderr says that SOFT_RESET_CR is not 0 (a peripheral is
+    still in reset) or that SUBBLK_CLOCK_CR differs from what its SVD fields allow: the bits without a field (31, 30 and
+    17 on the MPFS250T) do not read back 1, and that is no reason to warn.
+    """
     sysreg = {r.name.split(".")[1]: r for r in peripheral_registers(root, "SYSREG")}
-    for name, value in (("SUBBLK_CLOCK_CR", 0xFFFFFFFF), ("SOFT_RESET_CR", 0)):
+    writes = (("SUBBLK_CLOCK_CR", 0xFFFFFFFF), ("SOFT_RESET_CR", 0))
+    for name, value in writes:
         try:
             target.command(f"mww 0x{sysreg[name].address:X} 0x{value:X}", hang=True)
         except DebugHang as e:
             raise Hung(str(hang_error(target, f"writing SYSREG.{name} (0x{sysreg[name].address:08X})", str(e)))) from None
+    back = {}
+    for name, value in writes:
+        reg = sysreg[name]
+        got = read_run([reg], target)[0]
+        if isinstance(got, OSError):
+            print(f"svd_probe: WARNING: --enable-clocks: SYSREG.{name} cannot be read back ({got})", file=sys.stderr)
+            return
+        back[name] = got, value & (reg.field_mask or (1 << reg.size) - 1)
+    print("svd_probe: clocks enabled: " + " ".join(f"{name}=0x{got:08X}" for name, (got, _) in back.items()))
+    got, _ = back["SOFT_RESET_CR"]
+    if got:
+        print(f"svd_probe: WARNING: --enable-clocks: SOFT_RESET_CR reads 0x{got:08X} after writing 0: the peripherals of the "
+              "set bits are still in reset and their registers may read garbage or hang", file=sys.stderr)
+    got, want = back["SUBBLK_CLOCK_CR"]
+    if got != want:
+        print(f"svd_probe: WARNING: --enable-clocks: SUBBLK_CLOCK_CR reads 0x{got:08X} after writing 0xFFFFFFFF, the SVD "
+              f"fields allow 0x{want:08X}: the clocks of the peripherals in bits 0x{want & ~got:08X} are not on", file=sys.stderr)
 
 
 def note_other_harts(halt_reply: str, selected: str) -> None:
@@ -553,6 +590,26 @@ def verify_halted(target: OpenOcd, selected: str, halt_reply: str) -> None:
     raise NotHalted(f"{selected} is not halted (OpenOCD's target table says: {table!r}"
                     + (f"; reply to halt: {halt_reply!r}" if halt_reply else "")
                     + "); reads through it would be meaningless. Check the board and OpenOCD, or halt the hart yourself and use --no-halt")
+
+
+def read_pc(target: OpenOcd) -> str:
+    """The program counter of the selected hart ("reg pc"), as 0x%016X; "?" if OpenOCD does not say."""
+    match = re.search(r"0x([0-9A-Fa-f]+)", target.command("reg pc"))
+    return f"0x{int(match.group(1), 16):016X}" if match else "?"
+
+
+def power_state(root: ET.Element, target: OpenOcd) -> str:
+    """One header line for the log: the SYSREG registers that tell clocks, resets and PLLs, and the PC."""
+    try:
+        sysreg = {r.name.split(".")[1]: r for r in peripheral_registers(root, "SYSREG")}
+    except SystemExit:  # an SVD without SYSREG
+        sysreg = {}
+    parts = []
+    for name in POWER_STATE_REGS:
+        if name in sysreg:
+            value = read_run([sysreg[name]], target)[0]
+            parts.append(f"{name}=" + (f"0x{value:08X}" if isinstance(value, int) else f"unreadable({value})"))
+    return "svd_probe: power state: " + " ".join(parts + [f"pc={read_pc(target)}"])
 
 
 def resume(target: OpenOcd, args: argparse.Namespace) -> str | None:
@@ -628,8 +685,9 @@ def main(argv: list[str]) -> int:
                          "clear-on-read status). WARNING: the reads consume received data and clear status flags")
     ap.add_argument("--enable-clocks", action="store_true",
                     help="before reading, turn on all MSS peripheral clocks and release all peripheral resets "
-                         "(SYSREG.SUBBLK_CLOCK_CR = 0xFFFFFFFF, SYSREG.SOFT_RESET_CR = 0). A peripheral with its clock off "
-                         "or in reset can hang the bus, which only a reset of the board recovers")
+                         "(SYSREG.SUBBLK_CLOCK_CR = 0xFFFFFFFF, SYSREG.SOFT_RESET_CR = 0), read both back, print them and warn if "
+                         "SOFT_RESET_CR is not 0 or SUBBLK_CLOCK_CR differs from what its SVD fields allow. A peripheral with "
+                         "its clock off or in reset can hang the bus, which only a reset of the board recovers")
     ap.add_argument("--list", action="store_true", help="print the registers and expected values, read nothing")
     args = ap.parse_args(argv[1:])
     if not args.svd.is_file():
@@ -717,6 +775,7 @@ def main(argv: list[str]) -> int:
         note_other_harts(halt_reply, args.target)
         verify_halted(target, args.target, halt_reply)
         target.command("riscv set_prefer_sba off")
+        print(power_state(root, target))
         if args.enable_clocks:
             enable_clocks(root, target)
         probe(regs, target, blocks, args.keep_going, args.max_failures, args.read_destructive, state_rules, result)
