@@ -107,6 +107,54 @@ grep -q "^examples/bare_hello/bin-u54/bare_hello.elf${tab}bare hello U54 hart 1\
   && pass "smoke.expected: U54 line" || fail "smoke.expected: U54 line"
 
 # ---------------------------------------------------------------------------
+# tests/renode/smoke.sh with a stand-in for Renode. It reads $elf and $uart out of
+# the -e command, like bare.resc does, and copies the "image" to the UART file.
+mkdir -p "$tmp/r"
+cat > "$tmp/r/renode" <<'EOF2'
+#!/bin/bash
+[ "$1" = --version ] && { echo "Renode fake"; exit 0; }
+cmd=""; while [ $# -gt 0 ]; do [ "$1" = -e ] && cmd="$2"; shift; done
+elf="$(printf '%s' "$cmd" | sed -n 's/.*\$elf=@\([^;]*\);.*/\1/p')"
+uart="$(printf '%s' "$cmd" | sed -n 's/.*\$uart=@\([^;]*\);.*/\1/p')"
+[ -n "$elf" ] && [ -n "$uart" ] || { echo "fake renode: no \$elf/\$uart in: $cmd" >&2; exit 2; }
+[ -z "${FAKE_RENODE_ERROR:-}" ] || echo "There was an error executing command 'emulation RunFor'"
+cat "$elf" > "$uart"
+EOF2
+chmod +x "$tmp/r/renode"
+printf 'pmp entries 16\r\n' > "$tmp/r/pmp16.img"
+printf 'pmp entries 8\r\n' > "$tmp/r/pmp8.img"
+rsmoke () {   # rsmoke <expectation file> [env...]
+  local f="$1"; shift
+  env RENODE="$tmp/r/renode" SMOKE_EXPECTED="$f" "$@" bash "$ROOT/tests/renode/smoke.sh"
+}
+expected "$tmp/r/ok.expected" "$tmp/r/pmp16.img" "pmp entries 16"
+expect_rc  "renode smoke: passes when the image prints what is expected" 0 rsmoke "$tmp/r/ok.expected"
+expected "$tmp/r/wrong.expected" "$tmp/r/pmp8.img" "pmp entries 16"
+expect_rc  "renode smoke: fails on another PMP count" nonzero rsmoke "$tmp/r/wrong.expected"
+expect_out "renode smoke: names the missing string" 'MISSING: "pmp entries 16"' rsmoke "$tmp/r/wrong.expected"
+expected "$tmp/r/silent.expected" "$tmp/q/silent.img" "pmp entries 16"
+expect_rc  "renode smoke: fails on an empty console" nonzero rsmoke "$tmp/r/silent.expected"
+expect_out "renode smoke: says the console was empty" "guest console: EMPTY" rsmoke "$tmp/r/silent.expected"
+expect_rc  "renode smoke: an error reported by Renode fails even with the right output" nonzero rsmoke "$tmp/r/ok.expected" FAKE_RENODE_ERROR=1
+expected "$tmp/r/missing.expected" "$tmp/r/none.img" "pmp entries 16"
+expect_rc  "renode smoke: fails on a missing image" nonzero rsmoke "$tmp/r/missing.expected"
+expect_rc  "renode smoke: fails without Renode" nonzero rsmoke "$tmp/r/ok.expected" RENODE="$tmp/r/none"
+: > "$tmp/r/empty.expected"
+expect_rc  "renode smoke: an empty expectation file fails" nonzero rsmoke "$tmp/r/empty.expected"
+printf 'app\tstring\n%s\tx\n' "$tmp/r/pmp16.img" > "$tmp/r/badhdr.expected"
+expect_rc  "renode smoke: a wrong header fails" nonzero rsmoke "$tmp/r/badhdr.expected"
+rexp="$ROOT/tests/renode/smoke.expected"
+grep -q "^examples/pmp_probe/bin-e51/pmp_probe.elf${tab}pmp entries 16\$" "$rexp" \
+  && grep -q "^examples/pmp_probe/bin-u54/pmp_probe.elf${tab}pmp entries 16\$" "$rexp" \
+  && pass "renode smoke.expected: 16 PMP entries, separate from the QEMU value" \
+  || fail "renode smoke.expected: 16 PMP entries, separate from the QEMU value"
+grep -q "RunFor" "$ROOT/tests/renode/bare.resc" && ! grep -q '^start' "$ROOT/tests/renode/bare.resc" \
+  && pass "bare.resc: runs a fixed span of virtual time with RunFor, without start" \
+  || fail "bare.resc: runs a fixed span of virtual time with RunFor, without start"
+grep -Eq '^RENODE_SHA256_X86_64_LINUX=[0-9a-f]{64}$' "$ROOT/tools/toolchain.env" \
+  && pass "toolchain.env pins a SHA-256 for Renode" || fail "toolchain.env pins a SHA-256 for Renode"
+
+# ---------------------------------------------------------------------------
 # metrics.sh with stand-ins for size and readelf. The "image" X.elf has a
 # fixture X.elf.fx that sets TEXT DATA BSS ENTRY FLAGS ARCH COMMENT.
 mkdir -p "$tmp/m/bin"

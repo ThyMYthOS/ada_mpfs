@@ -8,7 +8,7 @@
 #  Usage:
 #    ./x help                          this text
 #    ./x list [--json]                 list examples (name, default hart, dir)
-#    ./x toolchain install [svdtools|svd2ada|pac]|check
+#    ./x toolchain install [svdtools|svd2ada|pac|renode]|check
 #                                      install the toolchains pinned in
 #                                      tools/toolchain.env (only svdtools or
 #                                      svd2ada if named; pac: only what
@@ -23,7 +23,7 @@
 #    ./x qemu <ex> [--hart N]          build and run under QEMU (microchip-icicle-kit)
 #                                      with a watchdog; N=0 is the E51, 1-4 a U54
 #    ./x mem <ex> [--hart e51|u54]     section sizes per memory region
-#    ./x test host|lib|examples|qemu|negative|metrics
+#    ./x test host|lib|examples|qemu|renode|negative|metrics
 #                                      everything checkable without a board
 #    ./x metrics verify|bless          compare / re-bless metrics.golden
 #    ./x analyze [--style] [--update-baseline]   static analysis
@@ -132,6 +132,30 @@ mpfs_install_svdtools () {
   fi
 }
 
+# The pinned Renode release (portable build) into its per-version prefix, checked
+# against the SHA-256 in tools/toolchain.env before it is unpacked. Only Linux
+# x86_64 has a checksum; elsewhere put a Renode on PATH or set RENODE.
+mpfs_install_renode () {
+  local pfx url tmp
+  pfx="$(mpfs_opt_prefix renode "$RENODE_VERSION")"
+  if [ -x "$pfx/renode" ]; then
+    echo "x: renode $RENODE_VERSION already installed in $pfx"; return 0
+  fi
+  [ "$(uname -sm)" = "Linux x86_64" ] || die "no pinned Renode release for $(uname -sm); install one and set RENODE"
+  [ -n "${RENODE_SHA256_X86_64_LINUX:-}" ] || die "RENODE_SHA256_X86_64_LINUX is not pinned in tools/toolchain.env"
+  url="https://github.com/renode/renode/releases/download/v$RENODE_VERSION/renode-$RENODE_VERSION.linux-portable.tar.gz"
+  tmp="$(mktemp)" || return 1
+  if curl -fsSL -o "$tmp" "$url" \
+     && [ "$(openssl dgst -sha256 "$tmp" | sed 's/.* //')" = "$RENODE_SHA256_X86_64_LINUX" ]; then
+    mkdir -p "$pfx.tmp" && tar -xzf "$tmp" -C "$pfx.tmp" --strip-components=1 \
+      && rm -rf "$pfx" && mv "$pfx.tmp" "$pfx" || { rm -rf "$pfx.tmp" "$tmp"; die "unpacking Renode failed"; }
+  else
+    rm -f "$tmp"; die "downloading or verifying $url failed"
+  fi
+  rm -f "$tmp"
+  echo "x: installed renode $RENODE_VERSION in $pfx"
+}
+
 # Puts alr on PATH: the one that is there, else the pinned release in its prefix.
 mpfs_ensure_alr () {
   command -v alr >/dev/null 2>&1 && return 0
@@ -193,6 +217,7 @@ cmd_toolchain () {
         "") ;;
         svdtools) mpfs_install_svdtools; return ;;   # only what the SVD check needs, no Alire
         svd2ada) mpfs_install_svd2ada; return ;;    # needs the toolchains and alr
+        renode) mpfs_install_renode; return ;;      # only the pinned release, no Alire
         pac)    # what `./x pac check` needs: no gnatprove, no adalang_analyzer
           mpfs_install_alire_toolchains
           mpfs_venv_install || die "creating the python environment failed"
@@ -202,7 +227,7 @@ cmd_toolchain () {
           mpfs_toolchain_on_path || true
           mpfs_toolchain_check
           return ;;
-        *) die "usage: ./x toolchain install [svdtools|svd2ada|pac]" ;;
+        *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|renode]" ;;
       esac
       mpfs_install_alire_toolchains
       mpfs_venv_install || die "creating the python environment failed"
@@ -226,7 +251,7 @@ cmd_toolchain () {
       mpfs_toolchain_on_path || true
       mpfs_toolchain_check
       ;;
-    *) die "usage: ./x toolchain install [svdtools|svd2ada|pac]|check" ;;
+    *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|renode]|check" ;;
   esac
 }
 
@@ -568,12 +593,14 @@ cmd_test () {
       [ $n -gt 0 ] || echo "x: no examples found"
       [ $rc -eq 0 ] || die "example builds failed"
       ;;
+    renode)     [ -f "$ROOT/tests/renode/smoke.sh" ] || die "not available yet: tests/renode/smoke.sh is missing"
+                build_matrix; delegate tests/renode/smoke.sh "$@" ;;
     lib)        delegate tools/test_lib.sh "$@" ;;
     qemu)       [ -f "$ROOT/tests/qemu/smoke.sh" ] || die "not available yet: tests/qemu/smoke.sh is missing"
                 build_matrix; delegate tests/qemu/smoke.sh "$@" ;;
     negative)   delegate tests/negative/run_negative.sh "$@" ;;
     metrics)    cmd_metrics verify ;;
-    *) die "usage: ./x test host|lib|examples|qemu|negative|metrics" ;;
+    *) die "usage: ./x test host|lib|examples|qemu|renode|negative|metrics" ;;
   esac
 }
 

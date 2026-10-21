@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+#
+# Runs one bare image on the Icicle Kit model of Renode for a fixed span of
+# virtual time. Variables, set by tests/renode/smoke.sh before this script is
+# included:
+#   $elf    the image
+#   $uart   file that receives what the image writes to MMUART0
+#   $span   virtual time to run, e.g. "00:00:00.5"
+# RunFor starts the emulation itself and returns when the span has elapsed, so
+# the result does not depend on the speed of the host.
+
+mach create "mpfs"
+machine LoadPlatformDescription @platforms/boards/mpfs-icicle-kit.repl
+sysbus.mmuart0 CreateFileBackend $uart true
+sysbus LoadELF $elf
+emulation RunFor $span
+quit

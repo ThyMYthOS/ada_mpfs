@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+#
+# smoke.expected -- what each image must print on MMUART0 under Renode. Same
+# format as tests/qemu/smoke.expected (image<TAB>string, fixed strings, image
+# relative to the repository root), edited by hand.
+#
+# The pmp_probe rows differ from the QEMU ones on purpose: the Renode model of
+# the board has 16 PMP entries per hart, QEMU 10.1.0 has 8.
+image	string
+examples/bare_hello/bin-e51/bare_hello.elf	bare hello E51 hart 0
+examples/bare_hello/bin-u54/bare_hello.elf	bare hello U54 hart 1
+examples/pmp_probe/bin-e51/pmp_probe.elf	pmp probe hart 0
+examples/pmp_probe/bin-e51/pmp_probe.elf	pmp entries 16
+examples/pmp_probe/bin-u54/pmp_probe.elf	pmp probe hart 1
+examples/pmp_probe/bin-u54/pmp_probe.elf	pmp entries 16
