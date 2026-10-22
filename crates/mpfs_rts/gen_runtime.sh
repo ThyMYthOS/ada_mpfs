@@ -20,6 +20,7 @@
 #   --overlay-dir DIR  the overlays (default: crates/mpfs_rts/overlays)
 #   --ld-dir DIR     the linker scripts (default: crates/mpfs_rts/ld)
 #   --pac-dir DIR    the generated register packages (default: libs/mpfs_pac/src/generated)
+#   --spec FILE      the link spec of the zero-cost exceptions (default: crates/mpfs_rts/link-zcx.spec)
 #
 # Environment: MPFS_RTS_BUILD = Production (default) | Debug | Assert, the BUILD switch of the
 # pack's target_options.gpr.
@@ -32,11 +33,14 @@
 #   2. lay the own port units (--port-dir) and then the overlays (--overlay-dir, one directory
 #      per overlay, in the order of their names) over it: <dir>/gnat/*, <dir>/gnarl/* replace
 #      or add sources, <dir>/ld/* goes to ld/; the files named in <dir>/remove.list (paths in the
-#      pack, one per line) are deleted from the pack first, which is how an own port unit
-#      replaces a source of the pack that has another name (start.S for start-ram.S);
+#      pack, one per line, "<profile>: <path>" for the pack of that profile only) are deleted
+#      from the pack first, which is how an own port unit replaces a source of the pack that has
+#      another name (start.S for start-ram.S) and how a source stays out of the library
+#      (embedded: gnat/unwind-dw2-fde-bb.c, the unwinder of libgcc is linked instead);
 #      then the linker scripts (--ld-dir) go to ld/, whatever the overlays brought; the
 #      register packages that the port units use (MPFS_Registers, .PLIC and .CLINT of
-#      --pac-dir: the PAC of libs/mpfs_pac, not a copy in the repository) go to gnat/;
+#      --pac-dir: the PAC of libs/mpfs_pac, not a copy in the repository) go to gnat/; the link
+#      spec of the pack (embedded: link-zcx.spec) is replaced by --spec, see below;
 #   3. build libgnat.a with runtime_build.gpr and, except for light, libgnarl.a with
 #      ravenscar_build.gpr. Both are ordinary library projects (static, no binder, no ar by hand);
 #   4. leave the result as a runtime directory: adainclude/ (all sources), adalib/ (.ali files,
@@ -67,6 +71,7 @@ port_dir="$HERE/mpfs"
 overlay_dir="$HERE/overlays"
 ld_dir="$HERE/ld"
 pac_dir="$ROOT/libs/mpfs_pac/src/generated"
+spec_file="$HERE/link-zcx.spec"
 # The register packages of the PAC that the port units of the runtime use (s-bbripl, s-bbsuti).
 pac_files="mpfs_registers.ads mpfs_registers-plic.ads mpfs_registers-clint.ads"
 check=0
@@ -83,6 +88,7 @@ while [ $# -gt 0 ]; do
     --overlay-dir) shift; [ $# -gt 0 ] || die "--overlay-dir needs a directory"; overlay_dir="$1" ;;
     --ld-dir)      shift; [ $# -gt 0 ] || die "--ld-dir needs a directory"; ld_dir="$1" ;;
     --pac-dir)     shift; [ $# -gt 0 ] || die "--pac-dir needs a directory"; pac_dir="$1" ;;
+    --spec)        shift; [ $# -gt 0 ] || die "--spec needs a file"; spec_file="$1" ;;
     -h|--help) sed -n '2,/^$/p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) die "unknown option '$1'" ;;
     *) args+=("$1") ;;
@@ -164,6 +170,7 @@ pack_sha="$(stream_sha "$pack")" || die "cannot read the pack $pack"
 for f in $pac_files; do
   [ -f "$pac_dir/$f" ] || die "no $pac_dir/$f (./x pac generate)"
 done
+[ "$profile" != embedded ] || [ -f "$spec_file" ] || die "no link spec $spec_file"
 pac_hash () { for f in $pac_files; do printf '%s %s\n' "$f" "$(sha < "$pac_dir/$f")"; done | sha; }
 
 key="$( {
@@ -172,6 +179,7 @@ key="$( {
   echo "port-units $(tree_hash "$port_dir")"
   echo "overlays $(overlay_hash "$overlay_dir")"
   echo "ld $(tree_hash "$ld_dir")"
+  if [ "$profile" = embedded ]; then echo "spec $(sha < "$spec_file")"; fi
   echo "switches $variant build=$build"
   echo "script $(sha < "${BASH_SOURCE[0]}")"
   echo "toolchain $toolchain"
@@ -224,6 +232,10 @@ overlay_from () {   # overlay_from <directory>
 if [ -f "$port_dir/remove.list" ]; then
   while IFS= read -r f; do
     case "$f" in ''|'#'*) continue ;; esac
+    # "<profile>: <path>" applies to that profile only (the pack of another one does not have it).
+    case "$f" in
+      *": "*) [ "${f%%: *}" = "$profile" ] || continue; f="${f#*: }" ;;
+    esac
     case "$f" in /*|*..*) die "$port_dir/remove.list: '$f' is not a path inside the pack" ;; esac
     [ -f "$work/$f" ] || die "$port_dir/remove.list: $(basename "$pack") has no $f"
     rm -f "$work/$f"
@@ -256,6 +268,14 @@ grep -q 'gnatyM120' "$work/target_options.gpr" || die "target_options.gpr of $(b
 if [ -d "$ld_dir" ]; then
   mkdir -p "$work/ld"
   cp -R "$ld_dir/." "$work/ld/"
+fi
+
+# The link spec of the zero-cost exceptions (R8). The pack's link-zcx.spec passes --eh-frame-hdr,
+# which the riscv64 ld does not know, and puts no crtbegin.o and crtend.o around the link; ours
+# (crates/mpfs_rts/link-zcx.spec) does what README.md describes. Only the embedded profile has one.
+if [ "$profile" = embedded ]; then
+  [ -f "$work/link-zcx.spec" ] || die "$(basename "$pack") has no link-zcx.spec to replace"
+  cp "$spec_file" "$work/link-zcx.spec"
 fi
 
 # The link directory of the runtime is ld/ (the pack names it ld_user).
