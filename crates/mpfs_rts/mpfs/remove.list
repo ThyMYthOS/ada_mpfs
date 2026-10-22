@@ -3,3 +3,11 @@
 # lists the old one here: start.S (P1.3) replaces the upstream start-ram.S, which defines
 # __gnat_exit too, so both in libgnat.a would be a choice of the archive order.
 gnat/start-ram.S
+
+# The unwinder of the bare-board runtimes finds the frame descriptions only through
+# .eh_frame_hdr, which the linker of this toolchain cannot make (it does not know --eh-frame-hdr).
+# The embedded profile is linked with the registration-based unwinder of libgcc instead
+# (unwind-dw2-fde.o, link-zcx.spec, R8), so the file stays out of libgnat.a: two definitions of
+# _Unwind_Find_FDE must not be a matter of the order of the archives. A line "<profile>: <path>"
+# applies to the pack of that profile only.
+embedded: gnat/unwind-dw2-fde-bb.c
