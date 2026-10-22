@@ -21,8 +21,14 @@
 #    ./x build <ex> [-P PROFILE] [--hart e51|u54] [--harts 1-4] [--priv m|u]
 #                                      build an example (PROFILE: light|
 #                                      light-tasking|embedded|auto). --harts is
-#                                      a U54 hart set, e.g. 2, 1-4 or 1,3
-#    ./x clean [<ex>]                  remove build artifacts (all if omitted)
+#                                      a U54 hart set, e.g. 2, 1-4 or 1,3. An example
+#                                      with RUNTIME=mpfs_rts in its example.conf is linked
+#                                      with the runtime variant build/rts/<profile>-<hart>-
+#                                      cpus<n>-<priv>/, which crates/mpfs_rts/gen_runtime.sh
+#                                      builds first, and only again when its inputs changed
+#    ./x clean [<ex>|--rts|--packs]    remove build artifacts (all examples if omitted;
+#                                      --rts: the runtime variants in build/rts, not the
+#                                      generated packs; --packs: the packs in build/rts/packs)
 #    ./x new <name>                    scaffold examples/<name>
 #    ./x qemu <ex> [--hart N]          build and run under QEMU (microchip-icicle-kit)
 #                                      with a watchdog; N=0 is the E51, 1-4 a U54
@@ -392,6 +398,19 @@ valid_harts () {
   done
 }
 
+#  Number of harts in a set that valid_harts accepted (N, N-M, comma list).
+count_harts () {
+  local n=0 item
+  local IFS=,
+  for item in $1; do
+    case "$item" in
+      *-*) n=$((n + ${item#*-} - ${item%-*} + 1)) ;;
+      *)   n=$((n + 1)) ;;
+    esac
+  done
+  echo "$n"
+}
+
 B_PROF=auto; B_HART=""; B_HARTS=""; B_PRIV=m
 parse_build_opts () {   # sets B_*; call with the options after <example>
   B_PROF=auto; B_HART=""; B_HARTS=""; B_PRIV=m
@@ -431,18 +450,29 @@ build_example () {
   parse_build_opts "$@"
   check_build_opts "$(conf_get "$e" HART e51)"
   toolchain_ready
+  #  An example with RUNTIME=mpfs_rts is linked with a variant of the runtime of
+  #  crates/mpfs_rts. gen_runtime.sh builds it (and the pack it comes from, if that is missing) if it is missing or its inputs changed
+  #  (it keeps a key), and says so; its output is not part of the example's log, whose
+  #  compiler warnings are errors. MPFS_CPUS is the number of harts of --harts.
+  local prof="$B_PROF" cpus=1
+  [ -z "$B_HARTS" ] || cpus="$(count_harts "$B_HARTS")"
+  if [ "$(conf_get "$e" RUNTIME "")" = mpfs_rts ]; then
+    [ "$prof" != auto ] || prof="$(conf_get "$e" PROFILE light)"
+    "$ROOT/crates/mpfs_rts/gen_runtime.sh" "$prof" "$B_HART" "$cpus" "$B_PRIV" \
+      || die "runtime variant $prof/$B_HART/cpus$cpus/$B_PRIV failed (crates/mpfs_rts/gen_runtime.sh)"
+  fi
   local log rc=0
   log="$(mktemp)"
   if [ -f "$EXROOT/$e/build.sh" ]; then
     #  The example builds itself (e.g. bare images that bind and link nothing of
     #  the runtime); the scenario variables arrive in the environment.
     ( cd "$EXROOT/$e" && \
-      MPFS_HART="$B_HART" MPFS_PRIV="$B_PRIV" MPFS_PROFILE="$B_PROF" MPFS_HARTS="$B_HARTS" \
-        bash build.sh ) >"$log" 2>&1 || rc=$?
+      MPFS_HART="$B_HART" MPFS_PRIV="$B_PRIV" MPFS_PROFILE="$prof" MPFS_HARTS="$B_HARTS" \
+      MPFS_CPUS="$cpus" bash build.sh ) >"$log" 2>&1 || rc=$?
   else
     ( cd "$EXROOT/$e" && gprbuild -p -P app.gpr \
-          -XMPFS_HART="$B_HART" -XMPFS_PRIV="$B_PRIV" -XMPFS_PROFILE="$B_PROF" \
-          ${B_HARTS:+-XMPFS_HARTS="$B_HARTS"} ) >"$log" 2>&1 || rc=$?
+          -XMPFS_HART="$B_HART" -XMPFS_PRIV="$B_PRIV" -XMPFS_PROFILE="$prof" \
+          -XMPFS_CPUS="$cpus" ${B_HARTS:+-XMPFS_HARTS="$B_HARTS"} ) >"$log" 2>&1 || rc=$?
   fi
   cat "$log"
   #  Compiler warnings only (file.ad[sb]:line:col: warning:); linker notes about
@@ -484,6 +514,16 @@ build_matrix () {
 
 cmd_clean () {
   local dirs d
+  case "${1:-}" in
+    --rts)    #  the variants only: the packs are a cache of 20 s per cell and keep their hashes
+      find "$ROOT/build/rts" -mindepth 1 -maxdepth 1 ! -name packs -exec rm -rf {} + 2>/dev/null || true
+      echo "x: cleaned the runtime variants in build/rts (the packs stay: ./x clean --packs)"
+      return 0 ;;
+    --packs)
+      rm -rf "$ROOT/build/rts/packs"
+      echo "x: cleaned build/rts/packs"
+      return 0 ;;
+  esac
   if [ -n "${1:-}" ]; then dirs="$(resolve "$1")"; else dirs="$(list_dirs)"; fi
   for d in $dirs; do
     [ -n "$d" ] || continue
