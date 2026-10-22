@@ -14,8 +14,14 @@
 #     is the last 32 bytes of the region, the partition data reach the image (mask, role, the
 #     debugger's first CPU id), .data needs no copy;
 #   - the place-envm.ld placement links with .data loaded in the eNVM and running in the LIM;
-#   - the start code: whole 64-bit stores in the trap stub, three clear loops; the hook
-#     app-sections.ld of an application is included, the empty one of the runtime otherwise;
+#   - the start code: whole 64-bit stores in the trap stub, three clear loops, one loop that calls
+#     the entries of .preinit_array and .init_array; the hook app-sections.ld of an application is
+#     included, the empty one of the runtime otherwise;
+#   - the constructor arrays and .eh_frame (R8, P1.7): in every scenario image the arrays are
+#     bracketed by their symbols (empty without constructors, 8-byte entries, in the order
+#     preinit, init, fini) and .eh_frame is bracketed by __eh_frame_start and __eh_frame_end with
+#     the zero word of the linker script behind it; an object with a constructor entry gets it into
+#     .init_array; an entry that is not 8 bytes fails the link;
 #   - negative builds: a missing mandatory symbol (undefined reference or undefined symbol in the
 #     linker script), a stack size or interrupt stack size that is not a multiple of 16 or is 0, a
 #     stack that leaves no room, an empty region, and a _start that is not at the start of the
@@ -140,12 +146,40 @@ scenario () {
     || fail "$name: __gnat_gdb_cpu_first_id is $first ($got)"
   [ "$(sym "$elf" __data_load)" = "$(sym "$elf" __data_start)" ] && pass "$name: .data is loaded where it runs" \
     || fail "$name: .data is loaded where it runs"
+  # The constructor arrays: no constructor in the light runtime, so they are empty and start.S calls
+  # nothing; they are bracketed in the order preinit, init, fini and start.S walks 8-byte entries.
+  local a0 a1 a2 a3 a4 a5
+  a0="$(sym "$elf" __preinit_array_start)"; a1="$(sym "$elf" __preinit_array_end)"
+  a2="$(sym "$elf" __init_array_start)"; a3="$(sym "$elf" __init_array_end)"
+  a4="$(sym "$elf" __fini_array_start)"; a5="$(sym "$elf" __fini_array_end)"
+  { [ -n "$a0" ] && [ "$a0" = "$a1" ] && [ "$a1" = "$a2" ] && [ "$a2" = "$a3" ] && [ "$a3" = "$a4" ] && [ "$a4" = "$a5" ]; } \
+    && pass "$name: the constructor arrays are empty and in order" \
+    || fail "$name: the constructor arrays are empty and in order ($a0 $a1 $a2 $a3 $a4 $a5)"
+  [ "$(( 16#${a2:-1} & 7 ))" = 0 ] && pass "$name: the constructor arrays are 8-byte aligned" \
+    || fail "$name: the constructor arrays are 8-byte aligned ($a2)"
+  eh_frame "$name" "$elf"
   local rec end
   rec="$(sym "$elf" __mpfs_trap_record)"; end="$(sym "$elf" __heap_end)"
   [ "$rec" = "$end" ] && [ "$(( 16#$rec & 7 ))" = 0 ] && pass "$name: the heap ends at the trap record" \
     || fail "$name: the heap ends at the trap record ($rec, $end)"
   [ "$(( (16#$(sym "$elf" __stack_end)) & 15 ))" = 0 ] && pass "$name: the stack is 16-byte aligned" \
     || fail "$name: the stack is 16-byte aligned"
+}
+
+# eh_frame <name> <elf>: .eh_frame is bracketed by __eh_frame_start and __eh_frame_end, 8-byte aligned,
+# and the zero word of the linker script follows the range (the list ends for libgcc).
+eh_frame () {
+  local name="$1" elf="$2" st en sec addr size w
+  st="$(sym "$elf" __eh_frame_start)"; en="$(sym "$elf" __eh_frame_end)"
+  sec="$(riscv64-elf-objdump -h -j .eh_frame "$elf" | awk '$2 == ".eh_frame" { print $3, $4 }')"
+  size="${sec% *}"; addr="${sec#* }"
+  if [ -z "$st" ] || [ -z "$en" ] || [ -z "$addr" ]; then fail "$name: __eh_frame_start/__eh_frame_end bracket .eh_frame ($st $en $sec)"; return; fi
+  { [ "$(( 16#$st ))" = "$(( 16#$addr ))" ] && [ "$(( 16#$en ))" -le "$(( 16#$addr + 16#$size ))" ] && [ "$(( 16#$st & 7 ))" = 0 ]; } \
+    && pass "$name: __eh_frame_start is the start of .eh_frame, 8-byte aligned, __eh_frame_end inside" \
+    || fail "$name: __eh_frame_start is the start of .eh_frame, 8-byte aligned, __eh_frame_end inside ($st $en $addr $size)"
+  w="$(riscv64-elf-objdump -s -j .eh_frame --start-address="0x$en" --stop-address="$(printf '0x%x' $(( 16#$en + 4 )))" "$elf" \
+        | awk '/^ [0-9a-f]+ / { print $2 }')"
+  [ "$w" = 00000000 ] && pass "$name: a zero word follows __eh_frame_end" || fail "$name: a zero word follows __eh_frame_end ($w)"
 }
 
 scenario primary_lim        e51 $((0x08000000)) 1 1 0 MPFS_PLACEMENT=lim        MPFS_BOOT_ROLE=primary
@@ -185,6 +219,9 @@ if build "$work/disasm.log" e51; then
   n="$(grep -cE '[[:space:]]sd[[:space:]]+zero' "$work/start.dis")"
   [ "$n" = 3 ] && pass "start.S clears .bss, the interrupt stacks and the stack with three loops" \
     || fail "start.S clears .bss, the interrupt stacks and the stack with three loops ($n)"
+  n="$(grep -cE '[[:space:]]jalr[[:space:]]+t0' "$work/start.dis")"
+  [ "$n" = 1 ] && pass "start.S calls the entries of .preinit_array and .init_array with one loop" \
+    || fail "start.S calls the entries of .preinit_array and .init_array with one loop ($n)"
 else
   fail "disassembly build ($(tail -5 "$work/disasm.log"))"
 fi
@@ -244,6 +281,31 @@ if riscv64-elf-gcc -c -march=rv64imac_zicsr_zifencei -mabi=lp64 -o "$work/mispla
   negative start_not_first e51 "_start is not at the start of .text" -- "$work/misplaced.o"
 else
   fail "start_not_first: the fixture does not assemble"
+fi
+
+# A constructor entry: an 8-byte entry in .init_array (as __attribute__((constructor)) makes it) is
+# kept (KEEP), lands between __init_array_start and __init_array_end and in no other array; an entry
+# that is not 8 bytes fails the link.
+printf '\t.text\nctor_fixture:\n\tret\n\t.section .init_array,"aw",@init_array\n\t.balign 8\n\t.dword ctor_fixture\n' > "$work/ctor.S"
+printf '\t.text\nctor_fixture:\n\tret\n\t.section .init_array,"aw",@init_array\n\t.word 0\n' > "$work/ctor4.S"
+if riscv64-elf-gcc -c -march=rv64imac_zicsr_zifencei -mabi=lp64 -o "$work/ctor.o" "$work/ctor.S" \
+   && riscv64-elf-gcc -c -march=rv64imac_zicsr_zifencei -mabi=lp64 -o "$work/ctor4.o" "$work/ctor4.S"; then
+  if build "$work/ctor.log" e51 -- "$work/ctor.o"; then
+    elf="$ex/bin-e51/trap_test.elf"
+    a2="$(sym "$elf" __init_array_start)"; a3="$(sym "$elf" __init_array_end)"; a1="$(sym "$elf" __preinit_array_end)"
+    { [ "$(( 16#$a3 - 16#$a2 ))" = 8 ] && [ "$a1" = "$(sym "$elf" __preinit_array_start)" ]; } \
+      && pass "an .init_array entry of an object is kept: one entry, .preinit_array empty" \
+      || fail "an .init_array entry of an object is kept: one entry, .preinit_array empty ($a1 $a2 $a3)"
+    w="$(riscv64-elf-objdump -s -j .init_array "$elf" | awk '/^ [0-9a-f]+ / { print $2 " " $3 }' | head -1)"
+    want="$(sym "$elf" ctor_fixture | sed -E 's/^.{8}(..)(..)(..)(..)$/\4\3\2\1/') 00000000"
+    [ "$w" = "$want" ] && pass "the entry is the address of the constructor" \
+      || fail "the entry is the address of the constructor ($w, wanted $want)"
+  else
+    fail "a link with a constructor entry ($(tail -5 "$work/ctor.log"))"
+  fi
+  negative init_array_entry_not_8_bytes e51 ".preinit_array, .init_array or .fini_array is not 8-byte aligned" -- "$work/ctor4.o"
+else
+  fail "the constructor fixtures do not assemble"
 fi
 
 # A control for the negatives above: the same build with no fault links and leaves an image.

@@ -22,7 +22,8 @@
  *      hart is prepared for the release of P8 (mie.MSIE, woken by a software interrupt)
  *   4. .data is copied from its load address if that differs from its address; .bss and the
  *      stacks are cleared
- *   5. mstatus.FS (images with an FPU); main; then __gnat_exit, which depends on the role
+ *   5. mstatus.FS (images with an FPU); the constructor arrays (below); main; then __gnat_exit,
+ *      which depends on the role
  *
  * The trap stub is what runs a trap until the runtime installs its own handler. It only
  * records mcause, mepc, mtval and mhartid in the 32 bytes at __mpfs_trap_record (the top of
@@ -51,6 +52,19 @@
  * On hardware nothing but the release of the right hart reaches a secondary image, and the
  * gate costs nothing there. A parked hart of a secondary image has its mtvec, mie and
  * mstatus.MIE written (as every hart before the gate) but gets no mie.MSIE.
+ *
+ * Constructors (R8): the entries of .preinit_array and then of .init_array (ld/sections.ld
+ * puts the two arrays one behind the other, from __preinit_array_start to __init_array_end) are
+ * called in order, with no arguments, before main. The embedded runtime has exactly one of its own: the
+ * frame_dummy of crtbegin.o, which registers .eh_frame with libgcc (__register_frame_info), so
+ * that the unwinder finds the frame descriptions without .eh_frame_hdr; link-zcx.spec puts
+ * crtbegin.o and crtend.o around the link, and C code with constructors is run the same way.
+ * This is what __libc_init_array does, written out here because the light and light-tasking
+ * runtimes link without libc (-nolibc), where a call would not resolve, and a weak call to an
+ * undefined symbol is out of the reach of auipc/addi from an image placed above 0x8000_0000.
+ * The arrays are empty in an image without constructors: one compare, nothing called. Run on
+ * the one hart of the image; the SMP work package (P8) lets only the first hart of the mask
+ * do this, a second registration of .eh_frame would corrupt libgcc's list.
  *
  * Test seam: if an image defines __mpfs_early_trap_hook, the stub jumps to it with the address
  * of the record in a0 instead of halting (examples/trap_test reports the record on the console
@@ -161,6 +175,18 @@ _start:
 	li      t0, MSTATUS_FS
 	csrs    mstatus, t0
 #endif
+
+	/* The constructors: .preinit_array and .init_array are one run of 8-byte entries (ASSERT in
+	 * the script), called from the first to the last; s0 and s1 survive the calls. */
+	la      s0, __preinit_array_start
+	la      s1, __init_array_end
+9:
+	bgeu    s0, s1, 10f
+	ld      t0, (s0)
+	jalr    t0
+	addi    s0, s0, 8
+	j       9b
+10:
 
 	call    main
 	call    __gnat_exit
