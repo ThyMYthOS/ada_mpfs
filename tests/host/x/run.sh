@@ -46,6 +46,45 @@ else
   echo "skip: prebuilt images (this tree has built images)"
 fi
 
+# toolchain install alire: an installed pinned alr is reported, not fetched again
+(
+  . "$ROOT/tools/toolchain.env"
+  alrp="$(mktemp -d)"; mkdir -p "$alrp/alr-$ALR_VERSION/bin"; printf '#!/bin/sh\nexit 0\n' > "$alrp/alr-$ALR_VERSION/bin/alr"; chmod +x "$alrp/alr-$ALR_VERSION/bin/alr"
+  case "$(MPFS_TOOLS_PREFIX="$alrp" "$X" toolchain install alire 2>&1)" in
+    *"already installed"*) pass "toolchain install alire reports an installed alr" ;;
+    *) fail "toolchain install alire reports an installed alr" ;;
+  esac
+  rm -rf "$alrp"
+)
+
+# toolchain check reports the pinned alr of its prefix, not the one that comes first on PATH
+(
+  . "$ROOT/tools/toolchain.env"
+  ap="$(mktemp -d)"; gb="$(mktemp -d)"
+  mkdir -p "$ap/alr-$ALR_VERSION/bin"
+  printf '#!/bin/sh\necho "alr %s"\n' "$ALR_VERSION" > "$ap/alr-$ALR_VERSION/bin/alr"
+  printf '#!/bin/sh\necho "alr 0.0.1"\n' > "$gb/alr"
+  chmod +x "$ap/alr-$ALR_VERSION/bin/alr" "$gb/alr"
+  line="$(PATH="$gb:$PATH" MPFS_TOOLS_PREFIX="$ap" "$X" toolchain check 2>&1 | grep '^  alr ')"
+  case "$line" in
+    *" ok "*"$ALR_VERSION"*) pass "toolchain check reports the alr of the prefix before the one on PATH" ;;
+    *) fail "toolchain check reports the alr of the prefix before the one on PATH ($line)" ;;
+  esac
+  rm -rf "$ap" "$gb"
+)
+
+# toolchain check finds the pinned Renode in its prefix and accepts its build number
+(
+  . "$ROOT/tools/toolchain.env"
+  rp="$(mktemp -d)"; mkdir -p "$rp/renode-$RENODE_VERSION"
+  printf '#!/bin/sh\necho "Renode v%s.7"\n' "$RENODE_VERSION" > "$rp/renode-$RENODE_VERSION/renode"; chmod +x "$rp/renode-$RENODE_VERSION/renode"
+  case "$(MPFS_TOOLS_PREFIX="$rp" "$X" toolchain check 2>&1)" in
+    *"renode               ok"*) pass "toolchain check finds the Renode of the prefix" ;;
+    *) fail "toolchain check finds the Renode of the prefix" ;;
+  esac
+  rm -rf "$rp"
+)
+
 expect_rc "help exits 0"            0       "$X" help
 expect_rc "list exits 0"            0       "$X" list
 expect_rc "list --json exits 0"     0       "$X" list --json

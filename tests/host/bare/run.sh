@@ -7,6 +7,7 @@
 # tools/metrics.sh (with stand-ins for size and readelf), each with positive and
 # negative cases that must really fail, and properties of the committed
 # metrics.golden. Exits non-zero on any failure.
+# @verifies BLD-003
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -217,6 +218,10 @@ expect_rc  "metrics: verify without a golden file fails" nonzero metrics verify
 expect_rc  "metrics: bless writes the golden file" 0 metrics bless
 [ "$(grep -vc '^#' "$tmp/m/golden")" = 3 ] && pass "metrics: golden has the header and two rows" \
   || fail "metrics: golden has the header and two rows"
+# bless must not rewrite the license header of the committed metrics.golden
+[ "$(sed -n 1,2p "$tmp/m/golden")" = "$(sed -n 1,2p "$ROOT/metrics.golden")" ] \
+  && pass "metrics: bless writes the same SPDX header as the committed golden file" \
+  || fail "metrics: bless writes the same SPDX header as the committed golden file"
 expect_rc  "metrics: verify passes on the blessed images" 0 metrics verify
 grep -q "^hello/e51/hello${tab}$CC${tab}538${tab}0${tab}16384${tab}0x8000000${tab}0x1, RVC, soft-float ABI${tab}$E51_ARCH${tab}" "$tmp/m/golden" \
   && pass "metrics: the row has image, compiler, sizes, entry, e_flags and the arch tag" \

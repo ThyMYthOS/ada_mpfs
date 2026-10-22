@@ -8,12 +8,13 @@
 #  Usage:
 #    ./x help                          this text
 #    ./x list [--json]                 list examples (name, default hart, dir)
-#    ./x toolchain install [svdtools|svd2ada|pac|gnat|gnatprove|adalang_analyzer|renode]|check
+#    ./x toolchain install [svdtools|svd2ada|pac|alire|gnat|gnatprove|adalang_analyzer|renode]|check
 #                                      install the toolchains pinned in
 #                                      tools/toolchain.env (only svdtools or
 #                                      svd2ada if named; pac: only what
 #                                      `./x pac check` needs, without gnatprove
-#                                      and adalang_analyzer; gnat: only the compilers
+#                                      and adalang_analyzer; alire: only the pinned
+#                                      alr release, checksum verified; gnat: only the compilers
 #                                      and gprbuild; gnatprove, adalang_analyzer: the
 #                                      compilers and that one crate; renode: the pinned Renode
 #                                      release, checksum verified) / report deviations
@@ -146,27 +147,51 @@ mpfs_install_svdtools () {
 }
 
 # The pinned Renode release (portable build) into its per-version prefix, checked
-# against the SHA-256 in tools/toolchain.env before it is unpacked. Only Linux
-# x86_64 has a checksum; elsewhere put a Renode on PATH or set RENODE.
+# against the SHA-256 in tools/toolchain.env before it is unpacked. Linux x86_64 and
+# macOS arm64 have a checksum; elsewhere put a Renode on PATH or set RENODE.
 mpfs_install_renode () {
-  local pfx url tmp
+  local pfx url tmp want mnt bin
   pfx="$(mpfs_opt_prefix renode "$RENODE_VERSION")"
   if [ -x "$pfx/renode" ]; then
     echo "x: renode $RENODE_VERSION already installed in $pfx"; return 0
   fi
-  [ "$(uname -sm)" = "Linux x86_64" ] || die "no pinned Renode release for $(uname -sm); install one and set RENODE"
-  [ -n "${RENODE_SHA256_X86_64_LINUX:-}" ] || die "RENODE_SHA256_X86_64_LINUX is not pinned in tools/toolchain.env"
-  url="https://github.com/renode/renode/releases/download/v$RENODE_VERSION/renode-$RENODE_VERSION.linux-portable.tar.gz"
+  case "$(uname -sm)" in
+    "Linux x86_64")  want="${RENODE_SHA256_X86_64_LINUX:-}"; url="renode-$RENODE_VERSION.linux-portable.tar.gz" ;;
+    "Darwin arm64")  want="${RENODE_SHA256_AARCH64_DARWIN:-}"; url="renode-$RENODE_VERSION.osx-arm64-portable.dmg" ;;
+    *) die "no pinned Renode release for $(uname -sm); install one and set RENODE" ;;
+  esac
+  [ -n "$want" ] || die "the Renode checksum for $(uname -sm) is not pinned in tools/toolchain.env"
+  url="https://github.com/renode/renode/releases/download/v$RENODE_VERSION/$url"
   tmp="$(mktemp)" || return 1
-  if curl -fsSL -o "$tmp" "$url" \
-     && [ "$(openssl dgst -sha256 "$tmp" | sed 's/.* //')" = "$RENODE_SHA256_X86_64_LINUX" ]; then
-    mkdir -p "$pfx.tmp" && tar -xzf "$tmp" -C "$pfx.tmp" --strip-components=1 \
-      && rm -rf "$pfx" && mv "$pfx.tmp" "$pfx" || { rm -rf "$pfx.tmp" "$tmp"; die "unpacking Renode failed"; }
-  else
+  if ! { curl -fsSL -o "$tmp" "$url" && [ "$(openssl dgst -sha256 "$tmp" | sed 's/.* //')" = "$want" ]; }; then
     rm -f "$tmp"; die "downloading or verifying $url failed"
   fi
+  rm -rf "$pfx.tmp"; mkdir -p "$pfx.tmp" || { rm -f "$tmp"; return 1; }
+  case "$url" in
+    *.dmg)
+      # the image holds the portable build (possibly inside an .app); copy it out and
+      # point $pfx/renode at the launcher
+      mnt="$(mktemp -d)" && hdiutil attach -nobrowse -readonly -quiet -mountpoint "$mnt" "$tmp" \
+        && cp -R "$mnt"/. "$pfx.tmp"/; hdiutil detach -quiet "$mnt" 2>/dev/null; rmdir "$mnt" 2>/dev/null
+      bin="$(find "$pfx.tmp" -type f -name renode -perm -u+x 2>/dev/null | head -1)"
+      [ -n "$bin" ] || { rm -rf "$pfx.tmp" "$tmp"; die "no renode launcher in $url"; }
+      [ "$bin" = "$pfx.tmp/renode" ] || ln -s "${bin#"$pfx.tmp"/}" "$pfx.tmp/renode" ;;
+    *) tar -xzf "$tmp" -C "$pfx.tmp" --strip-components=1 ;;
+  esac || { rm -rf "$pfx.tmp" "$tmp"; die "unpacking Renode failed"; }
+  rm -rf "$pfx" && mv "$pfx.tmp" "$pfx" || { rm -rf "$pfx.tmp" "$tmp"; die "unpacking Renode failed"; }
   rm -f "$tmp"
   echo "x: installed renode $RENODE_VERSION in $pfx"
+}
+
+# The pinned Alire release (bin/alr) into its per-version prefix, whatever alr is on PATH:
+# that is the one the other installs use when none is on PATH.
+mpfs_install_alire () {
+  local apfs; apfs="$(mpfs_opt_prefix alr "$ALR_VERSION")"
+  if [ -x "$apfs/bin/alr" ] || [ -x "$apfs/bin/alr.exe" ]; then
+    echo "x: alr $ALR_VERSION already installed in $apfs"; return 0
+  fi
+  mpfs_install_alr "$apfs" || die "no Alire $ALR_VERSION could be installed for $(uname -sm); see https://alire.ada.dev"
+  echo "x: installed alr $ALR_VERSION in $apfs"
 }
 
 # Puts alr on PATH: the one that is there, else the pinned release in its prefix.
@@ -248,6 +273,7 @@ cmd_toolchain () {
           mpfs_install_alire_toolchains
           mpfs_toolchain_on_path || true
           return ;;
+        alire)  mpfs_install_alire; return ;;       # only the pinned alr, nothing else
         renode) mpfs_install_renode; return ;;      # only the pinned release, no Alire
         gnatprove|adalang_analyzer)                 # the toolchains and that one crate
           mpfs_install_alire_toolchains
@@ -265,7 +291,7 @@ cmd_toolchain () {
           mpfs_toolchain_on_path || true
           mpfs_toolchain_check
           return ;;
-        *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|gnat|gnatprove|adalang_analyzer|renode]" ;;
+        *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|alire|gnat|gnatprove|adalang_analyzer|renode]" ;;
       esac
       mpfs_install_alire_toolchains
       mpfs_venv_install || die "creating the python environment failed"
@@ -283,7 +309,7 @@ cmd_toolchain () {
       mpfs_toolchain_on_path || true
       mpfs_toolchain_check
       ;;
-    *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|gnat|gnatprove|adalang_analyzer|renode]|check" ;;
+    *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|alire|gnat|gnatprove|adalang_analyzer|renode]|check" ;;
   esac
 }
 

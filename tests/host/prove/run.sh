@@ -10,6 +10,7 @@
 # project with an overflow that cannot be proved must fail. Exits non-zero on any
 # failure; the cases that need the real gnatprove are reported as skipped, and
 # counted, when it is not installed.
+# @verifies BLD-001
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"

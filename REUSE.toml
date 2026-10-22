@@ -21,6 +21,7 @@ SPDX-License-Identifier = "CC-BY-4.0"
 path = [
   "**/*.conf",
   "**/*.list",
+  "tools/analyzer-baselines/*.baseline",
   "**/README.md",
   "CONTRIBUTING.md",
   "NOTICE",
@@ -30,6 +31,7 @@ path = [
   ".gitignore",
   ".editorconfig",
   ".github/CODEOWNERS",
+  ".github/dependabot.yml",
   ".github/pull_request_template.md",
   ".github/ISSUE_TEMPLATE/*.md",
 ]

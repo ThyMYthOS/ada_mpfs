@@ -11,6 +11,7 @@
 #
 # What this does not show: that the real adalang_analyzer accepts these arguments
 # and prints "Baseline matches:" (the invocation is that of ada_esp32s3).
+# @verifies BLD-001
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
