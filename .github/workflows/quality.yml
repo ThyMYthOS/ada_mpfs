@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
 
       # The pinned compilers and gprbuild, and the pinned gnatprove (GNATPROVE_VERSION).
       - uses: ./.github/actions/toolchain
