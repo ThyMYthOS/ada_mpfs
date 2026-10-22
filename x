@@ -48,6 +48,7 @@
 #    ./x hw openocd|run|probe|monitor|reset  the Icicle Kit: start OpenOCD, run an image (--expect RE sets
 #                                      the exit status), run a probe, show the serial ports, reset the board
 #                                      to its power-on state (also after a hung debug module)
+#    ./x completion [bash|zsh]         print the tab-completion script (see README)
 #
 #  <ex> is the directory name below examples/.  Every failure exits non-zero.
 
@@ -752,6 +753,15 @@ cmd_trace () {
   esac
 }
 
+cmd_completion () {
+  case "${1:-bash}" in
+    bash) cat "$ROOT/tools/completion.bash" ;;
+    zsh)  printf '%s\n' 'autoload -U +X compinit && compinit' 'autoload -U +X bashcompinit && bashcompinit'
+          cat "$ROOT/tools/completion.bash" ;;
+    *) die "usage: ./x completion [bash|zsh]" ;;
+  esac
+}
+
 cmd_hw () {
   case "${1:-}" in
     openocd|run|probe|monitor|reset) delegate tools/hw.sh "$@" ;;
@@ -780,6 +790,7 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
     trace)           cmd_trace "$@" ;;
     prove)           delegate tools/prove.sh "$@" ;;
     hw)              cmd_hw "$@" ;;
+    completion)      cmd_completion "$@" ;;
     ""|-h|--help|help)
         # help = the leading comment block, from the "x --" line to its end
         awk '/^#  x --/ {p=1} p && !/^#/ {exit} p {sub(/^# {0,2}/, ""); print}' "$0" ;;
