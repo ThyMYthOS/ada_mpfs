@@ -198,5 +198,9 @@ done
 bash -c ". '$ROOT/export.sh' >/dev/null 2>&1; type _mpfs_x" >/dev/null 2>&1 \
   && fail "export.sh leaves a non-interactive shell alone" || pass "export.sh leaves a non-interactive shell alone"
 
+# export.sh puts x on PATH; it runs this repository's ./x from any directory.
+[ "$(cd / && bash -c ". '$ROOT/export.sh' >/dev/null 2>&1; x help" | head -1)" = "$("$X" help | head -1)" ] \
+  && pass "export.sh puts x on PATH" || fail "export.sh puts x on PATH"
+
 echo "summary: $fails failure(s)"
 [ $fails -eq 0 ]

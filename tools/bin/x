@@ -1,0 +1,8 @@
+#!/bin/sh
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+#  Puts `x` on PATH once export.sh has been sourced: runs the ./x of this
+#  repository from any directory.  A wrapper, not a symlink, so it also works
+#  in a Windows checkout.
+exec "$(cd "$(dirname "$0")/../.." && pwd)/x" "$@"
