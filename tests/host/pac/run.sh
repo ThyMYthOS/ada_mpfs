@@ -15,6 +15,9 @@ fails=0
 . "$ROOT/tools/mpfs-env.sh"
 mpfs_find_python
 
+# the generated package is not committed (hash in libs/mpfs_pac/MPFS_Registers.sha256): make sure it is there
+bash "$ROOT/tools/pac.sh" ensure >&2 || { echo "FAIL: libs/mpfs_pac/src/generated cannot be generated (./x toolchain install pac)" >&2; exit 1; }
+
 pass () { echo "ok:   $1"; }
 fail () { echo "FAIL: $1" >&2; fails=$((fails + 1)); }
 
@@ -111,6 +114,27 @@ def svd_file(d):
     f = d / "t.svd"
     f.write_text(SVD)
     return f
+
+@case("tree_digest: names and contents count, the order of creation does not, an empty directory is an error")
+def _():
+    with tempfile.TemporaryDirectory() as t1, tempfile.TemporaryDirectory() as t2:
+        a, b = Path(t1), Path(t2)
+        (a / "x.ads").write_text("one\n"); (a / "y.ads").write_text("two\n")
+        (b / "y.ads").write_text("two\n"); (b / "x.ads").write_text("one\n")
+        assert g.tree_digest(a) == g.tree_digest(b)
+        (b / "x.ads").write_text("one!\n")
+        assert g.tree_digest(a) != g.tree_digest(b)
+        (b / "x.ads").write_text("one\n"); (b / "z.txt").write_text("not an ada spec")
+        assert g.tree_digest(a) == g.tree_digest(b), "only the *.ads files count"
+        (b / "x.ads").rename(b / "w.ads")
+        assert g.tree_digest(a) != g.tree_digest(b), "the name counts"
+    with tempfile.TemporaryDirectory() as t:
+        expect_error(lambda: g.tree_digest(Path(t)), "no *.ads")
+
+@case("the recorded hash is the hash of the generated package in libs/mpfs_pac/src/generated")
+def _():
+    want = (ROOT / "libs" / "mpfs_pac" / "MPFS_Registers.sha256").read_text().split()[0]
+    assert g.tree_digest(ROOT / "libs" / "mpfs_pac" / "src" / "generated") == want
 
 @case("read_svd resolves groupName and readAction through derivedFrom; single-member groups are no groups")
 def _():

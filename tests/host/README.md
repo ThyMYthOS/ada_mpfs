@@ -7,7 +7,7 @@
 |---|---|
 | `x/` | The verbs and option validation of `./x`. |
 | `svd/` | SVD merge, check rules, probe. |
-| `pac/` | Register package generator on fixtures, and properties of the committed `libs/mpfs_pac/src/generated`. |
+| `pac/` | Register package generator on fixtures, and properties of the generated `libs/mpfs_pac/src/generated` (made by `./x pac ensure`, it is not committed) and its recorded hash. |
 | `bare/` | The QEMU smoke test (with a stand-in for QEMU), `tools/metrics.sh` (with stand-ins for size and readelf) and the committed `metrics.golden`, each with negative cases. |
 | `negative/` | `tests/negative/run_negative.sh` against stand-ins for the compiler driver and gprbuild: ABI mismatch accepted, a failure for another reason, a leftover image, a missing fixture or object, a fixture that lost its fault, malformed lists. |
 | `analyze/` | `tools/analyze.sh` with a stand-in for adalang_analyzer: no analyzer, another version, no baseline, a silent analyzer, a new finding, the two rule sets and their baselines, `--update-baseline` (also with an analyzer that writes nothing), empty and malformed lists. |

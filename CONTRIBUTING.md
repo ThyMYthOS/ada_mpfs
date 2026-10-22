@@ -48,8 +48,11 @@ SVD and the PAC generated from it CC-BY-4.0; SPARKNaCl BSD-3-Clause.
 ## Generated files
 
 They live in dedicated `generated/` subdirectories and are **never** edited by hand. CI checks that
-regeneration reproduces them: `./x svd check` for the SVD hash, `./x pac check` for the register
-package in `libs/mpfs_pac/src/generated` (`./x pac generate` rewrites it).
+regeneration reproduces them: `./x svd check` for the SVD hash, `./x pac check` for the hash of the
+register package (`libs/mpfs_pac/MPFS_Registers.sha256`; `./x pac generate` rewrites it and the package in
+`libs/mpfs_pac/src/generated`). The merged SVD and the register package are not committed, only their hashes;
+`./x pac ensure` regenerates the package when it is missing or stale, and needs the pinned svd2ada
+(`./x toolchain install pac`).
 
 ## Language
 

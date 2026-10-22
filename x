@@ -47,7 +47,8 @@
 #                                      Skips registers with a readAction (--read-destructive) and, in a whole-device
 #                                      run, the blocks of hw/svd_probe.list (--include, or name the peripheral);
 #                                      --help lists all options
-#    ./x pac generate|check            register package generation and checks
+#    ./x pac generate|ensure|check     register package generation (hash in libs/mpfs_pac/MPFS_Registers.sha256;
+#                                      the generated package is not committed) and checks
 #    ./x trace [--check]               requirement trace matrix
 #    ./x prove                         SPARK proofs
 #    ./x hw bootmode|openocd|run|probe|monitor|reset  the Icicle Kit: switch the boot mode (bootmode N [ELF]
@@ -763,8 +764,8 @@ cmd_svd () {
 
 cmd_pac () {
   case "${1:-}" in
-    generate|check) delegate tools/pac.sh "$@" ;;
-    *) die "usage: ./x pac generate|check" ;;
+    generate|ensure|check) delegate tools/pac.sh "$@" ;;
+    *) die "usage: ./x pac generate|ensure|check" ;;
   esac
 }
 

@@ -6,7 +6,8 @@
 | Path | Content |
 |---|---|
 | `mpfs_pac.gpr` | Library project. `src/generated` is compiled without `-gnatwe`, every hand-written source in `src/` with `-gnatwa -gnatwe -gnaty`. |
-| `src/generated/` | Output of `./x pac generate`, never edited by hand. Every file carries the generated notice, the SHA-256 of the SVD and the attribution. |
+| `src/generated/` | Output of `./x pac generate`, never edited by hand and **not committed** (`.gitignore`). Every file carries the generated notice, the SHA-256 of the SVD, the svd2ada commit and the attribution. `./x test lib`, `./x analyze` and `./x pac ensure` generate it when it is missing or does not have the recorded hash. |
+| `MPFS_Registers.sha256` | The SHA-256 of the generated package (`tools/pac_gen.py hash`: the `*.ads` files in name order), the counterpart of `svd/PolarfireSoC.sha256`. It changes with the SVD, with svd2ada and with the post-processing; `./x pac generate` rewrites it and the commit that changes the SVD commits it. |
 | `src/mpfs_registers-bases.ads` | Hand-written: the distance between the `_LO` and the `_HI` base address of a peripheral. `./x pac check` verifies it against the SVD. |
 
 ## Generation
@@ -20,7 +21,7 @@
 
 svd2ada gives two registers of the same name prefix but different size one Ada type. The pinned commit still does that, but this SVD has no such registers; the generation aborts if one appears.
 
-`./x pac check` regenerates into a temporary directory, fails on any difference from `src/generated`, checks the base addresses and compiles the package with `-gnatc` for the E51 (`rv64imac_zicsr_zifencei`, `lp64`) and the U54 (`rv64imafdc_zicsr_zifencei`, `lp64d`).
+`./x pac check` regenerates into a temporary directory, fails if the hash of the result is not the one in `MPFS_Registers.sha256` (it shows the differences from a `src/generated` that is there), checks the base addresses and compiles the package with `-gnatc` for the E51 (`rv64imac_zicsr_zifencei`, `lp64`) and the U54 (`rv64imafdc_zicsr_zifencei`, `lp64d`).
 
 The generator is in `tools/pac.sh` and `tools/pac_gen.py`; its tests are `tests/host/pac/run.sh`.
 

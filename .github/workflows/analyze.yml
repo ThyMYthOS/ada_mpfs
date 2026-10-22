@@ -70,6 +70,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
+      # libs/mpfs_pac/src/generated is not committed: restored from the cache keyed by its recorded hash
+      # (libs/mpfs_pac/MPFS_Registers.sha256, under libs/**), generated with svd2ada on a miss.
+      - uses: ./.github/actions/pac
+
       - uses: ./.github/actions/toolchain
         with:
           target: adalang_analyzer
@@ -86,6 +90,10 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7.0.1
+
+      # libs/mpfs_pac/src/generated is not committed: restored from the cache keyed by its recorded hash
+      # (libs/mpfs_pac/MPFS_Registers.sha256, under libs/**), generated with svd2ada on a miss.
+      - uses: ./.github/actions/pac
 
       - uses: ./.github/actions/toolchain
         with:

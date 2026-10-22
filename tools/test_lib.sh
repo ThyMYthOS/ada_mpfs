@@ -58,6 +58,11 @@ else
 fi
 [ ${#gprs[@]} -gt 0 ] || { echo "test_lib: no library projects below ${LIBS#"$ROOT"/}" >&2; exit 2; }
 
+# The register package is not committed: generate it (or check its hash) before it is compiled.
+for g in "${gprs[@]}"; do
+  case "$g" in "$ROOT/libs/mpfs_pac/"*) bash "$ROOT/tools/pac.sh" ensure || exit 2; break ;; esac
+done
+
 echo "== libraries (E51 and U54 ABI; warnings are failures) =="
 failures=0; ran=0
 for g in "${gprs[@]}"; do
