@@ -17,7 +17,8 @@ variables
 | `MPFS_HART` | `e51`, `u54` | hart class of the image |
 | `MPFS_HARTS` | empty, or a U54 hart set (`2`, `1-4`, `1,3`) | harts of an SMP partition |
 | `MPFS_PRIV` | `m`, `u` | privilege model |
-| `MPFS_PROFILE` | `auto`, `light`, `light-tasking`, `embedded` | runtime profile |
+| `MPFS_PROFILE` | `auto`, `light`, `light-tasking`, `embedded` | runtime profile (`auto` is replaced by the `PROFILE=` of `example.conf`, `light` without it, for an example with `RUNTIME=mpfs_rts`) |
+| `MPFS_CPUS` | `1` | CPUs of the runtime variant: the number of harts of `--harts`, 1 without |
 
 One more variable is read from the environment of the project only: `STACK_ANALYSIS` (`0`, the default, or `1`).
 `./x stack` sets it to `1`; the project then adds `-fstack-usage -fcallgraph-info=su,da` to the Ada switches, so that
@@ -50,5 +51,6 @@ The project must
 | `app.gpr` | project file |
 | `src/` | sources |
 | `example.conf` | `KEY=value` lines; `HART=` is the default hart of the example (`e51` if absent); `BUILD_HARTS=` (e.g. `e51 u54`) the harts that `./x test qemu` and `./x metrics` build, and whose images the smoke test and `metrics.golden` cover |
+| `example.conf` keys for the runtime | `RUNTIME=mpfs_rts`: the example is linked with a variant of `crates/mpfs_rts`; `./x build` builds the variant first (`crates/mpfs_rts/gen_runtime.sh`, only when its inputs changed) and the project names it with `Mpfs_Rts.Runtime_Path` (see `examples/tasking_test/app.gpr`); `PROFILE=` is the profile for `-P auto` |
 | `build.sh` | optional, builds instead of `gprbuild` (see above) |
 | `README.md` | what the example shows, how to build and run it |
