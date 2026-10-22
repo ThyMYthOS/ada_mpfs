@@ -1,0 +1,40 @@
+--  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+--  SPDX-License-Identifier: Apache-2.0
+--
+--  Selects the runtime variant of an application. An application project withs this one
+--  and says
+--
+--     for Target use Mpfs_Rts.Target;
+--     for Runtime ("Ada") use Mpfs_Rts.Runtime_Path;
+--
+--  The variant is chosen by the scenario variables of ./x build (examples/STYLE.md):
+--  MPFS_PROFILE, MPFS_HART, MPFS_CPUS and MPFS_PRIV. The runtime itself is built by
+--  crates/mpfs_rts/gen_runtime.sh <profile> <hart> <cpus> <priv> into
+--  build/rts/<profile>-<hart>-cpus<n>-<priv>/ (./x build does that when the stamp of the
+--  variant is out of date). Without ./x, run gen_runtime.sh first; gprbuild then reports a
+--  missing runtime directory. The -march and -mabi of the hart class come from the runtime's
+--  runtime.xml, so an application does not set them.
+--
+--  MPFS_RTS_ROOT moves the root of the variants (default: build/rts of the repository).
+
+abstract project Mpfs_Rts is
+
+   type Profile_Kind is ("light", "light-tasking", "embedded");
+   type Hart_Kind is ("e51", "u54");
+   type Cpus_Kind is ("1");
+   type Priv_Kind is ("m");
+
+   Profile : Profile_Kind := external ("MPFS_PROFILE", "light");
+   Hart    : Hart_Kind    := external ("MPFS_HART", "e51");
+   Cpus    : Cpus_Kind    := external ("MPFS_CPUS", "1");
+   Priv    : Priv_Kind    := external ("MPFS_PRIV", "m");
+
+   Root :=
+     external ("MPFS_RTS_ROOT", Project'Project_Dir & "../../build/rts");
+
+   Target := "riscv64-elf";
+
+   Runtime_Path :=
+     Root & "/" & Profile & "-" & Hart & "-cpus" & Cpus & "-" & Priv;
+
+end Mpfs_Rts;
