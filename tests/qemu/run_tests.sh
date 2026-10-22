@@ -28,8 +28,10 @@
 #      - "TEST <name>: START" was printed              (the program really ran)
 #      - "TEST <name>: PASS" was printed               (it reached its verdict)
 #      - no "TEST <name>: FAIL" line, and no "  FAIL:" line
-#      - every line of <dir>/console.expected, if the file exists, appears on the
-#        port (output is asserted by the HOST: a program cannot check its own wire)
+#      - every line of <dir>/<image>.expected (<image> is the name of the image without .elf:
+#        exceptions_test for exceptions_test_u54), else of <dir>/console.expected, if the file
+#        exists, appears on the port (output is asserted by the HOST: a program cannot check its
+#        own wire); a directory with several images has an .expected file for each that differs
 #      - NOTHING was written to any OTHER serial port, so that a test of a console
 #        configuration means something: output on the wrong port must not pass
 #        because the test also looked at the right one.
@@ -151,6 +153,8 @@ for name in $names; do
     *_u54h[234]) img="$base/bin-u54-h${name##*_u54h}/${name%_u54h*}.elf" ;;
     *)     img="$base/bin/$name.elf" ;;
   esac
+  expfile="$base/$(basename "$img" .elf).expected"
+  [ -f "$expfile" ] || expfile="$base/console.expected"
   printf '==> %s%s\n' "$name" "$([ "$expect" = xfail ] && echo ' (expected failure)')"
   if [ ! -f "$img" ]; then
     printf 'FAIL %s: image %s not found (run ./x test qemu, which builds it)\n' "$name" "$img" >&2
@@ -241,7 +245,7 @@ for name in $names; do
     reason="the test reported failing checks"
   elif ! grep -Eq "^TEST $name: PASS" "$verdict"; then
     reason="no PASS line"
-  elif [ -f "$base/console.expected" ]; then
+  elif [ -f "$expfile" ]; then
     missing=0
     while IFS= read -r line; do
       [ -n "$line" ] || continue
@@ -249,8 +253,8 @@ for name in $names; do
         printf '    MISSING from the console: "%s"\n' "$line" >&2
         missing=$((missing + 1))
       fi
-    done < "$base/console.expected"
-    [ "$missing" -eq 0 ] || reason="$missing line(s) of $dir/console.expected never appeared on serial $serial"
+    done < "$expfile"
+    [ "$missing" -eq 0 ] || reason="$missing line(s) of $dir/$(basename "$expfile") never appeared on serial $serial"
   fi
 
   #  A pass test must be silent on every port but its own.
