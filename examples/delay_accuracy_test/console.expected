@@ -1,0 +1,14 @@
+  ok: mtimecmp of this hart is the maximum at the start (disarmed)
+  ok: no timer interrupt is pending at the start (no spurious tick)
+  ok: the observer ran while the main program slept
+  ok: while the main program sleeps mtimecmp of this hart is its alarm
+  ok: after the wake-up mtimecmp is the maximum again (nothing armed)
+  ok: and no timer interrupt is pending
+  ok: delay until never returns early (mtime >= the requested instant)
+  ok: the deviation of delay until is within the loose bound of QEMU
+  ok: delay until in the past returns at once
+  ok: and arms nothing
+  ok: a timing event in the past has run, once
+  ok: and without waiting for another tick
+  ok: its alarm is acknowledged (mtimecmp the maximum, MTIP clear)
+  ok: every alarm interrupt while all tasks sleep found the hart in wfi
