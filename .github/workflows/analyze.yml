@@ -57,7 +57,7 @@ jobs:
     outputs:
       found: ${{ steps.find.outputs.found }}
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
       - id: find
         run: |
           if compgen -G 'tools/analyzer-baselines/*.baseline' >/dev/null; then echo found=true; else echo found=false; fi >>"$GITHUB_OUTPUT"
@@ -68,7 +68,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
 
       - uses: ./.github/actions/toolchain
         with:
@@ -85,7 +85,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
 
       - uses: ./.github/actions/toolchain
         with:
@@ -96,7 +96,7 @@ jobs:
           ./x analyze --update-baseline
           ./x analyze --style --update-baseline
 
-      - uses: actions/upload-artifact@v6.0.0
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: analyzer-baselines
           path: tools/analyzer-baselines/
