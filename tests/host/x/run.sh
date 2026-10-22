@@ -202,5 +202,36 @@ bash -c ". '$ROOT/export.sh' >/dev/null 2>&1; type _mpfs_x" >/dev/null 2>&1 \
 [ "$(cd / && bash -c ". '$ROOT/export.sh' >/dev/null 2>&1; x help" | head -1)" = "$("$X" help | head -1)" ] \
   && pass "export.sh puts x on PATH" || fail "export.sh puts x on PATH"
 
+# ./x test lib (tools/test_lib.sh) with a stand-in gprbuild: both ABIs per project, a warning or an
+# error fails, *_prove.gpr is skipped, warnings from src/generated do not count.
+tl="$(mktemp -d)"; mkdir -p "$tl/libs/good" "$tl/libs/warn" "$tl/libs/bad" "$tl/libs/gen" "$tl/libs/good_prove"
+for l in good warn bad gen; do : > "$tl/libs/$l/$l.gpr"; done; : > "$tl/libs/good_prove/good_prove.gpr"
+cat > "$tl/gprbuild" <<'GB'
+#!/bin/sh
+echo "$*" >> "$TL_LOG"
+case "$*" in
+  *warn.gpr*) echo "warn_pkg.adb:3:4: warning: unused variable" ;;
+  *bad.gpr*)  echo "bad_pkg.adb:1:1: error: syntax"; exit 4 ;;
+  *gen.gpr*)  echo "src/generated/x.ads:1:1: warning: ignored" ;;
+esac
+GB
+chmod +x "$tl/gprbuild"
+tlib () { TL_LOG="$tl/log" LIBS="$tl/libs" GPRBUILD="$tl/gprbuild" "$@"; }
+: > "$tl/log"
+expect_rc  "test lib: a clean library passes on both ABIs" 0 tlib "$X" test lib good
+[ "$(grep -c 'MPFS_HART=' "$tl/log")" = 2 ] && grep -q -- '-XMPFS_HART=e51.*-march=rv64imac_zicsr_zifencei -mabi=lp64' "$tl/log" \
+  && grep -q -- '-XMPFS_HART=u54.*-march=rv64imafdc_zicsr_zifencei -mabi=lp64d' "$tl/log" \
+  && pass "test lib: e51 and u54 get their march and mabi" || fail "test lib: e51 and u54 get their march and mabi"
+expect_rc  "test lib: a warning fails" nonzero tlib "$X" test lib warn
+case "$(tlib "$X" test lib warn 2>&1)" in *"unused variable"*) pass "test lib: the warning is shown" ;; *) fail "test lib: the warning is shown" ;; esac
+expect_rc  "test lib: an error fails" nonzero tlib "$X" test lib bad
+expect_rc  "test lib: a warning from src/generated does not count" 0 tlib "$X" test lib gen
+expect_rc  "test lib: an unknown library is an error" nonzero tlib "$X" test lib nosuch
+: > "$tl/log"; tlib "$X" test lib good warn >/dev/null 2>&1
+grep -q good_prove "$tl/log" && fail "test lib: *_prove.gpr is skipped" || pass "test lib: *_prove.gpr is skipped"
+: > "$tl/log"; rm -rf "$tl/libs/warn" "$tl/libs/bad"; tlib "$X" test lib >/dev/null 2>&1
+[ "$(grep -c 'MPFS_HART=' "$tl/log")" = 4 ] && pass "test lib: without a name every library is built" || fail "test lib: without a name every library is built"
+rm -rf "$tl"
+
 echo "summary: $fails failure(s)"
 [ $fails -eq 0 ]
