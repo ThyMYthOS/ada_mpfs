@@ -27,7 +27,7 @@ def install_files(flist, dest):
             basenames.append(os.path.basename(item))
 
         else:
-            for fname in os.listdir(item):
+            for fname in sorted(os.listdir(item)):
                 fsrc = os.path.join(item, fname)
                 if os.path.isfile(fsrc):
                     copy_file(fsrc, dest)
@@ -244,7 +244,7 @@ class Installer(object):
                         pair.install(dest)
                 # Check the list of languages used there, to produce the proper
                 # _build.gpr project.
-                for fname in os.listdir(dest):
+                for fname in sorted(os.listdir(dest)):
                     _, ext = os.path.splitext(fname)
                     if "C" not in langs[lib] and (ext == ".c" or ext == ".h"):
                         langs[lib].append("C")
