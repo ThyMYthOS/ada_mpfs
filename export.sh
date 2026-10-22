@@ -6,7 +6,7 @@
 #
 #     . /path/to/ada_mpfs/export.sh
 #
-# Exports ADA_MPFS_SDK (the repository root), puts tools/bin and the pinned
+# Exports ADA_MPFS_SDK (the repository root), puts tools/bin (so `x` runs from any directory) and the pinned
 # toolchains on PATH and the runtime and library projects on GPR_PROJECT_PATH, so
 # gprbuild and the Ada Language Server resolve `with "mpfs_pac.gpr"` and friends.
 # In an interactive bash or zsh it also loads the tab completion for ./x
