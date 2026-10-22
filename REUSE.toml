@@ -24,7 +24,8 @@ SPDX-License-Identifier = "CC-BY-4.0"
 #
 # The runtime sources are compiled into or linked with the program of a user: GPL-3.0-or-later
 # with the GCC Runtime Library Exception, as their notices say. The two licence texts
-# (COPYING3, COPYING.RUNTIME) and the linker spec belong to them. The packs hold only such sources.
+# (COPYING3, COPYING.RUNTIME) and the linker spec belong to them. The packs (generated into
+# build/rts/packs, not committed) hold only such sources.
 [[annotations]]
 path = [
   "crates/bb-runtimes/gnat_rts_sources/**",
@@ -32,7 +33,6 @@ path = [
   "crates/bb-runtimes/riscv/**",
   "crates/bb-runtimes/COPYING3",
   "crates/bb-runtimes/COPYING.RUNTIME",
-  "crates/mpfs_rts/packs/**",
 ]
 precedence = "closest"
 SPDX-FileCopyrightText = ["AdaCore", "Free Software Foundation, Inc."]
@@ -140,6 +140,7 @@ path = [
   "**/*.conf",
   "**/*.conf.example",
   "**/*.list",
+  "crates/mpfs_rts/packs.sha256",
   "tools/analyzer-baselines/*.baseline",
   "**/README.md",
   "CONTRIBUTING.md",
