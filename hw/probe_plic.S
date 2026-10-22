@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
+# Derived from ThyMYthOS/ada-machine rts-spikes/hw/probe_plic.S @ 2f0be23; modified for PolarFire SoC.
 # A5 probe: does the real PLIC accept 64-bit stores into its enable block? (QEMU does not: PLIC_INIT)
 # Results at 0x08102000: [0]=32-bit readback [8]=step done [16]=64-bit zero readback [24]=done
 #                        [32]=64-bit pattern readback [40]=done [48]=all done

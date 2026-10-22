@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
+# Derived from ThyMYthOS/ada-machine rts-spikes/hw/probe_time.S @ 2f0be23; modified for PolarFire SoC.
 # A5 probe: does CLINT mtime count on a running hart? Records mtime before and after a loop of
 # 3,000,000 iterations (2 cycles each, measured). The U54 has no `time` CSR (csrr time traps).
 # Results at 0x08102000: [0]=mtime before [16]=mcycles in loop [24]=mtime after [40]=done

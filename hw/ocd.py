@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
+# Derived from ThyMYthOS/ada-machine rts-spikes/hw/ocd.py @ 2f0be23; modified for PolarFire SoC.
 """OpenOCD telnet client and serial capture for the Icicle Kit.
 
 The host, the port and the serial devices come from lab.conf (see lab.py).

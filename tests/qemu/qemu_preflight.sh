@@ -1,5 +1,6 @@
 #  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 #  SPDX-License-Identifier: Apache-2.0
+#  Derived from ThyMYthOS/ada-machine rts-spikes/qemu_preflight.sh @ 2f0be23; modified for PolarFire SoC.
 #
 #  qemu_preflight.sh -- the QEMU preconditions shared by the QEMU test scripts.
 #  SOURCED, not executed:   . tests/qemu/qemu_preflight.sh

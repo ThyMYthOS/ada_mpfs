@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
+# Derived from ThyMYthOS/ada-machine rts-spikes/hw/run_image.py @ 2f0be23; modified for PolarFire SoC.
 """Load an ELF onto one hart of an Icicle Kit over JTAG, run it, capture the serial ports and report the first trap.
 
     run_image.py ELF HART [--secs N] [--expect REGEX] [--expect-port N] [--uart-standin] [--div D] [--lab FILE]

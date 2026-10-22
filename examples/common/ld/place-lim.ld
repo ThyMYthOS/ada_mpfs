@@ -1,6 +1,7 @@
 /*
  * SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
  * SPDX-License-Identifier: Apache-2.0
+ * Derived from ThyMYthOS/ada-machine rts-spikes/rts_support_mpfs/ld/place-lim.ld @ 2f0be23; modified for PolarFire SoC.
  *
  * place-lim.ld -- everything in the L2 LIM window, which is 1920 KB and
  * directly usable at reset with *no* L2 way configuration at all. That makes

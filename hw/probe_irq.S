@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
+# Derived from ThyMYthOS/ada-machine rts-spikes/hw/probe_irq.S @ 2f0be23; modified for PolarFire SoC.
 # A5 probe, hart 1: a timer interrupt (forced via mtimecmp, mtime does not tick on an idle-boot board)
 # and a PLIC external interrupt from MMUART0 (source 90, context 1).
 # Results at 0x08102000: [0]=stage [8]=timer mcause [16]=external mcause [24]=claimed id [32]=mip [40]=done

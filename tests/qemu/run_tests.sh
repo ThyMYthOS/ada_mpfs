@@ -1,6 +1,7 @@
 #!/bin/sh
 #  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 #  SPDX-License-Identifier: Apache-2.0
+#  Derived from ThyMYthOS/ada-machine rts-spikes/tests/run_tests.sh @ 2f0be23; modified for PolarFire SoC.
 #
 #  run_tests.sh -- boot every test application under QEMU and ASSERT its
 #  verdict.   Driven by `./x test qemu` (after smoke.sh), which builds the images.

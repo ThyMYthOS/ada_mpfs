@@ -1,6 +1,7 @@
 #!/bin/sh
 #  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 #  SPDX-License-Identifier: Apache-2.0
+#  Derived from ThyMYthOS/ada-machine rts-spikes/smoke.sh @ 2f0be23; modified for PolarFire SoC.
 #
 #  smoke.sh -- boot every console-producing image under QEMU and ASSERT that it
 #  printed what smoke.expected says it must.   Driven by `./x test qemu`.

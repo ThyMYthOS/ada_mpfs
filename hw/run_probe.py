@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
+# Derived from ThyMYthOS/ada-machine rts-spikes/hw/run_probe.py @ 2f0be23; modified for PolarFire SoC.
 """Assemble a probe (probe_*.S), run it on one hart and print the result words at 0x08102000.
 
     run_probe.py probe_irq.S 1 [--words N] [--secs S] [--expect REGEX] [--lab FILE]

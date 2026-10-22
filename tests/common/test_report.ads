@@ -1,5 +1,8 @@
 --  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 --  SPDX-License-Identifier: Apache-2.0
+--  Derived from ThyMYthOS/ada-machine
+--  rts-spikes/tests/common/test_report.ads @ 2f0be23;
+--  modified for PolarFire SoC.
 --
 --  Test_Report -- the one reporting convention every test application shares,
 --  so that tests/qemu/run_tests.sh and the hardware runner have exactly one

@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
+# Derived from ThyMYthOS/ada-machine rts-spikes/hw/trap.S @ 2f0be23; modified for PolarFire SoC.
 # Records the FIRST trap (mcause, mepc, mtval) at REC and spins. Linked at 0x08100000.
 # REC: [0]=seen, [8]=mcause, [16]=mepc, [24]=mtval
 	.equ REC, 0x08101000

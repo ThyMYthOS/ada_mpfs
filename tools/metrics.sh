@@ -1,6 +1,7 @@
 #!/bin/sh
 #  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 #  SPDX-License-Identifier: Apache-2.0
+#  Derived from ThyMYthOS/ada-machine rts-spikes/metrics.sh @ 2f0be23; modified for PolarFire SoC.
 #
 #  metrics.sh -- measure the built images, and either compare to or rewrite
 #  metrics.golden.   Driven by `./x metrics verify|bless` and `./x test metrics`.
