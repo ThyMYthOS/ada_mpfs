@@ -93,6 +93,29 @@ not answer. They do not clean up: the hart can be halted or still running the im
 `halt` over telnet, or reset the board. `svd_probe.py` tries to resume the hart once and says if it may
 still be halted.
 
+## The boot stub
+
+In boot mode 0 the E51 runs the boot stub that `SCB_REGS.BOOT_ROM0..7` hold (`0x20003120`..`0x2000313C`, the
+reset vector `BOOT_ADDR`; the reset values in `svd/base/scb_regs.yaml` are its eight words). It is decoded
+here from those words (`riscv64-elf-objdump -D -b binary -m riscv:rv64 --adjust-vma=0x20003120`); it was not
+read back from the board:
+
+```
+20003120  csrrs a0,mhartid,x0
+20003124  c.slli a0,2
+20003126  lui    a4,0x20002
+2000312a  lwu    a5,4(a4)        SYSREG.TEMP1 (0x20002004)
+2000312e  c.beqz a5,2000312a     wait until TEMP1 is not zero
+20003130  fence.i
+20003134  c.add  a5,a0
+20003136  lwu    t1,0(a5)        jump through the table that TEMP1 points to
+2000313a  c.jr   t1
+```
+
+The hart waits in the loop at `0x2000312A`..`0x2000312E` until software writes a non-zero address to `TEMP1`.
+The PC of a halted hart can be anywhere between `0x20003120` and `0x2000312E`; `0x2000312E` was seen on a
+board.
+
 ## Platform state at power-on (boot mode 0)
 
 Measured right after power-on with the hart halted by the tool (taken from `hw/README.md`, section "Platform

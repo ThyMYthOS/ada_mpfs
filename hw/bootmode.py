@@ -66,8 +66,9 @@ NEXT_STEPS = """\
 bootmode: the programmer ended with status 0. What to do now:
   1. Power-cycle the board (the new boot mode takes effect at power-on).
   2. Start OpenOCD (./x hw openocd) and run ./x hw reset.
-  3. Read the PC of the E51 (hart 0). In boot mode 0 it is 0x2000312E after power-on, the boot stub (value given by
-     the project owner, see hw/README.md; to verify on the board). Another boot mode runs other code.
+  3. Halt the E51 (hart 0) and read its PC. In boot mode 0 the hart waits in the boot stub (SCB_REGS.BOOT_ROM0..7),
+     so the PC of a halted hart is between 0x20003120 and 0x2000312E (docs/lab/openocd.md, "The boot stub").
+     Another boot mode runs other code.
   If the PC does not match, the switch did not take effect: run this command again or restore the boot mode that
   docs/lab/icicle.md records for the board."""
 
