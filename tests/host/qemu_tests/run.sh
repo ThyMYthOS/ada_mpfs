@@ -197,6 +197,16 @@ printf 'hello from the guest\nsomething else\n' > "$exp/console.expected"
 expect_rc  "runner: a line of console.expected that never appears fails" nonzero run "$tmp/exp.list"
 expect_out "runner: names the missing line" 'MISSING from the console: "something else"' run "$tmp/exp.list"
 
+# <image>.expected replaces console.expected for that image (a directory with several images)
+printf 'hello from the guest\n' > "$exp/console.expected"
+printf 'something else\n' > "$exp/exp.expected"
+expect_rc  "runner: <image>.expected is used instead of console.expected" nonzero run "$tmp/exp.list"
+expect_out "runner: names the file of the image" 'exp/exp.expected never appeared' run "$tmp/exp.list"
+printf 'a thing\nhello from the guest\n' > "$exp/exp.expected"
+printf 'something else\n' > "$exp/console.expected"
+expect_rc  "runner: <image>.expected that is satisfied wins over a console.expected that is not" 0 run "$tmp/exp.list"
+rm "$exp/exp.expected" "$exp/console.expected"
+
 # expected failures: the signature must match, and a pass is a failure
 xf="$tmp/t/xf"
 image "$xf" xf <<EOF
