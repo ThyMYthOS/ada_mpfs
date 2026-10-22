@@ -29,7 +29,7 @@ expect_rc () {
 # Every verb appears in the help text.
 help="$("$X" help)"
 for verb in help list toolchain build clean new qemu mem test metrics analyze stack \
-            svd pac trace prove hw; do
+            svd pac trace prove hw completion; do
   case "$help" in *"./x $verb"*) pass "help lists $verb" ;; *) fail "help lists $verb" ;; esac
 done
 
@@ -176,6 +176,21 @@ grep -q "^-n install --prefix=.*gnatprove-.* gnatprove=" "$stub/gnatprove.log" &
   && pass "toolchain install gnatprove installs gnatprove only" || fail "toolchain install gnatprove installs gnatprove only"
 grep -q "^-n install --prefix=.*adalang_analyzer-.* adalang_analyzer=" "$stub/adalang_analyzer.log" && ! grep -q "gnatprove=" "$stub/adalang_analyzer.log" \
   && pass "toolchain install adalang_analyzer installs adalang_analyzer only" || fail "toolchain install adalang_analyzer installs adalang_analyzer only"
+
+# Tab completion: ./x completion prints a script that completes verbs, sub-commands and examples.
+comp () {   # comp <words...> : completions for the command line "./x <words...>" (last word is partial)
+  bash -c 'source <("$1" completion bash); shift; COMP_WORDS=(./x "$@"); COMP_CWORD=$(( ${#COMP_WORDS[@]} - 1 ));
+           _mpfs_x; printf "%s\n" "${COMPREPLY[@]}"' _ "$X" "$@" 2>&1
+}
+expect_rc "completion zsh prints a script" 0 "$X" completion zsh
+expect_rc "completion rejects another shell" nonzero "$X" completion fish
+case " $(comp hw b | tr '\n' ' ') " in *" bootmode "*) pass "completion: ./x hw b -> bootmode" ;; *) fail "completion: ./x hw b -> bootmode" ;; esac
+case " $(comp build bare_h | tr '\n' ' ') " in *" bare_hello "*) pass "completion: ./x build bare_h -> bare_hello" ;; *) fail "completion: ./x build bare_h -> bare_hello" ;; esac
+case " $(comp te | tr '\n' ' ') " in *" test "*) pass "completion: ./x te -> test" ;; *) fail "completion: ./x te -> test" ;; esac
+[ "$(comp build bare_hello --hart '' | tr '\n' ' ')" = "e51 u54 " ] && pass "completion: --hart offers e51 and u54" || fail "completion: --hart offers e51 and u54"
+for verb in help list toolchain build clean new qemu mem test metrics analyze stack svd pac trace prove hw completion; do
+  case " $(comp '' | tr '\n' ' ') " in *" $verb "*) ;; *) fail "completion: verb $verb missing"; break ;; esac
+done
 
 echo "summary: $fails failure(s)"
 [ $fails -eq 0 ]
