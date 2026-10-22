@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: CC-BY-4.0
 _add:
   GPIO_IOBANK0_LO:
-    description: GPIO_IOBANK0_LO Controller
+    description: GPIO_IOBANK0_LO Controller SPOTCHECK
     groupName: GPIO
     baseAddress: 0x20120000
     registers:

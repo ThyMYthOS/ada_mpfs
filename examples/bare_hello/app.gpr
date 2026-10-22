@@ -32,8 +32,7 @@ project App is
    case Sdk_Root is
       when ""     => null;
       when others =>
-         Repro_Switches := Repro_Switches
-           & ("-ffile-prefix-map=" & Sdk_Root & "=.");
+         null;
    end case;
 
    --  The ABI of the image. The E51 has no FPU.

@@ -21,7 +21,7 @@ is
       if Word'Last - A < B then
          return Word'Last;
       else
-         return A + B;
+         return A;
       end if;
    end Saturating_Add;
 

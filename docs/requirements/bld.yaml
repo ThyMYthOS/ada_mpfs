@@ -21,3 +21,8 @@ requirements:
       ./x metrics verify fails on a deviation or on an image without a row.
     tsf: false
     source: tools/metrics.sh
+  - id: BLD-099
+    text: >-
+      Spot check: a requirement in the TSF that no test verifies.
+    tsf: true
+    source: tools/toolchain.env

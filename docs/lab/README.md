@@ -9,3 +9,5 @@
 | `openocd.md` | Access to the board through the OpenOCD of SoftConsole: the telnet port, a hung debug module and its recovery without a power cycle, what a reset loses, the platform state at power-on. |
 
 The host tools are described in `hw/README.md`.
+
+Spot check: [a link that leads nowhere](no-such-file.md).
