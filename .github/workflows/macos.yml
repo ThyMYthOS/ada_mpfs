@@ -55,12 +55,18 @@ jobs:
       - name: Install the Python packages
         run: python3 -m pip install -r tools/requirements.txt
 
-      # The GNAT of Alire links with --sysroot=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk, which
-      # is MacOSX27.0.sdk on the runner, while the selected Xcode (26.6) brings its own SDK and ld.
-      # A plain gnatmake link fails there ("_write" ... not found) and works with SDKROOT set to the
-      # SDK of `xcrun --show-sdk-path` (or with --sysroot=<that SDK>). SDKROOT goes to every step.
-      - name: Point the build tools at the SDK of the selected Xcode
-        run: echo "SDKROOT=$(xcrun --show-sdk-path)" >> "$GITHUB_ENV"
+      # The GNAT of Alire is configured to link with --sysroot=/Library/Developer/CommandLineTools/
+      # SDKs/MacOSX.sdk (gcc -v: --with-specs), which is a link to MacOSX27.0.sdk on the runner. The
+      # ld of the selected Xcode (26.6) rejects the libSystem.tbd of that SDK ("unknown architecture
+      # arm64e.x1-macos") and every libc symbol is undefined at the link. SDKROOT does not reach the
+      # links that alr runs (make, gprbuild of its actions), so the link of the Command Line Tools
+      # SDK is pointed at the SDK of the selected Xcode. The runner is thrown away after the job.
+      - name: Point the SDK of the Command Line Tools at the SDK of the selected Xcode
+        run: |
+          sdk="$(xcrun --show-sdk-path)"
+          ls -l /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+          sudo ln -sfn "$sdk" /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+          ls -l /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
 
       # svd2ada and the PAC are built with the pinned native GNAT.
       - name: ./x toolchain install gnat
