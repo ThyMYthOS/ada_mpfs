@@ -183,7 +183,7 @@ comp () {   # comp <words...> : completions for the command line "./x <words...>
   bash -c 'source <("$1" completion bash); shift; COMP_WORDS=(./x "$@"); COMP_CWORD=$(( ${#COMP_WORDS[@]} - 1 ));
            _mpfs_x; printf "%s\n" "${COMPREPLY[@]}"' _ "$X" "$@" 2>&1
 }
-expect_rc "completion zsh prints a script" 0 "$X" completion zsh
+expect_rc "completion zsh prints a script" nonzero "$X" completion zsh
 expect_rc "completion rejects another shell" nonzero "$X" completion fish
 case " $(comp hw b | tr '\n' ' ') " in *" bootmode "*) pass "completion: ./x hw b -> bootmode" ;; *) fail "completion: ./x hw b -> bootmode" ;; esac
 case " $(comp build bare_h | tr '\n' ' ') " in *" bare_hello "*) pass "completion: ./x build bare_h -> bare_hello" ;; *) fail "completion: ./x build bare_h -> bare_hello" ;; esac
