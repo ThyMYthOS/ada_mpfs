@@ -5,8 +5,8 @@ SPDX-License-Identifier: CC-BY-4.0
 # Icicle Kit inventory
 
 A template for the person who owns an Icicle Kit (Microchip PolarFire SoC, board `MPFS250T_ES`) and wants
-to use it with this repository. Fill in the fields marked **FILL IN** for your board and keep the page with
-the board. A value marked *to verify on the board* is an expectation that nobody has confirmed; replace it
+to use it with this repository. The project does not need an exact inventory: fill in the fields marked **FILL IN** as far as they help
+you to restore the board, and keep the page with the board. A value marked *to verify on the board* is an expectation that nobody has confirmed; replace it
 by what you measure. Where a value comes from is listed at the end.
 
 ## The board
@@ -19,7 +19,7 @@ by what you measure. Where a value comes from is listed at the end.
 | Silicon | **FILL IN**: engineering sample (`_ES`) or production. Icicle Kits mostly carry engineering samples; series silicon needs another die name for `./x hw bootmode` (`BOOTMODE_DIE` in `hw/lab.conf`) |
 | Version of the factory reference design | **FILL IN** before it is replaced: read it from the label or release notes of the kit and from the design information that FlashPro Express or Libero shows for the device. Keep the bitstream (`.job`) file of the factory design: it is what "Restoring the factory state" needs |
 | Boot mode | **FILL IN**: the mode the board is in when you receive it, and the mode it is in now (0..3). Boot mode 0 is the mode in which all measurements of `hw/README.md` were made |
-| Serial ports | The CP2108 USB-to-UART bridge shows four interfaces. Interface `if00`..`if03` are MMUART0..MMUART3 (`/dev/serial/by-id/usb-Silicon_Labs_CP2108_*-if0<n>-port0`). Checked for MMUART0 on a board: `./x hw run bare_hello --hart 0 --uart-standin` printed `bare hello E51 hart 0` on `if00`. *To verify on the board* for MMUART1..3: print a message on one MMUART and see which interface shows it, then set `UART_PATTERN` in `hw/lab.conf` if it differs |
+| Serial ports | The CP2108 USB-to-UART bridge shows four interfaces. Interface `if00`..`if03` are MMUART0..MMUART3 (`/dev/serial/by-id/usb-Silicon_Labs_CP2108_*-if0<n>-port0`). Checked on a board by the project owner: MMUART0..3 show up on `if00`..`if03` (`./x hw run bare_hello --hart 0 --uart-standin` printed `bare hello E51 hart 0` on `if00`). On another board, print a message on one MMUART and see which interface shows it, then set `UART_PATTERN` in `hw/lab.conf` if it differs |
 | Date and name of whoever last changed the board | **FILL IN** |
 
 ### Changes made to the board
@@ -48,7 +48,7 @@ jumper or a switch.
 
 "Factory state" is the factory reference design in the FPGA part and the boot mode the board was delivered
 in, both of which you recorded above. The steps are the usual ones of the tools; the exact menu names
-depend on your version and are to verify on the board. Not run on a board by the author of this page.
+depend on your version. The project owner restored the factory state on a board by these steps and it worked; the author of this page did not run them.
 
 1. Get the factory design: the `.job` file of the Icicle Kit reference design that matches the version
    recorded above (from Microchip's release of that version, or from the copy you saved).
@@ -71,7 +71,7 @@ depend on your version and are to verify on the board. Not run on a board by the
 |---|---|
 | `MPFS250T_ES`, `FCVG484`, engineering samples, the jar, `fpgenprog`, permanent change | `hw/lab.conf.example`, `hw/bootmode.py`, `hw/README.md` section "Boot mode" (the facts about the jar were stated by the project owner; not run on a board by the author of this change) |
 | IDCODE `0x0F81A1CF` read from a board | stated by the project owner; not recorded in another file of the repository |
-| CP2108 interfaces `if00`..`if03` as MMUART0..3 | `hw/lab.conf` (`UART_PATTERN` and its comment); MMUART0 on `if00` checked on a board by the project owner, the others to verify on the board |
+| CP2108 interfaces `if00`..`if03` as MMUART0..3 | `hw/lab.conf` (`UART_PATTERN` and its comment); MMUART0..3 on `if00`..`if03` checked on a board by the project owner |
 | SoftConsole v2022.2, OpenOCD of SoftConsole, FlashPro6 | `hw/lab.conf`, `hw/start_openocd.sh` |
 | Boot mode 0 for the measurements; `./x hw reset` | `hw/README.md` |
 | E51 PC between `0x20003120` and `0x2000312E` in boot mode 0 | stated by the project owner (`0x2000312E` seen on a board; the PC can be anywhere in that range). The stub itself is decoded from the reset values of `SCB_REGS.BOOT_ROM0..7` in `svd/base/scb_regs.yaml`, see `docs/lab/openocd.md` |
