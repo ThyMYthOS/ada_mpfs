@@ -1,0 +1,107 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# macOS: does ./x install the pinned tools there? One job per install target, so that one that fails
+# does not hide the others, each followed by the check that the target is for. Informational: no job
+# of this workflow is required for a merge. It runs by hand only (Actions > macos > Run workflow)
+# while the macOS runner minutes are limited. A manual run needs the workflow on the default branch,
+# so until this workflow is on main, a push of this file to the branch ci-macos runs it as well
+# (push only, not pull_request: both would start the same job twice).
+name: macos
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ci-macos]
+    paths: [.github/workflows/macos.yml]
+
+# One run per branch: a newer push cancels the run of the older one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: install ${{ matrix.target }}
+    runs-on: macos-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Only the failing target runs until it is fixed, to save runner minutes. The others
+          # passed on the last full run: svdtools, svd2ada, pac, gnat, gnatprove and renode.
+          - target: adalang_analyzer
+            then: ./x toolchain check | tee check.log; grep -Eq '^ +adalang_analyzer +ok' check.log
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - uses: actions/setup-python@v6.2.0
+        with:
+          python-version: "3.13"
+
+      # What the machine is, so that a failure can be read without a second run.
+      - name: System
+        run: |
+          uname -a
+          sw_vers
+          bash --version | head -1
+          python3 --version
+          command -v curl tar unzip shasum java || true
+
+      - name: Install the Python packages
+        run: python3 -m pip install -r tools/requirements.txt
+
+      # The GNAT of Alire is configured to link with --sysroot=/Library/Developer/CommandLineTools/
+      # SDKs/MacOSX.sdk (gcc -v: --with-specs), which is a link to MacOSX27.0.sdk on the runner. The
+      # ld of the selected Xcode (26.6) rejects the libSystem.tbd of that SDK ("unknown architecture
+      # arm64e.x1-macos") and every libc symbol is undefined at the link. SDKROOT does not reach the
+      # links that alr runs (make, gprbuild of its actions), so the link of the Command Line Tools
+      # SDK is pointed at the SDK of the selected Xcode. The runner is thrown away after the job.
+      - name: Point the SDK of the Command Line Tools at the SDK of the selected Xcode
+        run: |
+          sdk="$(xcrun --show-sdk-path)"
+          ls -l /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+          sudo ln -sfn "$sdk" /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+          ls -l /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+
+      # svd2ada and the PAC are built with the pinned native GNAT.
+      - name: ./x toolchain install gnat
+        if: ${{ matrix.target == 'svd2ada' || matrix.target == 'pac' }}
+        run: ./x toolchain install gnat
+
+      # The solver of alr gives up after 5 seconds by default, too soon for the dependencies of
+      # adalang_analyzer on a busy runner (the last run timed out before it built anything).
+      - name: ./x toolchain install alire
+        run: |
+          ./x toolchain install alire
+          ~/.local/share/ada_mpfs/tools/alr-*/bin/alr -n settings --global --set solver.timeout 120
+
+      - name: ./x toolchain install ${{ matrix.target }}
+        run: ./x toolchain install ${{ matrix.target }}
+
+      - name: ${{ matrix.then }}
+        run: ${{ matrix.then }}
+
+      # What the native GNAT needs to link on this runner: one tiny program, six environments (each without the variables set above).
+      - name: Diagnose the link of the native GNAT
+        if: ${{ failure() }}
+        run: |
+          tc="$(echo "$HOME"/.local/share/alire/toolchains/gnat_native_*)"
+          export PATH="$tc/bin:$PATH"
+          sdk="$(xcrun --show-sdk-path)"
+          echo "sdk=$sdk"; gcc -print-sysroot; gcc -dumpspecs | grep -n -i 'sysroot\|SDKROOT' | head
+          mkdir -p /tmp/t && cd /tmp/t
+          printf 'with Ada.Text_IO; procedure T is begin Ada.Text_IO.Put_Line ("x"); end T;\n' > t.adb
+          try () { echo "== $1"; shift; ( env -u SDKROOT -u LIBRARY_PATH -u LD_LIBRARY_PATH -u LDFLAGS "$@" gnatmake -q t.adb -o t 2>&1 | grep -c 'not found' || true; ls t >/dev/null 2>&1 && echo linked || true ); rm -f t t.o t.ali b~t.* ; }
+          try none A=1
+          try SDKROOT SDKROOT="$sdk"
+          try LDFLAGS LDFLAGS="-L$sdk/usr/lib"
+          try LIBRARY_PATH LIBRARY_PATH="$sdk/usr/lib"
+          try both SDKROOT="$sdk" LIBRARY_PATH="$sdk/usr/lib"
+          echo "== --sysroot"; ( gnatmake -q t.adb -o t -largs --sysroot="$sdk" 2>&1 | grep -c 'not found' || true; ls t >/dev/null 2>&1 && echo linked || true ); rm -f t t.o t.ali b~t.*
+          try all SDKROOT="$sdk" LIBRARY_PATH="$sdk/usr/lib" LD_LIBRARY_PATH="$sdk/usr/lib" LDFLAGS="-L$sdk/usr/lib"
+          echo "== -v with SDKROOT"; SDKROOT="$sdk" gnatmake -v t.adb -largs -v 2>&1 | grep -i 'collect2\|syslibroot\|/ld ' | head -5
