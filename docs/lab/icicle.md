@@ -15,11 +15,11 @@ by what you measure. Where a value comes from is listed at the end.
 |---|---|
 | Board | Icicle Kit, `MPFS250T_ES` (the die name that `hw/lab.conf.example` has for the boot mode programmer) |
 | Serial number / label | **FILL IN** |
-| JTAG IDCODE | **FILL IN** (read with OpenOCD at start-up). The value `0x0F81A1CF` was read from a board; compare yours with it, a different value may mean a different silicon revision (to verify on the board) |
+| JTAG IDCODE | **FILL IN** (read with OpenOCD at start-up). The value `0x0F81A1CF` was read from a board; compare yours with it, a different value may mean a different silicon revision. OpenOCD read `0x0f81a1cf` (GateField, part `0xf81a`, version 0) on the board of the project owner (to verify on yours) |
 | Silicon | **FILL IN**: engineering sample (`_ES`) or production. Icicle Kits mostly carry engineering samples; series silicon needs another die name for `./x hw bootmode` (`BOOTMODE_DIE` in `hw/lab.conf`) |
 | Version of the factory reference design | **FILL IN** before it is replaced: read it from the label or release notes of the kit and from the design information that FlashPro Express or Libero shows for the device. Keep the bitstream (`.job`) file of the factory design: it is what "Restoring the factory state" needs |
 | Boot mode | **FILL IN**: the mode the board is in when you receive it, and the mode it is in now (0..3). Boot mode 0 is the mode in which all measurements of `hw/README.md` were made |
-| Serial ports | The CP2108 USB-to-UART bridge shows four interfaces. Interface `if00`..`if03` are MMUART0..MMUART3 (`/dev/serial/by-id/usb-Silicon_Labs_CP2108_*-if0<n>-port0`). *To verify on the board*: print a message on one MMUART and see which interface shows it, then set `UART_PATTERN` in `hw/lab.conf` if it differs |
+| Serial ports | The CP2108 USB-to-UART bridge shows four interfaces. Interface `if00`..`if03` are MMUART0..MMUART3 (`/dev/serial/by-id/usb-Silicon_Labs_CP2108_*-if0<n>-port0`). Checked for MMUART0 on a board: `./x hw run bare_hello --hart 0 --uart-standin` printed `bare hello E51 hart 0` on `if00`. *To verify on the board* for MMUART1..3: print a message on one MMUART and see which interface shows it, then set `UART_PATTERN` in `hw/lab.conf` if it differs |
 | Date and name of whoever last changed the board | **FILL IN** |
 
 ### Changes made to the board
@@ -61,8 +61,9 @@ depend on your version and are to verify on the board. Not run on a board by the
    it after the design is in place, or check afterwards that the design is still what you programmed.
 5. Power-cycle the board.
 6. Check: `./x hw openocd`, then `./x hw reset` (it must end with exit status 0 and "the hart is halted"),
-   and read the IDCODE and the PC again. In boot mode 0 the PC of the E51 after power-on is expected to be
-   `0x2000312E`, the boot stub (to verify on the board). Enter the result in "Changes made to the board".
+   and read the IDCODE again. Read the PC of the E51 after power-on, before the reset: in boot mode 0 the hart
+   waits in the boot stub (`SCB_REGS.BOOT_ROM0..7`, decoded in `docs/lab/openocd.md`), so the PC of the halted
+   hart is between `0x20003120` and `0x2000312E`. Enter the result in "Changes made to the board".
 
 ## Where the values come from
 
@@ -70,8 +71,8 @@ depend on your version and are to verify on the board. Not run on a board by the
 |---|---|
 | `MPFS250T_ES`, `FCVG484`, engineering samples, the jar, `fpgenprog`, permanent change | `hw/lab.conf.example`, `hw/bootmode.py`, `hw/README.md` section "Boot mode" (the facts about the jar were stated by the project owner; not run on a board by the author of this change) |
 | IDCODE `0x0F81A1CF` read from a board | stated by the project owner; not recorded in another file of the repository |
-| CP2108 interfaces `if00`..`if03` as MMUART0..3 | `hw/lab.conf` (`UART_PATTERN` and its comment); to verify on the board |
+| CP2108 interfaces `if00`..`if03` as MMUART0..3 | `hw/lab.conf` (`UART_PATTERN` and its comment); MMUART0 on `if00` checked on a board by the project owner, the others to verify on the board |
 | SoftConsole v2022.2, OpenOCD of SoftConsole, FlashPro6 | `hw/lab.conf`, `hw/start_openocd.sh` |
 | Boot mode 0 for the measurements; `./x hw reset` | `hw/README.md` |
-| E51 PC `0x2000312E` in boot mode 0 | stated by the project owner; not recorded in `hw/README.md`; to verify on the board |
+| E51 PC between `0x20003120` and `0x2000312E` in boot mode 0 | stated by the project owner (`0x2000312E` seen on a board; the PC can be anywhere in that range). The stub itself is decoded from the reset values of `SCB_REGS.BOOT_ROM0..7` in `svd/base/scb_regs.yaml`, see `docs/lab/openocd.md` |
 | FlashPro Express, Libero, Program_Debug, udev rules | general knowledge of the tools, not from the repository; to verify on the board |
