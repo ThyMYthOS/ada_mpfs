@@ -164,6 +164,9 @@ def main(argv=None):
             print(f"MMUART{i}: {s.data[i]!r}")
     if not any(s.data.values()):
         print("no serial output on any port")
+        if not a.uart_standin:
+            print("hint: in boot mode 0 nothing sets the UARTs up (clock, reset, divisor); an image that expects "
+                  "that needs --uart-standin")
     s.close()
     if regex is None:
         return 0

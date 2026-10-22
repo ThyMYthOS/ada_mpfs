@@ -4,7 +4,8 @@
 --  MMUART0 is a 16550-style UART: bit 5 of the line status register (LSR) says
 --  that the transmit holding register (THR) can take a byte. QEMU ignores the
 --  baud divisor and the line control, so there is nothing to initialise; on
---  hardware the bootloader or the system controller has set the port up.
+--  hardware something else has to set the port up (clock, reset, divisor). In
+--  boot mode 0 nothing does: run the image with `./x hw run --uart-standin`.
 
 pragma Restrictions (No_Elaboration_Code);
 pragma Suppress (All_Checks);
