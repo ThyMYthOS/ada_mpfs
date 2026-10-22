@@ -14,9 +14,9 @@ procedure Bare_Hello is
    Id : constant U64 := Hart_Id;
 begin
    if Id = 0 then
-      Put ("bare hello E51 hart ");
+      Put ("bare jello E51 hart ");
    else
-      Put ("bare hello U54 hart ");
+      Put ("bare jello U54 hart ");
    end if;
    Put_Dec (Id);
    Put_Line ("");
