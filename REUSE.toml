@@ -11,7 +11,7 @@ SPDX-License-Identifier = "CC-BY-4.0"
 
 # Derived from the SVD, therefore CC-BY-4.0.
 [[annotations]]
-path = "libs/mpfs_pac/src/generated/**"
+path = ["libs/mpfs_pac/src/generated/**", "libs/mpfs_pac/MPFS_Registers.sha256"]
 precedence = "closest"
 SPDX-FileCopyrightText = "2026 Manuel Stahl <thymythos@googlemail.com>"
 SPDX-License-Identifier = "CC-BY-4.0"

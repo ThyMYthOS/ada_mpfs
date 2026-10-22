@@ -4,7 +4,7 @@
 # The registers: job `svd` rebuilds the merged SVD, verifies its recorded hash and runs the host
 # tests of the SVD tooling and of ./x (no Ada toolchain). Job `pac` takes that merged SVD from
 # the `svd` job, regenerates libs/mpfs_pac/src/generated with the svd2ada built at the pinned
-# commit, fails on any difference and compiles the package for the E51 and the U54 ABI.
+# commit, fails if its hash is not the recorded one (the package is not committed) and compiles the package for the E51 and the U54 ABI.
 name: registers
 
 on:
@@ -108,8 +108,16 @@ jobs:
         with:
           target: pac
 
-      - name: Host tests of the register package tooling
-        run: tests/host/pac/run.sh
+      # The package is not committed. `./x pac check` regenerates it, compares its hash with the recorded one and
+      # compiles it; when it passes, this step saves the package for the other workflows (./.github/actions/pac).
+      - name: Cache the register package
+        uses: actions/cache@v6.1.0
+        with:
+          path: libs/mpfs_pac/src/generated
+          key: pac-${{ hashFiles('libs/mpfs_pac/MPFS_Registers.sha256') }}
 
       - name: Check the register package
         run: ./x pac check
+
+      - name: Host tests of the register package tooling
+        run: tests/host/pac/run.sh

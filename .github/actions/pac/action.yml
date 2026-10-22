@@ -1,0 +1,38 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# The register package libs/mpfs_pac/src/generated, which is not committed. Its recorded hash
+# (libs/mpfs_pac/MPFS_Registers.sha256) is the key of a cache: on a hit nothing is installed and
+# `./x pac ensure` (called by `./x test lib` and `./x analyze`) only compares the hash; on a miss
+# xmllint, the pinned svdtools and svd2ada are installed and the package is generated, and the cache
+# is saved at the end of the job. A cache that does not hold the recorded package is no risk: `ensure`
+# compares the hash and regenerates or fails. The job `pac` of registers.yml checks the hash
+# against a regeneration and saves the cache itself. Needs the repository checked out.
+name: pac
+description: Restore the generated register package from the cache, or generate it
+runs:
+  using: composite
+  steps:
+    - name: Cache the register package
+      id: cache
+      uses: actions/cache@v6.1.0
+      with:
+        path: libs/mpfs_pac/src/generated
+        key: pac-${{ hashFiles('libs/mpfs_pac/MPFS_Registers.sha256') }}
+
+    - name: Install xmllint
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends libxml2-utils
+
+    - uses: ./.github/actions/toolchain
+      if: steps.cache.outputs.cache-hit != 'true'
+      with:
+        target: pac
+
+    - name: ./x pac ensure
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: ./x pac ensure

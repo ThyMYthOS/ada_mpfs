@@ -129,6 +129,13 @@ if [ -n "$only" ] && ! printf '%s\n' "$rows" | cut -f1 | grep -qx -- "$only"; th
   echo "x analyze: no such project in $list: $only" >&2; exit 2
 fi
 
+# The register package is not committed: generate it (or check its hash) before it is analysed.
+if [ "$update" = 1 ] || [ -z "$only" ] || [ "$only" = mpfs_pac ]; then
+  if printf '%s\n' "$rows" | cut -f2 | grep -q '^libs/mpfs_pac/' && [ -x "$here/pac.sh" ] && [ -z "${ANALYZE_NO_ENV:-}" ]; then
+    bash "$here/pac.sh" ensure || { echo "FAIL: the register package could not be generated" >&2; exit 2; }
+  fi
+fi
+
 mkdir -p "$base_dir"
 log="$(mktemp -d)"
 trap 'rm -rf "$log"' EXIT

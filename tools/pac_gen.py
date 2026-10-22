@@ -21,10 +21,15 @@
       Check that every X_HI_Base of DIR/mpfs_registers.ads is X_LO_Base plus the
       offset HI_Offset declared in BASES_ADS.
 
+  pac_gen.py hash DIR
+      Print the SHA-256 of the generated package in DIR (see tree_digest): the value
+      that libs/mpfs_pac/MPFS_Registers.sha256 records.
+
 Each step is a function that can be tested on small fixtures
 (tests/host/pac/run.sh).
 """
 import argparse
+import hashlib
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -199,6 +204,24 @@ def postprocess(directory: Path, svd: Path, sha256: str, commit: str) -> None:
     finish(directory, sha256, commit)
 
 
+# -- hash of the generated package -------------------------------------------
+
+def tree_digest(directory: Path) -> str:
+    """SHA-256 over the *.ads files of <directory>, in name order, each as name, NUL, content, NUL.
+
+    The generated package is not committed; this is the hash recorded in libs/mpfs_pac/MPFS_Registers.sha256, the
+    counterpart of svd/PolarfireSoC.sha256. It covers the SVD hash and the svd2ada commit, which the header of
+    every file carries.
+    """
+    files = sorted(directory.glob("*.ads"))
+    if not files:
+        raise PacError(f"no *.ads file in {directory}")
+    h = hashlib.sha256()
+    for path in files:
+        h.update(path.name.encode() + b"\0" + path.read_bytes() + b"\0")
+    return h.hexdigest()
+
+
 # -- hand-written base address helper ----------------------------------------
 
 def check_bases(directory: Path, bases: Path) -> int:
@@ -238,10 +261,14 @@ def main(argv: list[str]) -> int:
     b = sub.add_parser("bases")
     b.add_argument("dir", type=Path)
     b.add_argument("bases", type=Path)
+    h = sub.add_parser("hash")
+    h.add_argument("dir", type=Path)
     args = ap.parse_args(argv[1:])
     try:
         if args.cmd == "postprocess":
             postprocess(args.dir, args.svd, args.svd_sha256, args.svd2ada_commit)
+        elif args.cmd == "hash":
+            print(tree_digest(args.dir))
         else:
             print(f"pac: {check_bases(args.dir, args.bases)} LO/HI base address pairs ok")
     except PacError as e:
