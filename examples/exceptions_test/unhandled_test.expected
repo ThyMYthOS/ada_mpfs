@@ -1,0 +1,3 @@
+  ok: the last chance handler is called once
+  ok: the handler gets the exception that nobody handled
+  ok: the handler gets its message

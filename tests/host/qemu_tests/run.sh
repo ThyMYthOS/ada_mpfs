@@ -269,6 +269,21 @@ for ex in tasking_test interrupt_test; do
   grep -q '^BUILD_HARTS=e51 u54 u54-h3$' "$ROOT/examples/$ex/example.conf" \
     && pass "$ex is built for e51, u54 and u54-h3" || fail "$ex is built for e51, u54 and u54-h3"
 done
+# exceptions_test, unhandled_test and unhandled_task_test (P1.7) are three images of one example
+# with the embedded runtime, for the E51 and hart 1 of the U54
+for t in exceptions_test unhandled_test unhandled_task_test; do
+  for hart in e51 u54; do
+    grep -q "^${t}_${hart}${tab}examples/exceptions_test${tab}0${tab}pass${tab}-${tab}-\$" "$list_c" \
+      && pass "tests.list: ${t}_$hart" || fail "tests.list: ${t}_$hart"
+  done
+done
+grep -q '^BUILD_HARTS=e51 u54$' "$ROOT/examples/exceptions_test/example.conf" \
+  && grep -q '^PROFILE=embedded$' "$ROOT/examples/exceptions_test/example.conf" \
+  && pass "exceptions_test is built for e51 and u54 with the embedded runtime" \
+  || fail "exceptions_test is built for e51 and u54 with the embedded runtime"
+for t in unhandled_test unhandled_task_test; do
+  [ -f "$ROOT/examples/exceptions_test/$t.expected" ] && pass "$t has its own .expected file" || fail "$t has its own .expected file"
+done
 grep -q -- '-smp 5' "$ROOT/tests/qemu/run_tests.sh" \
   && pass "the runner starts all five harts (-smp 5)" || fail "the runner starts all five harts (-smp 5)"
 

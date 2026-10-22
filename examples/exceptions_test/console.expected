@@ -1,0 +1,16 @@
+  ok: the constructor arrays ran in order before main
+  ok: raise and handle in one frame
+  ok: an exception propagates through 5 frames
+  ok: the code after the raising call did not run
+  ok: Exception_Name is the full name
+  ok: Exception_Message
+  ok: Exception_Information has the name and the message
+  ok: raise; propagates the same occurrence
+  ok: Reraise_Occurrence of a saved occurrence
+  ok: division by zero raises Constraint_Error
+  ok: a range check raises Constraint_Error
+  ok: Program_Error with a message
+  ok: controlled objects are finalized in reverse order during propagation
+  ok: without an exception the same code finalizes normally
+  ok: an exception raised in a handler propagates
+  ok: an exception is handled in a task
