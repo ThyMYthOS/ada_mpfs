@@ -17,6 +17,7 @@
 | `hw.sh` | `./x hw openocd\|run\|probe\|monitor\|reset`: a shell around `hw/` (builds an example for `run`, selects the hart and the image). `reset` runs `hw/reset.py` (power-on state through OpenOCD, also after a hung debug module; exit 0 only if the check passed). Ctrl+C ends every verb with status 130; `openocd` stops OpenOCD, which is killed after a grace period of 3 s if it does not react (see `hw/README.md`), the other verbs may leave the hart halted. |
 | `prove.sh`, `prove.list` | `./x prove [filter...]`: runs the pinned gnatprove (`GNATPROVE_VERSION`) on every project of `prove.list` (`project`, `label`, `switches`; `-` is `--level=1 --prover=z3 --timeout=10`). The Unproved column of the summary decides, not the exit status of gnatprove; a different or missing gnatprove, a missing summary, an empty or malformed list and a missing project fail. |
 | `stack_report/` | `./x stack <ex>`: native Ada tool (built on demand, copied unchanged from ada_esp32s3) that reads the `.su` and `.ci` files the compiler writes with `STACK_ANALYSIS=1` and reports the biggest frames, dynamic frames and the deepest call chain per entry; recursion is flagged, calls into code without a frame are marked `+ext`. It fails without `.su` files. |
+| `test_lib.sh` | `./x test lib`: every `libs/*/<name>.gpr` (not `*_prove.gpr`) compiles for the E51 and the U54 ABI; a warning outside `src/generated` is a failure. |
 | `regmap2svd.py` | One-time import of the Microchip register map into SVD fragments. |
 | `requirements.txt` | Python packages of the host tools. |
 
