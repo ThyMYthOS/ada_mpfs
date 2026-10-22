@@ -1,0 +1,80 @@
+--  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+--  SPDX-License-Identifier: Apache-2.0
+--
+--  An application that is linked with a runtime built by crates/mpfs_rts (not with a runtime of
+--  the toolchain) and uses the register package of the PAC (the runtime has the units MPFS_Registers,
+--  .PLIC and .CLINT of the same files). Test_Report and Bare_Console (the polled MMUART0) are shared with the other tests: the variant comes from Mpfs_Rts, whose scenario variables ./x build sets
+--  (MPFS_PROFILE, MPFS_HART, MPFS_CPUS, MPFS_PRIV) after it has built the runtime. -march and
+--  -mabi come from the runtime. The start code and the linker scripts are the runtime's
+--  (start.S in libgnat.a, ld/ of the variant); Mpfs_Link gives the partition data.
+--
+--  Build contract: see examples/STYLE.md.
+
+with "../../crates/mpfs_rts/mpfs_rts.gpr";
+with "../../crates/mpfs_rts/mpfs_link.gpr";
+with "../../libs/mpfs_pac/mpfs_pac.gpr";
+
+project App is
+   Hart := Mpfs_Rts.Hart;
+
+   --  STACK_ANALYSIS=1 (./x stack) makes the compiler also write the stack
+   --  usage (.su) and the call graph (.ci) of every unit. The code is the same.
+   type Switch is ("0", "1");
+   Stack_Analysis : Switch := external ("STACK_ANALYSIS", "0");
+   Analysis := ();
+   case Stack_Analysis is
+      when "1" => Analysis := ("-fstack-usage", "-fcallgraph-info=su,da");
+      when "0" => null;
+   end case;
+
+   --  The build directory must not reach the image (./x repro): see examples/STYLE.md.
+   Sdk_Root := external ("ADA_MPFS_SDK", "");
+   Repro_Switches := ("-gno-record-gcc-switches");
+   case Sdk_Root is
+      when ""     => null;
+      when others =>
+         Repro_Switches := Repro_Switches
+           & ("-ffile-prefix-map=" & Sdk_Root & "=.");
+   end case;
+
+   --  The image of one U54 hart other than hart 1 (./x build --hart u54 --harts 3) is kept next
+   --  to the one of hart 1: bin-u54-h3/, see examples/STYLE.md.
+   Suffix := "";
+   case Mpfs_Link.Harts is
+      when "2" | "3" | "4" => Suffix := "-h" & Mpfs_Link.Harts;
+      when others          => null;
+   end case;
+
+   for Languages use ("Ada");
+   for Target use Mpfs_Rts.Target;
+   for Runtime ("Ada") use Mpfs_Rts.Runtime_Path;
+   --  The limits of the accuracy check are the file accuracy_limits.ads of src/qemu (the default: QEMU's mtime
+   --  follows the host clock, so only "never early" is strict) or of src/hardware (the board, DELAY_ACCURACY=hardware).
+   type Limits_Kind is ("qemu", "hardware");
+   Limits : Limits_Kind := external ("DELAY_ACCURACY", "qemu");
+
+   for Source_Dirs use ("src", "src/" & Limits, "../bare_hello/src", "../../tests/common");
+   --  Only what the image needs of the shared directories.
+   for Source_Files use
+     ("delay_accuracy_test.adb", "accuracy_limits.ads", "csr.ads", "csr.adb", "probes.ads", "probes.adb",
+      "standalone_clocks.ads",
+      "bare_console.ads", "bare_console.adb",
+      "test_report.ads", "test_report.adb");
+   for Object_Dir use "obj-" & Hart & Suffix;
+   for Exec_Dir use "bin-" & Hart & Suffix;
+   for Main use ("delay_accuracy_test.adb");
+
+   package Builder is
+      for Executable_Suffix use ".elf";
+   end Builder;
+
+   package Compiler is
+      for Default_Switches ("Ada") use
+        ("-O2", "-g", "-gnat2022", "-gnatwa", "-gnatw.X", "-gnatwe", "-gnaty",
+         "-ffunction-sections", "-fdata-sections") & Analysis & Repro_Switches;
+   end Compiler;
+
+   package Linker is
+      for Default_Switches ("Ada") use Mpfs_Link.Switches;
+   end Linker;
+end App;

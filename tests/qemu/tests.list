@@ -35,3 +35,7 @@ interrupt_test_u54h3	examples/interrupt_test	0	pass	-	-
 fp_context_test_u54	examples/fp_context_test	0	pass	-	-
 float_test_e51	examples/float_test	0	pass	-	-
 float_test_u54	examples/float_test	0	pass	-	-
+
+delay_accuracy_test_e51	examples/delay_accuracy_test	0	pass	-	-
+delay_accuracy_test_u54	examples/delay_accuracy_test	0	pass	-	-
+delay_accuracy_test_u54h3	examples/delay_accuracy_test	0	pass	-	-
