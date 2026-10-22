@@ -21,7 +21,7 @@
 name	kind	arg	expect	pattern
 control_e51	link	e51:e51	links	-
 control_u54	link	u54:u54	links	-
-abi_e51_start_u54_code	link	e51:u54	fails	float modules with
+abi_e51_start_u54_code	link	e51:u54	links	float modules with
 abi_u54_start_e51_code	link	u54:e51	fails	float modules with
 control_build_e51	build	MPFS_HART=e51	builds	-
 control_build_u54	build	MPFS_HART=u54	builds	-
