@@ -192,5 +192,11 @@ for verb in help list toolchain build clean new qemu mem test metrics analyze st
   case " $(comp '' | tr '\n' ' ') " in *" $verb "*) ;; *) fail "completion: verb $verb missing"; break ;; esac
 done
 
+# export.sh loads the completion in an interactive bash only.
+[ "$(bash -ic ". '$ROOT/export.sh' >/dev/null 2>&1; complete -p x" 2>/dev/null)" = "complete -o default -F _mpfs_x x" ] \
+  && pass "export.sh enables the completion in an interactive bash" || fail "export.sh enables the completion in an interactive bash"
+bash -c ". '$ROOT/export.sh' >/dev/null 2>&1; type _mpfs_x" >/dev/null 2>&1 \
+  && fail "export.sh leaves a non-interactive shell alone" || pass "export.sh leaves a non-interactive shell alone"
+
 echo "summary: $fails failure(s)"
 [ $fails -eq 0 ]
