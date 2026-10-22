@@ -9,6 +9,8 @@
 # Exports ADA_MPFS_SDK (the repository root), puts tools/bin and the pinned
 # toolchains on PATH and the runtime and library projects on GPR_PROJECT_PATH, so
 # gprbuild and the Ada Language Server resolve `with "mpfs_pac.gpr"` and friends.
+# In an interactive bash or zsh it also loads the tab completion for ./x
+# (tools/completion.bash, the same script `./x completion` prints).
 
 # Resolve this script's directory whether sourced from bash or zsh.
 if [ -n "${BASH_SOURCE:-}" ]; then __mpfs_self="${BASH_SOURCE[0]}"
@@ -35,5 +37,16 @@ for __gpp in "$ADA_MPFS_SDK/crates/mpfs_rts" "$ADA_MPFS_SDK"/libs/*/; do
   esac
 done
 unset __gpp
+
+case "$-" in
+  *i*)
+    if [ -n "${BASH_VERSION:-}" ]; then
+      . "$ADA_MPFS_SDK/tools/completion.bash"
+    elif [ -n "${ZSH_VERSION:-}" ]; then
+      autoload -U +X compinit && compinit
+      autoload -U +X bashcompinit && bashcompinit
+      . "$ADA_MPFS_SDK/tools/completion.bash"
+    fi ;;
+esac
 
 echo "ada_mpfs SDK: $ADA_MPFS_SDK"
