@@ -947,7 +947,7 @@ _add:
             bitWidth: 6
             access: read-only
       IOC_REG6:
-        description: IO calibr control register6
+        description: IO calibration control register6
         addressOffset: 0x21C
         size: 32
         access: read-write

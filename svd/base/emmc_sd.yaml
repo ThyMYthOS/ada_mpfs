@@ -841,7 +841,7 @@ _add:
             bitWidth: 1
             access: read-write
           ECL:
-            description: ECL - Current Limit Error\n\n Generated when host is not supplying power to SD card due to some failure.\n The value is equal to the actual signal level on cle pin of the host.
+            description: ECL - Current Limit Error\n\n Generated when host is not supplying power to SD card due to some failure.\n The value is equal to the actual signal level on the cle pin of the host.
             bitOffset: 23
             bitWidth: 1
             access: read-write

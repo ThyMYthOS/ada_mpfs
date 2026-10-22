@@ -48,7 +48,7 @@ _add:
         resetValue: 0x0
         fields:
           SCB_BUSERR:
-            description: Indicated that an SCB bus error (parity) was detected. Is cleared by initiating FSM reset cycle (Control register bit 16)
+            description: Indicates that an SCB bus error (parity) was detected. Is cleared by initiating FSM reset cycle (Control register bit 16)
             bitOffset: 3
             bitWidth: 1
             access: read-only

@@ -7,5 +7,5 @@ Limits and open points:
 
 - svdtools applies a device-level `_modify` (a peripheral property such as `baseAddress`) before it adds the peripherals of the base fragments, so such a patch does not change a base peripheral and is not reported. Patch registers and fields inside the peripheral (`PERIPH: _modify: REG: ...`) instead.
 - svdtools rejects a `resetValue` with bits outside `resetMask`.
-- `QSPIXIP.CONTROL.CLKRATE` is documented as "0: not supported, N: SPICLK = HCLK/(2*N), N from 2 to 15" while the reset value 0x1000402 sets it to 1. The files do not show which of the two is right, so it is not patched; verify on silicon with `./x svd probe QSPIXIP`.
+- `QSPIXIP.CONTROL.CLKRATE` is documented as "0: not supported, N: SPICLK = HCLK/(2*N), N from 2 to 15", but the reset value 0x1000402 sets it to 1. The board reads CONTROL = 0x01000402 with the QSPI clock on (`./x svd probe --enable-clocks QSPIXIP`, boot mode 0, 2026-10-23; with the clock off every register of the block reads that value, so that read proves nothing). The reset value stays, the field description names the contradiction; what rate CLKRATE = 1 gives is not measured.
 - svdtools sets `readAction` on fields only (`PERIPH: REG: _modify: FIELD: readAction: ...`); on a register, in `_modify` or `_add`, it drops the key without a message. Registers without fields therefore get a field first.

@@ -3664,7 +3664,7 @@ _add:
         resetValue: 0x0
         fields:
           INIT_READ_CAPTURE_DATA_0:
-            description: A read returns data from read capture buffer holding register that must first be set to the new value at an offset set by a write to the 'init_read_capture_addr'. Each read of the 'init_read_capture_data' register will automatically increment the read address after the read to the next location of the buffer and update the read capture buffer holding register with the new data to allow efficiently reading the locations sequentially. Note that the user must not initiate any new memory device reads that will update read capture buffer, until the init_read_caputre buffer has been read-out for the prior memory device read.
+            description: A read returns data from read capture buffer holding register that must first be set to the new value at an offset set by a write to the 'init_read_capture_addr'. Each read of the 'init_read_capture_data' register will automatically increment the read address after the read to the next location of the buffer and update the read capture buffer holding register with the new data to allow efficiently reading the locations sequentially. Note that the user must not initiate any new memory device reads that will update read capture buffer, until the init_read_capture buffer has been read-out for the prior memory device read.
             bitOffset: 0
             bitWidth: 32
             access: read-only
@@ -3675,7 +3675,7 @@ _add:
         resetValue: 0x0
         fields:
           INIT_READ_CAPTURE_DATA_1:
-            description: A read returns data from read capture buffer holding register that must first be set to the new value at an offset set by a write to the 'init_read_capture_addr'. Each read of the 'init_read_capture_data' register will automatically increment the read address after the read to the next location of the buffer and update the read capture buffer holding register with the new data to allow efficiently reading the locations sequentially. Note that the user must not initiate any new memory device reads that will update read capture buffer, until the init_read_caputre buffer has been read-out for the prior memory device read.
+            description: A read returns data from read capture buffer holding register that must first be set to the new value at an offset set by a write to the 'init_read_capture_addr'. Each read of the 'init_read_capture_data' register will automatically increment the read address after the read to the next location of the buffer and update the read capture buffer holding register with the new data to allow efficiently reading the locations sequentially. Note that the user must not initiate any new memory device reads that will update read capture buffer, until the init_read_capture buffer has been read-out for the prior memory device read.
             bitOffset: 0
             bitWidth: 32
             access: read-only
@@ -3686,7 +3686,7 @@ _add:
         resetValue: 0x0
         fields:
           INIT_READ_CAPTURE_DATA_2:
-            description: A read returns data from read capture buffer holding register that must first be set to the new value at an offset set by a write to the 'init_read_capture_addr'. Each read of the 'init_read_capture_data' register will automatically increment the read address after the read to the next location of the buffer and update the read capture buffer holding register with the new data to allow efficiently reading the locations sequentially. Note that the user must not initiate any new memory device reads that will update read capture buffer, until the init_read_caputre buffer has been read-out for the prior memory device read.
+            description: A read returns data from read capture buffer holding register that must first be set to the new value at an offset set by a write to the 'init_read_capture_addr'. Each read of the 'init_read_capture_data' register will automatically increment the read address after the read to the next location of the buffer and update the read capture buffer holding register with the new data to allow efficiently reading the locations sequentially. Note that the user must not initiate any new memory device reads that will update read capture buffer, until the init_read_capture buffer has been read-out for the prior memory device read.
             bitOffset: 0
             bitWidth: 32
             access: read-only
@@ -3697,7 +3697,7 @@ _add:
         resetValue: 0x0
         fields:
           INIT_READ_CAPTURE_DATA_3:
-            description: A read returns data from read capture buffer holding register that must first be set to the new value at an offset set by a write to the 'init_read_capture_addr'. Each read of the 'init_read_capture_data' register will automatically increment the read address after the read to the next location of the buffer and update the read capture buffer holding register with the new data to allow efficiently reading the locations sequentially. Note that the user must not initiate any new memory device reads that will update read capture buffer, until the init_read_caputre buffer has been read-out for the prior memory device read.
+            description: A read returns data from read capture buffer holding register that must first be set to the new value at an offset set by a write to the 'init_read_capture_addr'. Each read of the 'init_read_capture_data' register will automatically increment the read address after the read to the next location of the buffer and update the read capture buffer holding register with the new data to allow efficiently reading the locations sequentially. Note that the user must not initiate any new memory device reads that will update read capture buffer, until the init_read_capture buffer has been read-out for the prior memory device read.
             bitOffset: 0
             bitWidth: 32
             access: read-only
@@ -3708,7 +3708,7 @@ _add:
         resetValue: 0x0
         fields:
           INIT_READ_CAPTURE_DATA_4:
-            description: A read returns data from read capture buffer holding register that must first be set to the new value at an offset set by a write to the 'init_read_capture_addr'. Each read of the 'init_read_capture_data' register will automatically increment the read address after the read to the next location of the buffer and update the read capture buffer holding register with the new data to allow efficiently reading the locations sequentially. Note that the user must not initiate any new memory device reads that will update read capture buffer, until the init_read_caputre buffer has been read-out for the prior memory device read.
+            description: A read returns data from read capture buffer holding register that must first be set to the new value at an offset set by a write to the 'init_read_capture_addr'. Each read of the 'init_read_capture_data' register will automatically increment the read address after the read to the next location of the buffer and update the read capture buffer holding register with the new data to allow efficiently reading the locations sequentially. Note that the user must not initiate any new memory device reads that will update read capture buffer, until the init_read_capture buffer has been read-out for the prior memory device read.
             bitOffset: 0
             bitWidth: 16
             access: read-only

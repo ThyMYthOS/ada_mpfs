@@ -1038,17 +1038,17 @@ _add:
         resetValue: 0x0
         fields:
           ULTRASOC_FABRIC:
-            description: When set the Utrasoc JTAG interface is connected to fabric EIP connections allowing the JTAG to be directly accessed through fabric IO pins. This also connects the RiscV debugger to the fabric as it passed through the UltraSoc JPAM module
+            description: When set the UltraSoc JTAG interface is connected to fabric EIP connections allowing the JTAG to be directly accessed through fabric IO pins. This also connects the RiscV debugger to the fabric as it passed through the UltraSoc JPAM module
             bitOffset: 8
             bitWidth: 1
             access: read-write
           ULTRASOC_DISABLE_AXI:
-            description: When set the Utrasoc module is disabled and will not respond to AXI accesses from PF-Control or the fabric. The JTAG end point will be in bypass mode.
+            description: When set the UltraSoc module is disabled and will not respond to AXI accesses from PF-Control or the fabric. The JTAG end point will be in bypass mode.
             bitOffset: 2
             bitWidth: 1
             access: read-write
           ULTRASOC_DISABLE_JTAG:
-            description: When set the Utrasoc module is disabled and will not respond to JTAG accesses from PF-Control or the fabric. The JTAG end point will be in bypass mode.
+            description: When set the UltraSoc module is disabled and will not respond to JTAG accesses from PF-Control or the fabric. The JTAG end point will be in bypass mode.
             bitOffset: 1
             bitWidth: 1
             access: read-write
