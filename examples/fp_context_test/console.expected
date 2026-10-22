@@ -1,0 +1,6 @@
+  ok: all three tasks ended
+  ok: A and B each checked at least 20 times across delay until
+  ok: the spinning task checked at least 2000 times
+  ok: task A kept fs0 - fs11 across delay until
+  ok: task B kept fs0 - fs11 across delay until
+  ok: the spinning task kept fs0 - fs11 across the timer interrupts
