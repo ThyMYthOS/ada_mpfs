@@ -6,7 +6,6 @@
 |---|---|---|
 | `registers.yml` | `svd` | Python 3.13 with the packages of `tools/requirements.txt`, `xmllint` and the pinned svdtools (`toolchain` action, target `svdtools`), then `./x svd check`, `tests/host/svd/run.sh` and `tests/host/x/run.sh`. Keeps the merged SVD as the artifact `svd`. |
 | | `pac` (after `svd`) | Takes the artifact `svd` instead of merging again. The pinned GNAT, gprbuild, alr, svdtools and svd2ada (target `pac`, which skips gnatprove and adalang_analyzer), then `tests/host/pac/run.sh` and `./x pac check`. |
-| `pac-regenerate.yml` | `regenerate` | Regenerates `libs/mpfs_pac/src/generated` with the pinned svd2ada and commits the result to the pull request branch. |
 | `images.yml` | `build` | The pinned compilers (target `gnat`). `./x test examples` and `./x metrics verify` against `metrics.golden` build every image once, then `./x test negative` and the host suites that need no svdtools (`bare`, `report`, `negative`, `qemu_tests`, `stack`, `hw`, `analyze`, `prove` with its stand-in cases, `repro`). Artifacts (`if: always()`, 14 days): `images` (the packed `examples/*/bin-*`, after the metrics step, so every hart of `BUILD_HARTS`) and `metrics-measured` (the rows `./x metrics verify` measured, written to `MEASURED` in the format of `metrics.golden`: the rows to add for a compiler without a baseline). |
 | | `qemu` (after `build`) | Ubuntu 26.04 with QEMU from apt. `./x test qemu` on the images of `build`: the smoke test and the `Test_Report` applications of `tests/qemu/tests.list`. Needs no toolchain and builds nothing (`MPFS_PREBUILT_IMAGES=1`). Keeps the output as the artifact `qemu-log`. |
 | | `renode` (after `build`) | The pinned Renode release with its SHA-256. `./x test renode` on the images of `build`. Needs no toolchain and builds nothing. Keeps the output as the artifact `renode-log`. Not required for a merge. |
@@ -21,7 +20,6 @@
 | Workflow | Runs on |
 |---|---|
 | `registers.yml` | a push to any branch and a pull request against `main` that touch the SVD, the PAC, their tools, the host tests or the actions |
-| `pac-regenerate.yml` | request (`workflow_dispatch`) and a pull request that changes the workflow or the actions |
 | `images.yml` | a push to any branch and a pull request against `main` that touch the examples, `hw/`, the tests, the tools, `metrics.golden`, `x` or the actions |
 | `quality.yml` | a push to any branch and a pull request against `main` that touch the proof projects, `tools/prove.*`, the pins, `libs/`, `x` or the actions |
 | `hygiene.yml` | every push to any branch and every pull request against `main` |
