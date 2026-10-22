@@ -128,6 +128,7 @@ grep -q '^mww 0x20000000 20;\|mww 0x20000000 20' "$tmp/hello.log" && grep -q '^m
 serve silent
 expect_rc  "run_image: --expect without any serial output exits 1" 1 run_image "$tmp/loop.elf" 0 --secs 0.3 --lab "$tmp/lab-silent.conf" --expect 'bare hello'
 expect_out "run_image: says there was no serial output" "no serial output" run_image "$tmp/loop.elf" 0 --secs 0.3 --lab "$tmp/lab-silent.conf" --expect 'bare hello'
+expect_out "run_image: hints at --uart-standin when silent" "needs --uart-standin" run_image "$tmp/loop.elf" 0 --secs 0.3 --lab "$tmp/lab-silent.conf"
 expect_rc  "run_image: no serial output and no --expect exits 0" 0 run_image "$tmp/loop.elf" 0 --secs 0.3 --lab "$tmp/lab-silent.conf"
 serve trapped --trap --uart "$tmp/uart/trapped/mmuart0.log" --print "partial output"
 expect_out "run_image: reports the first trap" "first trap: mcause=0x2 mepc=0x1234" run_image "$tmp/loop.elf" 0 --secs 0.3 --lab "$tmp/lab-trapped.conf"
