@@ -283,6 +283,21 @@ grep -q '^fp_context_test_e51' "$list_c" \
   || pass "tests.list: no fp_context_test row for the E51 (no FP registers)"
 grep -q '^BUILD_HARTS=u54$' "$ROOT/examples/fp_context_test/example.conf" \
   && pass "fp_context_test is built for the U54 only" || fail "fp_context_test is built for the U54 only"
+# exceptions_test, unhandled_test and unhandled_task_test (P1.7) are three images of one example
+# with the embedded runtime, for the E51 and hart 1 of the U54
+for t in exceptions_test unhandled_test unhandled_task_test; do
+  for hart in e51 u54; do
+    grep -q "^${t}_${hart}${tab}examples/exceptions_test${tab}0${tab}pass${tab}-${tab}-\$" "$list_c" \
+      && pass "tests.list: ${t}_$hart" || fail "tests.list: ${t}_$hart"
+  done
+done
+grep -q '^BUILD_HARTS=e51 u54$' "$ROOT/examples/exceptions_test/example.conf" \
+  && grep -q '^PROFILE=embedded$' "$ROOT/examples/exceptions_test/example.conf" \
+  && pass "exceptions_test is built for e51 and u54 with the embedded runtime" \
+  || fail "exceptions_test is built for e51 and u54 with the embedded runtime"
+for t in unhandled_test unhandled_task_test; do
+  [ -f "$ROOT/examples/exceptions_test/$t.expected" ] && pass "$t has its own .expected file" || fail "$t has its own .expected file"
+done
 grep -q -- '-smp 5' "$ROOT/tests/qemu/run_tests.sh" \
   && pass "the runner starts all five harts (-smp 5)" || fail "the runner starts all five harts (-smp 5)"
 
