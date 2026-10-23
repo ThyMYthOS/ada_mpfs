@@ -21,6 +21,11 @@
 #                              run a probe of hw/ and print its result block
 #   hw.sh monitor [--secs N] [--port N] [--expect RE] [--lab F]
 #                              show what the serial ports print
+#   hw.sh initialize [--minimal] [--skip-io] [--dry-run] [--target T] [--lab F]
+#                              do what the first-stage boot software does to the MSS before the clock switch
+#                              (hw/initialize.py, hw/mss_init.py): RTC divisor, dynamic enables, IO set-up, SGMII channel
+#                              set-up and the MSS PLL up to its lock; CLINT.MTIME counts afterwards. The CPU keeps its boot
+#                              clock. --minimal does only what MTIME needs; --dry-run prints the steps and writes nothing.
 #   hw.sh reset [--svd FILE] [--target T] [--lab F]
 #                              reset the board to its power-on state through OpenOCD (dmi_read/dmi_write of
 #                              abstractcs, reset halt, check SUBBLK_CLOCK_CR and SOFT_RESET_CR), also after a
@@ -39,8 +44,8 @@ die () { echo "hw: $*" >&2; exit 2; }
 verb="${1:-}"; shift || true
 case "$verb" in
   openocd) exec sh "$root/hw/start_openocd.sh" "$@" ;;
-  bootmode|run|probe|monitor|reset) ;;
-  *) die "usage: ./x hw bootmode|openocd|run|probe|monitor|reset" ;;
+  bootmode|run|probe|monitor|reset|initialize) ;;
+  *) die "usage: ./x hw bootmode|openocd|run|probe|monitor|reset|initialize" ;;
 esac
 
 # shellcheck source=tools/mpfs-env.sh
@@ -51,6 +56,7 @@ case "$verb" in
   probe)   exec "$MPFS_PYTHON" "$root/hw/run_probe.py" "$@" ;;
   monitor) exec "$MPFS_PYTHON" "$root/hw/monitor.py" "$@" ;;
   reset)   exec "$MPFS_PYTHON" "$root/hw/reset.py" "$@" ;;
+  initialize) exec "$MPFS_PYTHON" "$root/hw/initialize.py" "$@" ;;
   bootmode) exec "$MPFS_PYTHON" "$root/hw/bootmode.py" "$@" ;;
 esac
 

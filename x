@@ -51,11 +51,12 @@
 #                                      the generated package is not committed) and checks
 #    ./x trace [--check]               requirement trace matrix
 #    ./x prove                         SPARK proofs
-#    ./x hw bootmode|openocd|run|probe|monitor|reset  the Icicle Kit: switch the boot mode (bootmode N [ELF]
+#    ./x hw bootmode|openocd|run|probe|monitor|reset|initialize  the Icicle Kit: switch the boot mode (bootmode N [ELF]
 #                                      [--yes] [--dry-run]: PERMANENT, reprograms the FPGA part; stop OpenOCD
 #                                      first), start OpenOCD, run an image (--expect RE sets the exit status),
 #                                      run a probe, show the serial ports, reset the board to its power-on state
-#                                      (also after a hung debug module)
+#                                      (also after a hung debug module), do what the first-stage boot software
+#                                      does before the clock switch (initialize: CLINT.MTIME counts afterwards)
 #    ./x completion [bash|zsh]         print the tab-completion script (see README)
 #
 #  <ex> is the directory name below examples/.  Every failure exits non-zero.
@@ -787,8 +788,8 @@ cmd_completion () {
 
 cmd_hw () {
   case "${1:-}" in
-    bootmode|openocd|run|probe|monitor|reset) delegate tools/hw.sh "$@" ;;
-    *) die "usage: ./x hw bootmode|openocd|run|probe|monitor|reset" ;;
+    bootmode|openocd|run|probe|monitor|reset|initialize) delegate tools/hw.sh "$@" ;;
+    *) die "usage: ./x hw bootmode|openocd|run|probe|monitor|reset|initialize" ;;
   esac
 }
 

@@ -40,6 +40,8 @@ def main():
         f.write(str(srv.getsockname()[1]))
 
     def answer(cmd):
+        if cmd.startswith("echo "):  # the framing of svd_probe.OpenOcd.command
+            return cmd[5:]
         if cmd.startswith("resume") and uart:
             with open(uart, "ab") as f:
                 f.write(text.encode() + b"\r\n")

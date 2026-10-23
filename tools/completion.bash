@@ -58,10 +58,11 @@ _mpfs_x () {
     pac)    [ "$COMP_CWORD" -eq 2 ] && COMPREPLY=($(compgen -W "generate check" -- "$cur")) ;;
     trace)  COMPREPLY=($(compgen -W "--check" -- "$cur")) ;;
     hw)     if [ "$COMP_CWORD" -eq 2 ]; then
-              COMPREPLY=($(compgen -W "bootmode openocd run probe monitor reset" -- "$cur"))
+              COMPREPLY=($(compgen -W "bootmode openocd run probe monitor reset initialize" -- "$cur"))
             elif [ "$sub" = bootmode ]; then
               COMPREPLY=($(compgen -W "0 1 2 3 --yes --dry-run --workdir --lab" -- "$cur"))
               [ -z "$cur" ] || COMPREPLY+=($(compgen -f -- "$cur"))
+            elif [ "$sub" = initialize ]; then COMPREPLY=($(compgen -W "--minimal --skip-io --dry-run --target --lab" -- "$cur"))
             elif [ "$sub" = run ]; then COMPREPLY=($(compgen -W "--expect" -- "$cur")); fi ;;
     completion) [ "$COMP_CWORD" -eq 2 ] && COMPREPLY=($(compgen -W "bash zsh" -- "$cur")) ;;
   esac

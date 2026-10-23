@@ -44,6 +44,10 @@ jumper or a switch.
 | OpenOCD | See `docs/lab/openocd.md` | the one of SoftConsole |
 | RISC-V compiler | Pinned in `tools/toolchain.env` (`./x toolchain install`) | see the file |
 
+## What boot mode 0 leaves undone
+
+In boot mode 0 no boot software runs, so the MSS keeps its reset state. `CLINT.MTIME` reads 0 and does not count, and the SGMII/DDR PHY registers read 0. `./x hw initialize` does through OpenOCD what Microchip's first-stage boot software does before it switches the MSS clock (details in `hw/README.md`, measurements in issue N32): after it, `MTIME` counts at about 1 MHz and the PHY block is readable; the CPU stays on its boot clock. `./x hw initialize --minimal` and `./x svd probe --enable-clocks` do only what `MTIME` needs: the RTC divisor, `IOSCBCFG.TIMER`, `SYSREG.DFIAPB_CR`, `SCB_REGS.MSSIO_CONTROL_CR` and `CFG_DDR_SGMII_PHY.CLK_CNTL`.
+
 ## Restoring the factory state
 
 "Factory state" is the factory reference design in the FPGA part and the boot mode the board was delivered
