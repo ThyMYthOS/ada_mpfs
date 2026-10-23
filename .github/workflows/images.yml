@@ -109,10 +109,31 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
+      # The packages come from the Ubuntu mirror of the runner, and its speed decides how long this takes: 9 s
+      # on one run, 3.5 min (66 kB/s for 12.7 MB) on another. The .deb files are cached per runner image; a hit
+      # installs them with dpkg, without apt-get update and without a download. A miss, or a hit that dpkg
+      # cannot install, takes the apt path and stores the files it downloaded.
+      - name: Cache the QEMU packages
+        uses: actions/cache@v6.1.0
+        with:
+          path: qemu-debs
+          key: qemu-debs-${{ runner.os }}-${{ env.ImageVersion }}
+
       - name: Install QEMU
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends qemu-system-riscv
+          if [ -d qemu-debs ] && sudo dpkg -i qemu-debs/*.deb; then
+            echo "QEMU installed from the cache"
+          else
+            rm -rf qemu-debs
+            sudo apt-get update
+            sudo mkdir -p qemu-debs/partial
+            sudo apt-get install -y --no-install-recommends --download-only \
+              -o Dir::Cache::archives="$PWD/qemu-debs" qemu-system-riscv
+            sudo chown -R "$(id -u):$(id -g)" qemu-debs
+            rm -rf qemu-debs/partial qemu-debs/lock
+            sudo dpkg -i qemu-debs/*.deb
+          fi
+          qemu-system-riscv64 --version | head -n 1
 
       - name: Take the images
         uses: actions/download-artifact@v8.0.2
