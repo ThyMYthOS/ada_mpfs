@@ -126,6 +126,7 @@ jobs:
           else
             rm -rf qemu-debs
             sudo apt-get update
+            sudo mkdir -p qemu-debs/partial
             sudo apt-get install -y --no-install-recommends --download-only \
               -o Dir::Cache::archives="$PWD/qemu-debs" qemu-system-riscv
             sudo chown -R "$(id -u):$(id -g)" qemu-debs
