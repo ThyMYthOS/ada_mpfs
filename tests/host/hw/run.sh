@@ -489,5 +489,62 @@ printf 'OCD_PORT=5555\n' > "$tmp/lab-onlyport.conf"
   && pass "lab.py: a key that the conf does not set takes its default from lab.conf.example" \
   || fail "lab.py: a key that the conf does not set takes its default from lab.conf.example"
 
+# --- mss_init.py and initialize.py -----------------------------------------------------
+init () { "$PY" "$HW/initialize.py" "$@"; }
+serve init
+LI="$tmp/lab-init.conf"
+expect_rc  "initialize: --minimal against the stand-in exits 0" 0 init --minimal --lab "$LI"
+w="$(grep '^mww' "$tmp/init.log")"
+[ "$(printf '%s\n' "$w" | sed -n '1,2p;3,6p' | tr '\n' '|')" = "mww 0x2000200C 0x7D|mww 0x2000200C 0x1007D|mww 0x37080008 0x8A080|mww 0x20002098 0x1|mww 0x200031BC 0x3800|mww 0x20007C18 0xF00050CC|" ] \
+  && pass "initialize: --minimal writes the five things CLINT.MTIME needs, in order" || fail "initialize: --minimal writes the five things CLINT.MTIME needs, in order ($w)"
+[ "$(printf '%s\n' "$w" | wc -l)" = 6 ] && pass "initialize: --minimal writes nothing else" || fail "initialize: --minimal writes nothing else"
+grep -q '^halt$' "$tmp/init.log" && grep -q '^resume$' "$tmp/init.log" && pass "initialize: halts the hart and resumes it at the end" || fail "initialize: halts the hart and resumes it at the end"
+expect_out "initialize: --dry-run prints the steps" "mww 0x20007C18 0xF00050CC    ;# CFG_DDR_SGMII_PHY.CLK_CNTL" init --minimal --dry-run
+: > "$tmp/init.log"
+init --dry-run >/dev/null 2>&1
+[ ! -s "$tmp/init.log" ] && pass "initialize: --dry-run does not touch OpenOCD" || fail "initialize: --dry-run does not touch OpenOCD"
+full="$(init --dry-run)"
+case "$full" in *"MSSIO_CONTROL_CR"*"IOSCB_MUX_SGMII.SOFT_RESET"*"PLL_CTRL.LOCK"*) pass "initialize: the full sequence has the MSSIO handshake, the SGMII set-up and the PLL lock in this order" ;; *) fail "initialize: the full sequence order" ;; esac
+case "$full" in *"ENVM_CR"*|*"CLOCK_CONFIG_CR"*|*"MSSCLKMUX"*) fail "initialize: the full sequence leaves out the clock switch (found one of ENVM_CR, CLOCK_CONFIG_CR, MSSCLKMUX)" ;; *) pass "initialize: the full sequence leaves out the clock switch" ;; esac
+case "$(init --dry-run --skip-io)" in *IOMUX*) fail "initialize: --skip-io leaves out the IO set-up" ;; *) pass "initialize: --skip-io leaves out the IO set-up" ;; esac
+case "$full" in *IOMUX0_CR*) pass "initialize: the IO set-up is part of the full sequence" ;; *) fail "initialize: the IO set-up is part of the full sequence" ;; esac
+# the stand-in reads every word as 0: the first poll runs out of time, which is exit status 2 and a message
+expect_out "initialize: a poll that never succeeds is an error that names it" "PVT_STAT.IOEN" init --lab "$LI"
+expect_rc  "initialize: a poll that never succeeds exits 2" 2 init --lab "$LI"
+printf 'OCD_PORT=1\nSOFT_CONSOLE=%s\nUART_PATTERN=x{n}\nUART_COUNT=4\n' "$tmp/sc" > "$tmp/lab-nothing.conf"
+expect_rc  "initialize: no OpenOCD is exit status 2" 2 init --minimal --lab "$tmp/lab-nothing.conf"
+# the executor itself, with reads that satisfy the polls
+"$PY" - "$HW" <<'PYEOF' && pass "mss_init.run: writes, read-modify-writes, polls, the silicon variant and the delays" || fail "mss_init.run: writes, read-modify-writes, polls, the silicon variant and the delays"
+import sys
+sys.path.insert(0, sys.argv[1])
+import mss_init as m
+mem = {m.PVT_STAT: (1 << 6) | (1 << 14), m.PLL_CNTL: 1 << 7, m.RECAL_CNTL: 1 << 23, m.PLL_MSS + 4: 1 << 25,
+       m.SUBBLK_CLOCK_CR: 1, m.SOFT_RESET_CR: 0x3FFFFFFE, m.SPARE_STAT: 1 << 31, m.IO_CALIB_SGMII + 4: 0xE000}
+writes, slept = [], []
+status = {m.PVT_STAT, m.PLL_CNTL, m.RECAL_CNTL, m.PLL_MSS + 4, m.SPARE_STAT}  # read-only status: a write does not change it
+def write(a, v, what):
+    writes.append((a, v))
+    if a not in status:
+        mem[a] = v
+m.run(m.full(), write, lambda a: mem.get(a, 0), sleep=slept.append)
+assert (m.SUBBLK_CLOCK_CR, 7) in writes and (m.SOFT_RESET_CR, 0x3FFFFFF8) in writes, writes
+assert (m.PVT_STAT, (1 << 6) | (1 << 14) | 0x40000000) in writes
+assert (m.IO_CALIB_SGMII + 4, 0xE000 | (1 << 14)) in writes
+assert writes.count((m.DYN_CNTL, 0x607F)) == 2, "rev C: the lanes are reset twice"
+assert 0.01 in slept, slept
+n_revc = len(writes)
+mem[m.SPARE_STAT] = 0
+writes.clear()
+m.run(m.full(), write, lambda a: mem.get(a, 0), sleep=slept.append)
+assert writes.count((m.DYN_CNTL, 0x607F)) == 1 and len(writes) == n_revc - 2, "rev B: the lanes are reset once"
+assert not any(a in (m.SYSREG + 0xB8, m.SYSREG + 0x008, m.MUX_MSS + 0x0C) for a, _ in writes), "no clock switch"
+t = iter(range(100))
+try:
+    m.run([m.Poll(0x10, 1, 1, "never", 1.0)], write, lambda a: 0, sleep=lambda s: None, monotonic=lambda: next(t) * 0.5)
+    raise SystemExit("a poll that never succeeds did not fail")
+except m.MssInitError as e:
+    assert "never" in str(e)
+PYEOF
+
 echo "summary: $fails failure(s)"
 [ $fails -eq 0 ]

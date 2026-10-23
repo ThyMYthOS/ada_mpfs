@@ -416,7 +416,12 @@ def test_enable_clocks(tmp: Path) -> None:
     check("clocks: the readback is printed", "svd_probe: clocks enabled: SUBBLK_CLOCK_CR=0x3FFDFFFF SOFT_RESET_CR=0x00000000" in r.stdout, r.stdout)
     check("clocks: bits 31, 30 and 17 do not make a warning", "WARNING" not in r.stderr, r.stderr)
     check("clocks: the readback comes after the writes and before the first read",
-          [c.split()[0] for c in stub.commands("") if c.split()[:1] and c.split()[0] in ("mww", "mdw")][:4] == ["mww", "mww", "mdw", "mdw"], str(stub.log))
+          [c.split()[0] for c in stub.commands("") if c.split()[:1] and c.split()[0] in ("mww", "mdw")][:10] == ["mww"] * 8 + ["mdw", "mdw"], str(stub.log))
+    check("clocks: the reference clock of CLINT.MTIME is set up after the two clock registers (hw/mss_init.py REFCLK)",
+          [c for c in stub.commands("") if c.startswith("mww")][2:8] == [
+              "mww 0x2000200C 0x7D", "mww 0x2000200C 0x1007D", "mww 0x37080008 0x8A080", "mww 0x20002098 0x1",
+              "mww 0x200031BC 0x3800", "mww 0x20007C18 0xF00050CC"], str(stub.log))
+    check("clocks: it says so", "reference clock set up (6 writes" in r.stdout, r.stdout)
     stub.close()
     # a clock bit that does not stick, and a peripheral that stays in reset
     stub = Stub(write_mask={0x2084: 0x3FF5FFFF, 0x2088: 0x00004000})
@@ -497,7 +502,7 @@ def test_poke(tmp: Path) -> None:
     r = run(svd, stub, "--poke", "SYSREG.DFIAPB_CR=0x1", "--poke", "0x30BC=0x3800", "--enable-clocks", "P1")
     writes = [c for c in stub.commands("") if c.startswith("mww")]
     check("poke: symbolic and numeric pokes are written in order, before the clock writes",
-          writes == ["mww 0x2098 0x1", "mww 0x30BC 0x3800", "mww 0x2084 0xFFFFFFFF", "mww 0x2088 0x0"], str(stub.log))
+          writes[:4] == ["mww 0x2098 0x1", "mww 0x30BC 0x3800", "mww 0x2084 0xFFFFFFFF", "mww 0x2088 0x0"], str(stub.log))
     check("poke: each poke is echoed and followed by the readback",
           "poke 0x00002098 = 0x00000001  (SYSREG.DFIAPB_CR)\nreadback 0x00000001\npoke 0x000030BC = 0x00003800\nreadback 0x00003800\n" in r.stdout, r.stdout)
     check("poke: it comes after the halt and before the first read",
