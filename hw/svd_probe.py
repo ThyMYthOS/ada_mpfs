@@ -116,6 +116,7 @@ from typing import Callable
 from xml.etree import ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import mss_init  # noqa: E402  (hw/mss_init.py, shared with hw/initialize.py)
 import recover  # noqa: E402  (hw/recover.py, shared with hw/reset.py)
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -747,6 +748,10 @@ def enable_clocks(root: ET.Element, target: OpenOcd) -> None:
     writes = (("SUBBLK_CLOCK_CR", 0xFFFFFFFF), ("SOFT_RESET_CR", 0))
     for name, value in writes:
         write_word(target, sysreg[name].address, value, f"SYSREG.{name}")
+    # what CLINT.MTIME needs on top (hw/mss_init.py REFCLK): the RTC divisor and the clock receiver of the reference
+    mss_init.run(mss_init.REFCLK, lambda address, value, what: write_word(target, address, value, what),
+                 lambda address: target.read(address, 32))
+    print(f"svd_probe: reference clock set up ({len(mss_init.REFCLK)} writes, hw/mss_init.py): CLINT.MTIME counts")
     back = {}
     for name, value in writes:
         reg = sysreg[name]
@@ -915,7 +920,9 @@ def main(argv: list[str]) -> int:
                     help="before reading, turn on all MSS peripheral clocks and release all peripheral resets "
                          "(SYSREG.SUBBLK_CLOCK_CR = 0xFFFFFFFF, SYSREG.SOFT_RESET_CR = 0), read both back, print them and warn if "
                          "SOFT_RESET_CR is not 0 or SUBBLK_CLOCK_CR differs from what its SVD fields allow. A peripheral with "
-                         "its clock off or in reset can hang the bus, which only a reset of the board recovers")
+                         "its clock off or in reset can hang the bus, which only a reset of the board recovers. It also sets up the "
+                         "reference clock that CLINT.MTIME needs (hw/mss_init.py: RTC divisor, IOSCBCFG.TIMER, SYSREG.DFIAPB_CR, "
+                         "SCB_REGS.MSSIO_CONTROL_CR, CFG_DDR_SGMII_PHY.CLK_CNTL), so the PHY block is readable, too")
     ap.add_argument("--list", action="store_true", help="print the registers and expected values, read nothing")
     args = ap.parse_args(argv[1:])
     if args.reset_halt and args.no_halt:

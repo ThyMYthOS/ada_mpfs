@@ -166,7 +166,7 @@ assert seen[:2] == ["targets mpfs.hart0_e51", "halt"] and "riscv set_prefer_sba 
 assert [l for l in seen if l.startswith("mdw 0x2000000")] == ["mdw 0x2000000 5"] and seen[-1] == "resume", seen  # the five MSIP registers need one command
 PY
 
-# --enable-clocks writes the two SYSREG registers before the first read; --skip leaves a peripheral out
+# --enable-clocks writes the two SYSREG registers and the reference clock registers before the first read; --skip leaves a peripheral out
 "$MPFS_PYTHON" -I - "$ROOT" "$tmp/clean/build/svd/PolarfireSoC.svd" <<'PY' && pass "svd_probe enables clocks and skips peripherals" || fail "svd_probe enables clocks and skips peripherals"
 import socket, subprocess, sys, threading
 root = sys.argv[1]
@@ -194,7 +194,10 @@ r = subprocess.run([sys.executable, root + "/hw/svd_probe.py", "--svd", sys.argv
                     "--enable-clocks", "--skip", "CLINT,PLIC", "SYSREG", "CLINT"], capture_output=True, text=True)
 assert r.returncode == 1 and "register(s)" in r.stdout, r
 mww = [l for l in seen if l.startswith("mww")]
-assert len(mww) == 2 and mww[0].endswith(" 0xFFFFFFFF") and mww[1].endswith(" 0x0"), seen
+# the two SYSREG registers first, then the six writes of the reference clock for CLINT.MTIME (hw/mss_init.py REFCLK)
+assert len(mww) == 8 and mww[0].endswith(" 0xFFFFFFFF") and mww[1].endswith(" 0x0"), seen
+assert mww[2:] == ["mww 0x2000200C 0x7D", "mww 0x2000200C 0x1007D", "mww 0x37080008 0x8A080", "mww 0x20002098 0x1",
+                   "mww 0x200031BC 0x3800", "mww 0x20007C18 0xF00050CC"], seen
 assert seen.index(mww[1]) < next(i for i, l in enumerate(seen) if l.startswith("md") and i > seen.index(mww[1])), seen
 assert not any("0x2000000" in l or "0xC000000" in l for l in seen), seen
 r = subprocess.run([sys.executable, root + "/hw/svd_probe.py", "--svd", sys.argv[2], "--skip", "NOPE", "--list"],

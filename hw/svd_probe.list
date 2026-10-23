@@ -120,3 +120,7 @@ state *.*_STAT[0-9]*   status
 # Written by --enable-clocks.
 state-enable-clocks SYSREG.SUBBLK_CLOCK_CR  written by --enable-clocks
 state-enable-clocks SYSREG.SOFT_RESET_CR    written by --enable-clocks
+state-enable-clocks SYSREG.RTC_CLOCK_CR     written by --enable-clocks (RTC divisor for the 125 MHz reference)
+state-enable-clocks SYSREG.DFIAPB_CR        written by --enable-clocks (DFI/APB clock on)
+state-enable-clocks SCB_REGS.MSSIO_CONTROL_CR  written by --enable-clocks (MSS_IO_EN)
+state-enable-clocks CFG_DDR_SGMII_PHY.CLK_CNTL written by --enable-clocks (clock receiver of the reference)
