@@ -22,6 +22,18 @@
 # register map does not give: compare no bit of it (resetMask 0xFE00FFFF). The other bits
 # stay compared.
 #
+# Measured on 2026-10-23 (boot mode 0 after a power cycle, before and after ./x hw initialize, N5):
+#   MSS_RESET_CR      reads 0x01FF0100 at power-on: bits 2:0 read 0, bit 8 (reset of the SGMII
+#                     block with the MSS reference clock input) is 1; the initialize clears it.
+#   MSSIO_CONTROL_CR  reads 0x7A0 at power-on and 0x3880 after the handshake that writes 0x3800:
+#                     bit 7 is a status and is not compared.
+#   DLL0..2_CTRL0 0x8810000F, DLL3_CTRL0 0x88080003, DLL3_CTRL1 0x80: the same before and after
+#                     the initialize, so they are what the system controller loaded.
+#   REDUNDANCY, DEVICE_CONFIG_CR, ENVM_CR, ENVM_POWER_CR, RAM_SHUTDOWN_CR, MSSIO_VB2_CFG,
+#                     MSSIO_VB4_CFG: read 0 at power-on and after the initialize; the values of the
+#                     register map (0x2, 0x4, 0x40050003, 0x7F, 0x3FFF, 0x828) were not seen in any
+#                     state. Reset value 0, no bit compared (resetMask 0), as for SOFT_RESET.
+#
 # MESSAGE carries the status of a system service that the system controller wrote. The
 # register map documents no read side effect; it is kept as a mailbox register (the
 # conservative reading for SPARK). Verify on silicon before relying on it.
@@ -33,7 +45,41 @@ SCB_REGS:
     DEVICE_ID:
       resetMask: 0x0
     MSS_RESET_CR:
+      resetValue: 0x100
       resetMask: 0xFE00FFFF
+    MSSIO_CONTROL_CR:
+      resetMask: 0xFFFFFF7F
+    REDUNDANCY:
+      resetValue: 0x0
+      resetMask: 0x0
+    DEVICE_CONFIG_CR:
+      resetValue: 0x0
+      resetMask: 0x0
+    ENVM_CR:
+      resetValue: 0x0
+      resetMask: 0x0
+    ENVM_POWER_CR:
+      resetValue: 0x0
+      resetMask: 0x0
+    RAM_SHUTDOWN_CR:
+      resetValue: 0x0
+      resetMask: 0x0
+    MSSIO_VB2_CFG:
+      resetValue: 0x0
+      resetMask: 0x0
+    MSSIO_VB4_CFG:
+      resetValue: 0x0
+      resetMask: 0x0
+    DLL0_CTRL0:
+      resetValue: 0x8810000F
+    DLL1_CTRL0:
+      resetValue: 0x8810000F
+    DLL2_CTRL0:
+      resetValue: 0x8810000F
+    DLL3_CTRL0:
+      resetValue: 0x88080003
+    DLL3_CTRL1:
+      resetValue: 0x80
   MESSAGE:
     _modify:
       DATA:
