@@ -3,7 +3,8 @@
 # source: svd/base/sysreg.yaml, MSS_BUILD.REVISION description: set to the SVN revision of pfsoc_mss_main.sv
 # source: Icicle Kit measurement: MSS_BUILD (0x20002028) reads 0x1CF02, the SVD resetValue is 0x0
 # source: Icicle Kit measurement: SPARE_FIC (0x200022E0) reads 0xF at power-on, after reset halt and with the clocks enabled, the SVD resetValue is 0x0
-# status: unverified
+# source: measurement on an Icicle Kit MPFS250T, boot mode 0, 2026-10-23: MSS_BUILD reads 0x1CF02 and SPARE_FIC 0xF again, both reported as noref (resetMask 0)
+# status: verified-MPFS250T-2026-10-23
 # owner: Manuel Stahl
 
 # MSS_BUILD holds the build revision of the silicon design, which the SVD does not know.

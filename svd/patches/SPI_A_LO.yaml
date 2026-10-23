@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: CC-BY-4.0
 # source: svd/base/spi.yaml, RX_DATA.RXDATA description: "Received data. Reading this clears the register of the received data."
 # source: Linux drivers/spi/spi-microchip-core-spi.c: mchp_corespi_read_fifo reads RXDATA once per byte after waiting for a non-empty RX FIFO, which is a FIFO pop
-# status: unverified
+# source: measurement on an Icicle Kit MPFS250T, boot mode 0, 2026-10-23, SPI0 as master (CONTROL 0x203, FRAMESIZE 8) after two frames: STATUS 0x3403 (RXFIFOEMP 0), two reads of RX_DATA, STATUS 0x2441 (RXFIFOEMP 1), so reads of RX_DATA consume the receive FIFO
+# status: verified-MPFS250T-2026-10-23
 # owner: Manuel Stahl
 
 # Reading RX_DATA consumes the received data (the receive FIFO). The other SPI instances
