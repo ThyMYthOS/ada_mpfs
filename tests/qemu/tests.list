@@ -32,3 +32,6 @@ tasking_test_u54h3	examples/tasking_test	0	pass	-	-
 interrupt_test_e51	examples/interrupt_test	0	pass	-	-
 interrupt_test_u54	examples/interrupt_test	0	pass	-	-
 interrupt_test_u54h3	examples/interrupt_test	0	pass	-	-
+delay_accuracy_test_e51	examples/delay_accuracy_test	0	pass	-	-
+delay_accuracy_test_u54	examples/delay_accuracy_test	0	pass	-	-
+delay_accuracy_test_u54h3	examples/delay_accuracy_test	0	pass	-	-
