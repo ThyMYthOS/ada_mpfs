@@ -60,6 +60,19 @@ jobs:
         with:
           target: gnat
 
+      # The runtime packs are not committed, only their hashes (crates/mpfs_rts/packs.sha256), as
+      # for the SVD. The directory with the packs is cached under a key made of the hash file,
+      # make_packs.sh and everything in crates/bb-runtimes, so a change to any of them starts
+      # from nothing; `--ensure` then restores what the cache lacks or has stale (a hit costs
+      # a hash per pack, a miss about 20 s of generation). It comes before the first step that builds
+      # a runtime (tasking_test of ./x test examples gets its pack from gen_runtime.sh, which calls
+      # --ensure).
+      - name: Cache the runtime packs
+        uses: actions/cache@v5.0.4
+        with:
+          path: build/rts/packs
+          key: rts-packs-${{ runner.os }}-${{ hashFiles('crates/mpfs_rts/packs.sha256', 'crates/mpfs_rts/make_packs.sh', 'crates/bb-runtimes/**') }}
+
       # Builds every example for every hart it names; the next steps and the emulator jobs
       # use these images.
       - name: Build all images
@@ -96,17 +109,6 @@ jobs:
       - name: Negative cases
         run: ./x test negative
 
-      # The runtime packs are not committed, only their hashes (crates/mpfs_rts/packs.sha256), as
-      # for the SVD. The directory with the packs is cached under a key made of the hash file,
-      # make_packs.sh and everything in crates/bb-runtimes, so a change to any of them starts
-      # from nothing; `--ensure` then restores what the cache lacks or has stale (a hit costs
-      # a hash per pack, a miss about 20 s of generation).
-      - name: Cache the runtime packs
-        uses: actions/cache@v5.0.4
-        with:
-          path: build/rts/packs
-          key: rts-packs-${{ runner.os }}-${{ hashFiles('crates/mpfs_rts/packs.sha256', 'crates/mpfs_rts/make_packs.sh', 'crates/bb-runtimes/**') }}
-
       # "regenerated == committed": --check regenerates all six packs and compares the SHA-256 of
       # their tar streams with packs.sha256 (never from the cache, so a stale cache cannot hide a
       # difference); then the packs of build/rts/packs (--ensure) are compared with the runtimes of
@@ -122,7 +124,7 @@ jobs:
       # stand-in cases only).
       - name: Host tests
         run: |
-          for suite in bare report negative qemu_tests stack hw analyze prove repro rts_packs; do
+          for suite in bare report negative qemu_tests stack hw analyze prove repro rts_packs rts_variants; do
             echo "== host suite $suite"
             bash "tests/host/$suite/run.sh"
           done
