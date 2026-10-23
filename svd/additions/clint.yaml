@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: CC-BY-4.0
 # source: SiFive U54-MC Core Complex Manual, CLINT chapter (register layout)
 # source: polarfire-soc/platform mpfs_hal/common/mss_clint.h @ 8d52d59 (CLINT_Type, CLINT_BASE in encoding.h)
-# status: unverified
+# source: Icicle Kit measurement, boot mode 0, 2026-10-23: MSIP1 writes and reads back 1; MTIMECMP1 writes and reads back as one 64-bit value (low word at +0, high word at +4); MTIME reads 0 on repeated reads, also with SUBBLK_CLOCK_CR 0x3FFDFFFF, SOFT_RESET_CR 0 and RTC_CLOCK_CR 0x10064 (also after writing the register again)
+# status: verified-MPFS250T-2026-10-23
 # owner: Manuel Stahl
 
 # Core-Local Interruptor. MSIP and MTIMECMP are indexed by the hart number (0..4).
@@ -39,7 +40,7 @@ _add:
         dimIncrement: 0x8
         dimIndex: "0-4"
       MTIME:
-        description: Machine-mode timer, counting at the RTC clock rate
+        description: Machine-mode timer, counting at the RTC clock rate once it runs. In boot mode 0 after a power cycle it reads 0 and does not count, also with the RTC clock enabled (RTC_CLOCK_CR, SUBBLK_CLOCK_CR); what starts it is not known (N32)
         addressOffset: 0xBFF8
         size: 64
         access: read-write

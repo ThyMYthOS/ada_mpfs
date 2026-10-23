@@ -8,7 +8,8 @@
 # source: Icicle Kit measurement, boot mode 0: the pending registers are zero after reset halt and after a claim; they were nonzero only after some power-ups (PENDING3 bit 23, source 119 = F2M_1, a fabric interrupt line)
 # source: Icicle Kit measurement, boot mode 0: CLAIM_COMPLETE reads 0 for 8 of 9 contexts and 0x77 (source 119) for hart 0, machine mode, while source 119 was pending
 # source: hw/probe_irq.S: the PLIC powers up with random enables, priorities and pending bits (measured)
-# status: unverified
+# source: Icicle Kit measurement, boot mode 0, 2026-10-23 (two power-ups): with source 119 pending, CLAIM_COMPLETE_H0_M reads 0x77 and the other eight claim registers 0, PENDING3 is 0 after that claim; thresholds differ between the two power-ups (THRESHOLD_H3_S 5 and 7)
+# status: verified-MPFS250T-2026-10-23
 # owner: Manuel Stahl
 
 # Platform-Level Interrupt Controller. The priority, enable and threshold registers

@@ -32,7 +32,7 @@ Nothing here replaces a test on your own board. What was exercised, and how:
 the JTAG IDCODE and the harts through OpenOCD, `bare_hello` on the E51 (needs `--uart-standin`, because
 nothing in that mode sets the UARTs up), `probe_time.S` (`mtime` does not tick, `mcycle` counts),
 MMUART0 to MMUART3, the factory restore, and the register measurements that fed the SVD
-(`./x svd probe`, `./x hw`). Each file in `svd/patches/` and `svd/additions/` carries its own `# status:` header (`grep '^# status' svd/*/*.yaml`): three of the 13 (`MMUART0_LO`, `SPI_A_LO`, `SYSREG`) are verified on the MPFS250T, the others stay `unverified` until the board confirms every claim in them.
+(`./x svd probe`, `./x hw`). Each file in `svd/patches/` and `svd/additions/` carries its own `# status:` header (`grep '^# status' svd/*/*.yaml`): five of the 13 (`MMUART0_LO`, `SPI_A_LO`, `SYSREG`, `plic`, `clint`) are verified on the MPFS250T, the others stay `unverified` until the board confirms every claim in them.
 
 **Without a board** (QEMU and Renode): the smoke test of `bare_hello`, the `Test_Report` applications
 (`./x test qemu`), and the same smoke test under Renode (`./x test renode`, not required for a merge).
