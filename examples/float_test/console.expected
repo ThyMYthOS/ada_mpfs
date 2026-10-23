@@ -1,0 +1,24 @@
+  ok: 1.5 + 2.25 = 3.75
+  ok: 10.0 / 4.0 = 2.5
+  ok: 0.1 + 0.2 is the double 0.30000000000000004
+  ok: 1.0 / 3.0 rounds to nearest
+  ok: 2**53 + 1 rounds to even (2**53)
+  ok: 1.5 * (-0.1) * 10.0 = -1.5000000000000002
+  ok: 1.5 + 2.25 = 3.75 (Float)
+  ok: 2**24 + 1 rounds to even (Float)
+  ok: 1.0 / 3.0 rounds to nearest (Float)
+  ok: Long_Float (0.1 as Float)
+  ok: Float (0.1 as Long_Float)
+  ok: Integer (2.5) = 3 and Integer (-2.5) = -3 (away from zero)
+  ok: Truncation, Floor, Ceiling and Rounding of -2.7
+  ok: conversions between integer and floating point
+  ok: Sqrt (16.0) = 4.0
+  ok: Sqrt (0.25) = 0.5
+  ok: Long_Float'Image (1.5)
+  ok: Long_Float'Image (-0.1)
+  ok: Long_Float'Image (2.0**60)
+  ok: Long_Float'Image (1.4142135623730951)
+  ok: Float'Image (3.75)
+  ok: Float'Image (1.0E10)
+  ok: Float'Image (0.1)
+  ok: Float'Image (Sqrt (2.0))
