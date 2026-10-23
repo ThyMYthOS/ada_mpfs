@@ -71,7 +71,7 @@ state-mask CRYPTO.CONFIG        0x0F000000 bits 27-24 include a live handshake w
 
 # Single registers whose value is runtime state or differs from run to run.
 state SYSREG.DEVICE_STATUS       status
-state SYSREG.ENVM_CR             differs between runs, no fixed reset value
+state SYSREG.ENVM_CR             0x40000141 after a power cycle; a later software start changes it (CLOCK_OKAY is a status)
 state SYSREG.MAINTENANCE_INT_SR  status
 state SYSREG.DLL_STATUS_SR       status
 state WDOG0_LO.WDOG_REFRESH      runtime state of the watchdog, observed with different values

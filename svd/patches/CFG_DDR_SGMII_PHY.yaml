@@ -32,8 +32,9 @@
 # reads at each address; no register is renamed and no address changes. PLL_PHADJ
 # also gets the reserved read-only bit 0 (reset 1) back.
 #
-# SSCG_REG_2_MAIN (0x200070AC) reads 0x80, which matches no official value (MAIN
-# 0x30, IOSCB 0x20): unexplained, not patched.
+# SSCG_REG_2_MAIN (0x200070AC) reads 0x80 (the official values: MAIN 0x30, IOSCB 0x20); it is
+# the INTIN value 0x80 of the DDR PLL in the Icicle design (the MSS Configurator XML), like
+# PLL_REF_FB_MAIN 0x500 (RFDIV 5) and PLL_DIV_0_1_MAIN 0x02000100 of the same PLL.
 #
 # SOFT_RESET_* (ten registers: DDR_PHY, MAIN_PLL, IOSCB_PLL, BANK_CTRL, IOCALIB, CFM,
 # DECODER_DRIVER, DECODER_ODT, DECODER_IO, TIP): PERIPH (bit 8) reads 1 at reset, as the
@@ -65,6 +66,18 @@
 # DQDQS_STATE) and the delay line out-of-range flags (EXPERT_DLYCNT_OOR_REG0 and 1). They
 # have no reset value that a comparison can use, so no bit is compared (resetMask 0, the
 # reset value 0 of the map stays), as for SPARE_FIC in SYSREG.yaml.
+#
+# Power-on values measured on 2026-10-23 (boot mode 0 after a power cycle, DFIAPB_CR 1 and
+# the reference clock set up by `./x svd probe --enable-clocks`, see N5 and N32) that differ
+# from the official map and are not changed by ./x hw initialize, so they are what the
+# system controller loaded from the design at power-up: DDRPHY_STARTUP 0x003F0000 (the
+# initialize writes 0x003F1F00), PLL_REF_FB_MAIN 0x500, SSCG_REG_2_MAIN 0x80, CH0_CNTL and
+# CH1_CNTL 0x00FC0000 (the initialize writes 0x37F07770), TIP_CFG_PARAMS 0x03C1E000 (0x07CFE02F
+# was read in an earlier run in another state). They are reset values of this design.
+# IOC_REG1 (0x20007208) is a read-only calibration result that reads 0x10 once the
+# calibration has run (the probe starts it): resetMask 0. DYN_CNTL: bits 31:15 are status
+# (ARO_*, PVT_CALIB_STATUS) and read 0x0D10 there after the calibration has started, so only
+# bits 14:8 and 6:0 are compared.
 CFG_DDR_SGMII_PHY:
   _modify:
     IOC_REG2:
@@ -80,6 +93,20 @@ CFG_DDR_SGMII_PHY:
     EXPERT_DLYCNT_OOR_REG0:
       resetMask: 0x0
     EXPERT_DLYCNT_OOR_REG1:
+      resetMask: 0x0
+    DDRPHY_STARTUP:
+      resetValue: 0x003F0000
+    PLL_REF_FB_MAIN:
+      resetValue: 0x500
+    SSCG_REG_2_MAIN:
+      resetValue: 0x80
+    CH0_CNTL:
+      resetValue: 0x00FC0000
+    CH1_CNTL:
+      resetValue: 0x00FC0000
+    TIP_CFG_PARAMS:
+      resetValue: 0x03C1E000
+    IOC_REG1:
       resetMask: 0x0
     PLL_DIV_0_1_MAIN:
       resetValue: 0x02000100
@@ -138,7 +165,7 @@ CFG_DDR_SGMII_PHY:
     TRAINING_RESET:
       resetMask: 0x1
     DYN_CNTL:
-      resetMask: 0xFFFFFF7F
+      resetMask: 0x00007F7F
     IOC_REG0:
       resetMask: 0xFFFF9FFF
     RECAL_CNTL:
