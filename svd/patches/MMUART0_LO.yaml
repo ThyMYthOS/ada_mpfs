@@ -6,7 +6,8 @@
 # source: measurement on an Icicle Kit MPFS250T, boot mode 0, MMUART0 (0x20000000) clocked (SYSREG.SUBBLK_CLOCK_CR 0x21, SOFT_RESET_CR 0x3FFFFFDE): with LCR 0 (DLAB 0) the addresses +0x100..+0x11C read the registers at +0x00..+0x1C; +0x108 reads IIR (0xC1)
 # source: platform driver mss_uart.h: the register struct has RBR/THR/DLR at offset 0 and IIR/FCR at offset 8 (one address, the access type selects the register)
 # source: measurement on an Icicle Kit MPFS250T, boot mode 0, 2026-10-23, MMUART1 in loopback (LCR 0x03, MCR 0x10): LSR 0x60 before, 0x61 after writing 0x41 to THR, one read of RBR returns 0x41 and LSR is 0x60 again (data ready cleared), so a read of RBR pops the receive FIFO
-# status: verified-MPFS250T-2026-10-23
+# source: measurement on an Icicle Kit MPFS250T, boot mode 0, 2026-10-28, MMUART1 in loopback: a read of +0x100 returns the received character and clears LSR.DR like a read of +0x00; at LCR 0x83 +0x00, +0x80 and +0x100 read DLL (0x12) and +0x04, +0x84 and +0x104 read DLM (0x34); +0x08, +0x88 and +0x108 read IIR (0xC1) at LCR 3; a write of 0x03 to +0x08, +0x88 or +0x108 clears the receive FIFO (LSR 0x61 to 0x60), so the aliases write FCR
+# status: verified-MPFS250T-2026-10-28
 # owner: Manuel Stahl
 
 # Reading RBR pops the receive FIFO: a read with a side effect on state outside the register.
