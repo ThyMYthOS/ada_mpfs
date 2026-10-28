@@ -503,7 +503,7 @@ _add:
             bitWidth: 8
             access: read-write
       DMR:
-        description: 'Divisor latch (MSB, DLM of a 16550). The address (offset 0x84) is an alias of the data port at offset 4: it reaches the divisor latch only with LCR.DLAB 1; with DLAB 0 it reads and writes IER instead. The reset value 0x0 is the latch value, a read at LCR 0 after reset returns the IER value (measured on an Icicle Kit MPFS250T with the clock enabled: +0x84 reads 0 at LCR 0 and at LCR 0x83, the IER value and the DLM reset value coincide).'
+        description: 'Divisor latch (MSB, DLM of a 16550). The address (offset 0x84) is an alias of the data port at offset 4: it reaches the divisor latch only with LCR.DLAB 1; with DLAB 0 it reads and writes IER instead. The reset value 0x0 is the latch value, a read at LCR 0 after reset returns the IER value (measured on an Icicle Kit MPFS250T with the clock enabled: +0x84 reads 0 at LCR 0 and at LCR 0x83, the IER value and the DLM reset value coincide). Measured again on 2026-10-28 with DLM 0x34 (MMUART1): +0x04, +0x84 and +0x104 read 0x34 at LCR 0x83.'
         addressOffset: 0x84
         size: 32
         access: read-write
@@ -515,7 +515,7 @@ _add:
             bitWidth: 8
             access: read-write
       THR:
-        description: 'Transmit holding register. The address (offset 0x100) is an alias of the data port at offset 0 (RBR when read, THR when written): a read of this address is not an access to THR: it returns the receive FIFO like RBR and pops it (measured on an Icicle Kit MPFS250T with the clock enabled: +0x100 reads exactly what +0x00 reads at LCR.DLAB 0 and 1).'
+        description: 'Transmit holding register. The address (offset 0x100) is an alias of the data port at offset 0 (RBR when read, THR when written): a read of this address is not an access to THR: it returns the receive FIFO like RBR and pops it (measured on an Icicle Kit MPFS250T with the clock enabled: +0x100 reads exactly what +0x00 reads at LCR.DLAB 0 and 1). Measured on 2026-10-28 in loopback (MMUART1): a read of +0x100 returned the received character 0x41 and LSR went from 0x61 to 0x60, the same as a read of +0x00; at LCR 0x83 +0x100 reads DLL like +0x00 and +0x80.'
         addressOffset: 0x100
         size: 32
         access: write-only
@@ -527,7 +527,7 @@ _add:
             bitWidth: 8
             access: write-only
       FCR:
-        description: 'FIFO control register. The address (offset 0x108) is an alias of the data port at offset 8 (IIR when read, FCR when written): a read returns the interrupt identification register IIR, not the last value written (measured on an Icicle Kit MPFS250T with the clock enabled: +0x108 reads 0xC1, the IIR value at +0x08). The register is write-only; a read of this address is a read of IIR (which acknowledges a pending transmitter holding register empty interrupt, see IIR) and must not be used to read back FCR, so a read-modify-write of FCR is not allowed.'
+        description: 'FIFO control register. The address (offset 0x108) is an alias of the data port at offset 8 (IIR when read, FCR when written): a read returns the interrupt identification register IIR, not the last value written (measured on an Icicle Kit MPFS250T with the clock enabled: +0x108 reads 0xC1, the IIR value at +0x08). The register is write-only; a read of this address is a read of IIR (which acknowledges a pending transmitter holding register empty interrupt, see IIR) and must not be used to read back FCR, so a read-modify-write of FCR is not allowed. Measured on 2026-10-28 in loopback (MMUART1): a write of 0x03 to +0x08, +0x88 and +0x108 each cleared the receive FIFO (LSR 0x61 to 0x60), so a write to either alias reaches FCR.'
         addressOffset: 0x108
         size: 32
         access: write-only
