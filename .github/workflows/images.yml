@@ -7,7 +7,9 @@
 # `qemu` (smoke test, Test_Report applications) and `renode` (smoke test) run them without a
 # toolchain. The job `repro` builds every image twice in two directories; the SHA-256 of the
 # ELFs must be equal. The images, the measured metrics and the logs of the QEMU and Renode
-# tests are uploaded as artifacts. The logic lives in ./x.
+# tests are uploaded as artifacts. Job `build` also checks that the runtime packs equal the
+# regenerated ones and match the runtimes of the toolchain. The logic lives in ./x and the
+# scripts of crates/mpfs_rts.
 name: images
 
 on:
@@ -16,6 +18,8 @@ on:
     paths:
       - ".github/workflows/images.yml"
       - ".github/actions/**"
+      - "crates/bb-runtimes/**"
+      - "crates/mpfs_rts/**"
       - "examples/**"
       - "hw/**"
       - "tests/**"
@@ -27,6 +31,8 @@ on:
     paths:
       - ".github/workflows/images.yml"
       - ".github/actions/**"
+      - "crates/bb-runtimes/**"
+      - "crates/mpfs_rts/**"
       - "examples/**"
       - "hw/**"
       - "tests/**"
@@ -90,12 +96,33 @@ jobs:
       - name: Negative cases
         run: ./x test negative
 
+      # The runtime packs are not committed, only their hashes (crates/mpfs_rts/packs.sha256), as
+      # for the SVD. The directory with the packs is cached under a key made of the hash file,
+      # make_packs.sh and everything in crates/bb-runtimes, so a change to any of them starts
+      # from nothing; `--ensure` then restores what the cache lacks or has stale (a hit costs
+      # a hash per pack, a miss about 20 s of generation).
+      - name: Cache the runtime packs
+        uses: actions/cache@v5.0.4
+        with:
+          path: build/rts/packs
+          key: rts-packs-${{ runner.os }}-${{ hashFiles('crates/mpfs_rts/packs.sha256', 'crates/mpfs_rts/make_packs.sh', 'crates/bb-runtimes/**') }}
+
+      # "regenerated == committed": --check regenerates all six packs and compares the SHA-256 of
+      # their tar streams with packs.sha256 (never from the cache, so a stale cache cannot hide a
+      # difference); then the packs of build/rts/packs (--ensure) are compared with the runtimes of
+      # the pinned toolchain (installed above): their common GNAT and GNARL sources must be equal.
+      - name: Runtime packs
+        run: |
+          crates/mpfs_rts/make_packs.sh --ensure
+          crates/mpfs_rts/make_packs.sh --check
+          crates/mpfs_rts/compare_toolchain.sh
+
       # The suites that need no svdtools: the svd, pac and x suites run in the registers
       # workflow, and the prove suite runs with gnatprove in the quality workflow (here its
       # stand-in cases only).
       - name: Host tests
         run: |
-          for suite in bare report negative qemu_tests stack hw analyze prove repro; do
+          for suite in bare report negative qemu_tests stack hw analyze prove repro rts_packs; do
             echo "== host suite $suite"
             bash "tests/host/$suite/run.sh"
           done

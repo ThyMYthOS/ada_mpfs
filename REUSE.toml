@@ -16,12 +16,131 @@ precedence = "closest"
 SPDX-FileCopyrightText = "2026 Manuel Stahl <thymythos@googlemail.com>"
 SPDX-License-Identifier = "CC-BY-4.0"
 
+# The imported GNAT bare-board runtime sources (trimmed fork of alire-project/bb-runtimes, see
+# PROVENANCE.md) and the packs generated from them. Their files carry the AdaCore and FSF
+# notices as running text, not as SPDX tags; the in-file SPDX headers of the files that were
+# written or modified here take precedence. Listed before the trivial files so that the
+# README.md of the crate stays CC0-1.0. Later annotations win over earlier ones.
+#
+# The runtime sources are compiled into or linked with the program of a user: GPL-3.0-or-later
+# with the GCC Runtime Library Exception, as their notices say. The two licence texts
+# (COPYING3, COPYING.RUNTIME) and the linker spec belong to them. The packs (generated into
+# build/rts/packs, not committed) hold only such sources.
+[[annotations]]
+path = [
+  "crates/bb-runtimes/gnat_rts_sources/**",
+  "crates/bb-runtimes/src/**",
+  "crates/bb-runtimes/riscv/**",
+  "crates/bb-runtimes/COPYING3",
+  "crates/bb-runtimes/COPYING.RUNTIME",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = ["AdaCore", "Free Software Foundation, Inc."]
+SPDX-License-Identifier = "GPL-3.0-or-later WITH GCC-exception-3.1"
+
+# The generator of the runtime source trees is Python that runs on the host and is not part of
+# any program: plain GPL-3.0-or-later, no exception (it concerns code that is compiled into or
+# linked with a program, which none of this is). Upstream gives these files no licence notice at
+# all (only `Copyright (C) AdaCore` in a few); the licence is taken from the COPYING3 at the top
+# of the upstream repository, see PROVENANCE.md. The Python files of riscv/ carry their own SPDX
+# header (also GPL-3.0-or-later).
+[[annotations]]
+path = ["crates/bb-runtimes/support/**"]
+precedence = "closest"
+SPDX-FileCopyrightText = "AdaCore"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+# The specifications that upstream derived from the Ada Reference Manual and marked with the
+# permission of the Ada RM copyright (LICENSES/LicenseRef-Ada-RM-permissive.txt) instead of the
+# GPL: exactly the files whose notice has the four lines of that paragraph and no GPL paragraph
+# (73 files; tests/host/rts_packs/run.sh checks this list against the notices).
+[[annotations]]
+path = [
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/cert/calendar.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/common/a-charac.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/common/a-chlat1.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/common/a-nbnbig.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/common/a-nubinu.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/common/a-numeri.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/common/a-strfix.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/common/a-string.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/common/a-unccon.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/common/a-uncdea.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/common/ada.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/common/i-c.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/common/machcode.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/common/text_io.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/common/unchconv.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/common/unchdeal.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/containers/a-cgarso.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/containers/a-cgcaso.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/containers/a-contai.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/containers/a-iteint.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-nbnbin.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-nbnbre.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-nlcoar.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-nllcar.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-nllrar.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-nlrear.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-nucoar.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-stboha.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-stbubo.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-stbuun.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-stfiha.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-storio.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-strhas.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-sttebu.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-stunha.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-stwifi.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-stwiha.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-stzfix.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-stzhas.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-suenco.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-suenst.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-suewst.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-suezst.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-swbwha.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-swfwha.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-swuwha.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-szbzha.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-szfzha.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-szuzha.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-undesu.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-wichha.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-widcha.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-zchara.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/a-zchhan.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/i-fortra.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/full/ioexcept.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/gnarl/common/a-exetim.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/gnarl/common/a-extiin.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/gnarl/common/s-multip.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/ioexce/a-ioexce.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/math/a-nselfu.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/math/complex/a-ncelfu.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/math/complex/a-ngcefu.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/math/complex/a-nlcefu.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/math/complex/a-nlcoty.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/math/complex/a-nllcef.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/math/complex/a-nllcty.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/math/complex/a-nscefu.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/math/complex/a-nscoty.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/math/complex/a-nucoty.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/math/full/a-ngcoar.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/math/full/a-nurear.ads",
+  "crates/bb-runtimes/gnat_rts_sources/include/rts-sources/math/long_long_64bit/a-nllefu.ads",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = ["AdaCore", "Free Software Foundation, Inc."]
+SPDX-License-Identifier = "LicenseRef-Ada-RM-permissive"
+
 # Trivial files: no copyright claimed.
 [[annotations]]
 path = [
   "**/*.conf",
   "**/*.conf.example",
   "**/*.list",
+  "crates/mpfs_rts/packs.sha256",
   "tools/analyzer-baselines/*.baseline",
   "**/README.md",
   "CONTRIBUTING.md",

@@ -55,8 +55,24 @@ Third-party components
 - Microchip PolarFire SoC platform sources (MIT), once imported: copyright
   and license text are preserved in the importing files and in
   LICENSES/MIT.txt (added with the first import).
-- GNAT runtime (crates/mpfs_rts, crates/bb-runtimes): GPL-3.0-or-later WITH
-  GCC-exception-3.1; AdaCore and FSF headers are preserved. The license
-  texts are added to LICENSES/ with the first import.
+- GNAT runtime (crates/mpfs_rts, crates/bb-runtimes): crates/bb-runtimes is a
+  trimmed fork of alire-project/bb-runtimes, tag v15.1.0-1 (commit 09e7cd6, see
+  PROVENANCE.md), and crates/mpfs_rts/packs.sha256 records the runtime sources
+  generated from it. AdaCore and FSF headers are preserved.
+  * The runtime sources (Ada, C and assembler that are compiled into or linked
+    with a program, and the packs made of them): GPL-3.0-or-later WITH
+    GCC-exception-3.1, as their notices say. The license texts are in
+    LICENSES/ (GPL-3.0-or-later.txt, GCC-exception-3.1.txt) and, as COPYING3
+    and COPYING.RUNTIME, in crates/bb-runtimes and in every pack.
+  * 73 specifications derived from the Ada Reference Manual carry the
+    permission of the RM copyright instead of the GPL (LICENSES/
+    LicenseRef-Ada-RM-permissive.txt).
+  * The generator of the source trees (the Python of crates/bb-runtimes: the
+    support/ directory, build_rts.py, riscv/): GPL-3.0-or-later, without the
+    exception, which concerns only code compiled into a program. Upstream gives
+    these files no license notice; the license is taken from the COPYING3 at
+    the top of the upstream repository (PROVENANCE.md).
+  * The scripts and tests of this project that call the generator
+    (crates/mpfs_rts/*.sh, tests/host/rts_packs): Apache-2.0.
 - SPARKNaCl (crates/sparknacl, from P6): BSD-3-Clause (license text added
   with the import).
