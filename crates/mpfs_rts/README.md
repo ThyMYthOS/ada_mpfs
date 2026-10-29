@@ -12,7 +12,7 @@
 | `compare_toolchain.sh` | Compares `gnat/` and `gnarl/` of the packs (after `make_packs.sh --ensure`, or `--packs DIR`) with the runtimes shipped with the pinned `gnat_riscv64_elf` (`light-polarfiresoc` and so on, `light-rv64imac`): everything that is not a port unit must be identical. |
 | `gen_runtime.sh` | `gen_runtime.sh <profile> <hart> <cpus> <priv>` builds one variant of the runtime into `build/rts/<profile>-<hart>-cpus<n>-<priv>/` (see below). |
 | `mpfs_rts.gpr` | Abstract project: `Runtime_Path` and `Target` from the scenario variables `MPFS_PROFILE`, `MPFS_HART`, `MPFS_CPUS`, `MPFS_PRIV` (and `MPFS_RTS_ROOT` for the root of the variants). |
-| `mpfs/` | Own port units, laid over the pack by `gen_runtime.sh` (`gnat/`, `gnarl/` below it): `gnat/start.S` (P1.3), `gnat/s-bbbopa.ads`, `gnarl/s-bbripl.ad[sb]`, `gnarl/s-bbsuti.adb`, `gnarl/s-bbhart.ad[sb]` and `gnarl/s-bbricl.ad[sb]` (P1.4). `mpfs/remove.list` names the files of the pack that an own unit replaces under another name (`gnat/start-ram.S`). |
+| `mpfs/` | Own port units, laid over the pack by `gen_runtime.sh` (`gnat/`, `gnarl/` below it): `gnat/start.S` (P1.3), `gnat/s-bbbopa.ads`, `gnarl/s-bbripl.ad[sb]`, `gnarl/s-bbsuti.adb`, `gnarl/s-bbhart.ad[sb]` and `gnarl/s-bbricl.ad[sb]` (P1.4), `gnarl/context_switch.S` and `gnat/riscv_def.h` (P1.5). `mpfs/remove.list` names the files of the pack that an own unit replaces under another name (`gnat/start-ram.S`). |
 | `overlays/<name>/` | Overlays, laid over the pack after the port units (`gnat/`, `gnarl/`, `ld/` below each). The directory does not exist yet. |
 | `ld/` | The linker scripts (P1.3): `mpfs-memory.ld`, `place-lim.ld`, `place-scratchpad.ld`, `place-envm.ld`, `sections.ld` (the shared `SECTIONS`) and `app-sections.ld` (the empty hook of the application). `gen_runtime.sh` puts them into `ld/` of every variant. |
 | `mpfs_link.gpr` | Abstract project with the link switches of an image: the placement script of the variant and the partition data as `--defsym` values (scenario variables `MPFS_PLACEMENT`, `MPFS_BOOT_ROLE`, `MPFS_HARTS`, `MPFS_APP_LD`, `MPFS_STACK_SIZE`, `MPFS_INTERRUPT_STACK_SIZE`), for the examples and tests until the partition generator (P1.12) writes the values. |
@@ -117,3 +117,53 @@ Nothing in the runtime names a hart. The id of the executing hart is `mhartid`, 
 
 **QEMU and the harts.** The default of QEMU's `microchip-icicle-kit` has the E51 and one U54 (`-smp 2`; `info cpus` shows `CPU #0 sifive-e51` and `CPU #1 sifive-u54`). An image linked for hart 2 to 4 would be started on a machine without that hart and print nothing. `tests/qemu/run_tests.sh` and `./x qemu` pass `-smp 5`. Its PLIC has the contexts `M, MS, MS, MS, MS` (context 0 is hart 0, context 2n-1 the M mode of hart n) and its CLINT the `mtimecmp` at `0x4000 + 8 * hart`, as the SoC does; both accept 32-bit accesses to the PLIC only.
 
+
+## Context switch, FPU and trap frame (P1.5)
+
+| Hart class | `-march` / `-mabi` | f registers | Task context (`__gnat_context_switch`) | Trap frame (`__gnat_trap_entry`) |
+|---|---|---|---|---|
+| E51 | `rv64imac_zicsr_zifencei` / `lp64` (`__riscv_float_abi_soft`) | none | `ra`, `sp`, `s0` - `s11` | 256 bytes: `x1` - `x31` |
+| U54 | `rv64imafdc_zicsr_zifencei` / `lp64d` | `f0` - `f31`, `mstatus.FS` set by `start.S` | the same and `fs0` - `fs11` (offsets 112 to 200 of the context) | 512 bytes: `x1` - `x31` and `f0` - `f31` |
+
+**Defect no. 1 (FP context), fixed in `mpfs/gnarl/context_switch.S`.** The upstream file (`riscv/src/context_switch.S` of
+bb-runtimes `v15.1.0-1` @ 09e7cd6, byte for byte the file of ada-machine `rts-spikes/rts_core_riscv64/src`) saves
+`fs0` - `fs11` to the context of the outgoing task (`t0`, the address that `LREG t0, 0(a0)` read) and then restores them
+with `FLREG fs0, 14*REGBYTES(t0)`, again from the outgoing context; the integer registers are restored from `a1`, the
+incoming one. So every task that is switched in gets the callee-saved f registers of the task that was switched out. The
+overlay loads the twelve registers from `a1`; nothing else of the file changed (`tests/host/rts_context` compares the
+two files line by line). The defect is in the upstream release this fork is made from (`v15.1.0-1`) and in the copy of ada-machine; the later
+branches of AdaCore's bb-runtimes were not read here. It is worth reporting upstream; this work does not contact anyone. `examples/fp_context_test` is the regression test:
+with the upstream restore all twelve registers of all three of its tasks are lost, with the fix none.
+
+**`fcsr` is not part of the task context (decision of P1.5).** Saving it would cost two instructions for the save and two
+for the restore (`csrr`, `sd`; `ld`, `csrw`), one more word in `Context_Buffer`, and an initial value for a new task.
+Against that stands what `fcsr` holds:
+
+- the rounding mode `frm`: nothing in the runtime or in the Ada code of this project changes it (the attributes
+  `'Rounding`, `'Truncation` and the conversions to integer are done without it, `Float'Image` has no use for it), the
+  reset value is round to nearest even, which is what Ada's model of the real types assumes (Ada has no portable way to
+  select another mode). Where a program does change it, it is a program-wide setting, and an interrupt handler would
+  inherit it from whatever task it interrupted anyway, so a per-task copy would not make the setting task-local;
+- the accrued exception flags `fflags`: sticky, not visible to Ada (no `Float_Control`, no `Machine_Overflows` use of
+  them), so a switch that leaves them mixed does no harm.
+
+So the context stays at `fs0` - `fs11`, and the trap frame does not save `fcsr` either. If a project needs a task-local
+rounding mode (a numerical library with directed rounding), the change is local: `FCSR` words in `Context_Buffer`
+(`s-bbcpsp.ads`, an own port unit then) and two instructions on each side in `context_switch.S`.
+
+**Trap frame.** `riscv_def.h` (overlay `mpfs/gnat/riscv_def.h`) gives `FRAME_SIZE` by the ABI: `32 * REGBYTES` when
+`__riscv_float_abi_soft` is defined, else `64 * REGBYTES` (32 integer slots, of which the one of `tp` stays empty, and 32 f
+slots); `trap_handler.S` and `context_switch.S` name an f register only under `#ifndef __riscv_float_abi_soft`. The
+upstream header and trap handler were already right for both classes; the overlay of the header adds assembly-time checks
+(a hard-float ABI without `__riscv_flen` and a frame that is not a multiple of 16 do not assemble) and the table above as
+a comment, the trap handler is unchanged. The frame of the E51 is 256 bytes, of the U54 512: the interrupt stacks of the
+runtime (`__interrupt_stack_size`) hold nested frames of that size.
+
+Known limit: `Context_Buffer` (`s-bbcpsp.ads`, upstream, not an own unit) always has the twelve `FS` words, so on the E51
+each task context carries 96 bytes that nothing uses; the assembly code does not touch them. A conditional record would
+need an own `s-bbcpsp.ads`, which is not worth 96 bytes per task for the E51 images of P1 (it can be done together with a
+per-task `fcsr`).
+
+`tests/host/rts_context` checks all of it on the disassembly of the real objects (the twelve `fsd` and the twelve `fld`, the
+frame sizes, the slots, no f instruction on the E51, a control that fails on the upstream file); `examples/fp_context_test`
+(U54) and `examples/float_test` (E51 and U54) run under QEMU.

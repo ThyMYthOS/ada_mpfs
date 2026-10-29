@@ -259,6 +259,20 @@ for ex in tasking_test interrupt_test; do
   grep -q '^BUILD_HARTS=e51 u54 u54-h3$' "$ROOT/examples/$ex/example.conf" \
     && pass "$ex is built for e51, u54 and u54-h3" || fail "$ex is built for e51, u54 and u54-h3"
 done
+# float_test (both hart classes) and fp_context_test (U54 only: the E51 has no FP registers), P1.5
+for hart in e51 u54; do
+  grep -q "^float_test_${hart}${tab}examples/float_test${tab}0${tab}pass${tab}-${tab}-\$" "$list_c" \
+    && pass "tests.list: float_test_$hart" || fail "tests.list: float_test_$hart"
+done
+grep -q '^BUILD_HARTS=e51 u54$' "$ROOT/examples/float_test/example.conf" \
+  && pass "float_test is built for both harts" || fail "float_test is built for both harts"
+grep -q "^fp_context_test_u54${tab}examples/fp_context_test${tab}0${tab}pass${tab}-${tab}-\$" "$list_c" \
+  && pass "tests.list: fp_context_test_u54" || fail "tests.list: fp_context_test_u54"
+grep -q '^fp_context_test_e51' "$list_c" \
+  && fail "tests.list: no fp_context_test row for the E51 (no FP registers)" \
+  || pass "tests.list: no fp_context_test row for the E51 (no FP registers)"
+grep -q '^BUILD_HARTS=u54$' "$ROOT/examples/fp_context_test/example.conf" \
+  && pass "fp_context_test is built for the U54 only" || fail "fp_context_test is built for the U54 only"
 grep -q -- '-smp 5' "$ROOT/tests/qemu/run_tests.sh" \
   && pass "the runner starts all five harts (-smp 5)" || fail "the runner starts all five harts (-smp 5)"
 
