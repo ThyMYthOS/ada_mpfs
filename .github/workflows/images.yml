@@ -8,7 +8,9 @@
 # toolchain. The job `repro` builds every image twice in two directories; the SHA-256 of the
 # ELFs must be equal. The images, the measured metrics and the logs of the QEMU and Renode
 # tests are uploaded as artifacts. Job `build` also checks that the runtime packs equal the
-# regenerated ones and match the runtimes of the toolchain. The logic lives in ./x and the
+# regenerated ones and match the runtimes of the toolchain. The runtime variants are built with
+# three register packages of the PAC (libs/mpfs_pac/src/generated, not committed): the jobs that
+# build a runtime restore it with ./.github/actions/pac first. The logic lives in ./x and the
 # scripts of crates/mpfs_rts.
 name: images
 
@@ -22,6 +24,7 @@ on:
       - "crates/mpfs_rts/**"
       - "examples/**"
       - "hw/**"
+      - "libs/mpfs_pac/**"
       - "tests/**"
       - "tools/**"
       - "metrics.golden"
@@ -35,6 +38,7 @@ on:
       - "crates/mpfs_rts/**"
       - "examples/**"
       - "hw/**"
+      - "libs/mpfs_pac/**"
       - "tests/**"
       - "tools/**"
       - "metrics.golden"
@@ -54,6 +58,13 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7.0.1
+
+      # libs/mpfs_pac/src/generated is not committed: restored from the cache keyed by its recorded hash
+      # (libs/mpfs_pac/MPFS_Registers.sha256), generated with svd2ada on a miss (the action installs the
+      # toolchain target pac then). gen_runtime.sh copies MPFS_Registers, .PLIC and .CLINT into every
+      # runtime variant and calls `tools/pac.sh ensure`, which then only compares the hash. It comes
+      # before the first step that builds a runtime.
+      - uses: ./.github/actions/pac
 
       # Only the pinned compilers and gprbuild (and alr, if the runner has none).
       - uses: ./.github/actions/toolchain
@@ -124,7 +135,7 @@ jobs:
       # stand-in cases only).
       - name: Host tests
         run: |
-          for suite in bare report negative qemu_tests stack hw analyze prove repro rts_packs rts_variants rts_boot; do
+          for suite in bare report negative qemu_tests stack hw analyze prove repro rts_packs rts_variants rts_boot rts_plic; do
             echo "== host suite $suite"
             bash "tests/host/$suite/run.sh"
           done
@@ -211,6 +222,10 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7.0.1
+
+      # The runtime variants of the examples need the register package (see the job build); the two
+      # copies of the tree that ./x repro builds take it along from the checkout.
+      - uses: ./.github/actions/pac
 
       - uses: ./.github/actions/toolchain
         with:
