@@ -1,13 +1,16 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: CC-BY-4.0
-# status: unverified (checked against the Linux MUSB driver, drivers/usb/musb, with the corrections below; offsets, access and the interrupt clear semantics still to verify on silicon)
+# status: unverified (checked against the Linux MUSB driver, drivers/usb/musb, with the corrections below; the register layout, the endpoint and DMA channel count, the stored bits and the reset values were measured on silicon on 2026-10-28; the interrupt status bits and their clear on read, VBUS_CSR and the effect of SOFT_RST are not yet verified)
 # source: Microchip platform drivers/mss/mss_usb (register layout for up to 16 endpoints, 32-bit DMA words, FIFO size encoding) and Linux drivers/usb/musb/{musb_regs.h,musb_dma.h,musb_core.c,musbhsdma.c,mpfs.c}: register names, DMA interrupt register, FIFO size encoding, writable flags, MISC, read side effects
 # source: hardware probe on an Icicle Kit (MPFS250T): EP_INFO reads 0x44 (4 TX and 4 RX endpoints besides EP0), TX_IRQ_ENABLE reads 0x1F and RX_IRQ_ENABLE 0x1E (EP0..EP4), RAM_INFO reads 0x4B, INDEXED_FIFO_SIZE reads 0xDE at INDEX 0
+# source: hardware probe on an Icicle Kit (MPFS250T), boot mode 0, 2026-10-28, OpenOCD with the clocks on: EP1..EP4 store the indexed, FIFO and host address registers, EP5, EP8 and EP15 read 0 and store nothing; DMA channels 0 and 3 store ADDR, COUNT and CNTL (32-bit access), channels 4 and 7 read 0; the reset values of the registers named in their descriptions; with a USB cable to a host and POWER.SOFT_CONN set no interrupt arrived (DEV_CTRL stayed 0x80, VBUS below the session level), so the status bits were not exercised
+# source: Linux drivers/usb/musb/musb_host.c: h_addr_reg |= 0x80 for a multi-TT hub (the multi-TT flag is bit 7 of the hub address register; the vendor header TARGET_DEVICE_HUB_MT_MASK 0x10 at shift 7 does not fit)
 # owner: Manuel Stahl
 #
 # The register layout is that of the MUSB core for up to 16 endpoints. The MPFS250T implements the control endpoint
 # EP0 and the endpoints EP1..EP4 (TX and RX each); the registers and interrupt bits of EP5..EP15 are part of the layout
-# and read 0 there. The register arrays keep all 16 entries.
+# and read 0 there (measured: the indexed, FIFO, host address and RQ_PKT_CNT registers of EP5, EP8 and EP15 read 0 and store
+# nothing). The register arrays keep all 16 entries.
 _add:
   USB:
     description: MSS USB 2.0 OTG High-Speed Controller
@@ -28,6 +31,7 @@ _add:
         addressOffset: 0x1
         size: 8
         access: read-write
+        resetValue: 0x20
         fields:
           ENSUSPEND:
             description: Enable the SuspendM signal output
@@ -231,10 +235,11 @@ _add:
             bitWidth: 1
             readAction: clear
       TX_IRQ_ENABLE:
-        description: TX Endpoint Interrupt Enable Register (EP0..EP4 are implemented on the MPFS250T; the board reads 0x1F)
+        description: "TX Endpoint Interrupt Enable Register (EP0..EP4 are implemented on the MPFS250T; the board reads 0x1F). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): reset 0x1F, a write of 0xFFFF reads back 0x1F (bits of EP0..EP4 only)."
         addressOffset: 0x6
         size: 16
         access: read-write
+        resetValue: 0x1F
         fields:
           EP0:
             description: EP0 / control endpoint interrupt enable
@@ -301,10 +306,11 @@ _add:
             bitOffset: 15
             bitWidth: 1
       RX_IRQ_ENABLE:
-        description: RX Endpoint Interrupt Enable Register (EP1..EP4 are implemented on the MPFS250T; the board reads 0x1E)
+        description: "RX Endpoint Interrupt Enable Register (EP1..EP4 are implemented on the MPFS250T; the board reads 0x1E). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): reset 0x1E, a write of 0xFFFF reads back 0x1E (bits of EP1..EP4 only)."
         addressOffset: 0x8
         size: 16
         access: read-write
+        resetValue: 0x1E
         fields:
           EP1:
             description: RX EP1 interrupt enable
@@ -413,10 +419,11 @@ _add:
             bitWidth: 1
             readAction: clear
       USB_ENABLE:
-        description: USB Common Interrupt Enable Register
+        description: "USB Common Interrupt Enable Register. Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): reset 0x06 (RESUME and RESET_BABBLE), all 8 bits are stored."
         addressOffset: 0xb
         size: 8
         access: read-write
+        resetValue: 0x6
         fields:
           SUSPEND:
             description: Suspend interrupt enable
@@ -509,7 +516,7 @@ _add:
             bitOffset: 7
             bitWidth: 1
       INDEXED_TX_MAX_P:
-        description: Indexed TX Maximum Packet Size (endpoint selected by INDEX)
+        description: "Indexed TX Maximum Packet Size (endpoint selected by INDEX). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): at INDEX 1 and 4 a write of 0xFFFF reads back 0xFFFF (all 16 bits are stored); at INDEX 0, 5, 8 and 15 it reads 0."
         addressOffset: 0x10
         size: 16
         access: read-write
@@ -653,7 +660,7 @@ _add:
             bitOffset: 11
             bitWidth: 1
       INDEXED_RX_MAX_P:
-        description: Indexed RX Maximum Packet Size (endpoint selected by INDEX)
+        description: "Indexed RX Maximum Packet Size (endpoint selected by INDEX). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): at INDEX 1 and 4 a write of 0xFFFF reads back 0xFFFF (all 16 bits are stored); at INDEX 0, 5, 8 and 15 it reads 0."
         addressOffset: 0x14
         size: 16
         access: read-write
@@ -751,7 +758,7 @@ _add:
             bitOffset: 0
             bitWidth: 14
       INDEXED_TX_TYPE:
-        description: Indexed TX Type Register — target EP, protocol, speed (host mode; TYPE0 for EP0)
+        description: "Indexed TX Type Register — target EP, protocol, speed (host mode; TYPE0 for EP0). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): at INDEX 1 and 4 all 8 bits are stored; at INDEX 0 the byte reads 0xC0 after a write of 0xFF (TYPE0, only the speed bits 7:6 are stored); at INDEX 5, 8 and 15 it reads 0."
         addressOffset: 0x1a
         size: 8
         access: read-write
@@ -769,7 +776,7 @@ _add:
             bitOffset: 6
             bitWidth: 2
       INDEXED_TX_INTERVAL:
-        description: Indexed TX Polling Interval / NAK Limit (host; NAK_LIMIT0 for EP0)
+        description: "Indexed TX Polling Interval / NAK Limit (host; NAK_LIMIT0 for EP0). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): at INDEX 1 and 4 all 8 bits are stored; at INDEX 0 the byte reads 0x1F after a write of 0xFF (NAK_LIMIT0, 5 bits); at INDEX 5, 8 and 15 it reads 0."
         addressOffset: 0x1b
         size: 8
         access: read-write
@@ -779,7 +786,7 @@ _add:
             bitOffset: 0
             bitWidth: 8
       INDEXED_RX_TYPE:
-        description: Indexed RX Type Register — target EP, protocol, speed (host mode)
+        description: "Indexed RX Type Register — target EP, protocol, speed (host mode). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): at INDEX 1 and 4 all 8 bits are stored; at INDEX 0, 5, 8 and 15 it reads 0."
         addressOffset: 0x1c
         size: 8
         access: read-write
@@ -797,7 +804,7 @@ _add:
             bitOffset: 6
             bitWidth: 2
       INDEXED_RX_INTERVAL:
-        description: Indexed RX Polling Interval / NAK Limit (host mode)
+        description: "Indexed RX Polling Interval / NAK Limit (host mode). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): at INDEX 1 and 4 all 8 bits are stored; at INDEX 0, 5, 8 and 15 it reads 0."
         addressOffset: 0x1d
         size: 8
         access: read-write
@@ -807,7 +814,7 @@ _add:
             bitOffset: 0
             bitWidth: 8
       INDEXED_FIFO_SIZE:
-        description: 'Indexed FIFO Size / Config Data Register (read-only). With INDEX of an endpoint above 0 the fields give its FIFO sizes (Linux MUSB_FIFOSIZE). With INDEX 0 the same byte is CONFIGDATA of the core (Linux MUSB_CONFIGDATA = MUSB_FIFOSIZE re-used for EP0, read by musb_read_configdata after writing INDEX 0), and the fields below do not apply: bit 7 MPRXE, 6 MPTXE, 5 BIGENDIAN, 4 HBRXE, 3 HBTXE, 2 DYNFIFO, 1 SOFTCONE, 0 UTMIDW (16 bit UTMI data). The board reads 0xDE at INDEX 0.'
+        description: "Indexed FIFO Size / Config Data Register (read-only). With INDEX of an endpoint above 0 the fields give its FIFO sizes (Linux MUSB_FIFOSIZE). With INDEX 0 the same byte is CONFIGDATA of the core (Linux MUSB_CONFIGDATA = MUSB_FIFOSIZE re-used for EP0, read by musb_read_configdata after writing INDEX 0), and the fields below do not apply: bit 7 MPRXE, 6 MPTXE, 5 BIGENDIAN, 4 HBRXE, 3 HBTXE, 2 DYNFIFO, 1 SOFTCONE, 0 UTMIDW (16 bit UTMI data). The board reads 0xDE at INDEX 0. Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): 0xDE at INDEX 0, 0x33 at INDEX 1 and 4 (TX and RX size code 3), 0 at INDEX 5, 8 and 15."
         addressOffset: 0x1f
         size: 8
         access: read-only
@@ -896,10 +903,11 @@ _add:
             bitOffset: 7
             bitWidth: 1
       TX_FIFO_SIZE:
-        description: Dynamic TX FIFO Size Register (selects the endpoint by INDEX)
+        description: "Dynamic TX FIFO Size Register (selects the endpoint by INDEX). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28) (INDEX 1 and 4): reset 0, a write of 0xFF reads back 0x1F (size code in bits 3:0 and the double-packet buffer bit 4; bits 7:5 are not stored). INDEX 5 reads 0 and stores nothing."
         addressOffset: 0x62
         size: 8
         access: read-write
+        resetValue: 0x0
         fields:
           TXFIFOSZ:
             description: 'TX FIFO size as log2(size/8): 0=8B, 1=16B, 2=32B, 3=64B, 4=128B, 5=256B, 6=512B, 7=1024B, 8=2048B, 9=4096B'
@@ -910,10 +918,11 @@ _add:
             bitOffset: 4
             bitWidth: 1
       RX_FIFO_SIZE:
-        description: Dynamic RX FIFO Size Register (selects the endpoint by INDEX)
+        description: "Dynamic RX FIFO Size Register (selects the endpoint by INDEX). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28) (INDEX 1 and 4): reset 0, a write of 0xFF reads back 0x1F (size code in bits 3:0 and the double-packet buffer bit 4; bits 7:5 are not stored). INDEX 5 reads 0 and stores nothing."
         addressOffset: 0x63
         size: 8
         access: read-write
+        resetValue: 0x0
         fields:
           RXFIFOSZ:
             description: 'RX FIFO size as log2(size/8): 0=8B, 1=16B, 2=32B, 3=64B, 4=128B, 5=256B, 6=512B, 7=1024B, 8=2048B, 9=4096B (same encoding as TX_FIFO_SIZE.TXFIFOSZ)'
@@ -924,35 +933,39 @@ _add:
             bitOffset: 4
             bitWidth: 1
       TX_FIFO_ADDR:
-        description: Dynamic TX FIFO Start Address Register (8-byte units) (selects the endpoint by INDEX)
+        description: "Dynamic TX FIFO Start Address Register (8-byte units) (selects the endpoint by INDEX). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28) (INDEX 1 and 4): reset 0, a write of 0xFFFF reads back 0x3FFF (14 bits are stored; that is the width of the register, not the size of the RAM). INDEX 5 stores nothing."
         addressOffset: 0x64
         size: 16
         access: read-write
+        resetValue: 0x0
         fields:
           ADDR:
             description: Start address of TX FIFO allocation in 8-byte units
             bitOffset: 0
             bitWidth: 13
       RX_FIFO_ADDR:
-        description: Dynamic RX FIFO Start Address Register (8-byte units) (selects the endpoint by INDEX)
+        description: "Dynamic RX FIFO Start Address Register (8-byte units) (selects the endpoint by INDEX). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28) (INDEX 1 and 4): reset 0, a write of 0xFFFF reads back 0x3FFF (14 bits are stored; that is the width of the register, not the size of the RAM). INDEX 5 stores nothing."
         addressOffset: 0x66
         size: 16
         access: read-write
+        resetValue: 0x0
         fields:
           ADDR:
             description: Start address of RX FIFO allocation in 8-byte units
             bitOffset: 0
             bitWidth: 13
       VBUS_CSR:
-        description: VBUS Control and Status Register (not used by the Linux MUSB driver, unverified)
+        description: "VBUS Control and Status Register (not used by the Linux MUSB driver, unverified). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): reads 0, never written."
         addressOffset: 0x68
         size: 32
         access: read-write
+        resetValue: 0x0
       HW_VERSION:
-        description: Hardware Version Register (read-only)
+        description: "Hardware Version Register (read-only). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): reads 0x0C04."
         addressOffset: 0x6c
         size: 16
         access: read-only
+        resetValue: 0xC04
       ULPI_BUSCONTROL:
         description: ULPI VBUS Control Register
         addressOffset: 0x70
@@ -998,6 +1011,7 @@ _add:
         addressOffset: 0x78
         size: 8
         access: read-only
+        resetValue: 0x44
         fields:
           TX_EP_NUM:
             description: Number of TX endpoints besides EP0 (bits[3:0])
@@ -1008,10 +1022,11 @@ _add:
             bitOffset: 4
             bitWidth: 4
       RAM_INFO:
-        description: FIFO RAM Size Information Register (read-only)
+        description: "FIFO RAM Size Information Register (read-only). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): reads 0x4B, RAM_BITS 11 and 4 DMA channels (channels 0..3 store ADDR, COUNT and CNTL, channels 4 and 7 read 0). The size of the FIFO RAM in bytes is not measured."
         addressOffset: 0x79
         size: 8
         access: read-only
+        resetValue: 0x4B
         fields:
           RAM_BITS:
             description: RAM width (vendor driver)
@@ -1022,10 +1037,11 @@ _add:
             bitOffset: 4
             bitWidth: 4
       LINK_INFO:
-        description: Link Layer Timing Information Register (read-only)
+        description: "Link Layer Timing Information Register (read-only). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): reads 0x5C. The split into WTID (bits 3:0, 0xC) and WTCON (bits 7:4, 5) is from the vendor driver; the value was only read."
         addressOffset: 0x7a
         size: 8
         access: read-only
+        resetValue: 0x5C
         fields:
           WTID:
             description: Wait time for ID (vendor driver)
@@ -1056,10 +1072,11 @@ _add:
         size: 8
         access: read-write
       SOFT_RST:
-        description: 'Soft Reset Control Register (self-clearing: the vendor driver writes it and polls until it reads 0; not used by the Linux MUSB driver)'
+        description: "Soft Reset Control Register (self-clearing: the vendor driver writes it and polls until it reads 0; not used by the Linux MUSB driver). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): a write of 0x03 reads back 0 at once, so the bits clear themselves or are not stored; whether the core was reset was not checked."
         addressOffset: 0x7f
         size: 8
         access: read-write
+        resetValue: 0x0
         fields:
           NRST:
             description: Assert NRSTn reset (bit 0)
@@ -1070,45 +1087,51 @@ _add:
             bitOffset: 1
             bitWidth: 1
       RQ_PKT_CNT[%s]:
-        description: Endpoint %s Requested Packet Count Register (DMA mode 1) (not used by the Linux MUSB driver, unverified; only EP0..EP4 are implemented on the MPFS250T)
+        description: "Endpoint %s Requested Packet Count Register (DMA mode 1) (not used by the Linux MUSB driver, unverified; only EP0..EP4 are implemented on the MPFS250T). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): reset 0 for all 16 registers; a write of 0xFFFFFFFF reads back 0xFFFF for EP1..EP4 and 0 for EP0 and EP5..EP15."
         dim: 16
         dimIncrement: 0x4
         dimIndex: 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
         addressOffset: 0x300
         size: 32
         access: read-write
+        resetValue: 0x0
         fields:
           PKT_COUNT:
             description: Number of bulk packets to transfer via DMA mode 1 (bits[15:0])
             bitOffset: 0
             bitWidth: 16
       RX_DPBUF_DIS:
-        description: "RX Double-Packet Buffer Disable Register\n            (bit N disables double-buffering on RX endpoint N; bit 0 unused) (not used by the Linux MUSB driver, unverified)"
+        description: "RX Double-Packet Buffer Disable Register (bit N disables double-buffering on RX endpoint N; bit 0 unused) (not used by the Linux MUSB driver, unverified). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): reset 0, a write of 0xFFFF reads back 0xFFFE (bit 0 is not stored)."
         addressOffset: 0x340
         size: 16
         access: read-write
+        resetValue: 0x0
       TX_DPBUF_DIS:
-        description: "TX Double-Packet Buffer Disable Register\n            (bit N disables double-buffering on TX endpoint N; bit 0 unused) (not used by the Linux MUSB driver, unverified)"
+        description: "TX Double-Packet Buffer Disable Register (bit N disables double-buffering on TX endpoint N; bit 0 unused) (not used by the Linux MUSB driver, unverified). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): reset 0, a write of 0xFFFF reads back 0xFFFE (bit 0 is not stored)."
         addressOffset: 0x342
         size: 16
         access: read-write
+        resetValue: 0x0
       C_T_UCH:
-        description: Chirp Timeout (UCH) Value Register (not used by the Linux MUSB driver, unverified)
+        description: "Chirp Timeout (UCH) Value Register (not used by the Linux MUSB driver, unverified). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): reset 0x4074, all 16 bits are stored."
         addressOffset: 0x344
         size: 16
         access: read-write
+        resetValue: 0x4074
       C_T_HHSRTN:
-        description: Host High-Speed Return (HHSRTN) Timing Register (not used by the Linux MUSB driver, unverified)
+        description: "Host High-Speed Return (HHSRTN) Timing Register (not used by the Linux MUSB driver, unverified). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): reset 0x05E6, all 16 bits are stored."
         addressOffset: 0x346
         size: 16
         access: read-write
+        resetValue: 0x5E6
       C_T_HSBT:
-        description: High-Speed Bus Turnaround (HSBT) Timing Register (not used by the Linux MUSB driver, unverified)
+        description: "High-Speed Bus Turnaround (HSBT) Timing Register (not used by the Linux MUSB driver, unverified). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): reset 0, only bits 3:0 are stored (a write of 0xFFFF reads back 0x000F)."
         addressOffset: 0x348
         size: 16
         access: read-write
+        resetValue: 0x0
       DMA_INTR:
-        description: 'DMA Interrupt Register (the IRQ word of DMA channel 0): bit n is set when DMA channel n completed or failed; a read clears it. Linux reads it as 8 bits.'
+        description: "DMA Interrupt Register (the IRQ word of DMA channel 0): bit n is set when DMA channel n completed or failed; a read clears it. Linux reads it as 8 bits. Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): reads 0 with an 8-bit, a 16-bit and a 32-bit access; the clear on read was not exercised."
         addressOffset: 0x200
         size: 32
         access: read-only
@@ -1120,7 +1143,7 @@ _add:
             readAction: clear
     clusters:
       TAR[%s]:
-        description: Target Address / Hub Routing Registers for endpoint %s (only EP0..EP4 are implemented on the MPFS250T)
+        description: "Target Address / Hub Routing Registers for endpoint %s (only EP0..EP4 are implemented on the MPFS250T). Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): EP0..EP4 store the registers, EP5 and EP15 read 0 and store nothing; EP0 has no RX registers (+4..+7 read 0). With a 32-bit write of 0xFFFFFFFF the function address and the hub port read back 0x7F, the hub address 0xFF: the multi-TT flag is bit 7 of the hub address, as in Linux musb_host.c (h_addr_reg |= 0x80); the 0x10 mask of the vendor header TARGET_DEVICE_HUB_MT_MASK does not fit."
         dim: 16
         dimIncrement: 0x8
         dimIndex: 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
@@ -1446,17 +1469,18 @@ _add:
                 bitOffset: 4
                 bitWidth: 4
       DMA_CHANNEL[%s]:
-        description: DMA Channel %s Registers
+        description: "DMA Channel %s Registers. Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): only channels 0..3 exist (RAM_INFO.DMA_CHANNELS is 4): channels 0 and 3 store a write, channels 4 and 7 read 0. The 32-bit accesses of the vendor driver work, and a 16-bit read returns the low half."
         dim: 8
         dimIncrement: 0x10
         dimIndex: 0,1,2,3,4,5,6,7
         addressOffset: 0x200
         registers:
           CNTL:
-            description: DMA Channel Control Register
+            description: "DMA Channel Control Register. Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): reset 0; a write of 0x6FE reads back 0x6FE with a 32-bit access (START_XFR was never written)."
             addressOffset: 0x4
             size: 32
             access: read-write
+            resetValue: 0x0
             fields:
               START_XFR:
                 description: Enable the DMA transfer (cleared by the driver to abort)
@@ -1488,12 +1512,14 @@ _add:
                 bitOffset: 9
                 bitWidth: 2
           ADDR:
-            description: DMA Channel Transfer Start Address Register
+            description: "DMA Channel Transfer Start Address Register. Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): reset 0; a write of 0x12345678 reads back the same."
             addressOffset: 0x8
             size: 32
             access: read-write
+            resetValue: 0x0
           COUNT:
-            description: DMA Channel Transfer Byte Count Register
+            description: "DMA Channel Transfer Byte Count Register. Measured on an Icicle Kit MPFS250T (boot mode 0, 2026-10-28): reset 0; a write of 0x00ABCDEF reads back the same."
             addressOffset: 0xc
             size: 32
             access: read-write
+            resetValue: 0x0
