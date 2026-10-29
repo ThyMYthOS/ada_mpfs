@@ -1,0 +1,5 @@
+# Files of the pack that gen_runtime.sh deletes before it lays the own port units over it
+# (path inside the pack, one per line). An own unit that replaces a source under another name
+# lists the old one here: start.S (P1.3) replaces the upstream start-ram.S, which defines
+# __gnat_exit too, so both in libgnat.a would be a choice of the archive order.
+gnat/start-ram.S
