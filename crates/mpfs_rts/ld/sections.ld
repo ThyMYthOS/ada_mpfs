@@ -33,6 +33,8 @@
  *   __interrupt_stack_start __interrupt_stack_end __stack_start __stack_end
  *   _end __heap_start __heap_end   (the heap ends where the trap record starts)
  *   __global_pointer$  __eh_frame_start __eh_frame_end  (for the zero-cost exceptions, R8)
+ *   __preinit_array_start/_end __init_array_start/_end __fini_array_start/_end  (the constructor
+ *                      arrays, 8-byte entries; start.S calls the first two before main)
  *   __gnat_gdb_cpu_first_id  (a 32-bit constant for the debugger: the lowest hart of the mask)
  *   __mpfs_trap_record  (the 32 bytes the trap stub of start.S writes, see there)
  */
@@ -52,9 +54,37 @@ SECTIONS
 	} > REGION_TEXT
 
 	.init : { KEEP(*(.init)) } > REGION_TEXT
+	.fini : { KEEP(*(.fini)) } > REGION_TEXT
 
 	.ctors : { KEEP(SORT_BY_NAME(*)(.ctors)) } > REGION_TEXT
 	.dtors : { KEEP(SORT_BY_NAME(*)(.dtors)) } > REGION_TEXT
+
+	/* The constructor arrays that __libc_init_array of the C library runs before main (the
+	 * embedded runtime: frame_dummy of crtbegin.o is the only entry that the runtime itself
+	 * has, it registers .eh_frame with libgcc; R8). The symbols are defined here, not
+	 * PROVIDEd, so that the weak references of __libc_init_array always bind to them: an
+	 * image without constructors has empty arrays and start.S calls nothing. The arrays hold
+	 * absolute addresses of the static link (no relocation at run time) and stay in the
+	 * region of the code. */
+	.preinit_array : ALIGN(8) {
+		__preinit_array_start = .;
+		KEEP (*(.preinit_array))
+		__preinit_array_end = .;
+	} > REGION_TEXT
+
+	.init_array : ALIGN(8) {
+		__init_array_start = .;
+		KEEP (*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
+		KEEP (*(.init_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o) .ctors))
+		__init_array_end = .;
+	} > REGION_TEXT
+
+	.fini_array : ALIGN(8) {
+		__fini_array_start = .;
+		KEEP (*(SORT_BY_INIT_PRIORITY(.fini_array.*) SORT_BY_INIT_PRIORITY(.dtors.*)))
+		KEEP (*(.fini_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o) .dtors))
+		__fini_array_end = .;
+	} > REGION_TEXT
 
 	.rodata : {
 		*(.rdata)
@@ -62,9 +92,13 @@ SECTIONS
 		. = ALIGN(4);
 	} > REGION_TEXT
 
-	/* The unwind tables for R8, registered with __register_frame_info (start, end). The zero
-	 * word after __eh_frame_end terminates the list for libgcc, as crtend.o does in a hosted
-	 * link; it is not part of the range. */
+	/* The unwind tables for R8. The embedded runtime is linked with crtbegin.o first and crtend.o
+	 * last (link-zcx.spec): the empty .eh_frame of crtbegin.o is the first input, so
+	 * __eh_frame_start is its __EH_FRAME_BEGIN__, which frame_dummy passes to libgcc's
+	 * __register_frame_info (run from .init_array by start.S), and the zero word of crtend.o
+	 * ends the list. The zero word of this script ends it in an image without crtend.o (light,
+	 * light-tasking); it is not part of the range __eh_frame_start .. __eh_frame_end, which is what
+	 * a search without registration (a fallback of R8) walks. */
 	.eh_frame : ALIGN(8) {
 		__eh_frame_start = .;
 		KEEP (*(.eh_frame))
@@ -93,6 +127,7 @@ SECTIONS
 	.data : ALIGN(8) {
 		__data_start = .;
 		*(.data .data.* .gnu.linkonce.d*)
+		*(.tm_clone_table)	/* empty: crtbegin.o and crtend.o of the embedded runtime */
 	} > REGION_DATA AT> REGION_DATA_LOAD
 
 	.srodata : ALIGN(8) /* both the virtual and the load address */
@@ -280,6 +315,20 @@ ASSERT(LENGTH(REGION_DATA) != 0 && LENGTH(REGION_DATA_LOAD) != 0,
 ASSERT(LENGTH(REGION_RAM) != 0,
        "the region of .bss, stacks and heap is empty: its MPFS_*_LENGTH symbol is 0")
 
+/* The constructor arrays hold 8-byte entries that start.S loads and calls; an entry of another size
+ * (an object that puts a 4-byte word into .init_array) would be read as half of one. */
+ASSERT(((__preinit_array_start | __preinit_array_end | __init_array_start | __init_array_end |
+         __fini_array_start | __fini_array_end) & 7) == 0,
+       ".preinit_array, .init_array or .fini_array is not 8-byte aligned or does not hold whole 8-byte entries")
+ASSERT(__preinit_array_start <= __preinit_array_end && __init_array_start <= __init_array_end &&
+       __fini_array_start <= __fini_array_end && __preinit_array_end == __init_array_start &&
+       __init_array_end <= __fini_array_start,
+       "the constructor arrays are not .preinit_array and .init_array in one run, then .fini_array")
+
+/* .eh_frame: the range is 8-byte aligned (libgcc reads it with aligned loads) and in order. */
+ASSERT((__eh_frame_start & 7) == 0 && __eh_frame_start <= __eh_frame_end,
+       ".eh_frame is not 8-byte aligned or its end lies before its start")
+
 /* No overlap: the regions of RAM follow each other, and the heap lies behind the stacks and in
  * front of the trap record. */
 ASSERT(__bss_end <= __interrupt_stack_start && __interrupt_stack_end <= __stack_start,
@@ -300,6 +349,10 @@ ASSERT((SIZEOF(.rodata) == 0 || LOADADDR(.rodata) > LOADADDR(.text)) &&
        (SIZEOF(.gcc_except_table) == 0 || LOADADDR(.gcc_except_table) > LOADADDR(.text)) &&
        (SIZEOF(.mpfs_gdb) == 0 || LOADADDR(.mpfs_gdb) > LOADADDR(.text)) &&
        (SIZEOF(.init) == 0 || LOADADDR(.init) > LOADADDR(.text)) &&
+       (SIZEOF(.fini) == 0 || LOADADDR(.fini) > LOADADDR(.text)) &&
+       (SIZEOF(.preinit_array) == 0 || LOADADDR(.preinit_array) > LOADADDR(.text)) &&
+       (SIZEOF(.init_array) == 0 || LOADADDR(.init_array) > LOADADDR(.text)) &&
+       (SIZEOF(.fini_array) == 0 || LOADADDR(.fini_array) > LOADADDR(.text)) &&
        (SIZEOF(.ctors) == 0 || LOADADDR(.ctors) > LOADADDR(.text)) &&
        (SIZEOF(.dtors) == 0 || LOADADDR(.dtors) > LOADADDR(.text)) &&
        (SIZEOF(.data) == 0 || LOADADDR(.data) > LOADADDR(.text)) &&
