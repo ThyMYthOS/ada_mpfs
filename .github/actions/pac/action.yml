@@ -4,8 +4,9 @@
 # The register package libs/mpfs_pac/src/generated, which is not committed. Its recorded hash
 # (libs/mpfs_pac/MPFS_Registers.sha256) is the key of a cache: on a hit nothing is installed and
 # `./x pac ensure` (called by `./x test lib` and `./x analyze`) only compares the hash; on a miss
-# xmllint, the pinned svdtools and svd2ada are installed and the package is generated, and the cache
-# is saved at the end of the job. A cache that does not hold the recorded package is no risk: `ensure`
+# Python 3.13 (the runner has 3.12), xmllint, the pinned svdtools and svd2ada are installed and the
+# package is generated, and the cache is saved at the end of the job. A cache that does not hold the
+# recorded package is no risk: `ensure`
 # compares the hash and regenerates or fails. The job `pac` of registers.yml checks the hash
 # against a regeneration and saves the cache itself. Needs the repository checked out.
 name: pac
@@ -19,6 +20,11 @@ runs:
       with:
         path: libs/mpfs_pac/src/generated
         key: pac-${{ hashFiles('libs/mpfs_pac/MPFS_Registers.sha256') }}
+
+    - uses: actions/setup-python@v7.0.0
+      if: steps.cache.outputs.cache-hit != 'true'
+      with:
+        python-version: "3.13"
 
     - name: Install xmllint
       if: steps.cache.outputs.cache-hit != 'true'
