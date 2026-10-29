@@ -1,0 +1,42 @@
+--  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+--  SPDX-License-Identifier: Apache-2.0
+--
+--  Link switches of an image that is placed in the L2 LIM (ld/place-lim.ld) and linked with a
+--  runtime of crates/mpfs_rts: the same linker script and --defsym values as bare_link in
+--  bare_build.sh, as a project. The hart mask is that of one hart (E51: hart 0, U54: hart 1).
+--  The runtime's own linker interface comes with the partition data (P1.12).
+
+abstract project Link_Lim is
+
+   type Hart_Kind is ("e51", "u54");
+   Hart : Hart_Kind := external ("MPFS_HART", "e51");
+
+   Mask := "";
+   case Hart is
+      when "e51" => Mask := "1";
+      when "u54" => Mask := "2";
+   end case;
+
+   Ld := Project'Project_Dir & "ld";
+
+   Switches :=
+     ("-static", "-L", Ld, "-T", Ld & "/place-lim.ld",
+      "-Wl,--gc-sections", "-Wl,--no-warn-rwx-segments",
+      "-Wl,--defsym=__mpfs_harts_mask=" & Mask,
+      "-Wl,--defsym=__stack_size=16384",
+      "-Wl,--defsym=MPFS_ENVM_LENGTH=0x1ff00",
+      "-Wl,--defsym=MPFS_DTIM_LENGTH=0",
+      "-Wl,--defsym=MPFS_E51_ITIM_LENGTH=0",
+      "-Wl,--defsym=MPFS_U54_1_ITIM_LENGTH=0",
+      "-Wl,--defsym=MPFS_U54_2_ITIM_LENGTH=0",
+      "-Wl,--defsym=MPFS_U54_3_ITIM_LENGTH=0",
+      "-Wl,--defsym=MPFS_U54_4_ITIM_LENGTH=0",
+      "-Wl,--defsym=MPFS_LOCAL_ITIM_ORIGIN=0x01800000",
+      "-Wl,--defsym=MPFS_LOCAL_ITIM_LENGTH=0",
+      "-Wl,--defsym=MPFS_LIM_LENGTH=0x1e0000",
+      "-Wl,--defsym=MPFS_SCRATCHPAD_LENGTH=0",
+      "-Wl,--defsym=MPFS_DDR_CACHED_LENGTH=0",
+      "-Wl,--defsym=MPFS_DDR_NC_LENGTH=0",
+      "-Wl,--defsym=MPFS_DDR_WCB_LENGTH=0");
+
+end Link_Lim;
