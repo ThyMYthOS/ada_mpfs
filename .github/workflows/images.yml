@@ -68,7 +68,7 @@ jobs:
       # a runtime (tasking_test of ./x test examples gets its pack from gen_runtime.sh, which calls
       # --ensure).
       - name: Cache the runtime packs
-        uses: actions/cache@v5.0.4
+        uses: actions/cache@v6.1.0
         with:
           path: build/rts/packs
           key: rts-packs-${{ runner.os }}-${{ hashFiles('crates/mpfs_rts/packs.sha256', 'crates/mpfs_rts/make_packs.sh', 'crates/bb-runtimes/**') }}
