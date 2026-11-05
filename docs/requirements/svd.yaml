@@ -9,3 +9,12 @@ requirements:
       is recorded in svd/PolarfireSoC.sha256; ./x svd check fails when the rebuilt file differs.
     tsf: false
     source: svd/README.md
+  - id: SVD-002
+    text: >-
+      The names of the interrupts of the runtime (Ada.Interrupts.Names) are generated from the
+      <interrupt> elements of the merged SVD and from svd/additions/local_interrupts.yaml, and
+      the generated file is committed; crates/mpfs_rts/gen_intnam.py --check fails when it differs
+      from the generator output or when Interrupt_Range of the runtime is not the range of the
+      PLIC sources.
+    tsf: false
+    source: crates/mpfs_rts/README.md
