@@ -304,6 +304,20 @@ done
 sed -i 's|^  ADAFLAGS := ("-gnatg", |  ADAFLAGS := ("-gnatg", "-gnatyM120", |' "$work/target_options.gpr"
 grep -q 'gnatyM120' "$work/target_options.gpr" || die "target_options.gpr of $(basename "$pack") has no ADAFLAGS to extend"
 
+# The default size of a secondary stack, per profile. The upstream defaults (1 MiB for light, 512 KiB
+# for light-tasking and embedded) are for targets with a lot of memory: one stack per task and one for
+# the environment task would not fit the 1920 KiB of the LIM. A program says what it needs with the
+# binder switch -D<size> (or Secondary_Stack_Size of a task); this is what it gets without. An
+# overflow raises Storage_Error (System.Secondary_Stack.SS_Allocate), see README.md.
+case "$profile" in
+  light)          ss_size_kib=16 ;;
+  light-tasking)  ss_size_kib=8 ;;
+  embedded)       ss_size_kib=16 ;;
+esac
+sed -i "s|^\(   Runtime_Default_Sec_Stack_Size : constant Size_Type := \).*;|\1$ss_size_kib * 1024;|" "$work/gnat/s-parame.ads"
+grep -q "Runtime_Default_Sec_Stack_Size : constant Size_Type := $ss_size_kib \* 1024;" "$work/gnat/s-parame.ads" \
+  || die "s-parame.ads of $(basename "$pack") has no Runtime_Default_Sec_Stack_Size to set"
+
 # The linker scripts of the runtime (the partition data brings the values, not the scripts).
 if [ -d "$ld_dir" ]; then
   mkdir -p "$work/ld"
