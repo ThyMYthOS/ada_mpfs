@@ -6,10 +6,10 @@
 | File | Content |
 |---|---|
 | `bootmode.py` | `./x hw bootmode N [ELF] [--yes] [--dry-run] [--workdir DIR]`: switches the boot mode (0..3) with `mpfsBootmodeProgrammer.jar` of SoftConsole; see "Boot mode" below. |
-| `lab.conf.example`, `lab.conf` | What differs between machines. `lab.conf.example` is in the repository and gives the default of every key; copy it to `lab.conf` (git ignores that one; `./x hw bootmode` creates it, without the header lines, when there is none) and change what differs on your machine:  the SoftConsole path (`SOFT_CONSOLE`), the OpenOCD host and port, the serial devices (`UART_PATTERN`, `{n}` is the MMUART number) and their number, and for `bootmode.py` `JAVA`, `BOOTMODE_JAR`, `FPGENPROG`, `BOOTMODE_DIE` and `BOOTMODE_PACKAGE`. `--lab FILE` or `LAB_CONF` names another one. A key that `lab.conf` does not set takes the value of `lab.conf.example`. |
+| `lab.conf.example`, `lab.conf` | What differs between machines. `lab.conf.example` is in the repository and gives the default of every key; copy it to `lab.conf` (git ignores that one; `./x hw bootmode` creates it, without the header lines, when there is none) and change what differs on your machine:  the SoftConsole path (`SOFT_CONSOLE`), the OpenOCD host and port, the serial ports (`UART_PATTERN`, `{n}` is the MMUART number; `UART<n>` for one port; devices or TCP ports, see "Serial ports") and their number (`UART_COUNT`), and for `bootmode.py` `JAVA`, `BOOTMODE_JAR`, `FPGENPROG`, `BOOTMODE_DIE` and `BOOTMODE_PACKAGE`. `--lab FILE` or `LAB_CONF` names another one. A key that `lab.conf` does not set takes the value of `lab.conf.example`. |
 | `lab.py` | Reads `lab.conf` and finds the RISC-V compiler: the version pinned in `tools/toolchain.env` (`GNAT_RISCV64_VERSION`) below `MPFS_ADA_TOOLCHAINS`; another version, or none, is an error. `run` turns a message-carrying exit into status 2. |
 | `start_openocd.sh` | Starts the OpenOCD of SoftConsole (the distribution's has no `microsemi-flashpro` interface). Telnet on :4444, gdb on :3333. Runs OpenOCD as a child and ends it on Ctrl+C (see below). |
-| `ocd.py` | OpenOCD telnet client and serial capture. |
+| `ocd.py` | OpenOCD telnet client and serial capture (devices and TCP ports; `Serial.pump` reads them all without one holding up another). |
 | `run_image.py` | Loads an ELF onto one hart, runs it, prints the first trap and every serial port that printed something as a block (a header with the byte count, then one line per line printed behind a `|` gutter; CR LF or a lone CR ends a line, bytes that are not printable ASCII show as `\xNN`, a last line without a line end is marked). `--expect REGEX` sets the exit status (0 matched, 1 not matched or no output); `--expect-port N` restricts it to one port. `--uart-standin` (off by default) clocks and sets up the UARTs for an image that expects a boot stage to have done it. |
 | `run_probe.py` | Runs a probe (`probe_*.S`, `trap.S` is the trap recorder `run_image.py` loads) on one hart and prints its result block; `--expect REGEX` as above. |
 | `monitor.py` | Shows what the serial ports print; `--expect REGEX` as above. |
@@ -22,6 +22,37 @@ Exit status of `run_image.py`, `run_probe.py` and `monitor.py`: 0 success, 1 the
 no serial port, no toolchain, bad arguments); 130 after Ctrl+C. `./x hw bootmode|openocd|run|probe|monitor|reset|initialize` is the shell around them (`tools/hw.sh`).
 `tests/host/hw/run.sh` tests the scripts against a stand-in for the OpenOCD telnet port and files in place of the serial ports; the
 hardware itself is not part of any automatic test.
+
+## Serial ports
+
+`UART_COUNT` ports are read, MMUART0 .. MMUART<count-1>. Each one is either a device of this machine or a TCP port of another machine; both can be mixed in one `lab.conf`.
+
+| Key | Meaning |
+|---|---|
+| `UART_PATTERN` | The port of MMUART `<n>`; `{n}` is replaced by the number. A device path (a glob; the first match in sorted order is used), or `tcp:HOST:PORT` / `tcp://HOST:PORT` (`HOST` a name, an IPv4 address or `[IPv6]`). Default: the four interfaces of the CP2108 of the Icicle Kit. |
+| `UART<n>` | Optional, `UART0` .. `UART<count-1>`: the port of MMUART `<n>` alone, in the same two forms (`{n}` works here too). It replaces `UART_PATTERN` for that MMUART. |
+| `UART_COUNT` | Number of ports (default 4). |
+
+Examples (`lab.conf.example` has them with comments):
+
+```
+UART_PATTERN=tcp://lab-pc:500{n}     # MMUART0..3 on lab-pc, ports 5000..5003
+UART2=tcp://lab-pc:5002              # with the default UART_PATTERN: the devices of this machine, except MMUART2
+```
+
+The syntax was chosen for three reasons. A TCP port is written where a device path is written (`UART_PATTERN`, `UART<n>`), so there is one concept and no second set of keys to keep in step with `UART_COUNT`. `{n}` is plain text substitution, so "base port + n" needs no arithmetic and no extra key: a base that ends in 0 (`500{n}` gives 5000 .. 5003) and a host per port (`tcp://uart-{n}.lab:5000`) both work. A lab whose ports do not follow a pattern, or that mixes devices and TCP, names the odd ones with `UART<n>`. `UART_PATTERN` needs no `{n}` only when every port has its `UART<n>`; a `UART<n>` outside `UART_COUNT` is an error rather than silently unused.
+
+**The other machine.** The board is on another machine, which runs one `socat` per UART as a TCP server; the tools here connect as TCP clients:
+
+```
+socat TCP-LISTEN:5000,reuseaddr,fork FILE:/dev/serial/by-id/usb-Silicon_Labs_CP2108_...-if00-port0,b115200,raw,echo=0
+```
+
+The baud rate, 8N1 and raw mode are set by that command; the tools cannot change the baud rate of a TCP port (a device of this machine is opened at 115200 8N1). `fork` lets another client connect after the first one has gone, so the tools can be run again and again against the same listener.
+
+**Security.** `socat` TCP listeners do not authenticate or encrypt: anyone who can reach the port reads the console of the board (and, with this `socat` command, can write to it). Bind the listener to a trusted network (`TCP-LISTEN:5000,bind=10.0.0.5,...`), restrict it with a firewall (or `range=10.0.0.0/24`), or let it listen on `localhost` only and reach it through an ssh tunnel: `ssh -N -L 5000:localhost:5000 lab-pc`, with `UART0=tcp:localhost:5000` in `lab.conf`.
+
+**Errors.** A port that cannot be opened (no such device, no permission) or connected (refused, host not found, timed out after 5 s) is a set-up error: exit status 2 and one line that names the MMUART and the endpoint, for example `serial: MMUART1: cannot connect to tcp://lab-pc:5001: Connection refused`. The TCP connections are made in parallel. During the run a TCP connection that the remote side closes or resets, and a device that disappears (USB unplugged), is reported once on stderr (`monitor.py: MMUART1: tcp://lab-pc:5001 closed the connection after 120 bytes`); the text received until then stays in the output and in what `--expect` matches, and the other ports go on. A port is not reconnected during a run.
 
 ## Initialize
 

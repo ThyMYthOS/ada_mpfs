@@ -11,9 +11,14 @@
 #   OCD_HOST      host of the OpenOCD telnet port (the Tcl RPC port is not used: the
 #   OCD_PORT      SoftConsole OpenOCD has no read_memory, and md[bhwd] output does
 #                 not come back through it)
-#   UART_PATTERN  device path (a glob) of the serial port of MMUART <n>; {n} is the
-#                 number. The CP2108 of the board shows interface if0<n> as MMUART<n>.
+#   UART_PATTERN  where the serial port of MMUART <n> is; {n} is the number. Either a device
+#                 path (a glob), or a TCP port on another machine where socat tunnels the UART
+#                 (see "TCP ports" below): tcp:HOST:PORT or tcp://HOST:PORT. The CP2108 of the
+#                 board shows interface if0<n> as MMUART<n>.
 #   UART_COUNT    number of serial ports to read (MMUART0 .. MMUART<count-1>)
+#   UART<n>       (optional, UART0 .. UART<count-1>) the port of MMUART <n> alone, in the same two
+#                 forms; it replaces UART_PATTERN for that MMUART, so device ports and TCP ports
+#                 mix. {n} may be used here too.
 #   JAVA          java for hw/bootmode.py (a name on PATH or a full path)
 #   BOOTMODE_JAR  mpfsBootmodeProgrammer.jar of SoftConsole; empty: <SOFT_CONSOLE>/extras/mpfs/mpfsBootmodeProgrammer.jar
 #   FPGENPROG     the fpgenprog executable of Libero SoC or of the Program Debug Tool: the full path
@@ -21,6 +26,24 @@
 #   BOOTMODE_DIE  --die of the jar: MPFS250T_ES is the engineering sample that most Icicle Kits carry;
 #                 series silicon uses another die name
 #   BOOTMODE_PACKAGE  --package of the jar
+#
+# TCP ports. The board is connected to another machine, and its serial devices are tunnelled from there, one TCP
+# port per UART, by socat (run it on that machine; the tools here connect as TCP clients):
+#
+#   socat TCP-LISTEN:5000,reuseaddr,fork FILE:/dev/serial/by-id/usb-Silicon_Labs_CP2108_...-if00-port0,b115200,raw,echo=0
+#
+# The baud rate is the one of that socat command (b115200); the tools here cannot set it. {n} is
+# replaced by the number as text, so a base port that ends in 0 is "5000 + n" without arithmetic:
+# MMUART0 .. MMUART3 on lab-pc, ports 5000 .. 5003:
+#
+#   UART_PATTERN=tcp://lab-pc:500{n}
+#
+# Mixed: the devices of this machine, except MMUART2, which is on lab-pc, port 5002:
+#
+#   UART2=tcp://lab-pc:5002
+#
+# socat listeners do not authenticate; keep them on a trusted network or reach them through an ssh
+# tunnel (ssh -L 5000:localhost:5000 lab-pc, then tcp:localhost:5000), see hw/README.md.
 SOFT_CONSOLE=/opt/Microchip_SoftConsole-v2022.2
 OCD_HOST=localhost
 OCD_PORT=4444

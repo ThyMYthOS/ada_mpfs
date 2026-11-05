@@ -38,7 +38,7 @@ def main(argv=None):
     if a.port is not None and a.port not in range(count):
         raise SystemExit(f"monitor: --port {a.port} is outside MMUART0 .. MMUART{count - 1}")
     ports = [a.port] if a.port is not None else list(range(count))
-    s = Serial({i: lab.serial_path(lab_conf, i) for i in ports})
+    s = Serial.from_lab(lab_conf, ports)
     s.pump(a.secs)
     s.close()
     printed = False

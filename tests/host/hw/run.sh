@@ -175,6 +175,132 @@ expect_rc  "monitor: --port with the port that printed matches" 0 monitor --secs
 expect_rc  "monitor: a port outside the range exits 2" 2 monitor --secs 0.3 --lab "$tmp/lab-mon.conf" --port 9
 expect_rc  "monitor: a serial port that does not exist exits 2" 2 monitor --secs 0.3 --lab "$tmp/lab-noport.conf"
 
+# --- TCP UARTs (a socat on another machine tunnels the UART to a TCP port) ---------------
+# tcp_serve <name> <steps...>: a stand-in UART (fake_uart.py) on a free port, which is then $tmp/<name>.tport
+tcp_serve () {
+  local name="$1"; shift
+  "$PY" "$ROOT/tests/host/hw/fake_uart.py" "$tmp/$name.tport" "$@" &
+  pids+=($!)
+  local i
+  for i in $(seq 1 50); do [ -s "$tmp/$name.tport" ] && break; sleep 0.1; done
+  [ -s "$tmp/$name.tport" ] || { echo "FAIL: the stand-in UART did not start" >&2; exit 1; }
+}
+# tconf <file> <lines...>: a lab.conf with the stand-in OpenOCD of "hello" and the given lines
+tconf () { local f="$1"; shift; { printf 'SOFT_CONSOLE=%s\nOCD_PORT=%s\n' "$tmp/sc" "$(cat "$tmp/hello.port")"; printf '%s\n' "$@"; } > "$f"; }
+# errlines <command...>: the standard error of the command: the text in $err, its number of lines in $nerr
+errlines () { err="$("$@" 2>&1 >/dev/null)"; nerr=$(printf '%s\n' "$err" | grep -c .); }
+
+tcp_serve one 'send=b"hello over tcp\r\n"' 'sleep=0.3'
+tcp_serve two 'send=b"second port\r\n"' 'hold'
+P1="$(cat "$tmp/one.tport")"; P2="$(cat "$tmp/two.tport")"
+tconf "$tmp/lab-tcp1.conf" 'UART_COUNT=1' "UART0=tcp:127.0.0.1:$P1"
+expect_rc  "monitor: reads a UART from a TCP port" 0 monitor --secs 0.6 --lab "$tmp/lab-tcp1.conf" --expect 'hello over tcp'
+expect_rc  "monitor: the text of a TCP port that does not match exits 1" 1 monitor --secs 0.6 --lab "$tmp/lab-tcp1.conf" --expect 'not printed'
+expect_out "monitor: shows the text of the TCP port" "hello over tcp" monitor --secs 0.6 --lab "$tmp/lab-tcp1.conf"
+tconf "$tmp/lab-tcp2.conf" 'UART_COUNT=1' "UART0=tcp://127.0.0.1:$P1"
+expect_rc  "monitor: the tcp:// form of the endpoint works too" 0 monitor --secs 0.6 --lab "$tmp/lab-tcp2.conf" --expect 'hello over tcp'
+expect_rc  "run_image: reads a UART from a TCP port" 0 run_image "$tmp/loop.elf" 0 --secs 0.5 --lab "$tmp/lab-tcp1.conf" --expect 'hello over tcp'
+# mixed: MMUART1 is a file, MMUART0 and MMUART2 are TCP ports (one of them silent but open, which must not hold up the others)
+tconf "$tmp/lab-mixed.conf" 'UART_COUNT=3' "UART_PATTERN=$tmp/uart/mon/mmuart{n}.log" "UART0=tcp:127.0.0.1:$P1" "UART2=tcp:127.0.0.1:$P2"
+out="$(monitor --secs 0.6 --lab "$tmp/lab-mixed.conf" 2>&1)"
+case "$out" in *"hello over tcp"*"hello from MMUART1"*"second port"*) pass "monitor: a mixed configuration shows device and TCP ports" ;; *) fail "monitor: a mixed configuration shows device and TCP ports ($out)" ;; esac
+expect_rc  "monitor: --port selects a TCP port of a mixed configuration" 0 monitor --secs 0.6 --lab "$tmp/lab-mixed.conf" --port 2 --expect 'second port'
+expect_rc  "monitor: --port selects one port of a mixed configuration only" 1 monitor --secs 0.6 --lab "$tmp/lab-mixed.conf" --port 2 --expect 'hello from MMUART1'
+# a pattern with {n} in the port number: 500{n}
+base="$("$PY" -c '
+import socket, random
+while True:
+    b = random.randrange(20000, 60000, 10)
+    ss = []
+    try:
+        for k in range(4):
+            s = socket.socket(); s.bind(("127.0.0.1", b + k)); ss.append(s)
+    except OSError:
+        continue
+    print(b); break')"
+for n in 0 1 2 3; do
+  "$PY" "$ROOT/tests/host/hw/fake_uart.py" "$tmp/pat$n.tport" --listen $((base + n)) "send=b\"port $n\\r\\n\"" 'sleep=0.3' &
+  pids+=($!)
+done
+for n in 0 1 2 3; do for i in $(seq 1 50); do [ -s "$tmp/pat$n.tport" ] && break; sleep 0.1; done; done
+tconf "$tmp/lab-pat.conf" 'UART_COUNT=4' "UART_PATTERN=tcp://127.0.0.1:${base%?}{n}"
+out="$(monitor --secs 0.6 --lab "$tmp/lab-pat.conf" 2>&1)"
+case "$out" in *"port 0"*"port 1"*"port 2"*"port 3"*) pass "monitor: {n} in the port of UART_PATTERN gives one port per MMUART" ;; *) fail "monitor: {n} in the port of UART_PATTERN gives one port per MMUART ($out)" ;; esac
+expect_rc  "monitor: --port 3 with a TCP pattern reads only that port" 1 monitor --secs 0.6 --lab "$tmp/lab-pat.conf" --port 3 --expect 'port 2'
+# the connection ends in the middle of the run: reported once, the other port goes on, no traceback
+tcp_serve early 'send=b"before the end\r\n"' 'sleep=0.2'
+tcp_serve late 'sleep=0.8' 'send=b"after the end\r\n"' 'hold'
+tconf "$tmp/lab-drop.conf" 'UART_COUNT=2' "UART0=tcp:127.0.0.1:$(cat "$tmp/early.tport")" "UART1=tcp:127.0.0.1:$(cat "$tmp/late.tport")"
+errlines monitor --secs 1.6 --lab "$tmp/lab-drop.conf" --expect 'before the end'
+[ "$nerr" = 1 ] && case "$err" in *"MMUART0"*"tcp://127.0.0.1:$(cat "$tmp/early.tport")"*"closed the connection"*) true ;; *) false ;; esac \
+  && pass "monitor: a connection that ends during the run is reported once, with the port and the endpoint" \
+  || fail "monitor: a connection that ends during the run is reported once, with the port and the endpoint ($nerr lines: $err)"
+expect_rc  "monitor: the text of a connection that ended still counts (--expect, exit 0)" 0 monitor --secs 1.6 --lab "$tmp/lab-drop.conf" --expect 'before the end'
+expect_rc  "monitor: the other port goes on after one ended" 0 monitor --secs 1.6 --lab "$tmp/lab-drop.conf" --expect 'after the end'
+tcp_serve rst 'send=b"part\r\n"' 'sleep=0.2' 'reset'
+tconf "$tmp/lab-rst.conf" 'UART_COUNT=1' "UART0=tcp:127.0.0.1:$(cat "$tmp/rst.tport")"
+errlines monitor --secs 0.8 --lab "$tmp/lab-rst.conf" --expect 'part'
+[ "$nerr" = 1 ] && case "$err" in *Traceback*) false ;; *"MMUART0"*"lost"*) true ;; *) false ;; esac \
+  && pass "monitor: a reset connection is reported once as lost, not as a traceback" \
+  || fail "monitor: a reset connection is reported once as lost, not as a traceback ($nerr lines: $err)"
+# set-up errors: one line each that names the port and the endpoint, exit status 2
+tconf "$tmp/lab-refused.conf" 'UART_COUNT=2' "UART_PATTERN=$tmp/uart/mon/mmuart{n}.log" 'UART1=tcp:127.0.0.1:1'
+expect_rc  "monitor: a refused TCP connection exits 2" 2 monitor --secs 0.3 --lab "$tmp/lab-refused.conf"
+errlines monitor --secs 0.3 --lab "$tmp/lab-refused.conf"
+[ "$nerr" = 1 ] && case "$err" in *"MMUART1"*"tcp://127.0.0.1:1"*"refused"*) true ;; *) false ;; esac \
+  && pass "monitor: a refused connection is one line that names the port, the endpoint and the reason" \
+  || fail "monitor: a refused connection is one line that names the port, the endpoint and the reason ($nerr lines: $err)"
+errlines run_image "$tmp/loop.elf" 0 --secs 0.2 --lab "$tmp/lab-refused.conf"
+[ "$nerr" = 1 ] && case "$err" in *"MMUART1"*"tcp://127.0.0.1:1"*) true ;; *) false ;; esac \
+  && pass "run_image: a refused connection is one line that names the port and the endpoint" \
+  || fail "run_image: a refused connection is one line that names the port and the endpoint ($nerr lines: $err)"
+expect_rc  "run_image: a refused TCP connection exits 2" 2 run_image "$tmp/loop.elf" 0 --secs 0.2 --lab "$tmp/lab-refused.conf"
+tconf "$tmp/lab-dns.conf" 'UART_COUNT=1' 'UART0=tcp://no-such-host.invalid:5000'
+expect_rc  "monitor: a host name that does not resolve exits 2" 2 monitor --secs 0.3 --lab "$tmp/lab-dns.conf"
+errlines monitor --secs 0.3 --lab "$tmp/lab-dns.conf"
+[ "$nerr" = 1 ] && case "$err" in *Traceback*) false ;; *"MMUART0"*"tcp://no-such-host.invalid:5000"*) true ;; *) false ;; esac \
+  && pass "monitor: an unresolvable host is one line that names the port and the endpoint" \
+  || fail "monitor: an unresolvable host is one line that names the port and the endpoint ($nerr lines: $err)"
+# lab.conf: the keys
+tconf "$tmp/lab-badtcp.conf" 'UART_COUNT=1' 'UART0=tcp:localhost'
+expect_rc  "lab.conf: a TCP endpoint without a port exits 2" 2 monitor --secs 0.3 --lab "$tmp/lab-badtcp.conf"
+tconf "$tmp/lab-badtcp.conf" 'UART_COUNT=1' 'UART0=tcp:localhost:70000'
+expect_rc  "lab.conf: a TCP port above 65535 exits 2" 2 monitor --secs 0.3 --lab "$tmp/lab-badtcp.conf"
+tconf "$tmp/lab-badtcp.conf" 'UART_COUNT=2' 'UART5=tcp:localhost:5000'
+expect_rc  "lab.conf: a UART<n> outside UART_COUNT exits 2" 2 monitor --secs 0.3 --lab "$tmp/lab-badtcp.conf"
+tconf "$tmp/lab-badtcp.conf" 'UART_COUNT=2' 'UART_PATTERN=/dev/ttyUSB0' "UART0=tcp:127.0.0.1:$P1"
+expect_rc  "lab.conf: UART_PATTERN without {n} exits 2 while a port still needs it" 2 monitor --secs 0.3 --lab "$tmp/lab-badtcp.conf"
+tconf "$tmp/lab-badtcp.conf" 'UART_COUNT=2' 'UART_PATTERN=/dev/ttyUSB0' "UART0=tcp:127.0.0.1:$P1" "UART1=tcp:127.0.0.1:$P2"
+expect_rc  "lab.conf: UART_PATTERN needs no {n} when every port has its UART<n>" 0 monitor --secs 0.3 --lab "$tmp/lab-badtcp.conf"
+"$PY" - "$HW" <<'PYEOF' && pass "lab.py: the endpoint forms (tcp:, tcp://, [IPv6], {n}, device) and what it rejects" || fail "lab.py: the endpoint forms (tcp:, tcp://, [IPv6], {n}, device) and what it rejects"
+import sys
+sys.path.insert(0, sys.argv[1])
+import lab
+E = lab.Endpoint
+assert lab.parse_endpoint("tcp:h:5000", 0) == E("tcp", host="h", port=5000)
+assert lab.parse_endpoint("tcp://h:5000", 0) == E("tcp", host="h", port=5000)
+assert lab.parse_endpoint("tcp://[::1]:5000", 0) == E("tcp", host="::1", port=5000)
+assert str(lab.parse_endpoint("tcp://[::1]:5000", 0)) == "tcp://[::1]:5000"
+assert lab.parse_endpoint("tcp://lab-pc:500{n}", 3) == E("tcp", host="lab-pc", port=5003)
+assert lab.parse_endpoint("tcp://lab-{n}:5000", 2) == E("tcp", host="lab-2", port=5000)
+assert lab.parse_endpoint("/dev/ttyUSB{n}", 1) == E("device", path="/dev/ttyUSB1")
+for bad in ("tcp:", "tcp:h", "tcp://h:", "tcp://:5000", "tcp://h:0", "tcp://h:65536", "tcp://h:5x", "tcp://h/x:5", "  "):
+    try:
+        lab.parse_endpoint(bad, 0)
+    except SystemExit as e:
+        assert isinstance(e.code, str) and e.code.startswith("lab:"), e.code
+    else:
+        raise AssertionError(f"accepted {bad!r}")
+conf = {"UART_PATTERN": "/nonexistent/{n}", "UART2": "tcp:h:5002", "UART_COUNT": "3"}
+try:
+    lab.uart_endpoints(conf, [0, 2])
+except SystemExit as e:
+    assert "MMUART0" in e.code, e.code
+else:
+    raise AssertionError("a missing device was accepted")
+assert lab.uart_endpoints(conf, [2]) == {2: E("tcp", host="h", port=5002)}
+PYEOF
+
 # --- start_openocd.sh ---------------------------------------------------------------
 mkdir -p "$tmp/sc/openocd/bin"
 printf '#!/bin/sh\nprintf "%%s\\n" "$@" > "%s/openocd.args"\necho "$LD_LIBRARY_PATH" > "%s/openocd.ld"\n' "$tmp" "$tmp" > "$tmp/sc/openocd/bin/openocd"
