@@ -27,6 +27,26 @@ package System.BB.RISCV_PLIC is
    Max_Hart : constant := 4;
    --  The harts of the SoC: the E51 is hart 0, the U54 cores are 1 .. 4
 
+   Levels : constant := 7;
+   --  The PLIC has three priority bits: the levels 1 .. 7 of a source or of a
+   --  threshold. Level 0 means "never interrupt" for a source and "no
+   --  threshold" for a context.
+
+   function Level_Of (Priority : Integer) return Natural is
+     (Integer'Min (Levels,
+                   Integer'Max (0, Priority - Interrupt_Priority'First + 1)));
+   --  The PLIC level of an Ada priority: the Levels interrupt priorities
+   --  Interrupt_Priority'First .. Interrupt_Priority'Last are the levels
+   --  1 .. 7 in this order, every priority below them (that is, every task
+   --  priority) is level 0. The body checks at compile time that system.ads
+   --  has exactly Levels interrupt priorities.
+
+   function Priority_Of_Level (Level : Natural) return System.Any_Priority is
+     (Interrupt_Priority'First - 1 + Level)
+     with Pre => Level <= Levels;
+   --  The inverse: level 0 is Interrupt_Priority'First - 1 (the highest task
+   --  priority, System.Priority'Last), level n is the interrupt priority n.
+
    function Context_Of (Hart : Natural) return Natural is
      (if Hart = 0 then 0 else 2 * Hart - 1)
      with Pre => Hart <= Max_Hart;
@@ -88,19 +108,24 @@ package System.BB.RISCV_PLIC is
    --  Signal an interrupt completion for the current hart.
 
    procedure Set_Priority_Threshold (Priority : Integer);
-   --  Set the interrupt priority threshold for the current hart.
+   --  Set the interrupt priority threshold for the current hart to the level
+   --  of an Ada priority (Level_Of): the ceiling of the protected object that
+   --  the hart enters, or the priority of the task it runs.
    --
    --  Only interrupts with a priority strictly greater than the threshold will
-   --  be able to trigger a trap.
+   --  be able to trigger a trap: while the hart runs at the ceiling of a
+   --  handler, that interrupt and all below it are held back by the PLIC.
 
-   function Threshold return Integer;
-   --  Return the priority threshold for the current hart
+   function Threshold return System.Any_Priority;
+   --  Return the priority threshold for the current hart as an Ada priority
+   --  (Priority_Of_Level of the register), so that it compares with
+   --  Priority_Of_Interrupt
 
    procedure Set_Priority
      (Interrupt : System.BB.Interrupts.Interrupt_ID;
       Prio      : Interrupt_Priority);
    --  Set the priority of an interrupt (a source has one priority for all
-   --  harts)
+   --  harts) to the level of the ceiling of its handler (Level_Of)
 
    function Priority_Of_Interrupt
      (Interrupt : System.BB.Interrupts.Interrupt_ID)
