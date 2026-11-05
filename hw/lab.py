@@ -3,13 +3,15 @@
 """The lab setup and the pinned toolchain, shared by the scripts of hw/.
 
 lab.conf holds what differs between machines (the SoftConsole path, the OpenOCD
-port, the serial ports). It is not in the repository: lab.conf.example is, and gives
+port, the serial ports: devices, or TCP ports that socat tunnels from another machine). It is not in the repository: lab.conf.example is, and gives
 the default of every key. The RISC-V cross compiler comes from the version pinned
 in tools/toolchain.env, never from "the last directory that matches a glob".
 """
 import glob
 import os
+import re
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -46,8 +48,15 @@ def load(path: str | None = None) -> dict[str, str]:
     for key in ("OCD_PORT", "UART_COUNT"):
         if not values[key].isdigit():
             raise SystemExit(f"lab: {key} must be a number, got '{values[key]}'")
-    if "{n}" not in values["UART_PATTERN"]:
+    count = int(values["UART_COUNT"])
+    overrides = uart_overrides(values)
+    for n, spec in overrides.items():
+        if n >= count:
+            raise SystemExit(f"lab: UART{n} is outside MMUART0 .. MMUART{count - 1} (UART_COUNT={count})")
+        parse_endpoint(spec, n, f"UART{n}")
+    if "{n}" not in values["UART_PATTERN"] and any(n not in overrides for n in range(count)):
         raise SystemExit("lab: UART_PATTERN must contain {n}, the number of the MMUART")
+    parse_endpoint(values["UART_PATTERN"], 0, "UART_PATTERN")
     return values
 
 
@@ -68,12 +77,58 @@ def toolchain_bin() -> Path:
     return Path(found[0])
 
 
-def serial_path(lab: dict[str, str], n: int) -> str:
-    """The device of MMUART <n> according to UART_PATTERN."""
-    found = sorted(glob.glob(lab["UART_PATTERN"].replace("{n}", str(n))))
-    if not found:
-        raise SystemExit(f"lab: no serial port for MMUART{n} ({lab['UART_PATTERN'].replace('{n}', str(n))})")
-    return found[0]
+@dataclass(frozen=True)
+class Endpoint:
+    """Where the serial text of one MMUART comes from: a device file ("device", <path>) or a TCP
+    port on another machine ("tcp", <host>, <port>), where socat tunnels the UART."""
+    kind: str
+    path: str = ""
+    host: str = ""
+    port: int = 0
+
+    def __str__(self) -> str:
+        if self.kind == "device":
+            return self.path
+        return f"tcp://[{self.host}]:{self.port}" if ":" in self.host else f"tcp://{self.host}:{self.port}"
+
+
+def uart_overrides(values: dict[str, str]) -> dict[int, str]:
+    """The UART<n> keys of the lab settings: {n: value}."""
+    return {int(k[4:]): v for k, v in values.items() if re.fullmatch(r"UART\d+", k)}
+
+
+def parse_endpoint(spec: str, n: int, key: str = "UART_PATTERN") -> Endpoint:
+    """The endpoint that SPEC names for MMUART <n>: {n} is replaced by the number first. A spec that starts
+    with tcp: or tcp:// is HOST:PORT of a TCP port (HOST may be a name, an IPv4 address or [IPv6]); any
+    other spec is a device path (a glob, resolved by uart_endpoints)."""
+    spec = spec.replace("{n}", str(n)).strip()
+    if not spec:
+        raise SystemExit(f"lab: {key} is empty")
+    if not spec.startswith("tcp:"):
+        return Endpoint("device", path=spec)
+    rest = spec[4:].removeprefix("//")
+    host, _, port = rest.rpartition(":")
+    host = host.removeprefix("[").removesuffix("]")
+    if not host or any(c.isspace() or c == "/" for c in host) or not port.isdigit() or not 1 <= int(port) <= 65535:
+        raise SystemExit(f"lab: {key}: '{spec}' is not tcp:HOST:PORT (a port from 1 to 65535)")
+    return Endpoint("tcp", host=host, port=int(port))
+
+
+def uart_endpoints(lab: dict[str, str], ports) -> dict[int, Endpoint]:
+    """The endpoint of every MMUART in <ports>: UART<n> of the lab settings if there is one, otherwise
+    UART_PATTERN. A device that does not exist is an error here; a TCP port is only tried when connecting."""
+    overrides = uart_overrides(lab)
+    found = {}
+    for n in ports:
+        spec = overrides.get(n, lab["UART_PATTERN"])
+        ep = parse_endpoint(spec, n, f"UART{n}" if n in overrides else "UART_PATTERN")
+        if ep.kind == "device":
+            devices = sorted(glob.glob(ep.path))
+            if not devices:
+                raise SystemExit(f"lab: no serial port for MMUART{n} ({ep.path})")
+            ep = Endpoint("device", path=devices[0])
+        found[n] = ep
+    return found
 
 
 def die(message: str) -> "None":
