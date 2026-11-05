@@ -53,8 +53,8 @@ project App is
       for Executable_Suffix use ".elf";
    end Builder;
 
-   --  The default secondary stack of the embedded profile is 1 MiB (-D): the test needs a few KiB
-   --  (Exception_Information returns a String), and the LIM has 1920 KiB.
+   --  The default secondary stack of the embedded profile is 16 KiB (gen_runtime.sh): the test needs a
+   --  few KiB (Exception_Information returns a String), so it asks for less.
    package Binder is
       for Default_Switches ("Ada") use ("-D8k");
    end Binder;

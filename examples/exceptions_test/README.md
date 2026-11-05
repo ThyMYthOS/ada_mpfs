@@ -38,7 +38,8 @@ image).
     ./x build exceptions_test --hart u54         # bin-u54/
     ./x test qemu tests exceptions_test_e51 exceptions_test_u54 unhandled_test_e51 unhandled_test_u54
 
-The default stacks of the embedded profile (1 MiB secondary stack, 2 MiB per task) do not fit the 1920 KiB LIM, so
-`app.gpr` sets the binder switch `-D8k` and the tasks have `Storage_Size` and `Secondary_Stack_Size` aspects. The
-first raise uses `malloc` once (libgcc sorts the frame descriptions; without memory it searches them linearly), so
-the heap must exist: the runtime's `s-memory` and newlib's `malloc` over `__heap_start` .. `__heap_end`.
+The default stack of a task of the embedded profile (2 MiB) does not fit the 1920 KiB LIM, so the tasks have
+`Storage_Size` and `Secondary_Stack_Size` aspects, and `app.gpr` sets the binder switch `-D8k` (the default secondary
+stack is 16 KiB, which is more than the test needs). The first raise uses `malloc` once (libgcc sorts the frame
+descriptions; without memory it searches them linearly), so the heap must exist: the TLSF heap of the runtime
+(`MPFS_Heap`) over `__heap_start` .. `__heap_end`; `heap_test` checks that libgcc takes its memory from it.
