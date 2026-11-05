@@ -39,13 +39,15 @@ had to change from the paper version:
 Findings of the spike besides the path itself:
 
 - libgcc's `unwind-dw2-fde.o` calls `malloc` and `free` once, at the first search, to sort the FDEs; the heap of the
-  embedded runtime is newlib's `malloc` over `__heap_start` .. `__heap_end`. If `malloc` returns null libgcc falls back
-  to a linear search, so a missing heap is slower, not wrong. P1.8 must keep the two symbols.
+  embedded runtime was newlib's `malloc` over `__heap_start` .. `__heap_end` and is now the TLSF heap of
+  `crates/mpfs_rts`, which defines both symbols itself (its `README.md`, "Heap and secondary stack"). If `malloc`
+  returns null libgcc falls back to a linear search, so a missing heap is slower, not wrong.
 - `crtbegin.o` and `crtend.o` bring `.tm_clone_table`, `.fini_array` and 160 bytes of code that only a hosted program
   needs (`__do_global_dtors_aux`, `register_tm_clones`); `--gc-sections` keeps what the arrays refer to. The
   cost is small and accepted, in exchange for the standard mechanism that also runs the constructors of C code.
-- The default stacks of the embedded profile (1 MiB secondary stack, 2 MiB per task) do not fit the LIM
-  (1920 KiB). `exceptions_test` sets `-D8k` and the aspects `Storage_Size` and `Secondary_Stack_Size` of its tasks.
+- The default stacks of the embedded profile (at the time of the spike 1 MiB secondary stack, 2 MiB per task) do not fit
+  the LIM (1920 KiB). The runtime now sets the default secondary stack to 16 KiB; `exceptions_test` still sets `-D8k`
+  and the aspects `Storage_Size` and `Secondary_Stack_Size` of its tasks (the task stack default is 2 MiB).
 
 ## Evidence
 
