@@ -40,7 +40,7 @@
 #      another name (start.S for start-ram.S) and how a source stays out of the library
 #      (embedded: gnat/unwind-dw2-fde-bb.c, the unwinder of libgcc is linked instead);
 #      then the linker scripts (--ld-dir) go to ld/, whatever the overlays brought; the
-#      register packages that the port units use (MPFS_Registers, .PLIC and .CLINT of
+#      register packages that the port units use (MPFS_Registers, .PLIC, .CLINT and .MMUART of
 #      --pac-dir: the PAC of libs/mpfs_pac, which is not committed, only its hash) go to gnat/;
 #      unless --pac-dir names a directory, tools/pac.sh ensure makes the default one current
 #      first (it generates it with the pinned svd2ada, ./x toolchain install pac, only if it is
@@ -54,7 +54,7 @@
 #      scripts), runtime.xml, the license texts, and the stamp .mpfs_rts.stamp.
 #
 # Cache: the stamp holds the key, the sha256 of everything that goes into the result: the pack,
-# the three register packages (their content, so the key follows the files that are copied; the
+# the four register packages (their content, so the key follows the files that are copied; the
 # recorded hash of the whole PAC would also change with the packages the runtime does not use), the
 # port units, the overlays, the switches (variant, build mode, this script) and the toolchain
 # (the directory name of the installed GNAT, which carries the Alire version and a hash, and the
@@ -82,8 +82,8 @@ ld_dir="$HERE/ld"
 # --pac-dir is taken as it is (the host tests name a copy of it).
 pac_dir=""
 spec_file="$HERE/link-zcx.spec"
-# The register packages of the PAC that the port units of the runtime use (s-bbripl, s-bbsuti).
-pac_files="mpfs_registers.ads mpfs_registers-plic.ads mpfs_registers-clint.ads"
+# The register packages of the PAC that the port units of the runtime use (s-bbripl, s-bbsuti, s-textio).
+pac_files="mpfs_registers.ads mpfs_registers-plic.ads mpfs_registers-clint.ads mpfs_registers-mmuart.ads"
 check=0
 force=0
 args=()

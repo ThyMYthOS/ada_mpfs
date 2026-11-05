@@ -108,7 +108,7 @@ for dir in light-e51 light-u54 light-tasking-e51 light-tasking-u54 embedded-e51 
   check 0 "$dir: no 64-bit store into the PLIC window in the libraries" "${libs[@]}"
   # the PAC registers of the runtime are the files of the PAC
   same=1
-  for f in mpfs_registers.ads mpfs_registers-plic.ads mpfs_registers-clint.ads; do
+  for f in mpfs_registers.ads mpfs_registers-plic.ads mpfs_registers-clint.ads mpfs_registers-mmuart.ads; do
     cmp -s "$d/adainclude/$f" "$PAC/$f" || same=0
   done
   [ $same = 1 ] && pass "$dir: adainclude/ has the register packages of the PAC byte for byte" \
@@ -158,7 +158,7 @@ done
 
 # -- the register packages are part of the cache key ---------------------------------------------
 mkdir -p "$work/pac"
-cp "$PAC"/mpfs_registers.ads "$PAC"/mpfs_registers-plic.ads "$PAC"/mpfs_registers-clint.ads "$work/pac/"
+cp "$PAC"/mpfs_registers.ads "$PAC"/mpfs_registers-plic.ads "$PAC"/mpfs_registers-clint.ads "$PAC"/mpfs_registers-mmuart.ads "$work/pac/"
 bash "$GEN" --check --pac-dir "$work/pac" light-tasking u54 1 m >/dev/null 2>&1; rc=$?
 [ $rc -eq 0 ] && pass "a copy of the register packages: up to date" || fail "a copy of the register packages: up to date (exit $rc)"
 echo "--  changed" >> "$work/pac/mpfs_registers-plic.ads"
