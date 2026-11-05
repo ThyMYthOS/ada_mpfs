@@ -1,0 +1,9 @@
+  ok: a String of 1000 characters is returned
+  ok: a String made of two is returned
+  ok: a String computed from its length is returned
+  ok: 20 levels of results made of results are right
+  ok: the stack is where it was after the statement
+  ok: the high-water mark covers the deepest point
+  ok: the last chance handler is called once
+  ok: it gets the place of the raise
+  ok: the exhausted stack has the default of the profile

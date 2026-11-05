@@ -298,9 +298,9 @@ grep -q '^BUILD_HARTS=e51 u54$' "$ROOT/examples/exceptions_test/example.conf" \
 for t in unhandled_test unhandled_task_test; do
   [ -f "$ROOT/examples/exceptions_test/$t.expected" ] && pass "$t has its own .expected file" || fail "$t has its own .expected file"
 done
-# heap_test (embedded), for the E51 and hart 1 of the U54: the example of a profile has that profile
-# in its example.conf
-for spec in heap_test:embedded; do
+# heap_test (embedded) and the three secondary stack tests, one per profile, for the E51 and hart 1
+# of the U54: the example of a profile has that profile in its example.conf
+for spec in heap_test:embedded secstack_test:embedded secstack_light_test:light secstack_tasking_test:light-tasking; do
   t="${spec%%:*}"; prof="${spec#*:}"
   for hart in e51 u54; do
     grep -q "^${t}_${hart}${tab}examples/${t}${tab}0${tab}pass${tab}-${tab}-\$" "$list_c" \
