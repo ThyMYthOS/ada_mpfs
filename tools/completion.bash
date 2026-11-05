@@ -27,6 +27,8 @@ _mpfs_x () {
     --priv)  COMPREPLY=($(compgen -W "m u" -- "$cur")); return ;;
     -P)      COMPREPLY=($(compgen -W "light light-tasking embedded auto" -- "$cur")); return ;;
     --lab|--workdir|--svd) COMPREPLY=($(compgen -f -- "$cur")); return ;;
+    --view)  COMPREPLY=($(compgen -W "auto interleaved blocks" -- "$cur")); return ;;
+    --color) COMPREPLY=($(compgen -W "auto always never" -- "$cur")); return ;;
   esac
 
   case "$verb" in
@@ -63,7 +65,9 @@ _mpfs_x () {
               COMPREPLY=($(compgen -W "0 1 2 3 --yes --dry-run --workdir --lab" -- "$cur"))
               [ -z "$cur" ] || COMPREPLY+=($(compgen -f -- "$cur"))
             elif [ "$sub" = initialize ]; then COMPREPLY=($(compgen -W "--minimal --skip-io --dry-run --target --lab" -- "$cur"))
-            elif [ "$sub" = run ]; then COMPREPLY=($(compgen -W "--expect" -- "$cur")); fi ;;
+            elif [ "$sub" = run ]; then
+              COMPREPLY=($(compgen -W "--hart --secs --expect --expect-port --uart-standin --view --color --lab" -- "$cur"))
+            elif [ "$sub" = monitor ]; then COMPREPLY=($(compgen -W "--secs --port --expect --view --color --lab" -- "$cur")); fi ;;
     completion) [ "$COMP_CWORD" -eq 2 ] && COMPREPLY=($(compgen -W "bash zsh" -- "$cur")) ;;
   esac
 }

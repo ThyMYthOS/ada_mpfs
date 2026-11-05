@@ -75,11 +75,11 @@ run_image () { "$PY" "$HW/run_image.py" "$@"; }
 
 # --- run_image.py -----------------------------------------------------------------
 # the serial text is shown as a block: one gutter line per line printed, CR LF ends a line, odd bytes are escaped
-fmt () { "$PY" -c 'import sys; sys.path.insert(0, sys.argv[1]); import run_image; print(run_image.format_serial(int(sys.argv[2]), eval(sys.argv[3])))' "$HW" "$@"; }
+fmt () { "$PY" -c 'import sys; sys.path.insert(0, sys.argv[1]); import serialview; print(serialview.format_block(int(sys.argv[2]), eval(sys.argv[3])))' "$HW" "$@"; }
 want=$'MMUART0 (38 bytes):\n  | TEST t: START\n  |   ok: x\n  | TEST t: PASS'
-[ "$(fmt 0 "b'TEST t: START\\r\\n  ok: x\\r\\nTEST t: PASS\\r\\n'")" = "$want" ] && pass "run_image: shows the serial text as a block, one line per line printed" || fail "run_image: shows the serial text as a block, one line per line printed"
-[ "$(fmt 1 "b'no end'")" = $'MMUART1 (6 bytes):\n  | no end   [no line end]' ] && pass "run_image: marks a last line without a line end" || fail "run_image: marks a last line without a line end"
-[ "$(fmt 2 "b'a\\x00\\xffb\\rc'")" = $'MMUART2 (6 bytes):\n  | a\\x00\\xffb\n  | c   [no line end]' ] && pass "run_image: escapes bytes that are not printable and ends a line at a lone CR" || fail "run_image: escapes bytes that are not printable and ends a line at a lone CR"
+[ "$(fmt 0 "b'TEST t: START\\r\\n  ok: x\\r\\nTEST t: PASS\\r\\n'")" = "$want" ] && pass "serialview: shows the serial text as a block, one line per line printed" || fail "run_image: shows the serial text as a block, one line per line printed"
+[ "$(fmt 1 "b'no end'")" = $'MMUART1 (6 bytes):\n  | no end   [no line end]' ] && pass "serialview: marks a last line without a line end" || fail "run_image: marks a last line without a line end"
+[ "$(fmt 2 "b'a\\x00\\xffb\\rc'")" = $'MMUART2 (6 bytes):\n  | a\\x00\\xffb\n  | c   [no line end]' ] && pass "serialview: escapes bytes that are not printable and ends a line at a lone CR" || fail "run_image: escapes bytes that are not printable and ends a line at a lone CR"
 serve hello --uart "$tmp/uart/hello/mmuart0.log" --print "bare hello E51 hart 0"
 L="$tmp/lab-hello.conf"
 expect_rc  "run_image: runs an image and exits 0 without --expect" 0 run_image "$tmp/loop.elf" 0 --secs 0.4 --lab "$L"
@@ -187,6 +187,8 @@ tcp_serve () {
 }
 # tconf <file> <lines...>: a lab.conf with the stand-in OpenOCD of "hello" and the given lines
 tconf () { local f="$1"; shift; { printf 'SOFT_CONSOLE=%s\nOCD_PORT=%s\n' "$tmp/sc" "$(cat "$tmp/hello.port")"; printf '%s\n' "$@"; } > "$f"; }
+# has_all <text> <needle>...: every needle is a line of the text, whatever the order
+has_all () { local t="$1" n; shift; for n in "$@"; do printf '%s\n' "$t" | grep -qxF -- "$n" || return 1; done; }
 # errlines <command...>: the standard error of the command: the text in $err, its number of lines in $nerr
 errlines () { err="$("$@" 2>&1 >/dev/null)"; nerr=$(printf '%s\n' "$err" | grep -c .); }
 
@@ -203,7 +205,7 @@ expect_rc  "run_image: reads a UART from a TCP port" 0 run_image "$tmp/loop.elf"
 # mixed: MMUART1 is a file, MMUART0 and MMUART2 are TCP ports (one of them silent but open, which must not hold up the others)
 tconf "$tmp/lab-mixed.conf" 'UART_COUNT=3' "UART_PATTERN=$tmp/uart/mon/mmuart{n}.log" "UART0=tcp:127.0.0.1:$P1" "UART2=tcp:127.0.0.1:$P2"
 out="$(monitor --secs 0.6 --lab "$tmp/lab-mixed.conf" 2>&1)"
-case "$out" in *"hello over tcp"*"hello from MMUART1"*"second port"*) pass "monitor: a mixed configuration shows device and TCP ports" ;; *) fail "monitor: a mixed configuration shows device and TCP ports ($out)" ;; esac
+has_all "$out" 'MMUART0: hello over tcp' 'MMUART1: hello from MMUART1' 'MMUART2: second port' && pass "monitor: a mixed configuration shows device and TCP ports" || fail "monitor: a mixed configuration shows device and TCP ports ($out)"
 expect_rc  "monitor: --port selects a TCP port of a mixed configuration" 0 monitor --secs 0.6 --lab "$tmp/lab-mixed.conf" --port 2 --expect 'second port'
 expect_rc  "monitor: --port selects one port of a mixed configuration only" 1 monitor --secs 0.6 --lab "$tmp/lab-mixed.conf" --port 2 --expect 'hello from MMUART1'
 # a pattern with {n} in the port number: 500{n}
@@ -225,7 +227,7 @@ done
 for n in 0 1 2 3; do for i in $(seq 1 50); do [ -s "$tmp/pat$n.tport" ] && break; sleep 0.1; done; done
 tconf "$tmp/lab-pat.conf" 'UART_COUNT=4' "UART_PATTERN=tcp://127.0.0.1:${base%?}{n}"
 out="$(monitor --secs 0.6 --lab "$tmp/lab-pat.conf" 2>&1)"
-case "$out" in *"port 0"*"port 1"*"port 2"*"port 3"*) pass "monitor: {n} in the port of UART_PATTERN gives one port per MMUART" ;; *) fail "monitor: {n} in the port of UART_PATTERN gives one port per MMUART ($out)" ;; esac
+has_all "$out" 'MMUART0: port 0' 'MMUART1: port 1' 'MMUART2: port 2' 'MMUART3: port 3' && pass "monitor: {n} in the port of UART_PATTERN gives one port per MMUART" || fail "monitor: {n} in the port of UART_PATTERN gives one port per MMUART ($out)"
 expect_rc  "monitor: --port 3 with a TCP pattern reads only that port" 1 monitor --secs 0.6 --lab "$tmp/lab-pat.conf" --port 3 --expect 'port 2'
 # the connection ends in the middle of the run: reported once, the other port goes on, no traceback
 tcp_serve early 'send=b"before the end\r\n"' 'sleep=0.2'
@@ -299,6 +301,123 @@ except SystemExit as e:
 else:
     raise AssertionError("a missing device was accepted")
 assert lab.uart_endpoints(conf, [2]) == {2: E("tcp", host="h", port=5002)}
+PYEOF
+
+# --- serial views: interleaved and blocks, UTF-8, colours, escape sequences -------------------
+# The stdout of these runs is a pipe, so the default view is interleaved. vconf <name> <printf format>: a lab.conf with
+# one port whose "UART" is a file that holds the bytes (printf format, \ooo octal escapes); vmon <name> <args...>: monitor on it.
+ESC=$'\033'
+mkdir -p "$tmp/uart/v"
+vconf () { printf -- "$2" > "$tmp/uart/v/$1.log"; printf 'SOFT_CONSOLE=%s\nOCD_PORT=1\nUART_COUNT=1\nUART0=%s\n' "$tmp/sc" "$tmp/uart/v/$1.log" > "$tmp/lab-v-$1.conf"; }
+vmon () { local n="$1"; shift; monitor --secs 0.3 --lab "$tmp/lab-v-$n.conf" "$@" 2>&1; }
+same () { [ "$1" = "$2" ]; }   # same <got> <want>
+
+vconf utf '- gr\303\274\303\237e \342\202\254 \346\227\245\r\n'
+same "$(vmon utf)" 'MMUART0: - grüße € 日' && pass "monitor: shows UTF-8 text" || fail "monitor: shows UTF-8 text ($(vmon utf))"
+expect_rc  "monitor: --expect matches UTF-8 text" 0 monitor --secs 0.3 --lab "$tmp/lab-v-utf.conf" --expect 'grüße €'
+vconf bad 'a\377b\200c\r\nabc\342\202'
+out="$(vmon bad --view interleaved)"
+same "$out" "$(printf 'MMUART0: a\\xffb\\x80c\nMMUART0: abc\\xe2\\x82')" && pass "monitor: invalid UTF-8 bytes show as \\xNN, also a sequence cut off at the end" || fail "monitor: invalid UTF-8 bytes show as \\xNN ($out)"
+case "$out" in *$'\357\277\275'*) fail "monitor: no U+FFFD for invalid bytes" ;; *) pass "monitor: no U+FFFD for invalid bytes" ;; esac
+vconf tab 'a\tb\r\n'
+same "$(vmon tab)" "$(printf 'MMUART0: a\tb')" && pass "monitor: a tab stays" || fail "monitor: a tab stays"
+# a multibyte character that arrives in two pieces, an escape sequence that arrives in two pieces
+tcp_serve split 'send=b"caf\xc3"' 'sleep=0.2' 'send=b"\xa9 ok \xe6\x97"' 'sleep=0.2' 'send=b"\xa5 \x1b[3"' 'sleep=0.2' 'send=b"1mred\x1b[0m\r\n"' 'hold'
+tconf "$tmp/lab-split.conf" 'UART_COUNT=1' "UART0=tcp:127.0.0.1:$(cat "$tmp/split.tport")"
+out="$(monitor --secs 0.9 --lab "$tmp/lab-split.conf" --color never 2>&1)"
+same "$out" "MMUART0: café ok 日 red" && pass "monitor: a character and an escape sequence that arrive in two pieces are whole" || fail "monitor: a character and an escape sequence that arrive in two pieces are whole ($out)"
+out="$(monitor --secs 0.9 --lab "$tmp/lab-split.conf" --color always 2>&1)"
+same "$out" "$ESC[36mMMUART0:$ESC[0m café ok 日 $ESC[31mred$ESC[0m" && pass "monitor: the colour of a split sequence passes through, reset at the end" || fail "monitor: the colour of a split sequence passes through ($(printf '%s' "$out" | cat -v))"
+# colours: through when on, removed when off, reset at the line end
+vconf sgr '\033[31mred\033[0m plain\r\n\033[1;32mbold green\r\nnext\r\n'
+same "$(vmon sgr --color never)" "$(printf 'MMUART0: red plain\nMMUART0: bold green\nMMUART0: next')" && pass "monitor: --color never removes the colours of the target" || fail "monitor: --color never removes the colours of the target ($(vmon sgr --color never | cat -v))"
+want="$ESC[36mMMUART0:$ESC[0m $ESC[31mred$ESC[0m plain"$'\n'"$ESC[36mMMUART0:$ESC[0m $ESC[1;32mbold green$ESC[0m"$'\n'"$ESC[36mMMUART0:$ESC[0m next"
+same "$(vmon sgr --color always)" "$want" && pass "monitor: --color always passes the colours through and resets them at the end of the line" || fail "monitor: --color always passes the colours through and resets them at the end of the line ($(vmon sgr --color always | cat -v))"
+case "$(vmon sgr)" in *"$ESC"*) fail "monitor: no colour on a pipe by default" ;; *) pass "monitor: no colour on a pipe by default" ;; esac
+case "$(FORCE_COLOR=1 vmon sgr)" in *"$ESC[31mred"*) pass "monitor: FORCE_COLOR turns the colours on" ;; *) fail "monitor: FORCE_COLOR turns the colours on" ;; esac
+case "$(NO_COLOR=1 FORCE_COLOR=1 vmon sgr)" in *"$ESC"*) fail "monitor: NO_COLOR wins over FORCE_COLOR" ;; *) pass "monitor: NO_COLOR wins over FORCE_COLOR" ;; esac
+case "$(NO_COLOR=1 vmon sgr --color always)" in *"$ESC[31mred"*) pass "monitor: --color always wins over NO_COLOR" ;; *) fail "monitor: --color always wins over NO_COLOR" ;; esac
+# every other escape sequence and control character is removed or shown, nothing reaches the terminal
+vconf esc 'a\033[2Jb\033[1;1Hc\033]0;title\007d\033]8;;http://x\033\\e\033(Bf\033[?25lg\007h\033[31;1H\033[3\033[Kx\033Pdcs\033\\y\002\r\n\033[3'
+for c in always never; do
+  out="$(vmon esc --color $c)"
+  case $c in never) want='MMUART0: abcdefg\x07hxy\x02' ;; *) want="$ESC[36mMMUART0:$ESC[0m abcdefg\\x07hxy\\x02" ;; esac
+  same "$out" "$want" && pass "monitor: --color $c removes cursor, screen, OSC, DCS and charset sequences and shows other control characters" || fail "monitor: --color $c removes cursor, screen, OSC, DCS and charset sequences ($(printf '%s' "$out" | cat -v))"
+  case "$(printf '%s' "$out" | sed "s/$ESC\[[0-9;]*m//g")" in *"$ESC"*) fail "monitor: --color $c leaves no escape sequence of the target" ;; *) pass "monitor: --color $c leaves no escape sequence of the target" ;; esac
+done
+# interleaved: the order the lines arrive in, the prefix, a partial line held back until its end
+tcp_serve ilv0 'send=b"A1\r\n"' 'send=b"half"' 'sleep=0.4' 'send=b"-done\r\n"' 'sleep=0.4' 'send=b"A3\r\n"' 'hold'
+tcp_serve ilv1 'sleep=0.2' 'send=b"B1\r\n"' 'sleep=1.0' 'send=b"B2\r\n"' 'send=b"tail"' 'hold'
+tconf "$tmp/lab-ilv.conf" 'UART_COUNT=2' "UART0=tcp:127.0.0.1:$(cat "$tmp/ilv0.tport")" "UART1=tcp:127.0.0.1:$(cat "$tmp/ilv1.tport")"
+out="$(monitor --secs 1.8 --lab "$tmp/lab-ilv.conf" --view interleaved 2>&1)"
+same "$out" $'MMUART0: A1\nMMUART1: B1\nMMUART0: half-done\nMMUART0: A3\nMMUART1: B2\nMMUART1: tail' \
+  && pass "monitor: interleaved shows complete lines in the order they arrive, a partial line after its end, the last one at the end of the run" \
+  || fail "monitor: interleaved shows complete lines in the order they arrive ($out)"
+out="$(monitor --secs 1.8 --lab "$tmp/lab-ilv.conf" --view interleaved --color always 2>&1)"
+case "$out" in "$ESC[36mMMUART0:$ESC[0m A1"$'\n'"$ESC[33mMMUART1:$ESC[0m B1"*) pass "monitor: every port has its own colour in the prefix" ;; *) fail "monitor: every port has its own colour in the prefix ($(printf '%s' "$out" | cat -v))" ;; esac
+# blocks: the block per port, unchanged
+out="$(monitor --secs 0.3 --lab "$tmp/lab-mon.conf" --view blocks 2>&1)"
+same "$out" $'MMUART1 (20 bytes):\n  | hello from MMUART1' && pass "monitor: the blocks view shows the block of the port that printed" || fail "monitor: the blocks view shows the block of the port that printed ($out)"
+out="$(monitor --secs 1.8 --lab "$tmp/lab-ilv.conf" --view blocks 2>&1)"
+same "$out" $'MMUART0 (19 bytes):\n  | A1\n  | half-done\n  | A3\nMMUART1 (12 bytes):\n  | B1\n  | B2\n  | tail   [no line end]' && pass "monitor: blocks keep the ports apart, in order, and mark an unfinished line" || fail "monitor: blocks keep the ports apart ($out)"
+vconf blk '\033[31mred\033[0m\r\nx\002\342\202\254\r\n'
+same "$(vmon blk --view blocks --color never)" $'MMUART0 (21 bytes):\n  | red\n  | x\\x02€' && pass "monitor: blocks remove the colours with --color never and show control characters" || fail "monitor: blocks remove the colours with --color never ($(vmon blk --view blocks --color never))"
+same "$(vmon blk --view blocks --color always)" "MMUART0 (21 bytes):"$'\n'"  | $ESC[31mred$ESC[0m"$'\n'"  | x\\x02€" && pass "monitor: blocks pass the colours through with --color always" || fail "monitor: blocks pass the colours through with --color always"
+# options
+for v in interleaved blocks auto; do
+  expect_rc "monitor: --view $v is accepted" 0 monitor --secs 0.2 --lab "$tmp/lab-mon.conf" --view "$v"
+done
+for c in auto always never; do
+  expect_rc "monitor: --color $c is accepted" 0 monitor --secs 0.2 --lab "$tmp/lab-mon.conf" --color "$c"
+done
+expect_rc  "monitor: a bad --view exits 2" 2 monitor --secs 0.2 --lab "$tmp/lab-mon.conf" --view bogus
+expect_rc  "monitor: a bad --color exits 2" 2 monitor --secs 0.2 --lab "$tmp/lab-mon.conf" --color bogus
+expect_rc  "run_image: a bad --view exits 2" 2 run_image "$tmp/loop.elf" 0 --lab "$L" --view bogus
+expect_rc  "run_image: a bad --color exits 2" 2 run_image "$tmp/loop.elf" 0 --lab "$L" --color bogus
+expect_out "monitor: a bad --view names the choices" "interleaved" monitor --lab "$tmp/lab-mon.conf" --view bogus
+# --expect does not depend on the view or the colours (it matches the text as the target printed it)
+vconf exp '\033[31mERR\033[0m: boom \303\251\r\n'
+for v in interleaved blocks; do
+  for c in always never; do
+    expect_rc "monitor: --expect matches the same text with --view $v --color $c" 0 monitor --secs 0.3 --lab "$tmp/lab-v-exp.conf" --view $v --color $c --expect "ERR.\[0m: boom é"
+    expect_rc "monitor: --expect does not match what the view would show, with --view $v --color $c" 1 monitor --secs 0.3 --lab "$tmp/lab-v-exp.conf" --view $v --color $c --expect "ERR: boom"
+  done
+done
+# the output encoding: no UTF-8, no UTF-8 decorations, and what it cannot show is escaped, not an exception
+vconf enc 'caf\303\251 \346\227\245\r\n'
+same "$(PYTHONIOENCODING=ascii vmon enc)" 'MMUART0: caf\xe9 \u65e5' && pass "monitor: text that the output encoding lacks is escaped, not an error" || fail "monitor: text that the output encoding lacks is escaped ($(PYTHONIOENCODING=ascii vmon enc))"
+same "$(PYTHONIOENCODING=ascii vmon enc --view blocks)" $'MMUART0 (11 bytes):\n  | caf\\xe9 \\u65e5' && pass "monitor: the blocks view escapes it too" || fail "monitor: the blocks view escapes it too"
+# run_image: the serial text comes first, in whatever view; then the trap and the verdict
+out="$(run_image "$tmp/loop.elf" 0 --secs 0.4 --lab "$L" --view interleaved --expect 'bare hello' 2>&1)"
+case "$out" in *"MMUART0: bare hello E51 hart 0"*"after: pc="*"expect: matched"*) pass "run_image: interleaved shows the serial lines, then the trap and the verdict" ;; *) fail "run_image: interleaved shows the serial lines, then the trap and the verdict ($out)" ;; esac
+out="$(run_image "$tmp/loop.elf" 0 --secs 0.4 --lab "$L" --view blocks 2>&1)"
+case "$out" in *"MMUART0 ("*" bytes):"*"  | bare hello E51 hart 0"*"after: pc="*) pass "run_image: the blocks view shows the block, then the trap" ;; *) fail "run_image: the blocks view shows the block, then the trap ($out)" ;; esac
+for v in interleaved blocks; do
+  expect_rc "run_image: --expect matches with --view $v" 0 run_image "$tmp/loop.elf" 0 --secs 0.4 --lab "$L" --view $v --expect 'bare hello E51 hart 0'
+  expect_rc "run_image: --expect that does not match exits 1 with --view $v" 1 run_image "$tmp/loop.elf" 0 --secs 0.4 --lab "$L" --view $v --expect 'something else'
+done
+# widths and the text of a port, as functions
+"$PY" - "$HW" <<'PYEOF' && pass "serialview: widths (wide 2, combining 0), tabs, cutting with colours, line ends across reads, long lines" || fail "serialview: widths (wide 2, combining 0), tabs, cutting with colours, line ends across reads, long lines"
+import sys
+sys.path.insert(0, sys.argv[1])
+import serialview as v
+assert v.char_width("a") == 1 and v.char_width("日") == 2 and v.char_width("Ａ") == 2 and v.char_width("́") == 0 and v.char_width("‍") == 0
+assert v.visible_width("a\x1b[31m日\x1b[0ḿb") == 4
+assert v.expand_tabs("a\tb") == "a       b" and v.expand_tabs("\x1b[1mab\x1b[0m\tc") == "\x1b[1mab\x1b[0m      c"
+assert v.fit("abcdef", 6, ">") == "abcdef" and v.fit("abcdefg", 6, ">") == "abcde>"
+assert v.fit("日本語", 5, ">") == "日本>" and v.fit("日本語", 6, ">") == "日本語"
+assert v.fit("\x1b[31mabcdefg\x1b[0m", 4, ">") == "\x1b[31mabc>\x1b[0m"
+p = v.PortText(True)
+assert p.feed(b"ab\r") == ["ab"] and p.feed(b"\ncd\n\r\n") == ["cd", ""], "CR LF over two reads is one line end"
+p = v.PortText(False)
+assert p.feed(b"x\x1b[31my\x1b[0m\n") == ["xy"] and p.feed(b"\xe6\x97") == [] and p.feed(b"\xa5\n") == ["日"]
+assert p.feed(b"\xe6\x97", final=True) == [] and p.take_partial() == "\\xe6\\x97"
+p = v.PortText(False)
+assert len(p.feed(b"x" * 10000)) == 2 and len(p.partial()) == 10000 - 2 * v.MAX_LINE
+p = v.PortText(False)
+p.feed(b"\xe2\x80\xae\xe2\x80\xa8\xc2\x9b\x7f")
+assert p.take_partial() == "\\u202e\\u2028\\x9b\\x7f" and v.show_char(chr(0x202e)) == "\\u202e"
+assert v.raw_text(b"a\r\nb\xff\x1b[0m") == "a\nb\\xff\x1b[0m"
 PYEOF
 
 # --- start_openocd.sh ---------------------------------------------------------------

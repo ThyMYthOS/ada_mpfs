@@ -12,15 +12,23 @@
 #                              programmer both use the FlashPro, and the script refuses while OpenOCD answers
 #                              on the port of lab.conf.
 #   hw.sh openocd [args]       start the SoftConsole OpenOCD (hw/start_openocd.sh)
-#   hw.sh run <ex|file.elf> [--hart N] [--secs S] [--expect RE] [--expect-port N] [--uart-standin] [--lab F]
+#   hw.sh run <ex|file.elf> [--hart N] [--secs S] [--expect RE] [--expect-port N] [--uart-standin]
+#                           [--view MODE] [--color WHEN] [--lab F]
 #                              build the example (or take the ELF), load it onto hart N
 #                              (0 = E51, 1-4 = U54; default: the HART of example.conf, hart 0
-#                              for E51, hart 1 for U54), run it, print what the serial ports show.
+#                              for E51, hart 1 for U54), run it, show what the serial ports print as it arrives.
 #                              With --expect the exit status says whether the console matched RE.
 #   hw.sh probe <probe.S> <hart> [--words N] [--secs S] [--expect RE] [--lab F]
 #                              run a probe of hw/ and print its result block
-#   hw.sh monitor [--secs N] [--port N] [--expect RE] [--lab F]
-#                              show what the serial ports print
+#   hw.sh monitor [--secs N] [--port N] [--expect RE] [--view MODE] [--color WHEN] [--lab F]
+#                              show what the serial ports print, as it arrives
+#   --view MODE (run, monitor) how the serial text is shown: interleaved (complete lines in the order they
+#                              arrive, behind MMUART<n>:; the default) or blocks (one block per port at the
+#                              end: a header with the byte count, the lines behind a |). --color auto|always|never
+#                              (default auto: on a terminal, off with NO_COLOR, on with FORCE_COLOR): the colours
+#                              of the target pass through when on and are removed when off; other escape
+#                              sequences of the target are always removed. --expect matches the text as the
+#                              target printed it, whatever the view and the colours.
 #   hw.sh initialize [--minimal] [--skip-io] [--dry-run] [--target T] [--lab F]
 #                              do what the first-stage boot software does to the MSS before the clock switch
 #                              (hw/initialize.py, hw/mss_init.py): RTC divisor, dynamic enables, IO set-up, SGMII channel
@@ -31,7 +39,8 @@
 #                              abstractcs, reset halt, check SUBBLK_CLOCK_CR and SOFT_RESET_CR), also after a
 #                              hung debug module; exit 0 only if the check passed, 2 otherwise
 #
-# Ports, SoftConsole path and the serial devices come from hw/lab.conf (a copy of hw/lab.conf.example; --lab FILE or
+# Ports, SoftConsole path and the serial ports (devices, or TCP ports that socat tunnels from another machine:
+# tcp://HOST:PORT) come from hw/lab.conf (a copy of hw/lab.conf.example; --lab FILE or
 # LAB_CONF names another one). Exit status: 0 success, 1 the expectation was not met,
 # 2 set-up error (no OpenOCD, no serial port, bad arguments), 130 ended with Ctrl+C.
 
@@ -61,7 +70,7 @@ case "$verb" in
 esac
 
 # run
-[ $# -ge 1 ] || die "usage: ./x hw run <example|file.elf> [--hart N] [--secs S] [--expect RE] [--uart-standin]"
+[ $# -ge 1 ] || die "usage: ./x hw run <example|file.elf> [--hart N] [--secs S] [--expect RE] [--uart-standin] [--view MODE] [--color WHEN]"
 target="$1"; shift
 hart=""; rest=()
 while [ $# -gt 0 ]; do
