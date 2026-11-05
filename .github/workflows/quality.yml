@@ -1,8 +1,9 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# SPARK proofs: the pinned gnatprove proves the projects of tools/prove.list, and the
-# tests of tools/prove.sh run with the real gnatprove. The logic lives in ./x.
+# SPARK proofs: the pinned gnatprove proves the projects of tools/prove.list (also the SPARK units of
+# the heap in crates/mpfs_rts/overlays), and the tests of tools/prove.sh run with the real gnatprove.
+# The logic lives in ./x.
 name: quality
 
 on:
@@ -12,6 +13,7 @@ on:
       - ".github/workflows/quality.yml"
       - ".github/actions/**"
       - "tests/prove/**"
+      - "crates/mpfs_rts/overlays/**"
       - "tests/host/prove/**"
       - "tools/prove.*"
       - "tools/toolchain.env"
@@ -23,6 +25,7 @@ on:
       - ".github/workflows/quality.yml"
       - ".github/actions/**"
       - "tests/prove/**"
+      - "crates/mpfs_rts/overlays/**"
       - "tests/host/prove/**"
       - "tools/prove.*"
       - "tools/toolchain.env"
