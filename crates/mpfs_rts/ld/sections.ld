@@ -13,8 +13,9 @@
  *   REGION_DATA_LOAD  LMA of the same: the same region as REGION_DATA, or the one the boot
  *                     stage loads from (place-envm.ld); start.S copies when they differ
  *   REGION_RAM        .bss, the stacks, the heap and the trap record
- *   REGION_FAST_TEXT  VMA of .fast_text (ITIM), REGION_FAST_DATA VMA of .fast_data (DTIM),
- *   REGION_FAST_LOAD  LMA of both
+ *   REGION_FAST_TEXT  ITIM, REGION_FAST_DATA DTIM, REGION_FAST_LOAD the region the image holds
+ *                     their bytes in: names for the hook of the application, the runtime defines
+ *                     no section in them
  *
  * Layout of REGION_RAM, from the bottom:
  *
@@ -35,6 +36,9 @@
  *                      arrays, 8-byte entries; start.S calls the first two before main)
  *   __gnat_gdb_cpu_first_id  (a 32-bit constant for the debugger: the lowest hart of the mask)
  *   __mpfs_trap_record  (the 32 bytes the trap stub of start.S writes, see there)
+ *   __fast_text_start/_end/_load and __fast_data_start/_end/_load  (defined by the hook of the
+ *                      application for code in the ITIM and data in the DTIM; the runtime checks the
+ *                      memory and copies, with start_fast.S; empty by default)
  */
 
 ENTRY(_start)
@@ -156,31 +160,31 @@ SECTIONS
 	 * somewhere else than it runs. */
 	__data_load = LOADADDR(.data);
 
-	/* Code and data that belong in the local memories: ITIM (code) and, on the E51, DTIM
-	 * (data). The VMA is in the local memory, the LMA in REGION_FAST_LOAD. Nothing copies
-	 * them before the ITIM work package (P1.11): until then both must be empty, see the
-	 * ASSERT below. */
-	.fast_text : ALIGN(8) {
-		__fast_text_start = .;
-		*(.fast_text .fast_text.*)
-		. = ALIGN(8);
-		__fast_text_end = .;
-	} > REGION_FAST_TEXT AT> REGION_FAST_LOAD
-	__fast_text_load = LOADADDR(.fast_text);
-
-	.fast_data : ALIGN(8) {
-		__fast_data_start = .;
-		*(.fast_data .fast_data.*)
-		. = ALIGN(8);
-		__fast_data_end = .;
-	} > REGION_FAST_DATA AT> REGION_FAST_LOAD
-	__fast_data_load = LOADADDR(.fast_data);
+	/* The contract between the hook and start.S: for the code (.fast_text, ITIM) and for the data
+	 * (.fast_data, DTIM) the hook defines __fast_<kind>_start and __fast_<kind>_end (the run
+	 * addresses) and __fast_<kind>_load (where the image holds the bytes). start.S checks that the
+	 * memory is there and copies the bytes. A kind that the hook does not define is empty: the
+	 * defaults are one address, the start of .data (a real address, so that the pc-relative la of
+	 * start.S reaches it from wherever the image is), and nothing is checked or copied. They are
+	 * set here, before the hook: an assignment of the hook behind them wins, whereas a PROVIDE
+	 * behind the hook would overwrite the hook's assignments of the same names. */
+	PROVIDE(__fast_text_start = __data_start);
+	PROVIDE(__fast_text_end   = __data_start);
+	PROVIDE(__fast_text_load  = __data_start);
+	PROVIDE(__fast_data_start = __data_start);
+	PROVIDE(__fast_data_end   = __data_start);
+	PROVIDE(__fast_data_load  = __data_start);
 
 	/* The hook of the application: an application that places code or data of its own (in the
 	 * ITIM or DTIM, in a region of its own) ships its own app-sections.ld and puts its -L in
 	 * front of the runtime's; ld takes the first INCLUDE it finds in the -L order. The file of the
 	 * runtime is empty: the runtime does not declare sections for what an application chooses.
-	 * It comes before .bss, the stacks and the trap record, which end the RAM region. */
+	 * It comes before .bss, the stacks and the trap record, which end the RAM region.
+	 *
+	 * Code and data that an application runs from the local memories (ITIM, and on the E51
+	 * DTIM) are such a choice: the hook defines the output sections, with the VMA in
+	 * REGION_FAST_TEXT or REGION_FAST_DATA and the LMA in REGION_FAST_LOAD, and the three symbols
+	 * of each kind that start_fast.S copies and checks by (see above). */
 	INCLUDE app-sections.ld
 
 	.bss (NOLOAD) : ALIGN(8) {
@@ -357,10 +361,21 @@ ASSERT((SIZEOF(.rodata) == 0 || LOADADDR(.rodata) > LOADADDR(.text)) &&
        (SIZEOF(.srodata) == 0 || LOADADDR(.srodata) > LOADADDR(.text)) &&
        (SIZEOF(.sdata) == 0 || LOADADDR(.sdata) > LOADADDR(.text)) &&
        (SIZEOF(.sdata2) == 0 || LOADADDR(.sdata2) > LOADADDR(.text)) &&
-       (SIZEOF(.fast_text) == 0 || LOADADDR(.fast_text) > LOADADDR(.text)) &&
-       (SIZEOF(.fast_data) == 0 || LOADADDR(.fast_data) > LOADADDR(.text)),
+       (__fast_text_end == __fast_text_start || __fast_text_load > LOADADDR(.text)) &&
+       (__fast_data_end == __fast_data_start || __fast_data_load > LOADADDR(.text)),
        "a loadable section lies below .text: _start is not at the start of the lowest segment")
 
-/* Nothing loads .fast_text and .fast_data yet. */
-ASSERT(SIZEOF(.fast_text) == 0 && SIZEOF(.fast_data) == 0,
-       ".fast_text and .fast_data are not loaded before the ITIM work package (P1.11)")
+/* start.S copies .fast_text and .fast_data (whatever the hook defines for them) in 8-byte units, from
+ * the load address to the run address; an empty range is nothing to do, a reversed one is a fault
+ * of the hook. */
+ASSERT(__fast_text_end >= __fast_text_start && __fast_data_end >= __fast_data_start,
+       "app-sections.ld: __fast_text_end or __fast_data_end lies below its start")
+/* An image with code or data in the local memories must have the start code that checks and
+ * copies them (start_fast.o, which Mpfs_Link.Fast_Switches puts on the link line; the hook,
+ * included inside SECTIONS, cannot do it). The plain start code would never copy. */
+ASSERT((__fast_text_end == __fast_text_start && __fast_data_end == __fast_data_start) ||
+       DEFINED(__mpfs_start_fast),
+       "a __fast_* range is defined but the start code is start.S: link with Mpfs_Link.Fast_Switches (start_fast.S), nothing would copy it")
+ASSERT(((__fast_text_start | __fast_text_end | __fast_text_load) & 7) == 0 &&
+       ((__fast_data_start | __fast_data_end | __fast_data_load) & 7) == 0,
+       "app-sections.ld: __fast_*_start, _end and _load must be multiples of 8 (start.S copies 64-bit words)")

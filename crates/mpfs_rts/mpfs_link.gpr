@@ -171,6 +171,12 @@ abstract project Mpfs_Link is
    Console_No_Init := (Def & "__mpfs_console_base=0x20000000", Def & "__mpfs_console_init=0",
                        Def & "__mpfs_console_dlr=22", Def & "__mpfs_console_dfr=0");
 
+      --  An application that runs code or data from the ITIM or DTIM (its app-sections.ld defines the
+   --  __fast_* symbols) appends these: they put start_fast.o, the start code with the check and the
+   --  copy step, on the link line, which defines _start and the rest before the library is searched, so
+   --  that start.o of the library is not used. Without them the linker script refuses the image (ASSERT).
+   Fast_Switches := (Mpfs_Rts.Runtime_Path & "/adalib/start_fast.o");
+
    Common :=
      ("-static", "-L", App_Ld, "-L", Ld, "-T", Ld & "/place-" & Placement & ".ld",
       "-Wl,-u,_start", "-Wl,--gc-sections", "-Wl,--no-warn-rwx-segments",

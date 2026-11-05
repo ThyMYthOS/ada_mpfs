@@ -21,7 +21,8 @@
  *   3. hart gate: a hart that is not in the mask parks; only on a primary image the parked
  *      hart is prepared for the release of P8 (mie.MSIE, woken by a software interrupt)
  *   4. .data is copied from its load address if that differs from its address; .bss and the
- *      stacks are cleared
+ *      stacks are cleared; the code and data that the application runs from the ITIM and DTIM
+ *      (see below) are checked and copied
  *   5. mstatus.FS (images with an FPU); the constructor arrays (below); main; then __gnat_exit,
  *      which depends on the role
  *
@@ -53,6 +54,28 @@
  * gate costs nothing there. A parked hart of a secondary image has its mtvec, mie and
  * mstatus.MIE written (as every hart before the gate) but gets no mie.MSIE.
  *
+ * Local memories: an application that runs code in the ITIM (and on the E51 data in the DTIM)
+ * links start_fast.o, which is this file assembled with MPFS_FAST and put on the link line before the
+ * library (crates/mpfs_rts/README.md, "ITIM and DTIM"), and defines __fast_text_start, __fast_text_end, __fast_text_load (and the same for __fast_data) in
+ * its app-sections.ld; the runtime declares no section for them (crates/mpfs_rts/README.md). The
+ * start code runs one step for each kind that is not empty. First it checks that the memory is
+ * there: it writes the 64-bit word 0x4954494d4954494d to the first and to the last word of the run
+ * range and reads both back. Whether the ITIM or DTIM ways are enabled is the business of the boot
+ * stage, not of this code; a range that is not backed by memory raises a store access fault or reads
+ * back something else, and both end in the rejection, which does not return: mtvec is a local
+ * handler for the check only, and nothing has been copied. The rejection writes the 32 bytes at
+ * __mpfs_trap_record, like the trap stub and with the same hook, but with the magic 0x4d495449
+ * ("ITIM", low word; mhartid in the high word) and
+ *
+ *   +0  1 for the code (.fast_text), 2 for the data (.fast_data)
+ *   +8  the address that failed (mtval of the fault, or the word that read back wrongly)
+ *   +16 mcause of the store access fault, or all ones if the word read back wrongly
+ *   +24 the magic and mhartid: one 64-bit store
+ *
+ * Then the bytes are copied from the load address in 64-bit units (nothing if the load address is
+ * the run address), and fence.i makes the hart fetch what it has stored. The check comes after
+ * .bss, because the record is in the RAM region; it does not use the stack.
+ *
  * Constructors (R8): the entries of .preinit_array and then of .init_array (ld/sections.ld
  * puts the two arrays one behind the other, from __preinit_array_start to __init_array_end) are
  * called in order, with no arguments, before main. The embedded runtime has exactly one of its own: the
@@ -81,6 +104,47 @@
 #define MSS_RESET_CR 0x20002018
 #define MSS_RESET    0xDEAD
 
+#ifdef MPFS_FAST
+/* 0x4954494d4954494d: the word that the check of the local memories writes and reads back */
+#define FAST_PATTERN_HI 0x4954494d
+#define FAST_PATTERN_LO 0x4954494d
+/* 0x4d495449 = lui 0x4d495, addi 0x449 */
+#define ITIM_MAGIC_HI 0x4d495
+#define ITIM_MAGIC_LO 0x449
+
+/* fast_section start, end, load, kind: check and copy one range of the local memories (see the
+ * header). Uses a0 - a3 and t0 - t4; the labels 1 and 2 are local to each expansion. */
+	.macro fast_section start, end, load, kind
+	la      a0, \start
+	la      a1, \end
+	bgeu    a0, a1, 3f
+	li      a3, \kind
+	la      t0, .Lfast_fault
+	csrw    mtvec, t0
+	li      t1, FAST_PATTERN_HI
+	slli    t1, t1, 32
+	li      t2, FAST_PATTERN_LO
+	or      t1, t1, t2
+	sd      t1, 0(a0)
+	sd      t1, -8(a1)
+	ld      t2, 0(a0)
+	bne     t2, t1, .Lfast_first
+	ld      t2, -8(a1)
+	bne     t2, t1, .Lfast_last
+	la      t0, __mpfs_trap_stub
+	csrw    mtvec, t0
+	la      a2, \load
+	beq     a0, a2, 3f
+1:
+	ld      t0, (a2)
+	sd      t0, (a0)
+	addi    a0, a0, 8
+	addi    a2, a2, 8
+	bltu    a0, a1, 1b
+3:
+	.endm
+#endif
+
 /* 0x54524150 = lui 0x54524, addi 0x150 */
 #define TRAP_MAGIC_HI 0x54524
 #define TRAP_MAGIC_LO 0x150
@@ -88,8 +152,11 @@
 	.section .start,"ax",@progbits
 	.globl _start
 	.type _start,@function
-
 _start:
+#ifdef MPFS_FAST
+	.globl __mpfs_start_fast   /* only this object defines it: the linker script tests it */
+__mpfs_start_fast:
+#endif
 	/* 1. The trap stub first, then gp and sp. */
 	la      t0, __mpfs_trap_stub
 	csrw    mtvec, t0
@@ -170,6 +237,13 @@ _start:
 	bltu    a0, a1, 7b
 8:
 
+	/* The local memories: the code in the ITIM, the data in the DTIM. */
+#ifdef MPFS_FAST
+	fast_section __fast_text_start, __fast_text_end, __fast_text_load, 1
+	fast_section __fast_data_start, __fast_data_end, __fast_data_load, 2
+	fence.i
+#endif
+
 #ifndef __riscv_float_abi_soft
 	/* 5. Enable the FPU (U54 images; the E51 has none). */
 	li      t0, MSTATUS_FS
@@ -230,6 +304,7 @@ __mpfs_trap_stub:
 	slli    t1, t1, 32
 	or      t2, t2, t1
 	sd      t2, 24(t0)
+.Lreport:
 	fence
 
 	.weak   __mpfs_early_trap_hook
@@ -241,3 +316,33 @@ __mpfs_trap_stub:
 	wfi
 	j       .Ltrap_halt
 	.size __mpfs_trap_stub, . - __mpfs_trap_stub
+
+#ifdef MPFS_FAST
+	/* The rejection of an image whose ITIM or DTIM range is not backed by memory (see the
+	 * header). a0 and a1 are the range, a3 the kind. Entered by a jump after a word read back
+	 * wrongly (a0 or a1 - 8 is the address) or as the trap handler of the check. */
+	.balign 4
+.Lfast_fault:
+	csrr    t3, mtval
+	csrr    t4, mcause
+	j       .Lfast_reject
+.Lfast_last:
+	addi    t3, a1, -8
+	j       .Lfast_wrong
+.Lfast_first:
+	mv      t3, a0
+.Lfast_wrong:
+	li      t4, -1
+.Lfast_reject:
+	la      t0, __mpfs_trap_record
+	sd      a3, 0(t0)
+	sd      t3, 8(t0)
+	sd      t4, 16(t0)
+	lui     t2, ITIM_MAGIC_HI
+	addi    t2, t2, ITIM_MAGIC_LO
+	csrr    t1, mhartid
+	slli    t1, t1, 32
+	or      t2, t2, t1
+	sd      t2, 24(t0)
+	j       .Lreport
+#endif

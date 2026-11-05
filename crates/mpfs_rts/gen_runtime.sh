@@ -363,6 +363,11 @@ if [ "$profile" != light ]; then
   [ -f "$work/adalib/libgnarl.a" ] || { cat "$log" >&2; die "building $variant produced no adalib/libgnarl.a"; }
 fi
 
+# the start code with the check of the local memories is linked as an object file by the images that
+# need it (Mpfs_Link.Fast_Switches), not taken from the library
+[ -f "$work/obj/start_fast.o" ] || die "building $variant produced no obj/start_fast.o"
+cp "$work/obj/start_fast.o" "$work/adalib/start_fast.o"
+
 # 4. the runtime directory: adainclude/ takes the sources (what the first directory of a
 # project's Source_Dirs has, wins), the build leftovers go.
 mkdir -p "$work/adainclude"
