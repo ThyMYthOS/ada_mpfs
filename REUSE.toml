@@ -167,3 +167,10 @@ path = ["**/*.png", "**/*.jpg", "**/*.svg", "**/*.pdf"]
 precedence = "closest"
 SPDX-FileCopyrightText = "2026 Manuel Stahl <thymythos@googlemail.com>"
 SPDX-License-Identifier = "CC-BY-4.0"
+
+# Settings of Claude Code (JSON cannot carry a header).
+[[annotations]]
+path = ".claude/settings.json"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Manuel Stahl <thymythos@googlemail.com>"
+SPDX-License-Identifier = "Apache-2.0"
