@@ -21,7 +21,7 @@
 
 Exit status of `run_image.py`, `run_probe.py` and `monitor.py`: 0 success, 1 the expectation was not met, 2 a set-up error (no OpenOCD,
 no serial port, no toolchain, bad arguments); 130 after Ctrl+C. `./x hw bootmode|openocd|run|probe|monitor|reset|initialize` is the shell around them (`tools/hw.sh`).
-`tests/host/hw/run.sh` tests the scripts against a stand-in for the OpenOCD telnet port and files in place of the serial ports; the
+`tests/host/hw/run.sh` tests the scripts against a stand-in for the OpenOCD telnet port, and files and a stand-in for socat's TCP ports (`fake_uart.py`) in place of the serial ports; the live view runs on a pseudo-terminal whose screen a small emulator (`ptyrun.py`) reproduces; the
 hardware itself is not part of any automatic test.
 
 ## Serial ports
@@ -63,10 +63,15 @@ The baud rate, 8N1 and raw mode are set by that command; the tools cannot change
 
 | Mode | Shows |
 |---|---|
-| `interleaved` | Complete lines in the order they arrive, each behind `MMUART<n>: ` (the prefix has its own colour per port when colours are on). A partial line is held back until its line end, or until the end of the run. The default. |
+| `live` | One window of 8 lines per port, in which its text scrolls as it arrives; a header line over each window names the port, the endpoint and the bytes received. The default when stdout is a terminal (and `TERM` is not `dumb`). |
+| `interleaved` | Complete lines in the order they arrive, each behind `MMUART<n>: ` (the prefix has its own colour per port when colours are on). A partial line is held back until its line end, or until the end of the run. The default when stdout is not a terminal (a pipe, a file, CI). |
 | `blocks` | At the end of the run, one block per port that printed: a header with the byte count, then every line behind a `|` gutter (`MMUART0 (97 bytes):`, `  | TEST x: PASS`); a last line without a line end is marked `[no line end]`. |
 
-`run_image.py` shows the serial text first, then the trap (`after:`, `first trap:`) and the `--expect` verdict; `monitor.py` ends with the verdict.
+`run_image.py` shows the serial text first, then the trap (`after:`, `first trap:`) and the `--expect` verdict; `monitor.py` ends with the verdict. After a live view the last frame stays on the screen (nothing is printed twice) and these lines follow below it.
+
+**The live view** uses plain ANSI escape sequences, no curses. Every port of `UART_COUNT` (or the one of `--port`) has a window, also one that never prints (its header and its gutter are dim). The frame is drawn once below the cursor; afterwards only the rows that changed are rewritten, in one write with erase-to-end-of-line instead of clearing first, at most every 30 ms, so it does not flicker. The cursor is hidden while it runs and shown again when the view ends, also on Ctrl+C (the frame stays, one line `interrupted (Ctrl+C)` and exit status 130 follow below it) and on an exception. A line that is wider than the terminal is cut to its width less one column, the last visible column being `…` (`>` without UTF-8); width is the width on the screen, so East Asian wide characters count 2 and combining marks 0. A line that is still being typed (a prompt) is shown at once. A tab is expanded to 8 columns. A window has 8 lines plus its header, and one more row stays free for the cursor: four ports need 37 rows for full windows. On a shorter terminal the windows get fewer lines (4 each on 24 rows), down to 1; a terminal that cannot hold even that does not get a live view: the tool says so on stderr and uses the interleaved view. The terminal is looked at once per 50 ms; when its size changes the frame is cleared and drawn again for the new size. A port that ends (see "Serial ports") is marked `[ended]` in its header and reported below the frame at the end.
+
+Decorations are UTF-8 box-drawing characters (`─`, `│`, `…`) when the output encoding is UTF-8, otherwise ASCII (`-`, `|`, `>`), and then a character that the output encoding lacks is escaped before its width is counted.
 
 `--color auto|always|never` (default `auto`): `auto` is on for a terminal, unless the environment variable `NO_COLOR` is set (then off) or `FORCE_COLOR` is set (then on, also for a pipe or a file; `NO_COLOR` wins when both are set). `always` and `never` override both.
 
@@ -88,7 +93,7 @@ Measured on the Icicle Kit (boot mode 0, 2026-10-23, N32): `MTIME` counts at 1.0
 
 ## Ctrl+C
 
-- `run_image.py`, `run_probe.py` and `monitor.py` end at once, also while OpenOCD does not answer (a hung bus), with one line on stderr and exit status 130. They do not clean up: after an interrupt the hart can be halted or still running the image; send `resume` or `halt` to OpenOCD (telnet :4444) or reset the board.
+- `run_image.py`, `run_probe.py` and `monitor.py` end at once, also while OpenOCD does not answer (a hung bus), with one line on stderr and exit status 130 (a live view of the serial ports shows the cursor again first and leaves its last frame on the screen). They do not clean up: after an interrupt the hart can be halted or still running the image; send `resume` or `halt` to OpenOCD (telnet :4444) or reset the board.
 - `start_openocd.sh` (`./x hw openocd`) runs OpenOCD as a child and does not `exec` it. OpenOCD looks at SIGINT only between two passes of its event loop, so while it is stuck in a JTAG or abstract-command timeout it ignores Ctrl+C. On SIGINT, SIGTERM or SIGHUP (closed terminal) the script sends OpenOCD SIGTERM, waits for it for a grace period of 3 s (`START_OPENOCD_GRACE`, seconds) and then kills it with SIGKILL; a second Ctrl+C kills it at once. The exit status is 130 after Ctrl+C (143 after SIGTERM, 129 after SIGHUP), otherwise the status of OpenOCD. Only a SIGKILL of the script itself leaves OpenOCD running.
 - `svd_probe.py`: see below.
 

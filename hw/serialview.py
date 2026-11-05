@@ -3,8 +3,9 @@
 """How the serial text of the Icicle Kit is shown: shared by run_image.py and monitor.py.
 
 A view gets the bytes of every port as they arrive (feed), is told about a port that ended (note) and
-redraws (tick) while ocd.Serial.pump reads; close ends it. Two views:
+redraws (tick) while ocd.Serial.pump reads; close ends it. Three views:
 
+  live         one window of 8 lines per port, in which the text scrolls (plain ANSI escape sequences)
   interleaved  complete lines in the order they arrive, each behind "MMUART<n>: "
   blocks       what each port printed, as a block, at the end: a header with the byte count, every line
                behind a "|" gutter
@@ -20,19 +21,24 @@ import argparse
 import codecs
 import os
 import re
+import shutil
 import sys
+import time
 import unicodedata
+from collections import deque
 
 RESET = "\x1b[0m"
 _SGR = re.compile(r"(\x1b\[[0-9;:]*m)")
 MAX_LINE = 4096            # a line that gets longer is broken here (shown only; the raw text is not touched)
+MIN_REDRAW = 0.03          # s between two redraws of the live view
 PALETTE = ("36", "33", "35", "32", "34", "91")   # SGR colour of MMUART <n>: PALETTE[n % 6]
 
 
 def add_arguments(ap: argparse.ArgumentParser) -> None:
-    ap.add_argument("--view", choices=("auto", "interleaved", "blocks"), default="auto",
-                    help="how the serial text is shown: interleaved (lines in the order they arrive, behind MMUART<n>:; "
-                         "auto) or blocks (one block per port at the end)")
+    ap.add_argument("--view", choices=("auto", "live", "interleaved", "blocks"), default="auto",
+                    help="how the serial text is shown: live (a window of 8 lines per port; auto on a terminal), "
+                         "interleaved (lines in the order they arrive, behind MMUART<n>:; auto otherwise) or blocks "
+                         "(one block per port at the end)")
     ap.add_argument("--color", choices=("auto", "always", "never"), default="auto",
                     help="colours: auto = on a terminal, unless NO_COLOR is set (FORCE_COLOR turns them on)")
 
@@ -48,10 +54,22 @@ def raw_text(data: bytes) -> str:
 _BIDI = frozenset(range(0x202A, 0x202F)) | frozenset(range(0x2066, 0x206A))
 
 
-def show_char(c: str) -> str:
-    """c, or its \\xNN (\\uNNNN) form if it is a control character, a line or paragraph separator or a bidi override."""
+def escape(c: str) -> str:
+    """The \\xNN, \\uNNNN or \\UNNNNNNNN form of a character."""
+    o = ord(c)
+    return "\\x%02x" % o if o < 0x100 else "\\u%04x" % o if o < 0x10000 else "\\U%08x" % o
+
+
+def show_char(c: str, enc: str | None = None) -> str:
+    """c, or its escaped form if it is a control character, a line or paragraph separator, a bidi override, or (with
+    <enc>, the encoding of an output that is not UTF-8) a character that the encoding lacks."""
     if c != "\t" and (unicodedata.category(c) in ("Cc", "Zl", "Zp") or ord(c) in _BIDI):
-        return "\\x%02x" % ord(c) if ord(c) < 0x100 else "\\u%04x" % ord(c)
+        return escape(c)
+    if enc:
+        try:
+            c.encode(enc)
+        except UnicodeEncodeError:
+            return escape(c)
     return c
 
 
@@ -117,8 +135,9 @@ class PortText:
     what must not reach a terminal. feed returns the lines that the new bytes completed (without line end); what is
     after the last line end is the partial line (partial)."""
 
-    def __init__(self, color: bool):
+    def __init__(self, color: bool, enc: str | None = None):
         self.color = color
+        self.enc = enc
         self.dec = codecs.getincrementaldecoder("utf-8")(errors="backslashreplace")
         self.state = _TEXT
         self.seq = ""
@@ -174,7 +193,7 @@ class PortText:
                 self.cr = False
             else:
                 self.cr = False
-                self._put(show_char(c), lines)
+                self._put(show_char(c, self.enc), lines)
         elif st == _ESC:
             if c == "[":
                 self.state = _CSI
@@ -218,6 +237,18 @@ class PortText:
 
 # --- terminal and options --------------------------------------------------------------------------
 
+def terminal_size(out) -> tuple[int, int]:
+    """(columns, rows) of the terminal of <out>, 80 x 24 when it is not one."""
+    try:
+        size = os.get_terminal_size(out.fileno())
+        if size.columns > 0 and size.lines > 0:
+            return size.columns, size.lines
+    except (OSError, ValueError, AttributeError):
+        pass
+    size = shutil.get_terminal_size((80, 24))
+    return size.columns, size.lines
+
+
 def is_utf8(out) -> bool:
     try:
         return codecs.lookup(getattr(out, "encoding", None) or "ascii").name == "utf-8"
@@ -247,6 +278,7 @@ class _View:
         self.out = out
         self.color = color
         self.utf8 = utf8
+        self.enc = None if utf8 else getattr(out, "encoding", None) or "ascii"   # what a character must be encodable in
         self.prog = prog
         self.closed = False
 
@@ -278,10 +310,10 @@ class _View:
         pass
 
 
-def format_block(port: int, data: bytes, color: bool = False) -> str:
+def format_block(port: int, data: bytes, color: bool = False, enc: str | None = None) -> str:
     """What MMUART <port> printed as a block: a header with the byte count, then every line behind a gutter; a last
     line without a line end is marked."""
-    pt = PortText(color)
+    pt = PortText(color, enc)
     lines = pt.feed(data, final=True)
     last = pt.take_partial()
     out = [f"MMUART{port} ({len(data)} bytes):"]
@@ -302,13 +334,13 @@ class BlocksView(_View):
     def finish(self) -> None:
         for p in self.ports:
             if self.data[p]:
-                print(format_block(p, bytes(self.data[p]), self.color), file=self.out)
+                print(format_block(p, bytes(self.data[p]), self.color, self.enc), file=self.out)
 
 
 class InterleavedView(_View):
     def __init__(self, *args):
         super().__init__(*args)
-        self.text = {p: PortText(self.color) for p in self.ports}
+        self.text = {p: PortText(self.color, self.enc) for p in self.ports}
 
     def _prefix(self, port: int) -> str:
         if self.color:
@@ -331,14 +363,162 @@ class InterleavedView(_View):
                 self.out.write(self._prefix(p) + last + "\n")
 
 
+class LiveView(_View):
+    """A window per port, HEIGHT lines of text under a header line, on the lines below the cursor. The frame is
+    drawn once and then only the rows that changed are rewritten (cursor movement, text, erase to the end of the
+    line, all in one write), so nothing flickers. The cursor is hidden meanwhile and shown again by close, which
+    also runs on Ctrl+C and on an exception, and leaves it below the last frame."""
+
+    HEIGHT = 8
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.text = {p: PortText(self.color, self.enc) for p in self.ports}
+        self.lines = {p: deque(maxlen=self.HEIGHT) for p in self.ports}
+        self.count = {p: 0 for p in self.ports}
+        self.ended: set[int] = set()
+        self.deferred: list[tuple[int, str]] = []
+        self.dirty = True
+        self.last = 0.0
+        self.size = terminal_size(self.out)
+        self.h = 0         # content lines per window now
+        self.shown: list[str] = []   # the rows on the screen; empty when no frame is there
+        self.hidden = False
+
+    @staticmethod
+    def height_for(rows: int, nports: int) -> int:
+        """Content lines per window on a terminal of <rows> rows: HEIGHT, or fewer so that the frame and the line
+        below it fit; below 1 the live view is not possible."""
+        return min(LiveView.HEIGHT, (rows - 1) // max(nports, 1) - 1)
+
+    def start(self) -> None:
+        self.out.write("\x1b[?25l")
+        self.hidden = True
+        self._frame(clear=0)
+
+    def note(self, port: int, text: str) -> None:
+        self.ended.add(port)
+        self.deferred.append((port, text))
+        self.dirty = True
+
+    def feed(self, port: int, chunk: bytes) -> None:
+        self.count[port] += len(chunk)
+        self.lines[port].extend(self.text[port].feed(chunk))
+        self.dirty = True
+
+    def tick(self) -> None:
+        self._sync(force=False)
+        self.out.flush()
+
+    def _sync(self, force: bool) -> None:
+        size = terminal_size(self.out)
+        if size != self.size:
+            self.size = size
+            self._frame(clear=len(self.shown))
+        elif self.dirty and (force or time.monotonic() - self.last >= MIN_REDRAW):
+            self._update()
+
+    def finish(self) -> None:
+        for p in self.ports:
+            self.lines[p].extend(self.text[p].feed(b"", final=True))
+            last = self.text[p].take_partial()
+            if last is not None:
+                self.lines[p].append(last)
+        self.dirty = True
+        try:
+            self._sync(force=True)
+        finally:
+            if self.hidden:
+                self.out.write("\x1b[?25h")
+                self.hidden = False
+            self.out.flush()
+            for port, text in self.deferred:
+                note_line(self.prog, port, text)
+
+    # -- drawing
+
+    def _gutter(self, p: int, empty: bool) -> str:
+        g = "│" if self.utf8 else "|"
+        if not self.color:
+            return g + " "
+        return f"\x1b[{'2' if empty else PALETTE[p % len(PALETTE)]}m{g}{RESET} "
+
+    def _header(self, p: int, cols: int) -> str:
+        bar = "─" if self.utf8 else "-"
+        state = "  [ended]" if p in self.ended else ""
+        title = f"{bar}{bar} MMUART{p}  {self.labels[p]}  {self.count[p]} B{state} "
+        shown = fit(title, cols, "…" if self.utf8 else ">")
+        row = shown + bar * max(cols - visible_width(shown), 0)
+        if self.color:
+            return f"\x1b[{'2' if not self.count[p] else '1;' + PALETTE[p % len(PALETTE)]}m{row}{RESET}"
+        return row
+
+    def _rows(self, cols: int) -> list[str]:
+        marker = "…" if self.utf8 else ">"
+        rows = []
+        for p in self.ports:
+            rows.append(self._header(p, cols))
+            content = list(self.lines[p])
+            part = self.text[p].partial()
+            if part:
+                content.append(part)
+            content = content[-self.h:]
+            for line in content:
+                rows.append(self._gutter(p, False) + fit(expand_tabs(line), cols - 2, marker))
+            rows += [self._gutter(p, True).rstrip()] * (self.h - len(content))
+        return rows
+
+    def _frame(self, clear: int) -> None:
+        """Draw the whole frame below the cursor, after removing <clear> rows above it (a resize, or nothing)."""
+        cols, rows = self.size
+        out = f"\x1b[{clear}A\r\x1b[J" if clear else ""
+        self.h = self.height_for(rows, len(self.ports))
+        if self.h < 1:   # the terminal became too small: nothing is drawn until it is big enough again
+            self.shown = []
+        else:
+            self.shown = self._rows(cols - 1)
+            out += "".join(row + "\x1b[K\n" for row in self.shown)
+        self.out.write(out)
+        self.dirty = False
+        self.last = time.monotonic()
+
+    def _update(self) -> None:
+        if not self.shown:
+            if self.h < 1 and self.dirty:
+                self._frame(clear=0)
+            return
+        rows = self._rows(self.size[0] - 1)
+        changed = [i for i, row in enumerate(rows) if row != self.shown[i]]
+        self.dirty = False
+        self.last = time.monotonic()
+        if not changed:
+            return
+        out, at = [f"\x1b[{len(rows)}A"], 0
+        for i in changed:
+            if i > at:
+                out.append(f"\x1b[{i - at}B")
+                at = i
+            out.append("\r" + rows[i] + "\x1b[K")
+        out.append(f"\x1b[{len(rows) - at}B\r")
+        self.out.write("".join(out))
+        self.shown = rows
+
+
 def make_view(mode: str, color: str, labels: dict[int, str], out=None, env=None):
     """The view for --view <mode> and --color <color>, for the ports of <labels> (number -> what to call it).
-    auto is interleaved."""
+    auto is live on a terminal and interleaved otherwise; live falls back to interleaved, with a line on stderr,
+    when the terminal has too few rows for a window of at least one line per port."""
     out = out or sys.stdout
     env = os.environ if env is None else env
     if hasattr(out, "reconfigure"):
         out.reconfigure(errors="backslashreplace")   # a character that the output encoding lacks must not raise
     args = (list(labels), labels, out, use_color(color, out, env), is_utf8(out), os.path.basename(sys.argv[0]))
     if mode == "auto":
-        mode = "interleaved"
-    return {"interleaved": InterleavedView, "blocks": BlocksView}[mode](*args)
+        mode = "live" if out.isatty() and env.get("TERM", "") not in ("", "dumb") else "interleaved"
+    if mode == "live":
+        rows = terminal_size(out)[1]
+        if LiveView.height_for(rows, len(labels)) < 1:
+            print(f"{args[5]}: a terminal of {rows} rows is too small for {len(labels)} windows; "
+                  "showing the interleaved view", file=sys.stderr)
+            mode = "interleaved"
+    return {"live": LiveView, "interleaved": InterleavedView, "blocks": BlocksView}[mode](*args)

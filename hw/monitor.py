@@ -11,7 +11,9 @@ With --expect REGEX the exit status says whether the text matched: 0 if REGEX (P
 1 if not (also if nothing was printed); without it the exit status is 0 when the ports could be read.
 2: set-up error (also a TCP port that cannot be connected); 130: Ctrl+C.
 
---view interleaved  complete lines in the order they arrive, behind MMUART<n>: (the default)
+--view live         a window of 8 lines per port in which the text scrolls (the default on a terminal;
+                    fewer lines per window on a short terminal)
+       interleaved  complete lines in the order they arrive, behind MMUART<n>: (the default otherwise)
        blocks       at the end, one block per port: a header with the byte count, the lines behind a |
 --color auto|always|never   colours (auto: on a terminal, off with NO_COLOR, on with FORCE_COLOR). The
                     colours that the target prints pass through when they are on and are removed when
