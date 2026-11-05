@@ -1,0 +1,40 @@
+  ok: the heap is at least 512 KiB (the range __heap_start .. __heap_end)
+  ok: the heap size is the distance of the two symbols
+  ok: an exception is raised and handled
+  ok: libgcc's unwinder took memory from this heap at the first raise
+  ok: the chain of blocks is intact after it
+  ok: interrupts are enabled in the task
+  ok: Acquire masks the interrupts, also nested
+  ok: Release enables them again, the outer one last
+  ok: malloc leaves the interrupts enabled
+  ok: blocks of 1 to 100 bytes are 16-byte aligned, in the heap
+  ok: freeing them gives the heap back
+  ok: malloc (0) returns no block
+  ok: malloc refuses a request that no heap can serve
+  ok: calloc refuses a product that wraps
+  ok: the refused requests and free (null) changed nothing
+  ok: calloc returns zeros, though the block was used before
+  ok: realloc (null, n) is malloc (n)
+  ok: realloc to less keeps the block
+  ok: realloc to more keeps the content
+  ok: realloc (p, 0) frees the block
+  ok: new takes the memory from this heap
+  ok: Unchecked_Deallocation gives it back
+  ok: no block changed its content
+  ok: every block was 16-byte aligned and in the heap
+  ok: the chain of blocks was intact all along
+  ok: after freeing everything the heap is as large as before
+  ok: after the random sequences a block of 90 % of the heap is available
+  ok: 2000 blocks of 256 bytes
+  ok: the holes of the freed blocks take the next 1000 of the same size
+  ok: none of the 2000 blocks was disturbed
+  ok: freeing them coalesces everything: the heap is as large as before
+  ok: 4 KiB blocks take at least 80 % of the heap before malloc fails
+  ok: malloc failed because nothing was left
+  ok: new raises Storage_Error on an empty heap
+  ok: freeing the 4 KiB blocks gives the whole heap back
+  ok: new can take 1 MiB again
+  ok: the task of higher priority finished
+  ok: no block was disturbed while two tasks allocated and freed
+  ok: all the blocks of the task were served
+  ok: the heap is as large as before
