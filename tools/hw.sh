@@ -12,7 +12,7 @@
 #                              programmer both use the FlashPro, and the script refuses while OpenOCD answers
 #                              on the port of lab.conf.
 #   hw.sh openocd [args]       start the SoftConsole OpenOCD (hw/start_openocd.sh)
-#   hw.sh run <ex|file.elf> [--hart N] [--secs S] [--expect RE] [--expect-port N] [--uart-standin]
+#   hw.sh run <ex|file.elf> [--hart N] [--secs S] [--expect RE] [--expect-port N] [--uart-clocks|--uart-standin]
 #                           [--view MODE] [--color WHEN] [--lab F]
 #                              build the example (or take the ELF), load it onto hart N
 #                              (0 = E51, 1-4 = U54; default: the HART of example.conf, hart 0
@@ -72,7 +72,7 @@ case "$verb" in
 esac
 
 # run
-[ $# -ge 1 ] || die "usage: ./x hw run <example|file.elf> [--hart N] [--secs S] [--expect RE] [--uart-standin] [--view MODE] [--color WHEN]"
+[ $# -ge 1 ] || die "usage: ./x hw run <example|file.elf> [--hart N] [--secs S] [--expect RE] [--uart-clocks|--uart-standin] [--view MODE] [--color WHEN]"
 target="$1"; shift
 hart=""; rest=()
 while [ $# -gt 0 ]; do

@@ -1,0 +1,6 @@
+  ok: the console base is the MMUART the test expects
+  ok: the line format is 8N1 and DLAB is clear
+  ok: the integer divisor is __mpfs_console_dlr
+  ok: DFR is __mpfs_console_dfr
+  ok: the fractional baud rate mode is on exactly for a fraction
+  ok: the FIFOs are enabled

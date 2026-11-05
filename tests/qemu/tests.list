@@ -53,3 +53,17 @@ secstack_light_test_e51	examples/secstack_light_test	0	pass	-	-
 secstack_light_test_u54	examples/secstack_light_test	0	pass	-	-
 secstack_tasking_test_e51	examples/secstack_tasking_test	0	pass	-	-
 secstack_tasking_test_u54	examples/secstack_tasking_test	0	pass	-	-
+textio_test_e51	examples/textio_test	0	pass	-	-
+textio_test_u54	examples/textio_test	0	pass	-	-
+console_mmuart1_test_e51	examples/textio_test	1	pass	-	-
+console_mmuart2_test_e51	examples/textio_test	2	pass	-	-
+console_mmuart3_test_e51	examples/textio_test	3	pass	-	-
+console_mmuart4_test_e51	examples/textio_test	4	pass	-	-
+console_noinit_test_e51	examples/textio_test	0	pass	-	-
+console_mmuart1_test_u54	examples/textio_test	1	pass	-	-
+console_mmuart2_test_u54	examples/textio_test	2	pass	-	-
+console_mmuart3_test_u54	examples/textio_test	3	pass	-	-
+console_mmuart4_test_u54	examples/textio_test	4	pass	-	-
+console_noinit_test_u54	examples/textio_test	0	pass	-	-
+console_none_test_e51	examples/console_none_test	0	pass	-	-
+console_none_test_u54	examples/console_none_test	0	pass	-	-

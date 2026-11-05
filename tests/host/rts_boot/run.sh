@@ -308,6 +308,85 @@ else
   fail "the constructor fixtures do not assemble"
 fi
 
+# -- the console: link symbols read by System.Text_IO (examples/textio_test, console_none_test) -------
+# The runtime has no console literal; System.Text_IO reads __mpfs_console_base, _init, _dlr and _dfr.
+# An image that links it needs all four; the images of the examples carry the values of their
+# console (the symbols are absolute, nm prints them as A).
+rm -f "$work/members.txt"
+riscv64-elf-ar t "$e51/adalib/libgnat.a" > "$work/members.txt"
+grep -qx 's-textio.o' "$work/members.txt" && pass "libgnat.a has s-textio.o" || fail "libgnat.a has s-textio.o"
+rm -rf "$work/textio-o"; mkdir -p "$work/textio-o"
+( cd "$work/textio-o" && riscv64-elf-ar x "$e51/adalib/libgnat.a" s-textio.o )
+undef="$(riscv64-elf-nm -u "$work/textio-o/s-textio.o" 2>/dev/null)"
+for sy in __mpfs_console_base __mpfs_console_init __mpfs_console_dlr __mpfs_console_dfr; do
+  echo "$undef" | grep -qw "$sy" && pass "s-textio.o refers to $sy" || fail "s-textio.o refers to $sy"
+done
+cmp -s "$ROOT/libs/mpfs_pac/src/generated/mpfs_registers-mmuart.ads" "$e51/adainclude/mpfs_registers-mmuart.ads" \
+  && pass "adainclude/ has the register package MPFS_Registers.MMUART of the PAC" \
+  || fail "adainclude/ has the register package MPFS_Registers.MMUART of the PAC"
+grep -q 'UART_Base_Address' "$e51/adainclude/s-bbbopa.ads" && fail "s-bbbopa.ads has no console base" || pass "s-bbbopa.ads has no console base"
+
+tx="$ROOT/examples/textio_test"
+# xbuild <log> <example> <hart> [NAME=value ...]: ./x build of the real example with scenario variables.
+xbuild () {
+  local log="$1" exname="$2" hart="$3"; shift 3
+  rm -rf "$ROOT/examples/$exname/obj-$hart" "$ROOT/examples/$exname/bin-$hart"
+  env "$@" "$ROOT/x" build "$exname" --hart "$hart" >"$log" 2>&1
+}
+csym () {   # csym <elf> <name>: the value of an absolute symbol, as a number
+  local v; v="$(sym "$1" "$2")"; [ -n "$v" ] && echo $((16#$v)) || echo missing
+}
+if xbuild "$work/tx.log" textio_test e51 MPFS_OMIT=none; then
+  elf="$tx/bin-e51/textio_test.elf"
+  got="$(csym "$elf" __mpfs_console_base) $(csym "$elf" __mpfs_console_init) $(csym "$elf" __mpfs_console_dlr) $(csym "$elf" __mpfs_console_dfr)"
+  [ "$got" = "$((0x20000000)) 1 22 0" ] && pass "textio_test: console MMUART0, init 1, divisor 22, fraction 0" \
+    || fail "textio_test: console MMUART0, init 1, divisor 22, fraction 0 ($got)"
+  for n in 1 2 3 4; do
+    elf="$tx/bin-e51/console_mmuart${n}_test.elf"
+    case $n in 1) b=0x20100000 ;; 2) b=0x20102000 ;; 3) b=0x20104000 ;; 4) b=0x20106000 ;; esac
+    if [ $n = 4 ]; then want="$((b)) 1 21 45"; else want="$((b)) 1 22 0"; fi
+    got="$(csym "$elf" __mpfs_console_base) $(csym "$elf" __mpfs_console_init) $(csym "$elf" __mpfs_console_dlr) $(csym "$elf" __mpfs_console_dfr)"
+    [ "$got" = "$want" ] && pass "console_mmuart${n}_test: console $b, init, divisor and fraction ($got)" \
+      || fail "console_mmuart${n}_test: console $b, init, divisor and fraction ($got, wanted $want)"
+  done
+  elf="$tx/bin-e51/console_noinit_test.elf"
+  got="$(csym "$elf" __mpfs_console_base) $(csym "$elf" __mpfs_console_init)"
+  [ "$got" = "$((0x20000000)) 0" ] && pass "console_noinit_test: console MMUART0, init 0" \
+    || fail "console_noinit_test: console MMUART0, init 0 ($got)"
+else
+  fail "textio_test builds ($(tail -5 "$work/tx.log"))"
+fi
+if xbuild "$work/none.log" console_none_test e51 MPFS_OMIT=none; then
+  got="$(csym "$ROOT/examples/console_none_test/bin-e51/console_none_test.elf" __mpfs_console_base)"
+  [ "$got" = 0 ] && pass "console_none_test: the console base is 0" || fail "console_none_test: the console base is 0 ($got)"
+else
+  fail "console_none_test builds ($(tail -5 "$work/none.log"))"
+fi
+# MPFS_CONSOLE and MPFS_CONSOLE_INIT select the console of textio_test
+if xbuild "$work/tx2.log" textio_test e51 MPFS_CONSOLE=mmuart2 MPFS_CONSOLE_INIT=0; then
+  elf="$tx/bin-e51/textio_test.elf"
+  got="$(csym "$elf" __mpfs_console_base) $(csym "$elf" __mpfs_console_init)"
+  [ "$got" = "$((0x20102000)) 0" ] && pass "MPFS_CONSOLE=mmuart2 MPFS_CONSOLE_INIT=0 select the console of textio_test" \
+    || fail "MPFS_CONSOLE=mmuart2 MPFS_CONSOLE_INIT=0 select the console of textio_test ($got)"
+else
+  fail "textio_test with MPFS_CONSOLE=mmuart2 builds ($(tail -5 "$work/tx2.log"))"
+fi
+# A missing console symbol stops the link of an image that uses the console.
+for sy in base init dlr dfr; do
+  if xbuild "$work/neg-console_$sy.log" textio_test e51 MPFS_OMIT=console_$sy; then
+    fail "missing_console_$sy: it linked, it must fail"
+  elif [ -f "$tx/bin-e51/textio_test.elf" ]; then
+    fail "missing_console_$sy: it failed but left an image"
+  elif grep -qF "undefined reference to \`__mpfs_console_$sy'" "$work/neg-console_$sy.log"; then
+    pass "missing_console_$sy fails (\"undefined reference to __mpfs_console_$sy\")"
+  else
+    fail "missing_console_$sy failed, but not with the undefined reference: $(tail -8 "$work/neg-console_$sy.log")"
+  fi
+done
+# The images of an application that does not use the console do not need the symbols (trap_test links
+# without them: the control below builds it).
+rm -rf "$tx/obj-e51" "$tx/bin-e51" "$ROOT/examples/console_none_test/obj-e51" "$ROOT/examples/console_none_test/bin-e51"
+
 # A control for the negatives above: the same build with no fault links and leaves an image.
 if build "$work/control.log" e51 && [ -f "$ex/bin-e51/trap_test.elf" ]; then pass "control: the build without a fault links"
 else fail "control: the build without a fault links ($(tail -5 "$work/control.log"))"; fi

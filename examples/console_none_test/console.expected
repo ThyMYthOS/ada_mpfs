@@ -1,0 +1,6 @@
+  ok: Initialize marks the service as initialized
+  ok: Initialize wrote no register of MMUART0
+  ok: Is_Tx_Ready is always true
+  ok: Is_Rx_Ready is always false
+  ok: Get returns NUL
+  ok: Put wrote no register of MMUART0 either

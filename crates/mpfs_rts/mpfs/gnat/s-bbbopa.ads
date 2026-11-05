@@ -11,9 +11,10 @@
 --  bases of the PLIC and of the CLINT, and the layout of their registers, are
 --  those of the PAC (MPFS_Registers.PLIC_Base, MPFS_Registers.CLINT_Base and
 --  the packages MPFS_Registers.PLIC and MPFS_Registers.CLINT), so that the
---  SVD is their only source. The first CPU id for the debugger,
---  __gnat_gdb_cpu_first_id, is a constant of the linker script (the lowest
---  hart of __mpfs_harts_mask), not of this package.
+--  SVD is their only source. The console is not here either: System.Text_IO
+--  takes its MMUART from link symbols (s-textio.adb). The first CPU id for
+--  the debugger, __gnat_gdb_cpu_first_id, is a constant of the linker script
+--  (the lowest hart of __mpfs_harts_mask), not of this package.
 
 package System.BB.Board_Parameters is
    pragma No_Elaboration_Code_All;
@@ -33,13 +34,5 @@ package System.BB.Board_Parameters is
 
    Clock_Frequency : constant Positive := Decrementer_Frequency * Clock_Scale;
    --  Scaled clock frequency
-
-   -------------
-   -- Console --
-   -------------
-
-   UART_Base_Address : constant := 16#2000_0000#;
-   --  MMUART0 (LO). The console moves to link symbols with the console work
-   --  package (P1.9).
 
 end System.BB.Board_Parameters;

@@ -12,11 +12,11 @@
 | `compare_toolchain.sh` | Compares `gnat/` and `gnarl/` of the packs (after `make_packs.sh --ensure`, or `--packs DIR`) with the runtimes shipped with the pinned `gnat_riscv64_elf` (`light-polarfiresoc` and so on, `light-rv64imac`): everything that is not a port unit must be identical. |
 | `gen_runtime.sh` | `gen_runtime.sh <profile> <hart> <cpus> <priv>` builds one variant of the runtime into `build/rts/<profile>-<hart>-cpus<n>-<priv>/` (see below). |
 | `mpfs_rts.gpr` | Abstract project: `Runtime_Path` and `Target` from the scenario variables `MPFS_PROFILE`, `MPFS_HART`, `MPFS_CPUS`, `MPFS_PRIV` (and `MPFS_RTS_ROOT` for the root of the variants). |
-| `mpfs/` | Own port units, laid over the pack by `gen_runtime.sh` (`gnat/`, `gnarl/` below it): `gnat/start.S` (P1.3), `gnat/s-bbbopa.ads`, `gnarl/s-bbripl.ad[sb]`, `gnarl/s-bbsuti.adb`, `gnarl/s-bbhart.ad[sb]` and `gnarl/s-bbricl.ad[sb]` (P1.4), `gnarl/context_switch.S` and `gnat/riscv_def.h` (P1.5), `gnarl/s-bbbosu.adb` (P1.6). `mpfs/remove.list` names the files of the pack that an own unit replaces under another name (`gnat/start-ram.S`) or that must stay out of the library (`embedded: gnat/unwind-dw2-fde-bb.c`: a line `<profile>: <path>` applies to that profile's pack only). |
+| `mpfs/` | Own port units, laid over the pack by `gen_runtime.sh` (`gnat/`, `gnarl/` below it): `gnat/start.S`, `gnat/s-bbbopa.ads`, `gnat/s-textio.ad[sb]` (the console, see below), `gnarl/s-bbripl.ad[sb]`, `gnarl/s-bbsuti.adb`, `gnarl/s-bbhart.ad[sb]` and `gnarl/s-bbricl.ad[sb]`, `gnarl/context_switch.S` and `gnat/riscv_def.h`, `gnarl/s-bbbosu.adb`. `mpfs/remove.list` names the files of the pack that an own unit replaces under another name (`gnat/start-ram.S`) or that must stay out of the library (`embedded: gnat/unwind-dw2-fde-bb.c`: a line `<profile>: <path>` applies to that profile's pack only). |
 
 | `overlays/<name>/` | Overlays, laid over the pack after the port units (`gnat/`, `gnarl/`, `ld/` below each, and `<profile>/gnat`, `<profile>/gnarl`, `<profile>/ld` for that profile only). `overlays/tlsf/embedded/gnat/` is the heap of the embedded profile (see "Heap and secondary stack"). |
 | `ld/` | The linker scripts (P1.3): `mpfs-memory.ld`, `place-lim.ld`, `place-scratchpad.ld`, `place-envm.ld`, `sections.ld` (the shared `SECTIONS`) and `app-sections.ld` (the empty hook of the application). `gen_runtime.sh` puts them into `ld/` of every variant. |
-| `mpfs_link.gpr` | Abstract project with the link switches of an image: the placement script of the variant and the partition data as `--defsym` values (scenario variables `MPFS_PLACEMENT`, `MPFS_BOOT_ROLE`, `MPFS_HARTS`, `MPFS_APP_LD`, `MPFS_STACK_SIZE`, `MPFS_INTERRUPT_STACK_SIZE`), for the examples and tests until the partition generator (P1.12) writes the values. |
+| `mpfs_link.gpr` | Abstract project with the link switches of an image: the placement script of the variant and the partition data as `--defsym` values (scenario variables `MPFS_PLACEMENT`, `MPFS_BOOT_ROLE`, `MPFS_HARTS`, `MPFS_APP_LD`, `MPFS_STACK_SIZE`, `MPFS_INTERRUPT_STACK_SIZE`, `MPFS_CONSOLE`, `MPFS_CONSOLE_INIT`), for the examples and tests until the partition generator writes the values. |
 | `link-zcx.spec` | The link spec of the `embedded` profile (P1.7, R8): `crti.o crtbegin.o` before and `-u __register_frame_info crtend.o crtn.o` after the link, no `--eh-frame-hdr`. `gen_runtime.sh` puts it into the embedded variants in place of the spec of the pack (see "Zero-cost exceptions"). |
 | `port_units.list` | The board files that may differ from the toolchain's runtimes, with their source in `crates/bb-runtimes`. |
 
@@ -118,7 +118,7 @@ Nothing in the runtime names a hart. The id of the executing hart is `mhartid`, 
 
 | Unit | Content |
 |---|---|
-| `s-bbbopa.ads` | `System.BB.Board_Parameters`: the clock (1 MHz `mtime`) and the console base until P1.9. The bases and the layout of the PLIC and the CLINT are the PAC's (`MPFS_Registers.PLIC_Base`, `.CLINT_Base`), not repeated here. |
+| `s-bbbopa.ads` | `System.BB.Board_Parameters`: the clock (1 MHz `mtime`). The console is not here: see "Console". The bases and the layout of the PLIC and the CLINT are the PAC's (`MPFS_Registers.PLIC_Base`, `.CLINT_Base`), not repeated here. |
 | `s-bbripl.ad[sb]` | `System.BB.RISCV_PLIC`: `Context_Of (Hart)` (hart 0 is context 0, hart n is context 2n-1: the E51 has no S mode, every U54 has M and S); enable block, threshold and claim/complete of the context. The registers are the PAC types (`ENABLE_H0_M_Registers`, `THRESHOLD_H0_M_Register`: 32 bits, `Volatile_Full_Access`) at "the address of the registers of context 0 plus context times the distance between context 0 and context 1", taken from the PAC components themselves (`Enable_Address`, `Threshold_Address` and `Claim_Address (Hart)` export them; `examples/interrupt_test` compares them with the named registers `ENABLE_H<n>_M` and so on for all five harts). One 32-bit access per register, loops per word, no aggregate: a 64-bit store to the PLIC is an error of the SoC (and of QEMU). `Initialize` resets only the own context: threshold (7 while it works, then 0), enables, an open claim. It does not clear the priorities (later `mpfs_boot` sets them statically) and does not touch the enables, thresholds or sources of other harts, which in an AMP system are theirs. |
 | `s-bbricl.ad[sb]` | `System.BB.RISCV_CLINT`: `Mtime`, `Mtimecmp (Hart)` and `Set_Mtimecmp` (`0x4000 + 8 * Hart`, one 64-bit access), `MSIP (Hart)` and `Clear_MSIP (Hart)` (`4 * Hart`; for P8). |
 | `s-bbsuti.adb` | `Board_Support.Time`: `Read_Clock` from `Mtime`, `Set_Alarm` and `Clear_Alarm_Interrupt` write the `mtimecmp` of the executing hart, with one 64-bit store (RV64) instead of the three-word sequence of RV32. The tickless logic is described under "Tick and idle" below. |
@@ -203,6 +203,56 @@ There is no periodic tick. `System.BB.Time` (common GNARL code) computes the nex
       (Ada.Real_Time.Time_Unit * Clocks.Rtc_Toggle_Hz /= 1.0, "...");
 
 The package does not exist yet, so the check is exercised with its stand-in `examples/delay_accuracy_test/src/standalone_clocks.ads`: `tests/host/rts_tick` compiles it against the runtime variants with 1 MHz (compiles) and with 2 MHz, 999 999 Hz, 100 MHz and 32 768 Hz (rejected with the message), and against a copy of a variant whose `Clock_Frequency` is 2 MHz (rejected). What only the hardware can show is that `mtime` really runs at that rate (the GDB init sets `RTC_CLOCK_CR`, P1.14 compares `mtime` with `mcycle` and the CFM) and the accuracy of `delay until` (acceptance of #47: at most 2 ticks plus the interrupt latency; `DELAY_ACCURACY=hardware ./x build delay_accuracy_test`). A link-time form of the check (an `ASSERT` on a `--defsym` of the partition data in `ld/`) would be a new mandatory link symbol and is not part of the interface of #41 section 4.2; the compile-time check needs none.
+## Console
+
+`System.Text_IO` (`mpfs/gnat/s-textio.adb`, replacing `s-textio__ns16550.adb`) is the console of all three profiles
+(`GNAT.IO`, `Ada.Text_IO` of the embedded profile, the last chance handler): polled output and input on one MMUART. Which
+MMUART, and whether the runtime sets it up, is link-time data of the partition, four absolute symbols (`--defsym`) that
+are not in the library, so one runtime serves every console:
+
+| Symbol | Meaning |
+|---|---|
+| `__mpfs_console_base` | Base address of the MMUART (`MMUART0_LO_Base` to `MMUART4_LO_Base` of the PAC), or 0 for no console |
+| `__mpfs_console_init` | 1: `Initialize` programs the port; 0: the boot stage has done it and `Initialize` only records that the service is ready |
+| `__mpfs_console_dlr` | The integer baud rate divisor (16 bits: `DLR`, the low byte, and `DMR`, the high byte, of the divisor latch) |
+| `__mpfs_console_dfr` | The fractional divisor in 1/64 (0 to 63); the fractional baud rate mode (`MM0.EFBR`) is on for a value other than 0 |
+
+- **Init 1.** `Initialize` (called by the first output of `GNAT.IO`) writes, in this order: `LCR` with `DLAB` set and 8 data
+  bits, the divisor latches, `DFR` and `MM0.EFBR` (the other multi-mode bits stay as they are), `LCR` 8N1 with `DLAB` clear,
+  `FCR` (both FIFOs on and emptied, receive trigger one byte). It leaves `IER`, `MCR` and the clock and the reset alone.
+- **Init 0.** Nothing is written but the data port; `Get`, `Is_Rx_Ready` and `Is_Tx_Ready` read it and `LSR`.
+- **Console none** (`__mpfs_console_base` = 0). `Put` does nothing, `Is_Tx_Ready` is always true, `Is_Rx_Ready` always
+  false, `Get` returns NUL; no register is touched, `__mpfs_console_init` or not. The RAM FIFO console is not
+  there: it comes with the SMP work.
+- **Clock and reset of the MMUART are not the runtime's.** Whatever `__mpfs_console_init` says, the runtime does not
+  touch `SYSREG.SUBBLK_CLOCK_CR` or `SOFT_RESET_CR`: releasing the MMUART is the boot stage's task (the GDB script
+  in the hardware lab, the init stub, the boot code). An image on a board nobody has released the MMUART for prints
+  nothing; `./x hw run --uart-clocks` stands in for that part, `--uart-standin` for the divisor and format as well.
+- **How the symbols are read.** The values are read by two instructions each (`lui`, `addi`, as `start.S` reads the
+  mask), not through the address of an imported object: the compiler knows that such an address is not null and
+  would fold the test for "no console". A missing symbol is an undefined reference in an image that links
+  `System.Text_IO`; there are no defaults (`tests/host/rts_boot` leaves each out). An image that does not use the
+  console does not need them.
+- **16550 offsets.** The registers are the types of the PAC (`MPFS_Registers.MMUART`, which `gen_runtime.sh` copies into
+  `adainclude/`), at the 16550 offsets: data port at `+0`, the divisor latches at `+0` and `+4` with `LCR.DLAB`, `FCR` at
+  `+8`. The PAC also lists them at `+0x100` (`THR`), `+0x80` and `+0x84` (`DLR`, `DMR`) and `+0x108` (`FCR`), aliases on the
+  board; QEMU's model has plain memory from `+0x20` on, so only the 16550 offsets reach the serial port there. The data
+  port is written with one 32-bit store of the whole register: a read at `+0` takes a byte out of the receive FIFO.
+- **The spec is an own port unit too** (`mpfs/gnat/s-textio.ads`): the pragma of the unit is
+  `Restrictions (No_Elaboration_Code)` instead of `No_Elaboration_Code_All`, because the body names the PAC, which has the
+  former. The interface is unchanged.
+
+`mpfs_link.gpr` gives an image its console: `MPFS_CONSOLE` (`mmuart0` to `mmuart4`, `none`; default `mmuart0`) and
+`MPFS_CONSOLE_INIT` (`1`, `0`) as scenario variables, and the lists `Console_0` to `Console_4`, `Console_None` and
+`Console_No_Init` for a project with several images (`examples/textio_test`). The divisor is 22 (115200 baud at the
+~40 MHz APB clock of an Icicle Kit at reset, as measured for `--uart-standin`), 21 and 45/64 for MMUART4, which the board does not
+bring out and which exercises the fractional mode under QEMU. A partition generator will write these values from the
+clock of the configuration.
+
+Tests: `examples/textio_test` (the console of the runtime: registers against the link symbols, `GNAT.IO`, loopback, all
+five MMUARTs, init 0), `examples/console_none_test`, and `tests/host/rts_boot` (the symbols in the images, a missing symbol
+fails the link).
+
 ## Zero-cost exceptions (P1.7, R8)
 
 Only the `embedded` profile propagates exceptions (`light` and `light-tasking` have no propagation). Its unwinder is

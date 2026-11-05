@@ -20,9 +20,24 @@
 --     MPFS_APP_LD      a directory with an app-sections.ld of the application (the hook at the
 --                      end of the SECTIONS, empty in the runtime); its -L goes ahead of the
 --                      runtime's. Not set: the runtime's empty hook.
---     MPFS_OMIT        none | harts_mask | boot_role | stack_size | interrupt_stack_size
+--     MPFS_CONSOLE     mmuart0 | mmuart1 | mmuart2 | mmuart3 | mmuart4 | none
+--                      the console of System.Text_IO: the LO base of that MMUART
+--                      (__mpfs_console_base), or 0 for none. The divisor of mmuart0 to mmuart3
+--                      is 22 (115200 baud at the ~40 MHz APB clock of an Icicle Kit at reset),
+--                      the one of mmuart4 (which the board does not bring out) is 21 and 45/64,
+--                      so that the fractional baud rate mode is exercised
+--     MPFS_CONSOLE_INIT 1 | 0   __mpfs_console_init: 1 the runtime programs the MMUART, 0 the
+--                      boot stage has done it
+--     MPFS_OMIT        none | harts_mask | boot_role | stack_size | interrupt_stack_size |
+--                      console_base | console_init | console_dlr | console_dfr
 --                      leaves one mandatory symbol out. A test seam of the negative builds
---                      (tests/host/rts_boot): the link must fail.
+--                      (tests/host/rts_boot): the link must fail (the console symbols only in
+--                      an image that links System.Text_IO).
+--
+--  An application with images of different consoles in one project names the switches per main
+--  (the lists Common and Console_<N>, Console_None, Console_No_Init):
+--
+--     for Switches ("console_mmuart1_test.adb") use Mpfs_Link.Common & Mpfs_Link.Console_1;
 --
 --  The memory lengths are those of an Icicle Kit at reset (LIM 1920 KB, no scratchpad) or, for
 --  the scratchpad placement, with two ways (256 KB) taken from the LIM; the ITIM and DTIM are
@@ -36,7 +51,11 @@ abstract project Mpfs_Link is
    type Role_Kind is ("primary", "secondary");
    type Harts_Kind is ("0", "1", "2", "3", "4");
    type Omit_Kind is
-     ("none", "harts_mask", "boot_role", "stack_size", "interrupt_stack_size");
+     ("none", "harts_mask", "boot_role", "stack_size", "interrupt_stack_size",
+      "console_base", "console_init", "console_dlr", "console_dfr");
+   type Console_Kind is
+     ("mmuart0", "mmuart1", "mmuart2", "mmuart3", "mmuart4", "none");
+   type Init_Kind is ("1", "0");
 
    Placement : Placement_Kind := external ("MPFS_PLACEMENT", "lim");
    Role      : Role_Kind      := external ("MPFS_BOOT_ROLE", "primary");
@@ -44,6 +63,8 @@ abstract project Mpfs_Link is
    Stack     := external ("MPFS_STACK_SIZE", "16384");
    Int_Stack := external ("MPFS_INTERRUPT_STACK_SIZE", "8192");
    Omit      : Omit_Kind      := external ("MPFS_OMIT", "none");
+   Console   : Console_Kind   := external ("MPFS_CONSOLE", "mmuart0");
+   Console_Init : Init_Kind   := external ("MPFS_CONSOLE_INIT", "1");
 
    Mask := "";
    case Mpfs_Rts.Hart is
@@ -95,7 +116,62 @@ abstract project Mpfs_Link is
          Values := Values & ("-Wl,--defsym=__interrupt_stack_size=" & Int_Stack);
    end case;
 
-   Switches :=
+   --  The console symbols of the five MMUARTs (LO bases, MPFS_Registers.MMUARTn_LO_Base), the
+   --  divisor and the init flag: the value lists Console_<N>, Console_None and Console_No_Init,
+   --  and Console_Values for the scenario variables above.
+
+   Def := "-Wl,--defsym=";
+
+   Console_Base := "0";
+   Console_Dlr  := "22";
+   Console_Dfr  := "0";
+   case Console is
+      when "mmuart0" => Console_Base := "0x20000000";
+      when "mmuart1" => Console_Base := "0x20100000";
+      when "mmuart2" => Console_Base := "0x20102000";
+      when "mmuart3" => Console_Base := "0x20104000";
+      when "mmuart4" =>
+         Console_Base := "0x20106000";
+         Console_Dlr  := "21";
+         Console_Dfr  := "45";
+      when "none"    => Console_Base := "0";
+   end case;
+
+   Console_Values := ();
+   case Omit is
+      when "console_base" => null;
+      when others => Console_Values := Console_Values & (Def & "__mpfs_console_base=" & Console_Base);
+   end case;
+   case Omit is
+      when "console_init" => null;
+      when others => Console_Values := Console_Values & (Def & "__mpfs_console_init=" & Console_Init);
+   end case;
+   case Omit is
+      when "console_dlr" => null;
+      when others => Console_Values := Console_Values & (Def & "__mpfs_console_dlr=" & Console_Dlr);
+   end case;
+   case Omit is
+      when "console_dfr" => null;
+      when others => Console_Values := Console_Values & (Def & "__mpfs_console_dfr=" & Console_Dfr);
+   end case;
+
+   Console_0 := (Def & "__mpfs_console_base=0x20000000", Def & "__mpfs_console_init=1",
+                 Def & "__mpfs_console_dlr=22", Def & "__mpfs_console_dfr=0");
+   Console_1 := (Def & "__mpfs_console_base=0x20100000", Def & "__mpfs_console_init=1",
+                 Def & "__mpfs_console_dlr=22", Def & "__mpfs_console_dfr=0");
+   Console_2 := (Def & "__mpfs_console_base=0x20102000", Def & "__mpfs_console_init=1",
+                 Def & "__mpfs_console_dlr=22", Def & "__mpfs_console_dfr=0");
+   Console_3 := (Def & "__mpfs_console_base=0x20104000", Def & "__mpfs_console_init=1",
+                 Def & "__mpfs_console_dlr=22", Def & "__mpfs_console_dfr=0");
+   Console_4 := (Def & "__mpfs_console_base=0x20106000", Def & "__mpfs_console_init=1",
+                 Def & "__mpfs_console_dlr=21", Def & "__mpfs_console_dfr=45");
+   Console_None := (Def & "__mpfs_console_base=0", Def & "__mpfs_console_init=1",
+                    Def & "__mpfs_console_dlr=22", Def & "__mpfs_console_dfr=0");
+   --  MMUART0 with __mpfs_console_init=0: the runtime writes no setup register
+   Console_No_Init := (Def & "__mpfs_console_base=0x20000000", Def & "__mpfs_console_init=0",
+                       Def & "__mpfs_console_dlr=22", Def & "__mpfs_console_dfr=0");
+
+   Common :=
      ("-static", "-L", App_Ld, "-L", Ld, "-T", Ld & "/place-" & Placement & ".ld",
       "-Wl,-u,_start", "-Wl,--gc-sections", "-Wl,--no-warn-rwx-segments",
       "-Wl,--defsym=MPFS_ENVM_LENGTH=0x1ff00",
@@ -112,5 +188,7 @@ abstract project Mpfs_Link is
       "-Wl,--defsym=MPFS_DDR_CACHED_LENGTH=0",
       "-Wl,--defsym=MPFS_DDR_NC_LENGTH=0",
       "-Wl,--defsym=MPFS_DDR_WCB_LENGTH=0") & Values;
+
+   Switches := Common & Console_Values;
 
 end Mpfs_Link;
