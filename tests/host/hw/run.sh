@@ -74,6 +74,12 @@ serve () {
 run_image () { "$PY" "$HW/run_image.py" "$@"; }
 
 # --- run_image.py -----------------------------------------------------------------
+# the serial text is shown as a block: one gutter line per line printed, CR LF ends a line, odd bytes are escaped
+fmt () { "$PY" -c 'import sys; sys.path.insert(0, sys.argv[1]); import run_image; print(run_image.format_serial(int(sys.argv[2]), eval(sys.argv[3])))' "$HW" "$@"; }
+want=$'MMUART0 (38 bytes):\n  | TEST t: START\n  |   ok: x\n  | TEST t: PASS'
+[ "$(fmt 0 "b'TEST t: START\\r\\n  ok: x\\r\\nTEST t: PASS\\r\\n'")" = "$want" ] && pass "run_image: shows the serial text as a block, one line per line printed" || fail "run_image: shows the serial text as a block, one line per line printed"
+[ "$(fmt 1 "b'no end'")" = $'MMUART1 (6 bytes):\n  | no end   [no line end]' ] && pass "run_image: marks a last line without a line end" || fail "run_image: marks a last line without a line end"
+[ "$(fmt 2 "b'a\\x00\\xffb\\rc'")" = $'MMUART2 (6 bytes):\n  | a\\x00\\xffb\n  | c   [no line end]' ] && pass "run_image: escapes bytes that are not printable and ends a line at a lone CR" || fail "run_image: escapes bytes that are not printable and ends a line at a lone CR"
 serve hello --uart "$tmp/uart/hello/mmuart0.log" --print "bare hello E51 hart 0"
 L="$tmp/lab-hello.conf"
 expect_rc  "run_image: runs an image and exits 0 without --expect" 0 run_image "$tmp/loop.elf" 0 --secs 0.4 --lab "$L"

@@ -85,6 +85,21 @@ def build_trap_recorder(tc, tmp):
         return f.read()
 
 
+def format_serial(port, data):
+    """What MMUART PORT printed as a block: a header with the byte count, then every line behind a gutter.
+
+    CR LF and a lone CR end a line; every other byte that is not printable ASCII (or a tab) is shown as \\xNN, so
+    what the board sent is still visible. A last line without a line end is marked."""
+    text = data.decode("latin1").replace("\r\n", "\n").replace("\r", "\n")
+    text = "".join(c if c in "\n\t" or " " <= c <= "~" else "\\x%02x" % ord(c) for c in text)
+    *lines, unfinished = text.split("\n")
+    out = [f"MMUART{port} ({len(data)} bytes):"]
+    out += ["  | " + line for line in lines]
+    if unfinished:
+        out.append("  | " + unfinished + "   [no line end]")
+    return "\n".join(out)
+
+
 def check_expect(regex, data, port):
     """(matched, description) of REGEX against the text the ports printed."""
     texts = {i: d.decode("latin1").replace("\r", "") for i, d in data.items() if port is None or i == port}
@@ -161,7 +176,7 @@ def main(argv=None):
     print("first trap:", "none" if rec[0] == 0 else f"mcause={rec[1]:#x} mepc={rec[2]:#x} mtval={rec[3]:#x}")
     for i in sorted(s.data):
         if s.data[i]:
-            print(f"MMUART{i}: {s.data[i]!r}")
+            print(format_serial(i, s.data[i]))
     if not any(s.data.values()):
         print("no serial output on any port")
         if not a.uart_standin:
