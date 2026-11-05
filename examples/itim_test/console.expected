@@ -1,0 +1,9 @@
+  ok: the code range is not empty
+  ok: the data range is not empty
+  ok: Add lies in the code range
+  ok: Table lies in the data range
+  ok: the image holds the bytes elsewhere than they run (a copy was needed)
+  ok: the code at the run address equals the loaded bytes
+  ok: Add executes from its range: 40 + 2 = 42
+  ok: Table has its initial values
+  ok: Table is writable
