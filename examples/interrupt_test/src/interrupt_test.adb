@@ -14,6 +14,13 @@
 --      this hart and in no other; the priority of the source is the ceiling;
 --    - inside the protected object the PLIC threshold of this hart is the
 --      ceiling, outside it is 0;
+--    - the generated names (Ada.Interrupts.Names) are the PLIC source numbers,
+--      the first and the last name are the bounds of Interrupt_ID, and the
+--      numbers just outside (0 and 187) are not an Interrupt_ID;
+--    - the mapping of priorities: the seven interrupt priorities of
+--      System are the PLIC levels 1 to 7, the threshold of the hart follows
+--      the ceiling (every level, read back from the register), and the
+--      priority of a source reads back as the ceiling it was set from;
 --    - the CLINT: msip of this hart reads set and clear (Clear_MSIP), mtime
 --      runs, and the runtime has not touched the mtimecmp of another hart
 --      (QEMU: 0 after reset; the same holds for the enables and the
@@ -27,6 +34,8 @@ pragma Warnings (Off, "use of this unit is non-portable*");
 --  The test is about the units of the runtime: System.BB.RISCV_PLIC and
 --  System.BB.RISCV_CLINT
 
+with Ada.Interrupts;
+with Ada.Interrupts.Names;
 with Ada.Real_Time; use Ada.Real_Time;
 
 with Bare_Console;
@@ -48,6 +57,7 @@ procedure Interrupt_Test is
 
    use type Interfaces.Unsigned_32;
    use type System.Address;
+   use type Ada.Interrupts.Interrupt_ID;
    use type CLINT.Counter;
 
    Hart : constant Natural := Natural (Bare_Console.Hart_Id);
@@ -78,9 +88,27 @@ procedure Interrupt_Test is
        /= 0);
 
    Right_Context, Right_Addresses, Others_Quiet, Mtimecmp_Quiet : Boolean;
+   Bounds_Right, Levels_Right, Threshold_Right : Boolean;
    Before : CLINT.Counter;
    Waited : Natural := 0;
    Same   : Boolean := True;
+
+   type Naturals is array (Positive range <>) of Natural;
+
+   Probe : constant Naturals := [0, 1, 90, 186, 187, 117];
+   --  Numbers around and inside Interrupt_Range; 0 and 187 are outside, 117
+   --  (reserved or spare in the TRM, no name) is inside
+
+   function In_Range (Value : Natural) return Boolean
+   is (Ada.Interrupts.Interrupt_ID'Base (Value)
+         in Ada.Interrupts.Interrupt_ID);
+   --  A run-time membership test: no exception is raised for a value
+   --  outside, which the light-tasking runtime could not handle
+
+   pragma Warnings (Off, "condition is always True");
+   --  The checks of the generated names and of the priority mapping compare
+   --  constants on purpose: they report what the compiler and the runtime
+   --  agree on as a test result
 
 begin
    Start;
@@ -130,6 +158,55 @@ begin
         = Natural (UART_Rx.Ceiling) - Natural (System.Interrupt_Priority'First)
           + 1,
       "inside it the threshold is the ceiling");
+
+   --  The generated names are the numbers of the PLIC sources, and the
+   --  bounds of Interrupt_ID are the first and the last of them.
+   Bounds_Right :=
+     Ada.Interrupts.Names.L2_METADATA_CORR = Ada.Interrupts.Interrupt_ID'First
+     and Ada.Interrupts.Names.U54_4_BUS_ERROR_UNIT
+           = Ada.Interrupts.Interrupt_ID'Last
+     and Natural (Ada.Interrupts.Names.MMUART0) = 90
+     and Natural (Ada.Interrupts.Interrupt_ID'First) = 1
+     and Natural (Ada.Interrupts.Interrupt_ID'Last) = 186;
+   Test_Report.Check
+     (Bounds_Right,
+      "generated names are PLIC source numbers, Interrupt_ID is 1 to 186");
+   Test_Report.Check
+     (not In_Range (Probe (1)) and In_Range (Probe (2))
+      and In_Range (Probe (3)) and In_Range (Probe (4))
+      and not In_Range (Probe (5)) and In_Range (Probe (6)),
+      "0 and 187 are not an Interrupt_ID, 1, 90, 117 and 186 are");
+
+   --  Priorities: the seven interrupt priorities are the PLIC levels 1 to 7.
+   Levels_Right :=
+     PLIC.Level_Of (System.Interrupt_Priority'First) = 1
+     and PLIC.Level_Of (System.Interrupt_Priority'Last) = 7
+     and PLIC.Level_Of (System.Priority'Last) = 0
+     and PLIC.Level_Of (System.Priority'First) = 0;
+   Test_Report.Check
+     (Levels_Right,
+      "the interrupt priorities are PLIC levels 1 to 7, task priorities 0");
+
+   --  Ceiling -> threshold: every level, read back from the register.
+   Threshold_Right := True;
+   for Prio in System.Interrupt_Priority loop
+      PLIC.Set_Priority_Threshold (Prio);
+      if PLIC_View.Threshold (Hart)
+           /= Prio - System.Interrupt_Priority'First + 1
+        or else PLIC.Threshold /= Prio
+      then
+         Threshold_Right := False;
+      end if;
+   end loop;
+   PLIC.Set_Priority_Threshold (System.Priority'Last);
+   if PLIC_View.Threshold (Hart) /= 0
+     or else PLIC.Threshold /= System.Priority'Last
+   then
+      Threshold_Right := False;
+   end if;
+   Test_Report.Check
+     (Threshold_Right,
+      "the threshold of this hart is the level of the set priority");
 
    UART_Rx.Receiver.Enable_Interrupt;
    while UART_Rx.Receiver.Count < Expected'Length and Waited < 1000 loop

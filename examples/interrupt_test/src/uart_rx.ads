@@ -6,12 +6,13 @@
 --  from the MMUART in loopback (a later work package).
 
 with Ada.Interrupts;
+with Ada.Interrupts.Names;
 with System;
 
 package UART_Rx is
 
-   IRQ : constant Ada.Interrupts.Interrupt_ID := 90;
-   --  PLIC source of MMUART0 (svd/additions/interrupts.yaml)
+   IRQ : constant Ada.Interrupts.Interrupt_ID := Ada.Interrupts.Names.MMUART0;
+   --  PLIC source of MMUART0 (90): the name is generated from the SVD
 
    Ceiling : constant System.Interrupt_Priority :=
      System.Interrupt_Priority'First + 2;
