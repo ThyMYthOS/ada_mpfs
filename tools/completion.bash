@@ -66,7 +66,7 @@ _mpfs_x () {
               [ -z "$cur" ] || COMPREPLY+=($(compgen -f -- "$cur"))
             elif [ "$sub" = initialize ]; then COMPREPLY=($(compgen -W "--minimal --skip-io --dry-run --target --lab" -- "$cur"))
             elif [ "$sub" = run ]; then
-              COMPREPLY=($(compgen -W "--hart --secs --expect --expect-port --uart-standin --view --color --lab" -- "$cur"))
+              COMPREPLY=($(compgen -W "--hart --secs --expect --expect-port --uart-clocks --uart-standin --view --color --lab" -- "$cur"))
             elif [ "$sub" = monitor ]; then COMPREPLY=($(compgen -W "--secs --port --expect --view --color --lab" -- "$cur")); fi ;;
     completion) [ "$COMP_CWORD" -eq 2 ] && COMPREPLY=($(compgen -W "bash zsh" -- "$cur")) ;;
   esac

@@ -130,6 +130,15 @@ grep -q '^mww 0x20000000 20;\|mww 0x20000000 20' "$tmp/hello.log" && grep -q '^m
   && pass "run_image: --uart-standin clocks the UARTs and programs the divisor" \
   || fail "run_image: --uart-standin clocks the UARTs and programs the divisor"
 
+# --uart-clocks clocks and releases the UARTs and writes no register of one of them
+: > "$tmp/hello.log"
+run_image "$tmp/loop.elf" 0 --secs 0.2 --lab "$L" --uart-clocks >/dev/null 2>&1
+if grep -q '^mww 0x20002084 ' "$tmp/hello.log" && grep -q '^mww 0x20002088 ' "$tmp/hello.log" && ! grep -q 'mww 0x2000000c\|mww 0x20000000 ' "$tmp/hello.log"; then
+  pass "run_image: --uart-clocks clocks and releases the UARTs and leaves their registers alone"
+else
+  fail "run_image: --uart-clocks clocks and releases the UARTs and leaves their registers alone"
+fi
+
 # nothing printed at all, and a trap
 serve silent
 expect_rc  "run_image: --expect without any serial output exits 1" 1 run_image "$tmp/loop.elf" 0 --secs 0.3 --lab "$tmp/lab-silent.conf" --expect 'bare hello'
