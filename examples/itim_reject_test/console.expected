@@ -1,0 +1,5 @@
+  ok: start.S rejected the image (magic ITIM)
+  ok: the record names this hart
+  ok: the rejected range is the code (.fast_text)
+  ok: a store access fault, or the word read back wrongly
+  ok: the address that failed is in the ITIM of the E51
