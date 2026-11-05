@@ -10,9 +10,10 @@
 | `lab.py` | Reads `lab.conf` and finds the RISC-V compiler: the version pinned in `tools/toolchain.env` (`GNAT_RISCV64_VERSION`) below `MPFS_ADA_TOOLCHAINS`; another version, or none, is an error. `run` turns a message-carrying exit into status 2. |
 | `start_openocd.sh` | Starts the OpenOCD of SoftConsole (the distribution's has no `microsemi-flashpro` interface). Telnet on :4444, gdb on :3333. Runs OpenOCD as a child and ends it on Ctrl+C (see below). |
 | `ocd.py` | OpenOCD telnet client and serial capture (devices and TCP ports; `Serial.pump` reads them all without one holding up another). |
-| `run_image.py` | Loads an ELF onto one hart, runs it, prints the first trap and every serial port that printed something as a block (a header with the byte count, then one line per line printed behind a `|` gutter; CR LF or a lone CR ends a line, bytes that are not printable ASCII show as `\xNN`, a last line without a line end is marked). `--expect REGEX` sets the exit status (0 matched, 1 not matched or no output); `--expect-port N` restricts it to one port. `--uart-standin` (off by default) clocks and sets up the UARTs for an image that expects a boot stage to have done it. |
+| `run_image.py` | Loads an ELF onto one hart, runs it, shows the serial ports while it runs (`--view`, `--color`; see "Serial output") and reports the first trap. `--expect REGEX` sets the exit status (0 matched, 1 not matched or no output); `--expect-port N` restricts it to one port. `--uart-standin` (off by default) clocks and sets up the UARTs for an image that expects a boot stage to have done it. |
 | `run_probe.py` | Runs a probe (`probe_*.S`, `trap.S` is the trap recorder `run_image.py` loads) on one hart and prints its result block; `--expect REGEX` as above. |
-| `monitor.py` | Shows what the serial ports print; `--expect REGEX` as above. |
+| `monitor.py` | Shows what the serial ports print, as it arrives (`--view`, `--color`; see "Serial output"); `--expect REGEX` as above. |
+| `serialview.py` | How the serial text is shown, shared by `run_image.py` and `monitor.py`: decoding, escape sequences, colours and the views (see "Serial output"). |
 | `initialize.py`, `mss_init.py` | `./x hw initialize [--minimal] [--skip-io] [--dry-run]`: does what the first-stage boot software does to the MSS before the clock switch (see "Initialize" below); `mss_init.py` holds the register writes as data and runs them, shared with `svd_probe.py --enable-clocks`. |
 | `reset.py`, `recover.py` | `./x hw reset`: resets the board to its power-on state through OpenOCD, also after a hung debug module (`recover.py` is the sequence, shared with `svd_probe.py --recover`); see "Reset and recovery" below. |
 | `svd_probe.py` | Compares the reset values of SVD registers with the board (`./x svd probe [--enable-clocks] [PERIPHERAL...]`); see below. |
@@ -53,6 +54,31 @@ The baud rate, 8N1 and raw mode are set by that command; the tools cannot change
 **Security.** `socat` TCP listeners do not authenticate or encrypt: anyone who can reach the port reads the console of the board (and, with this `socat` command, can write to it). Bind the listener to a trusted network (`TCP-LISTEN:5000,bind=10.0.0.5,...`), restrict it with a firewall (or `range=10.0.0.0/24`), or let it listen on `localhost` only and reach it through an ssh tunnel: `ssh -N -L 5000:localhost:5000 lab-pc`, with `UART0=tcp:localhost:5000` in `lab.conf`.
 
 **Errors.** A port that cannot be opened (no such device, no permission) or connected (refused, host not found, timed out after 5 s) is a set-up error: exit status 2 and one line that names the MMUART and the endpoint, for example `serial: MMUART1: cannot connect to tcp://lab-pc:5001: Connection refused`. The TCP connections are made in parallel. During the run a TCP connection that the remote side closes or resets, and a device that disappears (USB unplugged), is reported once on stderr (`monitor.py: MMUART1: tcp://lab-pc:5001 closed the connection after 120 bytes`); the text received until then stays in the output and in what `--expect` matches, and the other ports go on. A port is not reconnected during a run.
+
+## Serial output
+
+`run_image.py` and `monitor.py` hand every chunk of every port to a view as it arrives (`Serial.pump`, which reads all ports with `select`), so a view can show it live; the text of a port is also kept, and `--expect` matches that.
+
+`--view MODE`:
+
+| Mode | Shows |
+|---|---|
+| `interleaved` | Complete lines in the order they arrive, each behind `MMUART<n>: ` (the prefix has its own colour per port when colours are on). A partial line is held back until its line end, or until the end of the run. The default. |
+| `blocks` | At the end of the run, one block per port that printed: a header with the byte count, then every line behind a `|` gutter (`MMUART0 (97 bytes):`, `  | TEST x: PASS`); a last line without a line end is marked `[no line end]`. |
+
+`run_image.py` shows the serial text first, then the trap (`after:`, `first trap:`) and the `--expect` verdict; `monitor.py` ends with the verdict.
+
+`--color auto|always|never` (default `auto`): `auto` is on for a terminal, unless the environment variable `NO_COLOR` is set (then off) or `FORCE_COLOR` is set (then on, also for a pipe or a file; `NO_COLOR` wins when both are set). `always` and `never` override both.
+
+What the views do with the bytes, in every view:
+
+- The text is decoded as UTF-8, incrementally: a multibyte character that arrives in two reads is whole. A byte that is not valid UTF-8 shows as `\xNN`, not as U+FFFD (so line noise stays visible), and so does every other control character (BEL, NUL, DEL, the C1 controls). CR LF and a lone CR end a line; a tab stays. A line of more than 4096 characters is broken there, for the display only.
+- The colours of the target (`ESC [ ... m`) pass through when colours are on and are removed when they are off. They end with the line (a reset is added), so one port's colour never reaches the next line or port; a colour does not span lines.
+- Every other escape sequence of the target is removed in every view, whatever `--color` says: cursor movement, erase, clear screen, OSC (titles, hyperlinks), DCS and the like, character set selection, and one that is cut off at the end. The target cannot move the cursor of your terminal or clear it.
+- `--expect` matches the raw decoded text of the port (UTF-8, CR removed, the target's escape sequences still in it), so what matches does not depend on the view or the colours; to match a coloured word, match around the sequence (`ERR.*boom`).
+- When the output encoding is not UTF-8 (`PYTHONIOENCODING`, a C locale), a character it cannot encode shows as `\xNN` or `\uNNNN` instead of raising an error.
+
+A TCP port that ends during the run is reported once on stderr (see "Serial ports"), as `monitor.py: MMUART1: tcp://lab-pc:5001 closed the connection after 120 bytes`.
 
 ## Initialize
 

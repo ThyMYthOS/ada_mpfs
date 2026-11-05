@@ -3,16 +3,27 @@
 # SPDX-License-Identifier: Apache-2.0
 """Load an ELF onto one hart of an Icicle Kit over JTAG, run it, capture the serial ports and report the first trap.
 
-    run_image.py ELF HART [--secs N] [--expect REGEX] [--expect-port N] [--uart-standin] [--div D] [--lab FILE]
+    run_image.py ELF HART [--secs N] [--expect REGEX] [--expect-port N] [--uart-standin] [--div D]
+                 [--view MODE] [--color WHEN] [--lab FILE]
 
 Needs OpenOCD running (start_openocd.sh, or ./x hw openocd). The board is expected in boot mode 0 (idle, no HSS).
-The host, the port and the serial devices come from lab.conf.
+The host, the port and the serial ports (devices, or TCP ports that socat tunnels from another machine)
+come from lab.conf.
+
+--view MODE        how the serial text is shown while the image runs: interleaved (complete lines in the order
+                   they arrive, behind MMUART<n>:; the default) or blocks (one block per port at the end: a
+                   header with the byte count, the lines behind a |). The trap and the --expect verdict follow
+                   below it.
+--color WHEN       auto (the default: on a terminal, off with NO_COLOR, on with FORCE_COLOR), always or never.
+                   The colours of the target pass through when they are on and are removed when they are off;
+                   other escape sequences of the target are always removed (hw/serialview.py).
 
 --expect REGEX     the exit status says whether the console showed what the image should print: 0 if
                    REGEX (Python syntax, searched in the text of every port, or of the port named by
                    --expect-port) matches, 1 if it does not (also if nothing was printed at all).
                    Without --expect the exit status is 0 when the run completed. 2: set-up error
-                   (OpenOCD, serial ports, toolchain, lab.conf, arguments).
+                   (OpenOCD, serial ports, toolchain, lab.conf, arguments); 130: Ctrl+C. What --expect
+                   matches is the text of the port as it is, whatever the view and the colours.
 --uart-standin     stand in for the boot stage that sets the UARTs up (the runtime's console driver
                    assumes it exists, nothing provides it in boot mode 0): clock and release MMUART0..4
                    and program divisor D (22 gives 115200 at the ~40 MHz APB clock of an unconfigured
@@ -36,6 +47,7 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import lab  # noqa: E402
+import serialview  # noqa: E402
 from ocd import OCD, Serial  # noqa: E402
 
 SYSREG = 0x20002000
@@ -85,24 +97,9 @@ def build_trap_recorder(tc, tmp):
         return f.read()
 
 
-def format_serial(port, data):
-    """What MMUART PORT printed as a block: a header with the byte count, then every line behind a gutter.
-
-    CR LF and a lone CR end a line; every other byte that is not printable ASCII (or a tab) is shown as \\xNN, so
-    what the board sent is still visible. A last line without a line end is marked."""
-    text = data.decode("latin1").replace("\r\n", "\n").replace("\r", "\n")
-    text = "".join(c if c in "\n\t" or " " <= c <= "~" else "\\x%02x" % ord(c) for c in text)
-    *lines, unfinished = text.split("\n")
-    out = [f"MMUART{port} ({len(data)} bytes):"]
-    out += ["  | " + line for line in lines]
-    if unfinished:
-        out.append("  | " + unfinished + "   [no line end]")
-    return "\n".join(out)
-
-
 def check_expect(regex, data, port):
     """(matched, description) of REGEX against the text the ports printed."""
-    texts = {i: d.decode("latin1").replace("\r", "") for i, d in data.items() if port is None or i == port}
+    texts = {i: serialview.raw_text(d) for i, d in data.items() if port is None or i == port}
     for i, text in texts.items():
         if regex.search(text):
             return True, f"matched /{regex.pattern}/ on MMUART{i}"
@@ -121,6 +118,7 @@ def main(argv=None):
     ap.add_argument("--uart-standin", action="store_true")
     ap.add_argument("--div", type=int, default=22)
     ap.add_argument("--lab", metavar="FILE")
+    serialview.add_arguments(ap)
     a = ap.parse_args(argv)
     if a.hart not in range(5):
         raise SystemExit(f"run_image: invalid hart {a.hart} (0 = E51, 1-4 = U54)")
@@ -150,44 +148,46 @@ def main(argv=None):
         print(f"loaded {len(data):#x} bytes at {addr:#x}")
 
     o = OCD(int(lab_conf["OCD_PORT"]), lab_conf["OCD_HOST"])
-    s = Serial.from_lab(lab_conf)
-    o.hart(a.hart)
-    o.cmd("halt")
-    if a.uart_standin:
-        o.wr32(SYSREG + 0x84, o.rd32(SYSREG + 0x84) | (0x1F << 5))
-        o.wr32(SYSREG + 0x88, o.rd32(SYSREG + 0x88) & ~(0x1F << 5))
-        for b in UARTS:
-            o.cmd("mww 0x%x 0x83; mww 0x%x %d; mww 0x%x 0; mww 0x%x 3; mww 0x%x 7" % (b + 0xC, b, a.div, b + 4, b + 0xC, b + 8))
-    for i in range(8):
-        o.cmd(f"mwd 0x{REC + 8 * i:x} 0")
-    load(o, "trap.bin", 0x08100000, trap_bin)
-    for n, (paddr, data) in enumerate(line_runs(segs)):
-        load(o, f"seg{n}.bin", paddr, data)
-    o.cmd("reg mcause 0; reg mepc 0; reg mtval 0; reg mtvec 0x08100000")
-    o.cmd(f"reg pc 0x{entry:x}")
-    print(f"hart {a.hart}: entry {entry:#x}, running {a.secs}s")
-    s.pump(0.2)
-    o.cmd("resume")
-    s.pump(a.secs)
-    o.cmd("halt")
-    pc, mcause, mepc, mtval = (o.reg(r) for r in ("pc", "mcause", "mepc", "mtval"))
-    rec = [o.rd64(REC + 8 * i) for i in range(4)]
-    print(f"after: pc={pc:#x} mcause={mcause:#x} mepc={mepc:#x} mtval={mtval:#x}")
-    print("first trap:", "none" if rec[0] == 0 else f"mcause={rec[1]:#x} mepc={rec[2]:#x} mtval={rec[3]:#x}")
-    for i in sorted(s.data):
-        if s.data[i]:
-            print(format_serial(i, s.data[i]))
-    if not any(s.data.values()):
-        print("no serial output on any port")
-        if not a.uart_standin:
-            print("hint: in boot mode 0 nothing sets the UARTs up (clock, reset, divisor); an image that expects "
-                  "that needs --uart-standin")
-    s.close()
-    if regex is None:
-        return 0
-    ok, text = check_expect(regex, s.data, a.expect_port)
-    print(f"expect: {text}")
-    return 0 if ok else 1
+    eps = lab.uart_endpoints(lab_conf, range(int(lab_conf["UART_COUNT"])))
+    view = serialview.make_view(a.view, a.color, {i: str(ep) for i, ep in eps.items()})
+    s = Serial(eps, note=view.note)
+    try:
+        o.hart(a.hart)
+        o.cmd("halt")
+        if a.uart_standin:
+            o.wr32(SYSREG + 0x84, o.rd32(SYSREG + 0x84) | (0x1F << 5))
+            o.wr32(SYSREG + 0x88, o.rd32(SYSREG + 0x88) & ~(0x1F << 5))
+            for b in UARTS:
+                o.cmd("mww 0x%x 0x83; mww 0x%x %d; mww 0x%x 0; mww 0x%x 3; mww 0x%x 7" % (b + 0xC, b, a.div, b + 4, b + 0xC, b + 8))
+        for i in range(8):
+            o.cmd(f"mwd 0x{REC + 8 * i:x} 0")
+        load(o, "trap.bin", 0x08100000, trap_bin)
+        for n, (paddr, data) in enumerate(line_runs(segs)):
+            load(o, f"seg{n}.bin", paddr, data)
+        o.cmd("reg mcause 0; reg mepc 0; reg mtval 0; reg mtvec 0x08100000")
+        o.cmd(f"reg pc 0x{entry:x}")
+        print(f"hart {a.hart}: entry {entry:#x}, running {a.secs}s")
+        with view:
+            s.pump(0.2, view)
+            o.cmd("resume")
+            s.pump(a.secs, view)
+        o.cmd("halt")
+        pc, mcause, mepc, mtval = (o.reg(r) for r in ("pc", "mcause", "mepc", "mtval"))
+        rec = [o.rd64(REC + 8 * i) for i in range(4)]
+        print(f"after: pc={pc:#x} mcause={mcause:#x} mepc={mepc:#x} mtval={mtval:#x}")
+        print("first trap:", "none" if rec[0] == 0 else f"mcause={rec[1]:#x} mepc={rec[2]:#x} mtval={rec[3]:#x}")
+        if not any(s.data.values()):
+            print("no serial output on any port")
+            if not a.uart_standin:
+                print("hint: in boot mode 0 nothing sets the UARTs up (clock, reset, divisor); an image that expects "
+                      "that needs --uart-standin")
+        if regex is None:
+            return 0
+        ok, text = check_expect(regex, s.data, a.expect_port)
+        print(f"expect: {text}")
+        return 0 if ok else 1
+    finally:
+        s.close()
 
 
 if __name__ == "__main__":
