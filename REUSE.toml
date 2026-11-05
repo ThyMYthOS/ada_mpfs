@@ -151,6 +151,7 @@ path = [
   "PROVENANCE.md",
   "REUSE.toml",
   "SECURITY.md",
+  ".claude/settings.json",
   ".gitignore",
   ".editorconfig",
   ".github/CODEOWNERS",

@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": ["mcp__claude-code-remote__add_repo"]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
