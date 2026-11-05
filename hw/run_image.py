@@ -10,10 +10,11 @@ Needs OpenOCD running (start_openocd.sh, or ./x hw openocd). The board is expect
 The host, the port and the serial ports (devices, or TCP ports that socat tunnels from another machine)
 come from lab.conf.
 
---view MODE        how the serial text is shown while the image runs: interleaved (complete lines in the order
-                   they arrive, behind MMUART<n>:; the default) or blocks (one block per port at the end: a
-                   header with the byte count, the lines behind a |). The trap and the --expect verdict follow
-                   below it.
+--view MODE        how the serial text is shown while the image runs: live (a window of 8 lines per port in
+                   which the text scrolls; the default on a terminal), interleaved (complete lines in the order
+                   they arrive, behind MMUART<n>:; the default otherwise) or blocks (one block per port at the
+                   end: a header with the byte count, the lines behind a |). The trap and the --expect verdict
+                   follow below it.
 --color WHEN       auto (the default: on a terminal, off with NO_COLOR, on with FORCE_COLOR), always or never.
                    The colours of the target pass through when they are on and are removed when they are off;
                    other escape sequences of the target are always removed (hw/serialview.py).

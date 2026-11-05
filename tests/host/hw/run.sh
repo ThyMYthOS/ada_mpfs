@@ -233,12 +233,12 @@ expect_rc  "monitor: --port 3 with a TCP pattern reads only that port" 1 monitor
 tcp_serve early 'send=b"before the end\r\n"' 'sleep=0.2'
 tcp_serve late 'sleep=0.8' 'send=b"after the end\r\n"' 'hold'
 tconf "$tmp/lab-drop.conf" 'UART_COUNT=2' "UART0=tcp:127.0.0.1:$(cat "$tmp/early.tport")" "UART1=tcp:127.0.0.1:$(cat "$tmp/late.tport")"
-errlines monitor --secs 1.6 --lab "$tmp/lab-drop.conf" --expect 'before the end'
+out="$(monitor --secs 1.3 --lab "$tmp/lab-drop.conf" --expect '(?s)before the end.*after the end' 2>"$tmp/drop.err")"; rc=$?
+nerr=$(grep -c . "$tmp/drop.err"); err="$(cat "$tmp/drop.err")"
 [ "$nerr" = 1 ] && case "$err" in *"MMUART0"*"tcp://127.0.0.1:$(cat "$tmp/early.tport")"*"closed the connection"*) true ;; *) false ;; esac \
   && pass "monitor: a connection that ends during the run is reported once, with the port and the endpoint" \
   || fail "monitor: a connection that ends during the run is reported once, with the port and the endpoint ($nerr lines: $err)"
-expect_rc  "monitor: the text of a connection that ended still counts (--expect, exit 0)" 0 monitor --secs 1.6 --lab "$tmp/lab-drop.conf" --expect 'before the end'
-expect_rc  "monitor: the other port goes on after one ended" 0 monitor --secs 1.6 --lab "$tmp/lab-drop.conf" --expect 'after the end'
+[ $rc = 0 ] && pass "monitor: the text of a connection that ended still counts, and the other port goes on after it (--expect over both, exit 0)" || fail "monitor: the text of a connection that ended still counts, and the other port goes on ($rc: $out)"
 tcp_serve rst 'send=b"part\r\n"' 'sleep=0.2' 'reset'
 tconf "$tmp/lab-rst.conf" 'UART_COUNT=1' "UART0=tcp:127.0.0.1:$(cat "$tmp/rst.tport")"
 errlines monitor --secs 0.8 --lab "$tmp/lab-rst.conf" --expect 'part'
@@ -364,7 +364,7 @@ vconf blk '\033[31mred\033[0m\r\nx\002\342\202\254\r\n'
 same "$(vmon blk --view blocks --color never)" $'MMUART0 (21 bytes):\n  | red\n  | x\\x02€' && pass "monitor: blocks remove the colours with --color never and show control characters" || fail "monitor: blocks remove the colours with --color never ($(vmon blk --view blocks --color never))"
 same "$(vmon blk --view blocks --color always)" "MMUART0 (21 bytes):"$'\n'"  | $ESC[31mred$ESC[0m"$'\n'"  | x\\x02€" && pass "monitor: blocks pass the colours through with --color always" || fail "monitor: blocks pass the colours through with --color always"
 # options
-for v in interleaved blocks auto; do
+for v in live interleaved blocks auto; do
   expect_rc "monitor: --view $v is accepted" 0 monitor --secs 0.2 --lab "$tmp/lab-mon.conf" --view "$v"
 done
 for c in auto always never; do
@@ -377,7 +377,7 @@ expect_rc  "run_image: a bad --color exits 2" 2 run_image "$tmp/loop.elf" 0 --la
 expect_out "monitor: a bad --view names the choices" "interleaved" monitor --lab "$tmp/lab-mon.conf" --view bogus
 # --expect does not depend on the view or the colours (it matches the text as the target printed it)
 vconf exp '\033[31mERR\033[0m: boom \303\251\r\n'
-for v in interleaved blocks; do
+for v in interleaved blocks live; do
   for c in always never; do
     expect_rc "monitor: --expect matches the same text with --view $v --color $c" 0 monitor --secs 0.3 --lab "$tmp/lab-v-exp.conf" --view $v --color $c --expect "ERR.\[0m: boom é"
     expect_rc "monitor: --expect does not match what the view would show, with --view $v --color $c" 1 monitor --secs 0.3 --lab "$tmp/lab-v-exp.conf" --view $v --color $c --expect "ERR: boom"
@@ -419,6 +419,149 @@ p.feed(b"\xe2\x80\xae\xe2\x80\xa8\xc2\x9b\x7f")
 assert p.take_partial() == "\\u202e\\u2028\\x9b\\x7f" and v.show_char(chr(0x202e)) == "\\u202e"
 assert v.raw_text(b"a\r\nb\xff\x1b[0m") == "a\nb\\xff\x1b[0m"
 PYEOF
+
+# --- the live view, on a pseudo-terminal -------------------------------------------------------
+# ptyrun.py runs a command on a pty of a given size and prints the screen that its output leaves (a small terminal
+# emulator that lists every escape sequence it does not know). pty <ptyrun options> -- <command>; field <output> <name>;
+# rows <output>: the rows of the screen; hdr <n> <label> <bytes> [state] [width]: the header row of a window; gut <n>: n empty rows.
+PTY="$ROOT/tests/host/hw/ptyrun.py"
+pty () { "$PY" "$PTY" "$@"; }
+field () { printf '%s\n' "$1" | sed -n "s/^$2=//p"; }
+rows () { printf '%s\n' "$1" | sed '1,/^screen:$/d'; }
+hdr () { local t="MMUART$1  $2  $3 B${4:-} "; local n=$(( ${5:-59} - 3 - ${#t} )); printf '── %s' "$t"; [ "$n" -le 0 ] || printf '─%.0s' $(seq 1 "$n"); printf '\n'; }
+gut () { local i; for i in $(seq 1 "$1"); do printf '│\n'; done; }
+lmon () { local o=(); while [ "$1" != -- ]; do o+=("$1"); shift; done; shift; pty "${o[@]}" -- "$PY" "$HW/monitor.py" "$@"; }
+sane () { [ "$(field "$1" rc)" = "${2:-0}" ] && [ "$(field "$1" cursor_visible)" = 1 ] && [ "$(field "$1" unknown)" = none ]; }   # sane <output> [rc]
+
+tcp_serve lva 'send=b"alpha\r\n"' 'send=b"beta\r\n"' 'send=b"gamma\r\n"' 'hold'
+tcp_serve lvb 'hold'
+PA="$(cat "$tmp/lva.tport")"; PB="$(cat "$tmp/lvb.tport")"
+tconf "$tmp/lab-live.conf" 'UART_COUNT=2' "UART0=tcp:127.0.0.1:$PA" "UART1=tcp:127.0.0.1:$PB"
+out="$(lmon --rows 30 --cols 60 --raw "$tmp/live.raw" -- --secs 1.0 --lab "$tmp/lab-live.conf")"
+want="$(hdr 0 "tcp://127.0.0.1:$PA" 20; printf '│ alpha\n│ beta\n│ gamma\n'; gut 5; hdr 1 "tcp://127.0.0.1:$PB" 0; gut 8)"
+same "$(rows "$out")" "$want" && pass "live: a window of 8 lines per port, a header with the endpoint and the byte count (the default on a terminal)" || fail "live: a window of 8 lines per port ($out)"
+sane "$out" && [ "$(field "$out" cursor)" = 18,0 ] && pass "live: the cursor is visible again and below the last window, the terminal reported no sequence it does not know" || fail "live: the cursor ends below the last window ($out)"
+"$PY" - "$tmp/live.raw" "$PA" "$PB" <<'PYEOF' && pass "live: the cursor is hidden while it runs and shown once at the end; only the rows that changed are written" || fail "live: the cursor is hidden while it runs and shown once at the end; only the rows that changed are written"
+import sys
+raw = open(sys.argv[1], "rb").read().decode()
+hide, show = raw.find("\x1b[?25l"), raw.rfind("\x1b[?25h")
+assert raw.count("\x1b[?25l") == 1 and raw.count("\x1b[?25h") == 1 and 0 <= hide < show, "cursor"
+assert raw.count("alpha") == 1 and raw.count("beta") == 1, "a row that did not change was written again"
+assert raw.count("MMUART1") == 1, "the window of the silent port was redrawn"
+assert raw.count("MMUART0") >= 2, "the byte count of the first window did not change"
+PYEOF
+# the text scrolls in a window of 8 lines
+s=""; for i in 01 02 03 04 05 06 07 08 09 10 11 12; do s="$s""L$i\\r\\n"; done
+tcp_serve lvs "send=b\"$s\"" 'hold'
+tconf "$tmp/lab-live1.conf" 'UART_COUNT=1' "UART0=tcp:127.0.0.1:$(cat "$tmp/lvs.tport")"
+out="$(lmon --rows 24 --cols 50 -- --secs 0.8 --lab "$tmp/lab-live1.conf")"
+want="$(hdr 0 "tcp://127.0.0.1:$(cat "$tmp/lvs.tport")" 60 '' 49; printf '│ L%s\n' 05 06 07 08 09 10 11 12)"
+same "$(rows "$out")" "$want" && sane "$out" && [ "$(field "$out" cursor)" = 9,0 ] && pass "live: after more than 8 lines the window shows the last 8" || fail "live: after more than 8 lines the window shows the last 8 ($out)"
+# the text is shown while the run goes on, not after it
+out="$(lmon --rows 30 --cols 60 --first-seen alpha -- --secs 2.0 --lab "$tmp/lab-live.conf")"
+ms="$(field "$out" first_seen_ms)"
+[ "$ms" -ge 0 ] && [ "$ms" -lt 1200 ] && pass "live: the text shows while the run goes on (after $ms ms of a 2000 ms run)" || fail "live: the text shows while the run goes on ($ms ms of a 2000 ms run)"
+monitor --secs 2.5 --lab "$tmp/lab-ilv.conf" --view interleaved > "$tmp/stream.out" 2>&1 &
+spid=$!
+sleep 1.0
+{ kill -0 "$spid" 2>/dev/null && grep -qx 'MMUART0: A1' "$tmp/stream.out" && ! grep -q 'MMUART1: B2' "$tmp/stream.out"; } \
+  && pass "interleaved: the lines show while the run goes on, in a file too, not after it" || fail "interleaved: the lines show while the run goes on ($(cat "$tmp/stream.out"))"
+wait "$spid"
+# a partial line is shown as it is typed
+tcp_serve lvp 'send=b"login: "' 'hold'
+tconf "$tmp/lab-livep.conf" 'UART_COUNT=1' "UART0=tcp:127.0.0.1:$(cat "$tmp/lvp.tport")"
+out="$(lmon --rows 24 --cols 50 -- --secs 0.6 --lab "$tmp/lab-livep.conf")"
+same "$(rows "$out" | sed -n 2p)" '│ login:' && pass "live: a line without a line end is shown at once" || fail "live: a line without a line end is shown at once ($out)"
+# a narrow terminal: long lines and wide characters are cut to the width, with a marker, and nothing wraps
+tcp_serve lvw 'send=b"0123456789abcdefghijklmnop\r\n"' 'send=b"\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e\r\n"' 'hold'
+tconf "$tmp/lab-livew.conf" 'UART_COUNT=1' "UART0=tcp:127.0.0.1:$(cat "$tmp/lvw.tport")"
+out="$(lmon --rows 24 --cols 20 -- --secs 0.6 --lab "$tmp/lab-livew.conf")"
+r="$(rows "$out")"
+same "$(printf '%s\n' "$r" | sed -n 2,3p)" $'│ 0123456789abcdef…\n│ 日本語日本語日本…' && [ "$(field "$out" cursor)" = 9,0 ] && sane "$out" && pass "live: on a narrow terminal long lines and wide characters are cut to the width, nothing wraps" || fail "live: on a narrow terminal long lines and wide characters are cut to the width ($out)"
+printf '%s\n' "$r" | "$PY" -c '
+import sys, unicodedata
+for line in sys.stdin.read().splitlines():
+    w = sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in line)
+    assert w <= 19, (w, line)
+' && pass "live: no row is wider than the terminal minus one column" || fail "live: no row is wider than the terminal minus one column ($r)"
+case "$(printf '%s\n' "$r" | sed -n 1p)" in "── MMUART0"*"…") pass "live: a header that is too long is cut with a marker" ;; *) fail "live: a header that is too long is cut with a marker ($r)" ;; esac
+# a short terminal: fewer lines per window; one that cannot hold a line per window: the interleaved view
+tcp_serve lv6 'send=b"L01\r\nL02\r\nL03\r\nL04\r\nL05\r\nL06\r\n"' 'hold'
+tconf "$tmp/lab-live6.conf" 'UART_COUNT=2' "UART0=tcp:127.0.0.1:$(cat "$tmp/lv6.tport")" "UART1=tcp:127.0.0.1:$PB"
+out="$(lmon --rows 12 --cols 50 -- --secs 0.6 --lab "$tmp/lab-live6.conf")"
+want="$(hdr 0 "tcp://127.0.0.1:$(cat "$tmp/lv6.tport")" 30 '' 49; printf '│ L%s\n' 03 04 05 06; hdr 1 "tcp://127.0.0.1:$PB" 0 '' 49; gut 4)"
+same "$(rows "$out")" "$want" && sane "$out" && [ "$(field "$out" cursor)" = 10,0 ] && pass "live: a terminal of 12 rows gets windows of 4 lines for 2 ports, the frame and the cursor line fit" || fail "live: a terminal of 12 rows gets windows of 4 lines ($out)"
+out="$(lmon --rows 4 --cols 40 --raw "$tmp/live-small.raw" -- --secs 0.6 --lab "$tmp/lab-live6.conf" --color never)"
+out="$out $(tr -d '\r' < "$tmp/live-small.raw")"
+case "$out" in *"a terminal of 4 rows is too small for 2 windows"*"MMUART0: L01"*"MMUART0: L06"*) sane "$out" && pass "live: a terminal with too few rows for the windows falls back to the interleaved view and says so" ;; *) fail "live: a terminal with too few rows falls back to the interleaved view ($out)" ;; esac
+out="$(lmon --rows 24 --cols 40 --env TERM=dumb -- --secs 0.6 --lab "$tmp/lab-live6.conf")"
+case "$out" in *"MMUART0: L01"*) sane "$out" && pass "live: TERM=dumb picks the interleaved view" ;; *) fail "live: TERM=dumb picks the interleaved view ($out)" ;; esac
+out="$(lmon --rows 24 --cols 40 -- --secs 0.6 --lab "$tmp/lab-live6.conf" --view interleaved)"
+case "$out" in *"MMUART0: L01"*) sane "$out" && pass "live: --view interleaved on a terminal is interleaved" ;; *) fail "live: --view interleaved on a terminal is interleaved ($out)" ;; esac
+# colours of the target: through, reset at the line end, not into the next line or window; the other sequences do not reach the terminal
+tcp_serve lvc 'send=b"\x1b[31mred\x1b[0m ok\r\n\x1b[1;32mgreen\r\nnext\r\n\x1b[2J\x1b[1;1Hboom\x1b[?25l\x1b]0;t\x07\x1b[5;5Hx\r\n"' 'hold'
+tconf "$tmp/lab-livec.conf" 'UART_COUNT=2' "UART0=tcp:127.0.0.1:$(cat "$tmp/lvc.tport")" "UART1=tcp:127.0.0.1:$PB"
+out="$(lmon --rows 30 --cols 60 --attrs -- --secs 0.6 --lab "$tmp/lab-livec.conf" --color always)"
+r="$(rows "$out")"
+want="$(printf '%s\n' '<36>│</> <31>red</> ok' '<36>│</> <1;32>green</>' '<36>│</> next' '<36>│</> boomx')"
+same "$(printf '%s\n' "$r" | sed -n 2,5p)" "$want" && sane "$out" && pass "live: the colours of the target pass through, end with the line and do not leak; a clear-screen, a cursor position and a cursor-hide of the target do nothing" || fail "live: the colours of the target pass through ($out)"
+case "$(printf '%s\n' "$r" | sed -n 1p)" in "<1;36>── MMUART0"*) pass "live: the header has the colour of the port" ;; *) fail "live: the header has the colour of the port ($r)" ;; esac
+case "$(printf '%s\n' "$r" | sed -n 10p)" in "<2>── MMUART1"*) pass "live: the window of a port that printed nothing is dim" ;; *) fail "live: the window of a port that printed nothing is dim ($r)" ;; esac
+[ "$(printf '%s\n' "$r" | sed -n 11,18p | grep -c '^<2>│</>$')" = 8 ] && pass "live: and so is its empty gutter" || fail "live: and so is its empty gutter ($r)"
+out="$(lmon --rows 30 --cols 60 --attrs -- --secs 0.6 --lab "$tmp/lab-livec.conf" --color never)"
+r="$(rows "$out")"
+same "$(printf '%s\n' "$r" | sed -n 2,5p)" $'│ red ok\n│ green\n│ next\n│ boomx' && sane "$out" && ! printf '%s' "$r" | grep -q '<' && pass "live: --color never has no colour at all, also not in the header and the gutters" || fail "live: --color never has no colour at all ($out)"
+out="$(lmon --rows 30 --cols 60 --raw "$tmp/live-nc.raw" --env NO_COLOR=1 -- --secs 0.6 --lab "$tmp/lab-livec.conf")"
+"$PY" -c 'import re, sys; raw = open(sys.argv[1], "rb").read().decode(); assert not re.search("\x1b\\[[0-9;:]*m", raw) and "\x1b[?25l" in raw' "$tmp/live-nc.raw" && sane "$out" && pass "live: NO_COLOR gives the live view without colours" || fail "live: NO_COLOR gives the live view without colours"
+# a port that ends: the window says so, the line about it comes once below the frame
+tcp_serve lvd 'send=b"bye\r\n"' 'sleep=0.3'
+tconf "$tmp/lab-lived.conf" 'UART_COUNT=1' "UART0=tcp:127.0.0.1:$(cat "$tmp/lvd.tport")"
+out="$(lmon --rows 24 --cols 80 -- --secs 1.0 --lab "$tmp/lab-lived.conf")"
+want="$(hdr 0 "tcp://127.0.0.1:$(cat "$tmp/lvd.tport")" 5 '  [ended]' 79; printf '│ bye\n'; gut 7; printf 'monitor.py: MMUART0: tcp://127.0.0.1:%s closed the connection after 5 bytes\n' "$(cat "$tmp/lvd.tport")")"
+same "$(rows "$out")" "$want" && sane "$out" && pass "live: a connection that ends is marked in its header and reported once below the frame" || fail "live: a connection that ends is marked in its header ($out)"
+# Ctrl+C: the terminal is restored, the frame stays, exit status 130 at once
+t0=$(date +%s%N)
+out="$(lmon --rows 30 --cols 60 --int-after 1.0 -- --secs 30 --lab "$tmp/lab-live.conf")"
+ms=$(( ($(date +%s%N) - t0) / 1000000 ))
+r="$(rows "$out")"
+sane "$out" 130 && [ "$ms" -lt 5000 ] && [ "$(printf '%s\n' "$r" | sed -n 2p)" = '│ alpha' ] && [ "$(printf '%s\n' "$r" | sed -n 19p)" = '^Cmonitor.py: interrupted (Ctrl+C)' ] && [ "$(field "$out" cursor)" = 19,0 ] \
+  && pass "live: Ctrl+C restores the cursor, leaves the frame and ends with 130 and one line below it" \
+  || fail "live: Ctrl+C restores the cursor, leaves the frame and ends with 130 ($ms ms: $out)"
+case "$out" in *Traceback*) fail "live: Ctrl+C is not a traceback" ;; *) pass "live: Ctrl+C is not a traceback" ;; esac
+# an exception while the view runs
+out="$(pty --rows 20 --cols 40 -- "$PY" -c '
+import sys
+sys.path.insert(0, sys.argv[1])
+import serialview
+v = serialview.make_view("live", "never", {0: "port"})
+with v:
+    v.feed(0, b"hi\r\n")
+    raise RuntimeError("boom")' "$HW")"
+case "$out" in *"RuntimeError: boom"*) sane "$out" 1 && same "$(rows "$out" | sed -n 2p)" '│ hi' && pass "live: an exception restores the cursor and the frame stays" || fail "live: an exception restores the cursor ($out)" ;; *) fail "live: an exception restores the cursor ($out)" ;; esac
+# the terminal is resized: the frame is drawn again for the new size, nothing of the old one stays
+tcp_serve lvr 'send=b"first\r\n"' 'sleep=1.0' 'send=b"second\r\n"' 'hold'
+tconf "$tmp/lab-liver.conf" 'UART_COUNT=1' "UART0=tcp:127.0.0.1:$(cat "$tmp/lvr.tport")"
+out="$(lmon --rows 20 --cols 70 --resize 0.6:20x30 -- --secs 1.6 --lab "$tmp/lab-liver.conf")"
+r="$(rows "$out")"
+same "$(printf '%s\n' "$r" | sed -n 2,3p)" $'│ first\n│ second' && [ "$(printf '%s\n' "$r" | wc -l)" = 9 ] && [ "$(field "$out" cursor)" = 9,0 ] && sane "$out" \
+  && pass "live: after a resize the frame is drawn again at the new width, nothing of the old one stays" || fail "live: after a resize the frame is drawn again ($out)"
+# no UTF-8 output: the frame is ASCII, what the terminal cannot show is escaped (and so counted at its escaped width)
+tcp_serve lva2 'send=b"caf\xc3\xa9 \xe6\x97\xa5\r\n01234567890123456789012345678901234567890123456789\r\n"' 'hold'
+tconf "$tmp/lab-liveac.conf" 'UART_COUNT=1' "UART0=tcp:127.0.0.1:$(cat "$tmp/lva2.tport")"
+out="$(lmon --rows 24 --cols 45 --env PYTHONIOENCODING=ascii -- --secs 0.6 --lab "$tmp/lab-liveac.conf")"
+r="$(rows "$out")"
+same "$(printf '%s\n' "$r" | sed -n 2,3p)" "$(printf '| caf\\xe9 \\u65e5\n| %s0>' "$(printf '0123456789%.0s' 1 2 3 4)")" && sane "$out" && ! printf '%s' "$r" | LC_ALL=C grep -q '[^ -~]' && pass "live: without UTF-8 output the frame is ASCII, escaped characters are counted at their escaped width" || fail "live: without UTF-8 output the frame is ASCII ($out)"
+case "$(printf '%s\n' "$r" | sed -n 1p)" in "-- MMUART0  tcp://"*" B -"*) pass "live: the header has an ASCII fill" ;; *) fail "live: the header has an ASCII fill ($r)" ;; esac
+# run_image: the frame stays, the trap and the verdict come below it, the text is not printed twice
+serve livehello --uart "$tmp/uart/livehello/mmuart0.log" --print "bare hello E51 hart 0"
+out="$(pty --rows 50 --cols 80 -- "$PY" "$HW/run_image.py" "$tmp/loop.elf" 0 --secs 0.6 --lab "$tmp/lab-livehello.conf" --expect 'bare hello')"
+r="$(rows "$out")"
+last="$(printf '%s\n' "$r" | grep -n '^│' | tail -1 | cut -d: -f1)"; after="$(printf '%s\n' "$r" | grep -n '^after:' | cut -d: -f1)"
+sane "$out" && [ "$(printf '%s\n' "$r" | grep -c 'bare hello E51 hart 0')" = 1 ] && [ "$after" -gt "$last" ] && [ "$(printf '%s\n' "$r" | tail -1)" = 'expect: matched /bare hello/ on MMUART0' ] \
+  && pass "run_image: the live frame stays on the screen, the trap and the verdict follow it, and the text is not printed twice" \
+  || fail "run_image: the live frame stays, the trap and the verdict follow it ($out)"
+out="$(pty --rows 50 --cols 80 -- "$PY" "$HW/run_image.py" "$tmp/loop.elf" 0 --secs 0.4 --lab "$tmp/lab-livehello.conf" --view live --color never --expect 'nothing like it')"
+sane "$out" 1 && pass "run_image: --expect that does not match exits 1 after a live view" || fail "run_image: --expect that does not match exits 1 after a live view ($out)"
 
 # --- start_openocd.sh ---------------------------------------------------------------
 mkdir -p "$tmp/sc/openocd/bin"

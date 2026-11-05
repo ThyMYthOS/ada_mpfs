@@ -189,7 +189,7 @@ case " $(comp hw b | tr '\n' ' ') " in *" bootmode "*) pass "completion: ./x hw 
 case " $(comp build bare_h | tr '\n' ' ') " in *" bare_hello "*) pass "completion: ./x build bare_h -> bare_hello" ;; *) fail "completion: ./x build bare_h -> bare_hello" ;; esac
 case " $(comp te | tr '\n' ' ') " in *" test "*) pass "completion: ./x te -> test" ;; *) fail "completion: ./x te -> test" ;; esac
 [ "$(comp build bare_hello --hart '' | tr '\n' ' ')" = "e51 u54 " ] && pass "completion: --hart offers e51 and u54" || fail "completion: --hart offers e51 and u54"
-[ "$(comp hw run --view '' | tr '\n' ' ')" = "auto interleaved blocks " ] && pass "completion: --view offers the views" || fail "completion: --view offers the views"
+[ "$(comp hw run --view '' | tr '\n' ' ')" = "auto live interleaved blocks " ] && pass "completion: --view offers the views" || fail "completion: --view offers the views"
 [ "$(comp hw monitor --color '' | tr '\n' ' ')" = "auto always never " ] && pass "completion: --color offers auto, always and never" || fail "completion: --color offers auto, always and never"
 for o in --view --color; do
   case " $(comp hw monitor -- | tr '\n' ' ') " in *" $o "*) pass "completion: ./x hw monitor offers $o" ;; *) fail "completion: ./x hw monitor offers $o" ;; esac

@@ -22,9 +22,11 @@
 #                              run a probe of hw/ and print its result block
 #   hw.sh monitor [--secs N] [--port N] [--expect RE] [--view MODE] [--color WHEN] [--lab F]
 #                              show what the serial ports print, as it arrives
-#   --view MODE (run, monitor) how the serial text is shown: interleaved (complete lines in the order they
-#                              arrive, behind MMUART<n>:; the default) or blocks (one block per port at the
-#                              end: a header with the byte count, the lines behind a |). --color auto|always|never
+#   --view MODE (run, monitor) how the serial text is shown: live (a window of 8 lines per port, in which the
+#                              text scrolls; the default on a terminal), interleaved (complete lines in the
+#                              order they arrive, behind MMUART<n>:; the default otherwise) or blocks (one
+#                              block per port at the end: a header with the byte count, the lines behind a |).
+#                              --color auto|always|never
 #                              (default auto: on a terminal, off with NO_COLOR, on with FORCE_COLOR): the colours
 #                              of the target pass through when on and are removed when off; other escape
 #                              sequences of the target are always removed. --expect matches the text as the

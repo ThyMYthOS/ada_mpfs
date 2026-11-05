@@ -27,7 +27,7 @@ _mpfs_x () {
     --priv)  COMPREPLY=($(compgen -W "m u" -- "$cur")); return ;;
     -P)      COMPREPLY=($(compgen -W "light light-tasking embedded auto" -- "$cur")); return ;;
     --lab|--workdir|--svd) COMPREPLY=($(compgen -f -- "$cur")); return ;;
-    --view)  COMPREPLY=($(compgen -W "auto interleaved blocks" -- "$cur")); return ;;
+    --view)  COMPREPLY=($(compgen -W "auto live interleaved blocks" -- "$cur")); return ;;
     --color) COMPREPLY=($(compgen -W "auto always never" -- "$cur")); return ;;
   esac
 
