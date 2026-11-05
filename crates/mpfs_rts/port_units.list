@@ -13,7 +13,8 @@ unwind-dw2-fde-bb.c     gnat_rts_sources/include/rts-sources/full/zcx-dw2-gcc/un
 i-fe310.ads             riscv/sifive/fe310/svd/i-fe310.ads
 i-fe310-plic.ads        riscv/sifive/fe310/svd/i-fe310-plic.ads
 s-macres.adb            riscv/sifive/fe310/s-macres.adb
-s-textio.adb            src/s-textio__ns16550.adb
+s-textio.adb            src/s-textio__ns16550.adb (the own mpfs/gnat/s-textio.adb replaces it: the console of the link symbols)
+s-textio.ads            gnat_rts_sources/include/rts-sources/common/s-textio.ads (the own mpfs/gnat/s-textio.ads has Restrictions (No_Elaboration_Code): the body names the PAC)
 s-bbbopa.ads            src/s-bbbopa__polarfiresoc.ads
 
 # gnarl/
