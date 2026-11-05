@@ -5,6 +5,10 @@
   ok: the priority of the source is the ceiling of its handler
   ok: outside a protected object the threshold of this hart is 0
   ok: inside it the threshold is the ceiling
+  ok: generated names are PLIC source numbers, Interrupt_ID is 1 to 186
+  ok: 0 and 187 are not an Interrupt_ID, 1, 90, 117 and 186 are
+  ok: the interrupt priorities are PLIC levels 1 to 7, task priorities 0
+  ok: the threshold of this hart is the level of the set priority
   ok: the handler took in as many bytes as console.in has
   ok: the bytes are those of console.in, in order
   ok: the source is not pending after the handler
