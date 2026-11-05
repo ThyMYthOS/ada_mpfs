@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Load an ELF onto one hart of an Icicle Kit over JTAG, run it, capture the serial ports and report the first trap.
 
-    run_image.py ELF HART [--secs N] [--expect REGEX] [--expect-port N] [--uart-standin] [--div D]
+    run_image.py ELF HART [--secs N] [--expect REGEX] [--expect-port N] [--uart-clocks | --uart-standin] [--div D]
                  [--view MODE] [--color WHEN] [--lab FILE]
 
 Needs OpenOCD running (start_openocd.sh, or ./x hw openocd). The board is expected in boot mode 0 (idle, no HSS).
@@ -25,11 +25,15 @@ come from lab.conf.
                    Without --expect the exit status is 0 when the run completed. 2: set-up error
                    (OpenOCD, serial ports, toolchain, lab.conf, arguments); 130: Ctrl+C. What --expect
                    matches is the text of the port as it is, whatever the view and the colours.
---uart-standin     stand in for the boot stage that sets the UARTs up (the runtime's console driver
-                   assumes it exists, nothing provides it in boot mode 0): clock and release MMUART0..4
-                   and program divisor D (22 gives 115200 at the ~40 MHz APB clock of an unconfigured
-                   MSS, measured). Off by default: an image or a bootloader that sets the UARTs up itself
-                   must not be run on top of this.
+--uart-clocks      stand in for the part of the boot stage that every console needs: clock and release
+                   MMUART0..4 (SYSREG.SUBBLK_CLOCK_CR and SOFT_RESET_CR), nothing else. For an image whose
+                   console driver programs the divisor and the format itself (the runtime with
+                   __mpfs_console_init = 1). Off by default.
+--uart-standin     stand in for the whole boot stage that sets the UARTs up (an image whose console driver
+                   assumes it exists): --uart-clocks, and program divisor D (22 gives 115200 at the
+                   ~40 MHz APB clock of an unconfigured MSS, measured), the 8N1 format and the FIFOs.
+                   Off by default: an image or a bootloader that sets the UARTs up itself must not be run
+                   on top of this.
 
 The trap recorder (trap.S) lives at 0x08100000, above any image here, and logs the first trap.
 Segments load with 64-bit stores in whole 64-byte lines: LIM is ECC memory, uninitialised at
@@ -116,6 +120,7 @@ def main(argv=None):
     ap.add_argument("--secs", type=float, default=4)
     ap.add_argument("--expect", metavar="REGEX")
     ap.add_argument("--expect-port", type=int, metavar="N")
+    ap.add_argument("--uart-clocks", action="store_true")
     ap.add_argument("--uart-standin", action="store_true")
     ap.add_argument("--div", type=int, default=22)
     ap.add_argument("--lab", metavar="FILE")
@@ -155,9 +160,10 @@ def main(argv=None):
     try:
         o.hart(a.hart)
         o.cmd("halt")
-        if a.uart_standin:
+        if a.uart_clocks or a.uart_standin:
             o.wr32(SYSREG + 0x84, o.rd32(SYSREG + 0x84) | (0x1F << 5))
             o.wr32(SYSREG + 0x88, o.rd32(SYSREG + 0x88) & ~(0x1F << 5))
+        if a.uart_standin:
             for b in UARTS:
                 o.cmd("mww 0x%x 0x83; mww 0x%x %d; mww 0x%x 0; mww 0x%x 3; mww 0x%x 7" % (b + 0xC, b, a.div, b + 4, b + 0xC, b + 8))
         for i in range(8):
@@ -179,9 +185,9 @@ def main(argv=None):
         print("first trap:", "none" if rec[0] == 0 else f"mcause={rec[1]:#x} mepc={rec[2]:#x} mtval={rec[3]:#x}")
         if not any(s.data.values()):
             print("no serial output on any port")
-            if not a.uart_standin:
+            if not (a.uart_standin or a.uart_clocks):
                 print("hint: in boot mode 0 nothing sets the UARTs up (clock, reset, divisor); an image that expects "
-                      "that needs --uart-standin")
+                      "that needs --uart-standin, one that programs the divisor itself --uart-clocks")
         if regex is None:
             return 0
         ok, text = check_expect(regex, s.data, a.expect_port)
