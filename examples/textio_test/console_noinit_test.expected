@@ -1,0 +1,3 @@
+  ok: Initialize marks the service as initialized
+  ok: Initialize did not write DFR
+  ok: Initialize did not write LCR
