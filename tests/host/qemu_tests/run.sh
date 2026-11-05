@@ -312,6 +312,27 @@ for spec in heap_test:embedded secstack_test:embedded secstack_light_test:light 
     || fail "$t is built for e51 and u54 with the $prof runtime"
   [ -f "$ROOT/examples/$t/console.expected" ] && pass "$t has a console.expected file" || fail "$t has a console.expected file"
 done
+# textio_test (six images: the console of the runtime on each MMUART and with init 0) and console_none_test
+for hart in e51 u54; do
+  grep -q "^textio_test_${hart}${tab}examples/textio_test${tab}0${tab}pass${tab}-${tab}-\$" "$list_c" \
+    && pass "tests.list: textio_test_$hart" || fail "tests.list: textio_test_$hart"
+  for n in 1 2 3 4; do
+    grep -q "^console_mmuart${n}_test_${hart}${tab}examples/textio_test${tab}${n}${tab}pass${tab}-${tab}-\$" "$list_c" \
+      && pass "tests.list: console_mmuart${n}_test_$hart reports on serial $n" \
+      || fail "tests.list: console_mmuart${n}_test_$hart reports on serial $n"
+  done
+  grep -q "^console_noinit_test_${hart}${tab}examples/textio_test${tab}0${tab}pass${tab}-${tab}-\$" "$list_c" \
+    && pass "tests.list: console_noinit_test_$hart" || fail "tests.list: console_noinit_test_$hart"
+  grep -q "^console_none_test_${hart}${tab}examples/console_none_test${tab}0${tab}pass${tab}-${tab}-\$" "$list_c" \
+    && pass "tests.list: console_none_test_$hart" || fail "tests.list: console_none_test_$hart"
+done
+for ex in textio_test console_none_test; do
+  grep -q '^BUILD_HARTS=e51 u54$' "$ROOT/examples/$ex/example.conf" \
+    && pass "$ex is built for both harts" || fail "$ex is built for both harts"
+done
+for t in textio_test console_mmuart1_test console_mmuart2_test console_mmuart3_test console_mmuart4_test console_noinit_test; do
+  [ -f "$ROOT/examples/textio_test/$t.expected" ] && pass "$t has its own .expected file" || fail "$t has its own .expected file"
+done
 grep -q -- '-smp 5' "$ROOT/tests/qemu/run_tests.sh" \
   && pass "the runner starts all five harts (-smp 5)" || fail "the runner starts all five harts (-smp 5)"
 
