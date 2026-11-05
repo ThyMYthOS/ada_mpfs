@@ -33,7 +33,8 @@
 #      next to the result; --check does not generate, a missing pack is "not up to date";
 #   2. lay the own port units (--port-dir) and then the overlays (--overlay-dir, one directory
 #      per overlay, in the order of their names) over it: <dir>/gnat/*, <dir>/gnarl/* replace
-#      or add sources, <dir>/ld/* goes to ld/; the files named in <dir>/remove.list (paths in the
+#      or add sources, <dir>/ld/* goes to ld/ (and <dir>/<profile>/gnat, gnarl, ld the same for
+#      that profile only); the files named in <dir>/remove.list (paths in the
 #      pack, one per line, "<profile>: <path>" for the pack of that profile only) are deleted
 #      from the pack first, which is how an own port unit replaces a source of the pack that has
 #      another name (start.S for start-ram.S) and how a source stays out of the library
@@ -145,13 +146,19 @@ tree_hash () {
     printf '' | sha
   fi
 }
-# The overlays are applied in the order of their names, so the names are part of the hash.
+# The overlays are applied in the order of their names, so the names are part of the hash. Only what
+# lands in the variant is in it: gnat/, gnarl/ and ld/ of an overlay and the directory of the profile
+# (<overlay>/<profile>), so a change to the overlay of one profile leaves the variants of the others
+# up to date.
 overlay_hash () {
-  local d
+  local d s
   if [ -d "$1" ]; then
     for d in "$1"/*/; do
       [ -d "$d" ] || continue
-      printf '%s %s\n' "$(basename "$d")" "$(tree_hash "$d")"
+      printf '%s\n' "$(basename "$d")"
+      for s in gnat gnarl ld "$profile"; do
+        printf '%s %s\n' "$s" "$(tree_hash "${d%/}/$s")"
+      done
     done | sha
   else
     printf '' | sha
@@ -249,12 +256,16 @@ if [ "$profile" != light ]; then
 fi
 
 # 2. port units, then the overlays
+# A directory has gnat/, gnarl/ and ld/ for every profile, and <profile>/gnat, <profile>/gnarl and
+# <profile>/ld for that profile only (laid after the others).
 overlay_from () {   # overlay_from <directory>
-  local sub
-  for sub in gnat gnarl ld; do
-    [ -d "$1/$sub" ] || continue
-    mkdir -p "$work/$sub"
-    cp -R "$1/$sub/." "$work/$sub/"
+  local base sub
+  for base in "$1" "$1/$profile"; do
+    for sub in gnat gnarl ld; do
+      [ -d "$base/$sub" ] || continue
+      mkdir -p "$work/$sub"
+      cp -R "$base/$sub/." "$work/$sub/"
+    done
   done
 }
 # Files of the pack that an own port unit replaces under another name.
