@@ -1,0 +1,24 @@
+--  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+--  SPDX-License-Identifier: Apache-2.0
+--
+--  The host test of the TLSF allocator of the embedded runtime: the very sources that the runtime is
+--  built from (crates/mpfs_rts/overlays/tlsf/embedded/gnat: Tlsf_Core and Tlsf_Math), compiled with the
+--  native GNAT with assertions on (-gnata: the preconditions and postconditions of Tlsf_Math are
+--  checked at run time as well as proved), so that a bug found here is a bug of the allocator that the
+--  image links. The program reports with Host_Report (tests/host/common).
+
+project Tlsf_Host is
+   for Source_Dirs use
+     ("src", "../../common", "../../../../crates/mpfs_rts/overlays/tlsf/embedded/gnat");
+   for Source_Files use
+     ("allocator_test.adb", "allocator_arenas.ads", "host_report.ads", "host_report.adb",
+      "tlsf_core.ads", "tlsf_core.adb", "tlsf_math.ads", "tlsf_math.adb");
+   for Object_Dir use "obj";
+   for Exec_Dir use "bin";
+   for Create_Missing_Dirs use "True";
+   for Main use ("allocator_test.adb");
+
+   package Compiler is
+      for Default_Switches ("Ada") use ("-g", "-O2", "-gnat2022", "-gnata", "-gnatwa", "-gnatwJ", "-gnatwe");
+   end Compiler;
+end Tlsf_Host;

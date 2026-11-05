@@ -33,7 +33,8 @@
 #      next to the result; --check does not generate, a missing pack is "not up to date";
 #   2. lay the own port units (--port-dir) and then the overlays (--overlay-dir, one directory
 #      per overlay, in the order of their names) over it: <dir>/gnat/*, <dir>/gnarl/* replace
-#      or add sources, <dir>/ld/* goes to ld/; the files named in <dir>/remove.list (paths in the
+#      or add sources, <dir>/ld/* goes to ld/ (and <dir>/<profile>/gnat, gnarl, ld the same for
+#      that profile only); the files named in <dir>/remove.list (paths in the
 #      pack, one per line, "<profile>: <path>" for the pack of that profile only) are deleted
 #      from the pack first, which is how an own port unit replaces a source of the pack that has
 #      another name (start.S for start-ram.S) and how a source stays out of the library
@@ -145,13 +146,19 @@ tree_hash () {
     printf '' | sha
   fi
 }
-# The overlays are applied in the order of their names, so the names are part of the hash.
+# The overlays are applied in the order of their names, so the names are part of the hash. Only what
+# lands in the variant is in it: gnat/, gnarl/ and ld/ of an overlay and the directory of the profile
+# (<overlay>/<profile>), so a change to the overlay of one profile leaves the variants of the others
+# up to date.
 overlay_hash () {
-  local d
+  local d s
   if [ -d "$1" ]; then
     for d in "$1"/*/; do
       [ -d "$d" ] || continue
-      printf '%s %s\n' "$(basename "$d")" "$(tree_hash "$d")"
+      printf '%s\n' "$(basename "$d")"
+      for s in gnat gnarl ld "$profile"; do
+        printf '%s %s\n' "$s" "$(tree_hash "${d%/}/$s")"
+      done
     done | sha
   else
     printf '' | sha
@@ -249,12 +256,16 @@ if [ "$profile" != light ]; then
 fi
 
 # 2. port units, then the overlays
+# A directory has gnat/, gnarl/ and ld/ for every profile, and <profile>/gnat, <profile>/gnarl and
+# <profile>/ld for that profile only (laid after the others).
 overlay_from () {   # overlay_from <directory>
-  local sub
-  for sub in gnat gnarl ld; do
-    [ -d "$1/$sub" ] || continue
-    mkdir -p "$work/$sub"
-    cp -R "$1/$sub/." "$work/$sub/"
+  local base sub
+  for base in "$1" "$1/$profile"; do
+    for sub in gnat gnarl ld; do
+      [ -d "$base/$sub" ] || continue
+      mkdir -p "$work/$sub"
+      cp -R "$base/$sub/." "$work/$sub/"
+    done
   done
 }
 # Files of the pack that an own port unit replaces under another name.
@@ -292,6 +303,20 @@ done
 # limit is 120 for the runtime. The other style checks of -gnatg stay.
 sed -i 's|^  ADAFLAGS := ("-gnatg", |  ADAFLAGS := ("-gnatg", "-gnatyM120", |' "$work/target_options.gpr"
 grep -q 'gnatyM120' "$work/target_options.gpr" || die "target_options.gpr of $(basename "$pack") has no ADAFLAGS to extend"
+
+# The default size of a secondary stack, per profile. The upstream defaults (1 MiB for light, 512 KiB
+# for light-tasking and embedded) are for targets with a lot of memory: one stack per task and one for
+# the environment task would not fit the 1920 KiB of the LIM. A program says what it needs with the
+# binder switch -D<size> (or Secondary_Stack_Size of a task); this is what it gets without. An
+# overflow raises Storage_Error (System.Secondary_Stack.SS_Allocate), see README.md.
+case "$profile" in
+  light)          ss_size_kib=16 ;;
+  light-tasking)  ss_size_kib=8 ;;
+  embedded)       ss_size_kib=16 ;;
+esac
+sed -i "s|^\(   Runtime_Default_Sec_Stack_Size : constant Size_Type := \).*;|\1$ss_size_kib * 1024;|" "$work/gnat/s-parame.ads"
+grep -q "Runtime_Default_Sec_Stack_Size : constant Size_Type := $ss_size_kib \* 1024;" "$work/gnat/s-parame.ads" \
+  || die "s-parame.ads of $(basename "$pack") has no Runtime_Default_Sec_Stack_Size to set"
 
 # The linker scripts of the runtime (the partition data brings the values, not the scripts).
 if [ -d "$ld_dir" ]; then

@@ -1,0 +1,19 @@
+  ok: a String of 1000 characters is returned
+  ok: a String made of two is returned
+  ok: a String computed from its length is returned
+  ok: an empty String is returned
+  ok: 20 levels of results made of results are right
+  ok: the stack is where it was after the statement
+  ok: the high-water mark covers the deepest point
+  ok: the exhausted stack raises Storage_Error
+  ok: the stack of the environment task has the default of the profile
+  ok: the stack is usable after the overflow
+  ok: the release brought the stack back
+  ok: the environment task works beside the task
+  ok: its stack is balanced meanwhile
+  ok: the task finished
+  ok: the results of the task are right while the other task works too
+  ok: the exhausted stack of the task raises Storage_Error
+  ok: the stack of the task has the size of its aspect
+  ok: the stack of the task is usable after the overflow
+  ok: the environment task's stack is balanced

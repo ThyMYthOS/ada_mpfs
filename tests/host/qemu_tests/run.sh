@@ -298,6 +298,20 @@ grep -q '^BUILD_HARTS=e51 u54$' "$ROOT/examples/exceptions_test/example.conf" \
 for t in unhandled_test unhandled_task_test; do
   [ -f "$ROOT/examples/exceptions_test/$t.expected" ] && pass "$t has its own .expected file" || fail "$t has its own .expected file"
 done
+# heap_test (embedded) and the three secondary stack tests, one per profile, for the E51 and hart 1
+# of the U54: the example of a profile has that profile in its example.conf
+for spec in heap_test:embedded secstack_test:embedded secstack_light_test:light secstack_tasking_test:light-tasking; do
+  t="${spec%%:*}"; prof="${spec#*:}"
+  for hart in e51 u54; do
+    grep -q "^${t}_${hart}${tab}examples/${t}${tab}0${tab}pass${tab}-${tab}-\$" "$list_c" \
+      && pass "tests.list: ${t}_$hart" || fail "tests.list: ${t}_$hart"
+  done
+  grep -q '^BUILD_HARTS=e51 u54$' "$ROOT/examples/$t/example.conf" \
+    && grep -q "^PROFILE=$prof\$" "$ROOT/examples/$t/example.conf" \
+    && pass "$t is built for e51 and u54 with the $prof runtime" \
+    || fail "$t is built for e51 and u54 with the $prof runtime"
+  [ -f "$ROOT/examples/$t/console.expected" ] && pass "$t has a console.expected file" || fail "$t has a console.expected file"
+done
 grep -q -- '-smp 5' "$ROOT/tests/qemu/run_tests.sh" \
   && pass "the runner starts all five harts (-smp 5)" || fail "the runner starts all five harts (-smp 5)"
 

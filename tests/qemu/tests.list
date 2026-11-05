@@ -45,3 +45,11 @@ unhandled_test_e51	examples/exceptions_test	0	pass	-	-
 unhandled_test_u54	examples/exceptions_test	0	pass	-	-
 unhandled_task_test_e51	examples/exceptions_test	0	pass	-	-
 unhandled_task_test_u54	examples/exceptions_test	0	pass	-	-
+heap_test_e51	examples/heap_test	0	pass	-	-
+heap_test_u54	examples/heap_test	0	pass	-	-
+secstack_test_e51	examples/secstack_test	0	pass	-	-
+secstack_test_u54	examples/secstack_test	0	pass	-	-
+secstack_light_test_e51	examples/secstack_light_test	0	pass	-	-
+secstack_light_test_u54	examples/secstack_light_test	0	pass	-	-
+secstack_tasking_test_e51	examples/secstack_tasking_test	0	pass	-	-
+secstack_tasking_test_u54	examples/secstack_tasking_test	0	pass	-	-
