@@ -12,3 +12,9 @@
 # with 0 unproved checks; `./x prove` fails otherwise.
 project	label	switches
 tests/prove/sample/sample.gpr	Sample_Math: byte join and split, saturating add (silver, and contracts that state the result)	-
+# The two units of the heap that are SPARK. Tlsf_Math states that the bucket indices are in range
+# (a functional contract, beyond the run-time checks): level 4 and three provers, as in the project
+# it comes from. Heap_Guard states the result of the size arithmetic. -u selects the unit of the one
+# project.
+tests/prove/tlsf/tlsf.gpr	Tlsf_Math: size classes and bit arithmetic of the TLSF allocator, bucket indices in range	--level=4 --prover=z3,cvc5,altergo --timeout=60 -u tlsf_math.adb
+tests/prove/tlsf/tlsf.gpr	Heap_Guard: request sizes of malloc and calloc, no wrap into a block that is too small	--level=3 --prover=z3,cvc5,altergo --timeout=30 -u heap_guard.adb

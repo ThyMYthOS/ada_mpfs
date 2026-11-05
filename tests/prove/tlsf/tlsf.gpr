@@ -1,0 +1,23 @@
+--  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+--  SPDX-License-Identifier: Apache-2.0
+--
+--  The SPARK part of the heap of the embedded runtime (crates/mpfs_rts/overlays/tlsf): the size
+--  classes and the bit arithmetic of the TLSF allocator (Tlsf_Math: the bucket indices are always
+--  in range) and the size arithmetic of malloc and calloc (Heap_Guard: a request that wraps never
+--  gives a block that is too small). The bodies of Tlsf_Core and MPFS_Heap work on raw addresses
+--  and are outside what SPARK can model; they are in the host test (tests/host/rts_heap) and
+--  heap_test. Native, no runtime, no register access; the sources are those of the runtime,
+--  not copies. Listed in tools/prove.list, one row per unit.
+
+project Tlsf is
+   for Source_Dirs use ("../../../crates/mpfs_rts/overlays/tlsf/embedded/gnat");
+   for Source_Files use
+     ("tlsf_math.ads", "tlsf_math.adb", "heap_guard.ads", "heap_guard.adb");
+   for Object_Dir use "obj";
+   for Create_Missing_Dirs use "True";
+   for Languages use ("Ada");
+
+   package Compiler is
+      for Default_Switches ("Ada") use ("-gnat2022", "-gnata", "-gnatwa", "-gnatwe");
+   end Compiler;
+end Tlsf;
