@@ -21,7 +21,7 @@ runs:
         path: libs/mpfs_pac/src/generated
         key: pac-${{ hashFiles('libs/mpfs_pac/MPFS_Registers.sha256') }}
 
-    - uses: actions/setup-python@v7.0.0
+    - uses: actions/setup-python@v7.1.0
       if: steps.cache.outputs.cache-hit != 'true'
       with:
         python-version: "3.13"
