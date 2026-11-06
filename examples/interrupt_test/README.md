@@ -12,6 +12,8 @@ handlers, the board loopback) builds on it. It links with the `light-tasking` ru
 | the priority of the source is the ceiling of its handler | `Set_Priority` |
 | the threshold of this hart is 0 outside and the ceiling inside a protected object | `Set_Current_Priority` writes the own context |
 | the handler (`UART_Rx.Receiver`, `Attach_Handler => 90`, ceiling `Interrupt_Priority'First + 2`) gets `console.in` byte for byte, and the source is not pending afterwards | an external interrupt reaches the hart through its own PLIC context, claim and complete work |
+| the generated names are the PLIC source numbers: `Names.L2_METADATA_CORR` is `Interrupt_ID'First` (1), `Names.U54_4_BUS_ERROR_UNIT` is `Interrupt_ID'Last` (186), `Names.MMUART0` is 90; 0 and 187 are not an `Interrupt_ID`, 1, 90 and 186 are (a run-time membership test, the negative test of the bounds on the target; the compile-time one is in `tests/host/rts_intnam`) | `crates/mpfs_rts/gen_intnam.py`, `Interrupt_Range` of `s-bbpara`; the handler is attached to the generated name `Names.MMUART0` |
+| the seven interrupt priorities are the PLIC levels 1 to 7 and a task priority is level 0; the threshold of this hart is the level of the priority set, for each of the seven and for a task priority, read from the register and through `Threshold` | `RISCV_PLIC.Level_Of`, `Set_Priority_Threshold`, `Threshold` |
 | `msip` of this hart reads set, then clear after `Clear_MSIP`; `mtime` runs | `System.BB.RISCV_CLINT` |
 | the `mtimecmp` of the other harts is untouched | the runtime no longer writes the `mtimecmp` of hart 1 (QEMU: 0 after reset) |
 

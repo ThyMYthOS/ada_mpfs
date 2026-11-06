@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com> -->
+<!-- SPDX-License-Identifier: CC-BY-4.0 -->
+<device>
+  <name>FIXTURE</name>
+  <peripherals>
+    <peripheral>
+      <name>PLIC</name>
+      <interrupt><name>ZETA</name><description>Fifth   source</description><value>5</value></interrupt>
+      <interrupt><name>ALPHA</name><description>First source</description><value>1</value></interrupt>
+      <interrupt><name>BETA</name><description>Second source</description><value>2</value></interrupt>
+    </peripheral>
+    <peripheral>
+      <name>OTHER</name>
+      <interrupt><name>GAMMA</name><description>Fourth source</description><value>4</value></interrupt>
+    </peripheral>
+  </peripherals>
+</device>

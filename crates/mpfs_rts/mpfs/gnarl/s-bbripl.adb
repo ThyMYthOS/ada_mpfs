@@ -40,6 +40,14 @@ package body System.BB.RISCV_PLIC is
    --  Width of a source priority and of a threshold: three bits
 
    pragma Compile_Time_Error
+     (Interrupt_Priority'Last - Interrupt_Priority'First + 1
+      /= Integer (Priority_Type'Last)
+      or else Levels /= Integer (Priority_Type'Last),
+      "System.Interrupt_Priority is not the 7 levels of the PLIC");
+   --  The mapping of Ada interrupt priorities to PLIC levels (Level_Of) is
+   --  one to one only if system.ads of the profile has exactly 7 of them
+
+   pragma Compile_Time_Error
      (Regs.ENABLE_H0_M_Registers'Size /= 32 * 6
       or else Regs.ENABLE_H0_M_Registers'Length /= 6,
       "PLIC enable block is not six 32-bit words");
@@ -218,29 +226,19 @@ package body System.BB.RISCV_PLIC is
    procedure Set_Priority_Threshold (Priority : Integer) is
       Control : Regs.THRESHOLD_H0_M_Register
         with Import, Address => Threshold_Address (System.BB.Hart.Id);
-
-      Int_Priority : constant Integer :=
-        Priority - Interrupt_Priority'First + 1;
-
    begin
-      if Int_Priority > Integer (Priority_Type'Last) then
-         Control.THRESHOLD := Priority_Type'Last;
-      elsif Int_Priority < Integer (Priority_Type'First) then
-         Control.THRESHOLD := Priority_Type'First;
-      else
-         Control.THRESHOLD := Priority_Type (Int_Priority);
-      end if;
+      Control.THRESHOLD := Priority_Type (Level_Of (Priority));
    end Set_Priority_Threshold;
 
    ---------------
    -- Threshold --
    ---------------
 
-   function Threshold return Integer is
+   function Threshold return System.Any_Priority is
       Control : Regs.THRESHOLD_H0_M_Register
         with Import, Address => Threshold_Address (System.BB.Hart.Id);
    begin
-      return Integer (Control.THRESHOLD);
+      return Priority_Of_Level (Natural (Control.THRESHOLD));
    end Threshold;
 
    ------------------
@@ -251,14 +249,13 @@ package body System.BB.RISCV_PLIC is
      (Interrupt : System.BB.Interrupts.Interrupt_ID;
       Prio      : Interrupt_Priority)
    is
-      Int_Prio : constant Natural :=
-        Natural (Prio) - Natural (Interrupt_Priority'First) + 1;
-      --  On the PLIC, priority zero is reserved to mean "never interrupt"
    begin
       --  PRIORITY (I) is the register of source I + 1: the array of the PAC
-      --  starts at offset 4, the register of source 0 does not exist
+      --  starts at offset 4, the register of source 0 does not exist. Level
+      --  0 of a source means "never interrupt"; an interrupt priority is
+      --  never level 0.
       Regs.PLIC_Periph.PRIORITY (Natural (Interrupt) - 1).PRIORITY :=
-        Priority_Type (Int_Prio);
+        Priority_Type (Level_Of (Prio));
    end Set_Priority;
 
    ---------------------------
@@ -270,8 +267,9 @@ package body System.BB.RISCV_PLIC is
      return System.Any_Priority
    is
    begin
-      return Natural (Regs.PLIC_Periph.PRIORITY (Natural (Interrupt) - 1)
-                      .PRIORITY) + Interrupt_Priority'First - 1;
+      return Priority_Of_Level
+        (Natural (Regs.PLIC_Periph.PRIORITY (Natural (Interrupt) - 1)
+                  .PRIORITY));
    end Priority_Of_Interrupt;
 
 end System.BB.RISCV_PLIC;

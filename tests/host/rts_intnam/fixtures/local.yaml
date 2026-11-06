@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+schema: 1
+harts:
+  E51: 0
+  U54_1: 1
+interrupts:
+  - local: 7
+    name: SEVEN
+    description: Seventh local interrupt
+    harts: [U54_1]
+  - local: 0
+    name: ZERO
+    description: Local interrupt zero
+    harts: [E51]
+    plic: ALPHA
+  - local: 7
+    name: SEVEN_E51
+    description: Seventh local interrupt of the E51
+    harts: [E51]

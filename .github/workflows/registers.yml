@@ -15,6 +15,9 @@ on:
       - ".github/actions/**"
       - "svd/**"
       - "hw/svd_probe.py"
+      - "crates/mpfs_rts/gen_intnam.py"
+      - "crates/mpfs_rts/mpfs/gnarl/a-intnam.ads"
+      - "crates/bb-runtimes/src/s-bbpara__polarfiresoc.ads"
       - "libs/mpfs_pac/**"
       - "tools/**"
       - "tests/host/**"
@@ -26,6 +29,9 @@ on:
       - ".github/actions/**"
       - "svd/**"
       - "hw/svd_probe.py"
+      - "crates/mpfs_rts/gen_intnam.py"
+      - "crates/mpfs_rts/mpfs/gnarl/a-intnam.ads"
+      - "crates/bb-runtimes/src/s-bbpara__polarfiresoc.ads"
       - "libs/mpfs_pac/**"
       - "tools/**"
       - "tests/host/**"
@@ -71,6 +77,14 @@ jobs:
 
       - name: Host tests of x
         run: tests/host/x/run.sh
+
+      # The interrupt names of the runtime are generated from the SVD and committed: the file must
+      # be what the generator makes of the SVD that was just merged.
+      - name: Interrupt names are current
+        run: python3 crates/mpfs_rts/gen_intnam.py --check
+
+      - name: Host tests of the interrupt names
+        run: tests/host/rts_intnam/run.sh
 
       # The merged SVD, whose hash `./x svd check` has just verified: the pac job takes it
       # instead of merging again (svd.py ensure accepts a file with the recorded hash).
