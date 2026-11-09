@@ -19,8 +19,8 @@ COPYRIGHT = "2026 Manuel Stahl <thymythos@googlemail.com>"
 
 # Assembled so that the tools do not read the tags below as the tags of this file.
 _PREFIX = "SPDX"
-_COPYRIGHT_TAG = _PREFIX + "-FileCopyrightText:"
-_LICENSE_TAG = _PREFIX + "-License-Identifier:"
+COPYRIGHT_TAG = _PREFIX + "-FileCopyrightText:"
+LICENSE_TAG = _PREFIX + "-License-Identifier:"
 
 _LINE_PREFIX = {"ada": "--  ", "shell": "# ", "python": "# ", "yaml": "# "}
 _BLOCK = {"xml": ("<!--", "-->"), "markdown": ("<!--", "-->"), "html": ("<!--", "-->")}
@@ -28,7 +28,7 @@ _BLOCK = {"xml": ("<!--", "-->"), "markdown": ("<!--", "-->"), "html": ("<!--", 
 
 def lines(licence: str, copyright_text: str = COPYRIGHT) -> list[str]:
     """The two tags without a comment marker: copyright text first, then the licence."""
-    return [f"{_COPYRIGHT_TAG} {copyright_text}", f"{_LICENSE_TAG} {licence}"]
+    return [f"{COPYRIGHT_TAG} {copyright_text}", f"{LICENSE_TAG} {licence}"]
 
 
 def header(style: str, licence: str, copyright_text: str = COPYRIGHT) -> str:

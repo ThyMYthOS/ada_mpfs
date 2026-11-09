@@ -3,7 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 """Check or fix SPDX headers and provenance notes.
 
-  headers.py check   fail on missing SPDX header or missing PROVENANCE.md entry
+  headers.py check   fail on missing SPDX header, missing PROVENANCE.md entry, or an SPDX tag that is
+                     not in the header of a file of tools/, crates/ or tests/ (for example a tag inside
+                     a string of a generator: reuse reads it as a tag of the generator; write the header
+                     of a generated file with tools/gen_ada/spdx.py)
   headers.py fix     add the default header where missing (Apache-2.0 for code,
                      CC-BY-4.0 for Markdown/SVD/XML)
 """
@@ -13,6 +16,9 @@ import subprocess
 import sys
 import tomllib
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from gen_ada import spdx  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 COPYRIGHT = "2026 Manuel Stahl <thymythos@googlemail.com>"
@@ -28,6 +34,13 @@ LINE = {".ads": "--  ", ".adb": "--  ", ".ada": "--  ", ".gpr": "--  ",
         ".env": "# ", ".cfg": "# ", ".repl": "# ", ".resc": "# ", ".robot": "# "}
 BLOCK = {".md": ("<!--", "-->"), ".svd": ("<!--", "-->"), ".xml": ("<!--", "-->"),
          ".S": ("/*", " */"), ".c": ("/*", " */"), ".h": ("/*", " */"), ".ld": ("/*", " */")}
+# Files of these directories (not the upstream fork) may carry the tags only in their header: the first
+# HEADER_LINES lines, at the start of a comment line.
+LINT_PREFIX = ("tools/", "crates/", "tests/")
+LINT_SKIP_PREFIX = ("crates/bb-runtimes/",)
+HEADER_LINES = 30
+TAG_RE = re.compile(re.escape(spdx.COPYRIGHT_TAG) + "|" + re.escape(spdx.LICENSE_TAG))
+HEADER_TAG_RE = re.compile(r"^\s*(?:#|--|//|/\*|\*|;|<!--)?\s*(?:" + TAG_RE.pattern + ")")
 NAMES = {".gitignore": "# ", ".editorconfig": "# ", "CODEOWNERS": "# ",
          "x": "# ", "export.sh": "# "}
 
@@ -64,13 +77,32 @@ def reuse_covered():
 
 def has_header(text):
     head = "\n".join(text.split("\n")[:30])
-    return "SPDX-FileCopyrightText:" in head and "SPDX-License-Identifier:" in head
+    return spdx.COPYRIGHT_TAG in head and spdx.LICENSE_TAG in head
+
+
+def stray_tags(name, text):
+    """The lines of <text> that have a tag outside the header: (line number, line) for a file of the
+    directories in LINT_PREFIX. The header is the first run of consecutive tag lines, within the first
+    HEADER_LINES lines, each at the start of a comment line. A tag anywhere else (in a string, in a
+    comment below the header, in a second run) is read by reuse as a tag of the file itself."""
+    if not name.startswith(LINT_PREFIX) or name.startswith(LINT_SKIP_PREFIX):
+        return []
+    found, started, ended = [], False, False
+    for n, line in enumerate(text.split("\n"), 1):
+        if not TAG_RE.search(line):
+            ended = ended or started
+            continue
+        if n > HEADER_LINES or ended or not HEADER_TAG_RE.match(line):
+            found.append((n, line))
+        else:
+            started = True
+    return found
 
 
 def header_for(name, purpose="TODO: purpose"):
     p = Path(name)
     lic = DOC_LICENSE_ID if p.suffix in (".md", ".svd", ".xml") else LICENSE_ID
-    lines = [f"SPDX-FileCopyrightText: {COPYRIGHT}", f"SPDX-License-Identifier: {lic}"]
+    lines = spdx.lines(lic, COPYRIGHT)
     if p.name in NAMES:
         return "".join(NAMES[p.name] + l + "\n" for l in lines)
     if p.suffix in LINE:
@@ -93,6 +125,9 @@ def main(mode):
         if any(r.match(f) for r in covered):
             continue
         text = p.read_text(errors="replace")
+        for n, line in stray_tags(f, text):
+            print(f"SPDX tag outside the header: {f}:{n}: {line.strip()[:80]}")
+            bad += 1
         if not has_header(text):
             hdr = header_for(f)
             if mode == "fix" and hdr:
