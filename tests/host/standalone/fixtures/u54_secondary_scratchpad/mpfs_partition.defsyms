@@ -1,0 +1,28 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# The link symbols of the partition, one NAME=VALUE per line, written by config/gen/standalone.py.
+# Each is a --defsym of the link. The layout symbols come from the placement script.
+# Do not edit: run the generator (CI fails if a committed copy is not current).
+__mpfs_harts_mask=4
+__mpfs_boot_role=0
+__stack_size=16384
+__interrupt_stack_size=8192
+__mpfs_console_base=0x20102000
+__mpfs_console_init=1
+__mpfs_console_dlr=22
+__mpfs_console_dfr=0
+MPFS_ENVM_LENGTH=0x1ff00
+MPFS_DTIM_LENGTH=0x0
+MPFS_E51_ITIM_LENGTH=0x0
+MPFS_U54_1_ITIM_LENGTH=0x0
+MPFS_U54_2_ITIM_LENGTH=0x0
+MPFS_U54_3_ITIM_LENGTH=0x0
+MPFS_U54_4_ITIM_LENGTH=0x0
+MPFS_LOCAL_ITIM_ORIGIN=0x1800000
+MPFS_LOCAL_ITIM_LENGTH=0x0
+MPFS_LIM_LENGTH=0x1a0000
+MPFS_SCRATCHPAD_LENGTH=0x40000
+MPFS_DDR_CACHED_LENGTH=0
+MPFS_DDR_NC_LENGTH=0
+MPFS_DDR_WCB_LENGTH=0
