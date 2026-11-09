@@ -94,6 +94,7 @@
  * this way). The hook runs on the stack and gp the trap found, so it is for tests and must not
  * be used by the runtime.
  */
+/* @req RTS-004, RTS-005 */
 
 #define MSTATUS_MIE 0x00000008
 #define MSTATUS_FS  0x00006000

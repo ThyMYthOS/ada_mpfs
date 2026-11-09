@@ -12,6 +12,8 @@
 --
 --  Reported with Test_Report as tasking_test_e51, tasking_test_u54 (hart 1) or
 --  tasking_test_u54h2 .. 4, the rows of tests/qemu/tests.list.
+--
+--  @verifies RTS-009
 
 with Ada.Real_Time; use Ada.Real_Time;
 

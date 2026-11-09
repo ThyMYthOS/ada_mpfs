@@ -36,6 +36,8 @@
 --      three-word sequence for this).
 --    - Clock is monotonic because mtime is: one counter, read at the same
 --      rate by every reader, never written by the runtime.
+--
+--  @req RTS-009
 with Interfaces; use Interfaces;
 
 with System.BB.Board_Parameters;

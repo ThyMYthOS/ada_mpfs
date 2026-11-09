@@ -19,3 +19,4 @@ The format and the rules are in [docs/coding-standard.md](../coding-standard.md#
 | `svd.yaml` | The register description. |
 | `pac.yaml` | The register package. |
 | `hw.yaml` | The board tools. |
+| `rts.yaml` | The runtime `crates/mpfs_rts` (see [docs/assurance/rts.md](../assurance/rts.md)). |

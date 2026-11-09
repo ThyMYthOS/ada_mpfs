@@ -14,6 +14,8 @@
 --  trap frame have none, see crates/mpfs_rts/README.md).
 --
 --  Reported with Test_Report as fp_context_test_u54.
+--
+--  @verifies RTS-007
 
 with Ada.Real_Time; use Ada.Real_Time;
 

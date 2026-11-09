@@ -12,6 +12,8 @@
 --
 --  Reported with Test_Report as secstack_tasking_test_e51 or
 --  secstack_tasking_test_u54.
+--
+--  @verifies RTS-013
 
 with Ada.Real_Time; use Ada.Real_Time;
 

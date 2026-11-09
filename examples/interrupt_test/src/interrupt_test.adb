@@ -28,6 +28,8 @@
 --
 --  Reported with Test_Report as interrupt_test_e51, interrupt_test_u54 (hart
 --  1) or interrupt_test_u54h2 .. 4, the rows of tests/qemu/tests.list.
+--
+--  @verifies RTS-006, RTS-015, SVD-002
 
 pragma Warnings (Off, "*is an internal GNAT unit");
 pragma Warnings (Off, "use of this unit is non-portable*");

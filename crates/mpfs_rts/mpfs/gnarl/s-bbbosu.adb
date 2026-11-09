@@ -19,6 +19,8 @@
 --  pending interrupt does if MIE were clear) costs one more turn of the loop,
 --  never a lost wake-up: no condition is tested between the decision to idle
 --  and the wfi.
+--
+--  @req RTS-010
 
 with System.Machine_Code;
 with System.BB.CPU_Specific;

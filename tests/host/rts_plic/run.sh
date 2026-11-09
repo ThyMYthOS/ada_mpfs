@@ -22,6 +22,8 @@
 #     pac) unless the package is there; `--check` and a directory named with --pac-dir never generate it.
 #
 # The builds are skipped when the pinned GNAT, zstd or GNU tar is missing. Exits non-zero on any failure.
+#
+# @verifies RTS-006
 
 set -u
 export LC_ALL=C

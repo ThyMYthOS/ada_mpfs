@@ -21,6 +21,8 @@
 --      (Heap_Hammer): no block is disturbed and the chain is intact.
 --
 --  Reported with Test_Report as heap_test_e51 or heap_test_u54.
+--
+--  @verifies RTS-012
 
 with Ada.Real_Time; use Ada.Real_Time;
 with Ada.Unchecked_Deallocation;

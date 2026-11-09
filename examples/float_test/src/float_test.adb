@@ -19,6 +19,8 @@
 --
 --  The operands are volatile, so that nothing is folded by the compiler.
 --  Reported with Test_Report as float_test_e51 and float_test_u54.
+--
+--  @verifies RTS-008
 
 with Ada.Numerics.Elementary_Functions;
 with Ada.Numerics.Long_Elementary_Functions;

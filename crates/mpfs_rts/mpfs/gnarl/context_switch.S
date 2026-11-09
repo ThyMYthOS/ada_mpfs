@@ -10,6 +10,7 @@
  * task that was switched in got the fs0 - fs11 of the task that was switched out (defect no. 1
  * of the master plan). fcsr is not part of the context, see crates/mpfs_rts/README.md.
  */
+/* @req RTS-007 */
 
 #include "riscv_def.h"
 

@@ -33,6 +33,8 @@
 #
 # Needs GNU tar (--sort), zstd, python3 and sha256sum.
 # Exit status: 0 ok, 1 difference (--check), 2 set-up or usage error.
+#
+# @req RTS-001
 
 set -eu
 export LC_ALL=C

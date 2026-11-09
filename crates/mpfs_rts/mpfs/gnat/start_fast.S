@@ -11,6 +11,7 @@
  * link line: it defines _start, __gnat_exit and the trap stub before libgnat.a is searched, so
  * start.o, which defines the same, is not taken from the library.
  */
+/* @req RTS-017 */
 
 #define MPFS_FAST 1
 #include "start.S"

@@ -27,6 +27,8 @@
 --  delay_accuracy_test_u54 (hart 1) or delay_accuracy_test_u54h2 .. 4, the
 --  rows of tests/qemu/tests.list. On the board (P1.14) it is built with
 --  DELAY_ACCURACY=hardware; QEMU is the "-" column of the test table of #41.
+--
+--  @verifies RTS-009, RTS-010
 
 pragma Warnings (Off, "*is an internal GNAT unit");
 pragma Warnings (Off, "use of this unit is non-portable*");

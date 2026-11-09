@@ -63,6 +63,8 @@
 # place, so an aborted build leaves no half variant behind.
 #
 # Exit status: 0 ok, 1 not up to date (--check), 2 set-up or build error.
+#
+# @req RTS-003, RTS-013
 
 set -eu
 export LC_ALL=C

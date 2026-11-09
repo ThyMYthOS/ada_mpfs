@@ -7,6 +7,8 @@
 --  by start.S before this main program; Reject.Hook reports it. If control
 --  ever reaches the main program, the image was not rejected, which is a
 --  failure.
+--
+--  @verifies RTS-017
 
 with Fast;
 with Reject;

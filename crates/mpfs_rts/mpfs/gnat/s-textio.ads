@@ -11,6 +11,8 @@
 --
 --  This package defines the console I/O interface for the simplified version
 --  of Ada.Text_IO used in embedded systems with limited I/O capabilities.
+--
+--  @req RTS-014
 
 pragma Restrictions (No_Elaboration_Code);
 

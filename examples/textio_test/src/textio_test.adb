@@ -16,6 +16,8 @@
 --      the board).
 --
 --  Reported as textio_test_e51 or textio_test_u54.
+--
+--  @verifies RTS-014
 
 pragma Warnings (Off, "*is an internal GNAT unit");
 pragma Warnings (Off, "use of this unit is non-portable*");

@@ -11,6 +11,8 @@
 --
 --  Reported with Test_Report as secstack_light_test_e51 or
 --  secstack_light_test_u54.
+--
+--  @verifies RTS-013
 
 with System.Secondary_Stack;
 

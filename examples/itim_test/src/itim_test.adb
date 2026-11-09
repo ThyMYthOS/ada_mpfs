@@ -19,6 +19,8 @@
 --      changed.
 --
 --  Reported as itim_test_e51.
+--
+--  @verifies RTS-017
 
 pragma Suppress (All_Checks);
 

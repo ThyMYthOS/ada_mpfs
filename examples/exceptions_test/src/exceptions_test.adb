@@ -19,6 +19,8 @@
 --  Reported with Test_Report as exceptions_test_e51 or exceptions_test_u54.
 --  unhandled_test (the same project) covers what happens to an exception that
 --  nobody handles.
+--
+--  @verifies RTS-011
 
 with Ada.Exceptions; use Ada.Exceptions;
 with Ada.Real_Time;  use Ada.Real_Time;

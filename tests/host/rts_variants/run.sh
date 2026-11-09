@@ -13,6 +13,8 @@
 # directory of the variant from the scenario variables and rejects values outside the variants.
 # The builds are skipped when the pinned GNAT is not installed (./x toolchain install gnat) and
 # the pack cases when zstd or GNU tar is missing. Exits non-zero on any failure.
+#
+# @verifies RTS-003
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"

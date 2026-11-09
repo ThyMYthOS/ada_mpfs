@@ -9,6 +9,8 @@
 --
 --  Reported with Test_Report as elab_tasking_test_e51 or _u54 (and as
 --  elab_embedded_test_* by the example of the embedded profile).
+--
+--  @verifies RTS-018
 
 with Ada.Real_Time; use Ada.Real_Time;
 

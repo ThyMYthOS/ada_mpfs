@@ -29,6 +29,8 @@
 #
 # The builds are skipped when the pinned GNAT, zstd or GNU tar is missing. Exits non-zero on any
 # failure.
+#
+# @verifies RTS-004, RTS-014
 
 set -u
 export LC_ALL=C

@@ -24,6 +24,8 @@
 # secstack_light_test). Needs the pinned GNAT, zstd and GNU tar; skipped without them. The variants need
 # the register package of the PAC, which is not committed: gen_runtime.sh runs tools/pac.sh ensure.
 # Exits non-zero on any failure.
+#
+# @verifies RTS-012, RTS-013
 
 set -u
 export LC_ALL=C

@@ -8,6 +8,8 @@
 --
 --  Reported with Test_Report as unhandled_task_test_e51 or
 --  unhandled_task_test_u54.
+--
+--  @verifies RTS-011
 
 with Ada.Real_Time; use Ada.Real_Time;
 

@@ -23,6 +23,8 @@
 # The builds are skipped when the pinned GNAT, zstd or GNU tar is missing. The variants need the register package
 # of the PAC, which is not committed: gen_runtime.sh runs tools/pac.sh ensure (the pinned svd2ada,
 # ./x toolchain install pac, unless the package is there). Exits non-zero on any failure.
+#
+# @verifies RTS-009, RTS-010
 
 set -u
 export LC_ALL=C

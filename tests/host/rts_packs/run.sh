@@ -20,6 +20,8 @@
 #    files annotated LicenseRef-Ada-RM-permissive in REUSE.toml are exactly the files whose notice
 #    is the Ada Reference Manual paragraph and no GPL paragraph.
 # Exits non-zero on any failure.
+#
+# @verifies RTS-001, RTS-002
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"

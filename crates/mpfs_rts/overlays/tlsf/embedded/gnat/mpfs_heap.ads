@@ -11,6 +11,8 @@
 --  Every call takes the heap lock (MPFS_Heap_Lock) for the time of the
 --  allocator's work, so tasks, interrupt handlers and libgcc may call in any
 --  order. The heap is set up by the first call; nothing needs to elaborate.
+--
+--  @req RTS-012
 
 with Interfaces.C;
 with System;

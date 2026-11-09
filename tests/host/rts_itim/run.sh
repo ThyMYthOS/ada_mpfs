@@ -22,6 +22,8 @@
 #
 # What runs the images (the copy, the rejection) is ./x test qemu (itim_test_e51, itim_reject_test_e51).
 # The builds are skipped when the pinned GNAT, zstd or GNU tar is missing. Exits non-zero on any failure.
+#
+# @verifies RTS-008, RTS-017
 
 set -u
 export LC_ALL=C

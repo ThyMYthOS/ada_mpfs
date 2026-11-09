@@ -8,6 +8,8 @@
 --  is handled after all, or the call returns, the check below fails.
 --
 --  Reported with Test_Report as unhandled_test_e51 or unhandled_test_u54.
+--
+--  @verifies RTS-011
 
 with Bare_Console;
 with Failing;

@@ -27,6 +27,8 @@
 # match the toolchain, and the source from the toolchain is to be preferred.
 #
 # Exit status: 0 identical, 1 differences, 2 set-up error (no toolchain, no packs).
+#
+# @req RTS-002
 
 set -eu
 export LC_ALL=C

@@ -14,6 +14,8 @@
 --  The bounds are wide: QEMU's mtime follows the host clock. Reported with
 --  Test_Report as protected_test_e51 or protected_test_u54 (and as
 --  protected_embedded_test_* by the example of the embedded profile).
+--
+--  @verifies RTS-021
 
 with Ada.Real_Time; use Ada.Real_Time;
 with Ada.Real_Time.Timing_Events;

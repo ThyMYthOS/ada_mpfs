@@ -14,6 +14,8 @@
 --  All registers are reached through the PAC (MPFS_Registers.PLIC) with 32-bit
 --  accesses, one per register: the PLIC of the SoC (and QEMU's) accepts no
 --  other width.
+--
+--  @req RTS-006, RTS-015
 
 pragma Restrictions (No_Elaboration_Code);
 

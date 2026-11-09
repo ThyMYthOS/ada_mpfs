@@ -10,6 +10,8 @@
 --  library-level task (examples/elab_tasking_test).
 --
 --  Reported with Test_Report as elab_test_e51 or elab_test_u54.
+--
+--  @verifies RTS-018
 
 with Bare_Console;
 with Elab_Checks;

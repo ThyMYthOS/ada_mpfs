@@ -21,6 +21,8 @@
 #     that docs/assurance/tests.md lists.
 #
 # The builds are skipped when the pinned GNAT, zstd or GNU tar is missing. Exits non-zero on any failure.
+#
+# @verifies RTS-020, BLD-002
 
 set -u
 export LC_ALL=C

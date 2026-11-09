@@ -24,6 +24,8 @@
 #
 # The libraries are those of runtime.xml (-lgnarl -lgnat -lc -lgcc); libgcc's unwind-dw2.o and
 # unwind-dw2-fde.o come from there.
+#
+# @req RTS-011
 
 *startfile:
 crti.o%s crtbegin.o%s

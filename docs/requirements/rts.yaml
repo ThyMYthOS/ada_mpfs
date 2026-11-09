@@ -1,0 +1,186 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+#
+# Requirements on the runtime crates/mpfs_rts. See README.md for the format. The structure of the
+# runtime and the old labels of the plan that these requirements replace are in
+# docs/assurance/rts.md. The names of the interrupts (Ada.Interrupts.Names) are SVD-002.
+requirements:
+  - id: RTS-001
+    text: >-
+      The six runtime packs (profile light, light-tasking or embedded, hart class e51 or u54) are
+      generated from crates/bb-runtimes reproducibly: the SHA-256 of the uncompressed tar stream of
+      each is in crates/mpfs_rts/packs.sha256, and make_packs.sh --check fails when a regenerated
+      pack has another hash.
+    tsf: false
+    source: docs/assurance/rts.md
+  - id: RTS-002
+    text: >-
+      Every file of gnat/ and gnarl/ of a pack that is not a port unit listed in port_units.list
+      is identical to the file of the runtime shipped with the pinned toolchain, so that runtime
+      and compiler agree; compare_toolchain.sh fails otherwise.
+    tsf: false
+    source: docs/assurance/rts.md
+  - id: RTS-003
+    text: >-
+      gen_runtime.sh builds one runtime variant per profile and hart class for one hart in machine
+      mode (cpus 1, priv m) and refuses other values before it builds anything; a variant that is
+      up to date is reused, and a change of the pack, of a port unit, of an overlay, of the
+      register package or of the build mode makes it be rebuilt.
+    tsf: false
+    source: docs/assurance/rts.md
+  - id: RTS-004
+    text: >-
+      The data of the partition reach the runtime only as link-time symbols
+      (__mpfs_harts_mask, __mpfs_boot_role, __mpfs_console_*, the region lengths and the stack
+      sizes) that are set with --defsym and have no defaults: an image linked without one fails,
+      and an invalid value (a size that is no multiple of 16, an empty region, a mask outside the
+      harts, a _start that is not the first byte of the text) stops the link. A hart that is not
+      in the mask is parked.
+    tsf: false
+    source: docs/assurance/rts.md
+  - id: RTS-005
+    text: >-
+      A trap that is taken before the runtime has installed its own handler is not lost: the
+      start code sets mtvec first, and the trap stub writes mcause, mepc, mtval, a magic number
+      and mhartid to the trap record in the last 32 bytes of the RAM region. In the embedded
+      profile, where the runtime installs its handler before the application is elaborated, the
+      trap ends in the last chance handler with mcause, mepc and mtval.
+    tsf: false
+    source: docs/assurance/rts.md
+  - id: RTS-006
+    text: >-
+      Nothing in the runtime names a hart: the id comes from mhartid at run time, the PLIC
+      context of the hart is 0 for hart 0 and 2n-1 for hart n, the timer and the software
+      interrupt are those of that hart, and every access to the PLIC is one 32-bit access to a
+      register of the register package (no 64-bit store into the PLIC window).
+    tsf: false
+    source: docs/assurance/rts.md
+  - id: RTS-007
+    text: >-
+      The task context and the trap frame follow the float ABI of the hart class: on the U54 the
+      callee-saved registers fs0 to fs11 of a task are saved to its context and restored from the
+      context of the task that is switched in (not of the one that is switched out), and the trap
+      frame holds f0 to f31; on the E51 neither the context nor the trap frame has an instruction
+      on a floating-point register.
+    tsf: false
+    source: docs/assurance/rts.md
+  - id: RTS-008
+    text: >-
+      Floating-point arithmetic, the rounding attributes, the conversions and the square root
+      give the results of IEEE 754 (the square root within 2 ulp on the E51) on both hart classes:
+      by software on the E51, by the FPU on the U54.
+    tsf: false
+    source: docs/assurance/rts.md
+  - id: RTS-009
+    text: >-
+      There is no periodic tick: the mtimecmp of the own hart is the only state of the timer, it
+      is disarmed before the timer interrupt is enabled, an alarm in the past is taken at once,
+      mtime and mtimecmp are accessed with one 64-bit access, and Clock_Frequency is checked
+      against the rate of mtime at compile time. A delay until returns neither before its instant
+      nor later than the bound of the test, and tasks that wait for the same instant run in
+      priority order.
+    tsf: false
+    source: docs/assurance/rts.md
+  - id: RTS-010
+    text: >-
+      The idle task of the tasking profiles executes wfi in a loop with the interrupts enabled and
+      the PLIC threshold at 0, and a task that becomes ready while the hart is idle is run.
+    tsf: false
+    source: docs/assurance/rts.md
+  - id: RTS-011
+    text: >-
+      The embedded profile propagates exceptions with the registration-based unwinder of libgcc
+      and links without --eh-frame-hdr: raise and handle, reraise, Exception_Information,
+      finalization during propagation and an exception that nobody handles (it ends in the last
+      chance handler) work on both hart classes. The unwinder of the bare-board runtimes is not in
+      the library.
+    tsf: false
+    source: docs/design/exceptions.md
+  - id: RTS-012
+    text: >-
+      The embedded profile has the TLSF allocator as its only heap: malloc, free, realloc and
+      calloc are defined once, by MPFS_Heap, over the memory from __heap_start to __heap_end; the
+      lock leaves mstatus.MIE as it found it; a request that cannot be served returns null (or
+      Storage_Error for new), and the chain of blocks stays consistent through random sequences of
+      allocations and releases. Newlib's allocator is not linked.
+    tsf: false
+    source: docs/assurance/rts.md
+  - id: RTS-013
+    text: >-
+      The secondary stack has the default size of the profile (16 KiB light, 8 KiB light-tasking,
+      16 KiB embedded), returns to its mark after each statement, is independent for each task,
+      and its overflow is detected before anything is written (Storage_Error, or the last chance
+      handler in the profiles that do not propagate exceptions).
+    tsf: false
+    source: docs/assurance/rts.md
+  - id: RTS-014
+    text: >-
+      System.Text_IO is a polled console on the MMUART that the link symbols name (MMUART0 to
+      MMUART4); it programs the divisor and the format only if __mpfs_console_init is 1, never
+      touches the clock and the reset of the MMUART, and with __mpfs_console_base = 0 it does
+      nothing and touches no register.
+    tsf: false
+    source: docs/assurance/rts.md
+  - id: RTS-015
+    text: >-
+      The seven interrupt priorities of Ada are the PLIC levels 1 to 7 and a task priority is level
+      0, with the mapping in one place; the priority of an attached handler is the level of its
+      source, the threshold of the hart is the ceiling of the protected object it is in (0
+      outside), and both read back as Ada priorities.
+    tsf: false
+    source: docs/assurance/rts.md
+  - id: RTS-016
+    text: >-
+      On the Icicle Kit each of the six single-hart cells (three profiles, E51 and U54) passes
+      the tests of the runtime on the hardware, with a ticking mtime at the rate that
+      Clock_Frequency assumes, a working console, interrupts and delay until.
+    tsf: false
+    source: docs/assurance/rts.md
+  - id: RTS-017
+    text: >-
+      Code in the ITIM and data in the DTIM belong to the application, not to the runtime: the
+      runtime declares no .fast_text and .fast_data, an application places them with its own
+      app-sections.ld, and the start code of such an image (start_fast.o, put on the link line by
+      Mpfs_Link.Fast_Switches) checks the ranges, copies them from their load addresses and stops
+      with a record at __mpfs_trap_record naming the missing memory if a range is not backed
+      (store access fault or no read-back). An image without such sections has the ordinary start
+      code, and a malformed range (ending before its start, not a multiple of 8, loaded below
+      .text, in a memory of length 0) stops the link.
+    tsf: false
+    source: docs/assurance/rts.md
+  - id: RTS-018
+    text: >-
+      The units of the program are elaborated in the order of the binder and before its main
+      procedure runs, in all three profiles; a library-level task of the tasking profiles has
+      elaborated its declarative part, and run its statements up to its first wait, before the main
+      procedure starts.
+    tsf: false
+    source: docs/assurance/rts.md
+  - id: RTS-019
+    text: >-
+      An image built without a system description gets its partition data from
+      config/gen/standalone.py: the package MPFS_Partition and the list of link symbols, written
+      identically for the same parameters of ./x build, with --check failing when either file is
+      missing or differs. Every rule on the values (a mask that mixes E51 and U54 or names no
+      hart, a boot role above 1, a stack size that is not a multiple of 16, L2 ways that do not add
+      up to 16, a DTIM or an ITIM that is too large, the console ram_fifo before SMP exists) is a
+      static Compile_Time_Error of the package, which ./x build compiles before it links, so that
+      a violation leaves no image. The console is the MMUART of the lowest hart of the mask unless
+      another is given.
+    tsf: false
+    source: config/README.md
+  - id: RTS-020
+    text: >-
+      The profiles keep their restrictions: a task in the light profile is rejected (No_Tasking),
+      and the light-tasking and embedded profiles reject an abort statement and a task allocator,
+      while the same program without them builds in every profile.
+    tsf: false
+    source: docs/assurance/rts.md
+  - id: RTS-021
+    text: >-
+      Protected objects and timing events of the tasking profiles work on the hart of the image:
+      a caller of an entry whose barrier is False waits and is let through after the barrier is
+      True and not before, a repeatedly called entry takes one item per Put, and a timing event
+      runs its handler once and not before its time, and not at all when it is cancelled.
+    tsf: false
+    source: docs/assurance/rts.md
