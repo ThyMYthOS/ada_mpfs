@@ -177,12 +177,26 @@ cp "$CRATE/mpfs_rts.gpr" "$CRATE/mpfs_link.gpr" "$tree/crates/mpfs_rts/"
 rm -rf "$tree/examples"/*/obj-* "$tree/examples"/*/bin-*
 ex="$tree/examples/itim_reject_test"
 
+# The partition of the copy: the link symbols of config/gen/standalone.py for the E51 with the ITIM and
+# DTIM of the example (PARTITION_OPTS of its example.conf), read by Mpfs_Link as MPFS_DEFSYMS. The
+# build of the copy is gprbuild itself, so the Ada checks of the partition do not run here.
+mpfs_find_python
+defsyms () {   # defsyms <generator option>...
+  rm -rf "$work/part"
+  "$MPFS_PYTHON" -I "$ROOT/config/gen/standalone.py" --hart e51 "$@" --output "$work/part/mpfs_partition.ads" || return 1
+  sed -e '/^#/d' -e '/^$/d' -e 's/^/-Wl,--defsym=/' "$work/part/mpfs_partition.defsyms" | paste -sd";" -
+}
+itim_opts=(--itim-length 0x2000 --dtim-length 0x2000)
+gpr () {   # gpr <log>: gprbuild of the copy with the partition of itim_opts
+  ( cd "$ex" && env "MPFS_DEFSYMS=$(defsyms "${itim_opts[@]}")" gprbuild -q -p -f -P app.gpr "-XMPFS_RTS_ROOT=$rts" -XMPFS_HART=e51 -XMPFS_PROFILE=light -XMPFS_CPUS=1 -XMPFS_PRIV=m ) >"$1" 2>&1
+}
+
 # negative <name> <message>: build the copy and expect a failed link whose output has the message
 negative () {
   local name="$1" msg="$2" log
   log="$work/neg-$name.log"
   rm -rf "$ex/obj-e51" "$ex/bin-e51"
-  if ( cd "$ex" && gprbuild -q -p -f -P app.gpr "-XMPFS_RTS_ROOT=$rts" -XMPFS_HART=e51 -XMPFS_PROFILE=light -XMPFS_CPUS=1 -XMPFS_PRIV=m ) >"$log" 2>&1; then
+  if gpr "$log"; then
     fail "negative $name: the link succeeded"
   elif grep -qF -- "$msg" "$log"; then
     pass "negative $name: the link fails with \"$msg\""
@@ -222,9 +236,9 @@ negative load_below_text "a loadable section lies below .text"
 
 # code in an ITIM of length 0 (the default of Mpfs_Link, no ITIM): the link fails instead of an image that crashes
 cp "$ROOT/examples/itim_reject_test/ld/app-sections.ld" "$ex/ld/app-sections.ld"
-sed -i 's/MPFS_LOCAL_ITIM_LENGTH=0x2000/MPFS_LOCAL_ITIM_LENGTH=0/' "$ex/app.gpr"
+itim_opts=(--itim-length 0 --dtim-length 0x2000)
 negative itim_length_0 "region \`local_itim' overflowed"
-sed -i 's/MPFS_LOCAL_ITIM_LENGTH=0/MPFS_LOCAL_ITIM_LENGTH=0x2000/' "$ex/app.gpr"
+itim_opts=(--itim-length 0x2000 --dtim-length 0x2000)
 
 # a hook without the switch that pulls the check and copy step: the link fails instead of an image that never copies
 sed -i 's/        & Mpfs_Link.Fast_Switches//' "$ex/app.gpr"
@@ -233,7 +247,7 @@ negative no_fast_start "the start code is start.S"
 # the control: the unchanged copy links
 cp "$ROOT/examples/itim_reject_test/app.gpr" "$ex/app.gpr"
 rm -rf "$ex/obj-e51" "$ex/bin-e51"
-if ( cd "$ex" && gprbuild -q -p -f -P app.gpr "-XMPFS_RTS_ROOT=$rts" -XMPFS_HART=e51 -XMPFS_PROFILE=light -XMPFS_CPUS=1 -XMPFS_PRIV=m ) >"$work/control.log" 2>&1; then
+if gpr "$work/control.log"; then
   pass "control: the copy of itim_reject_test with the real hook links"
 else
   tail -5 "$work/control.log" >&2; fail "control: the copy with the real hook links"

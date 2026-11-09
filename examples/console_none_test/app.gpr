@@ -2,7 +2,7 @@
 --  SPDX-License-Identifier: Apache-2.0
 --
 --  An application linked with the light runtime of crates/mpfs_rts and the
---  console "none" (__mpfs_console_base = 0, Mpfs_Link.Console_None). The
+--  console "none" (__mpfs_console_base = 0, CONSOLE=none in example.conf). The
 --  report cannot go through the runtime's console, so Test_Report uses the
 --  polled MMUART0 of examples/bare_hello (Bare_Console), as the other tests
 --  do. The register package of the PAC (mpfs_pac.gpr) is the test's view of
@@ -56,7 +56,6 @@ project App is
    end Compiler;
 
    package Linker is
-      for Default_Switches ("Ada") use
-        Mpfs_Link.Common & Mpfs_Link.Console_None;
+      for Default_Switches ("Ada") use Mpfs_Link.Switches;
    end Linker;
 end App;

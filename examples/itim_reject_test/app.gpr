@@ -6,7 +6,7 @@
 --  and Bare_Console from bare_hello. The linker hook of the application is ld/app-sections.ld of
 --  this directory: its -L goes ahead of the runtime's, so ld includes it instead of the empty
 --  hook of the runtime. It places .fast_text and .fast_data in the real ITIM and DTIM of the E51
---  (8 KB each); the lengths are defsyms that follow Mpfs_Link.Switches. The unit Fast is that of
+--  (8 KB each); the lengths are partition data (PARTITION_OPTS of example.conf). The unit Fast is that of
 --  examples/itim_test.
 --
 --  Build contract: see examples/STYLE.md.
@@ -64,8 +64,6 @@ project App is
    package Linker is
       for Default_Switches ("Ada") use
         ("-L", Project'Project_Dir & "ld") & Mpfs_Link.Switches
-        & Mpfs_Link.Fast_Switches
-        & ("-Wl,--defsym=MPFS_LOCAL_ITIM_LENGTH=0x2000",
-           "-Wl,--defsym=MPFS_DTIM_LENGTH=0x2000");
+        & Mpfs_Link.Fast_Switches;
    end Linker;
 end App;

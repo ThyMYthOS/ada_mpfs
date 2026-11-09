@@ -40,6 +40,21 @@ package body Console_Checks is
    function Link_DFR return Natural is
      (Natural (To_Integer (Sym_DFR'Address)));
 
+   ---------------
+   -- Hart_Base --
+   ---------------
+
+   function Hart_Base return Long_Long_Integer is
+   begin
+      case Bare_Console.Hart_Id is
+         when 1      => return Base_1;
+         when 2      => return Base_2;
+         when 3      => return Base_3;
+         when 4      => return Base_4;
+         when others => return Base_0;
+      end case;
+   end Hart_Base;
+
    -----------
    -- Start --
    -----------

@@ -17,6 +17,10 @@ package Console_Checks is
    Base_4 : constant := 16#2010_6000#;
    --  The LO bases of MMUART0 to MMUART4 (MPFS_Registers.MMUARTn_LO_Base)
 
+   function Hart_Base return Long_Long_Integer;
+   --  The LO base of the MMUART of the executing hart (hart n: MMUARTn), the
+   --  default console of the partition
+
    function Link_Base return System.Address;
    function Link_DLR return Natural;
    function Link_DFR return Natural;

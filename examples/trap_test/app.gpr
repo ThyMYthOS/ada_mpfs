@@ -3,9 +3,9 @@
 --
 --  An application that is linked with the light runtime of crates/mpfs_rts: start code, linker
 --  scripts and --defsym values are the runtime's (Mpfs_Link), Test_Report comes from tests/common
---  and Bare_Console from bare_hello. The scenario variables of ./x build select the hart class;
---  MPFS_PLACEMENT (lim, scratchpad, envm) and MPFS_BOOT_ROLE (primary, secondary) of Mpfs_Link
---  select the boot scenario of the four that tests/host/rts_boot builds.
+--  and Bare_Console from bare_hello. The partition of the image (--memory, --role, --harts and the other
+--  parameters of ./x build) is written by config/gen/standalone.py; tests/host/rts_boot builds the four
+--  boot scenarios.
 --
 --  Build contract: see examples/STYLE.md.
 

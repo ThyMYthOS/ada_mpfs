@@ -3,93 +3,46 @@
 --
 --  The link switches of an image that is linked with a runtime variant of this crate: the linker
 --  script of a placement from the variant's ld/ (put there by gen_runtime.sh) and the partition
---  data as --defsym values, for the examples and tests until the partition generator (P1.12)
---  writes the values. An application project withs this one next to mpfs_rts.gpr and says
+--  data as --defsym values. The values come from the partition generator (config/gen/standalone.py,
+--  contract in config/README.md): ./x build writes the list of link symbols and passes it in
+--  MPFS_DEFSYMS as the --defsym switches, separated by semicolons. An application project withs this
+--  one next to mpfs_rts.gpr and says
 --
 --     package Linker is
 --        for Default_Switches ("Ada") use Mpfs_Link.Switches;
 --     end Linker;
 --
---  Scenario variables (the defaults are the first column of each list):
+--  Variables (./x build sets them; gprbuild called by hand has to):
 --
---     MPFS_PLACEMENT   lim | scratchpad | envm   place-<placement>.ld; the memory lengths follow
---     MPFS_BOOT_ROLE   primary | secondary       __mpfs_boot_role 1 | 0
+--     MPFS_DEFSYMS     the --defsym switches of the partition, separated by semicolons (no default: without
+--                      them the link fails with undefined symbols)
+--     MPFS_PLACEMENT   lim | scratchpad | envm   place-<placement>.ld (the memory profile)
 --     MPFS_HARTS       0 (the hart of the class: E51 hart 0, U54 hart 1) or the one U54
---                      hart 1 .. 4 of the image (./x build --harts)
---     MPFS_STACK_SIZE, MPFS_INTERRUPT_STACK_SIZE   bytes (a multiple of 16: checked by the script)
+--                      hart 1 .. 4 of the image (./x build --harts); only the file names of the
+--                      images that are built for several harts use it
 --     MPFS_APP_LD      a directory with an app-sections.ld of the application (the hook at the
 --                      end of the SECTIONS, empty in the runtime); its -L goes ahead of the
 --                      runtime's. Not set: the runtime's empty hook.
---     MPFS_CONSOLE     mmuart0 | mmuart1 | mmuart2 | mmuart3 | mmuart4 | none
---                      the console of System.Text_IO: the LO base of that MMUART
---                      (__mpfs_console_base), or 0 for none. The divisor of mmuart0 to mmuart3
---                      is 22 (115200 baud at the ~40 MHz APB clock of an Icicle Kit at reset),
---                      the one of mmuart4 (which the board does not bring out) is 21 and 45/64,
---                      so that the fractional baud rate mode is exercised
---     MPFS_CONSOLE_INIT 1 | 0   __mpfs_console_init: 1 the runtime programs the MMUART, 0 the
---                      boot stage has done it
---     MPFS_OMIT        none | harts_mask | boot_role | stack_size | interrupt_stack_size |
---                      console_base | console_init | console_dlr | console_dfr
---                      leaves one mandatory symbol out. A test seam of the negative builds
---                      (tests/host/rts_boot): the link must fail (the console symbols only in
---                      an image that links System.Text_IO).
 --
---  An application with images of different consoles in one project names the switches per main
---  (the lists Common and Console_<N>, Console_None, Console_No_Init):
+--  An application with images of different partitions in one project (examples/textio_test: one
+--  console per main) names the switches per main, and ./x build writes MPFS_DEFSYMS_<main> for each
+--  IMAGE_<main> of its example.conf:
 --
---     for Switches ("console_mmuart1_test.adb") use Mpfs_Link.Common & Mpfs_Link.Console_1;
+--     for Switches ("console_mmuart1_test.adb") use
+--       Mpfs_Link.Common & external_as_list ("MPFS_DEFSYMS_console_mmuart1_test", ";");
 --
---  The memory lengths are those of an Icicle Kit at reset (LIM 1920 KB, no scratchpad) or, for
---  the scratchpad placement, with two ways (256 KB) taken from the LIM; the ITIM and DTIM are
---  not used.
+--  The memory lengths, the stack sizes, the console and the mask are values of the partition and
+--  not of this file.
 
 with "mpfs_rts.gpr";
 
 abstract project Mpfs_Link is
 
    type Placement_Kind is ("lim", "scratchpad", "envm");
-   type Role_Kind is ("primary", "secondary");
    type Harts_Kind is ("0", "1", "2", "3", "4");
-   type Omit_Kind is
-     ("none", "harts_mask", "boot_role", "stack_size", "interrupt_stack_size",
-      "console_base", "console_init", "console_dlr", "console_dfr");
-   type Console_Kind is
-     ("mmuart0", "mmuart1", "mmuart2", "mmuart3", "mmuart4", "none");
-   type Init_Kind is ("1", "0");
 
    Placement : Placement_Kind := external ("MPFS_PLACEMENT", "lim");
-   Role      : Role_Kind      := external ("MPFS_BOOT_ROLE", "primary");
    Harts     : Harts_Kind     := external ("MPFS_HARTS", "0");
-   Stack     := external ("MPFS_STACK_SIZE", "16384");
-   Int_Stack := external ("MPFS_INTERRUPT_STACK_SIZE", "8192");
-   Omit      : Omit_Kind      := external ("MPFS_OMIT", "none");
-   Console   : Console_Kind   := external ("MPFS_CONSOLE", "mmuart0");
-   Console_Init : Init_Kind   := external ("MPFS_CONSOLE_INIT", "1");
-
-   Mask := "";
-   case Mpfs_Rts.Hart is
-      when "e51" => Mask := "1";
-      when "u54" =>
-         case Harts is
-            when "0" | "1" => Mask := "2";
-            when "2"      => Mask := "4";
-            when "3"      => Mask := "8";
-            when "4"      => Mask := "16";
-         end case;
-   end case;
-
-   Role_Value := "1";
-   case Role is
-      when "primary"   => Role_Value := "1";
-      when "secondary" => Role_Value := "0";
-   end case;
-
-   Lim_Length  := "";
-   Pad_Length  := "";
-   case Placement is
-      when "lim" | "envm" => Lim_Length := "0x1e0000"; Pad_Length := "0";
-      when "scratchpad"   => Lim_Length := "0x1a0000"; Pad_Length := "0x40000";
-   end case;
 
    Ld := Mpfs_Rts.Runtime_Path & "/ld";
 
@@ -97,81 +50,10 @@ abstract project Mpfs_Link is
    --  own directory, so the empty hook is found.
    App_Ld := external ("MPFS_APP_LD", Ld);
 
-   Values := ();
-   case Omit is
-      when "harts_mask" => null;
-      when others => Values := Values & ("-Wl,--defsym=__mpfs_harts_mask=" & Mask);
-   end case;
-   case Omit is
-      when "boot_role" => null;
-      when others => Values := Values & ("-Wl,--defsym=__mpfs_boot_role=" & Role_Value);
-   end case;
-   case Omit is
-      when "stack_size" => null;
-      when others => Values := Values & ("-Wl,--defsym=__stack_size=" & Stack);
-   end case;
-   case Omit is
-      when "interrupt_stack_size" => null;
-      when others =>
-         Values := Values & ("-Wl,--defsym=__interrupt_stack_size=" & Int_Stack);
-   end case;
+   --  The partition: one -Wl,--defsym=NAME=VALUE per link symbol of the list of the generator.
+   Defsyms := external_as_list ("MPFS_DEFSYMS", ";");
 
-   --  The console symbols of the five MMUARTs (LO bases, MPFS_Registers.MMUARTn_LO_Base), the
-   --  divisor and the init flag: the value lists Console_<N>, Console_None and Console_No_Init,
-   --  and Console_Values for the scenario variables above.
-
-   Def := "-Wl,--defsym=";
-
-   Console_Base := "0";
-   Console_Dlr  := "22";
-   Console_Dfr  := "0";
-   case Console is
-      when "mmuart0" => Console_Base := "0x20000000";
-      when "mmuart1" => Console_Base := "0x20100000";
-      when "mmuart2" => Console_Base := "0x20102000";
-      when "mmuart3" => Console_Base := "0x20104000";
-      when "mmuart4" =>
-         Console_Base := "0x20106000";
-         Console_Dlr  := "21";
-         Console_Dfr  := "45";
-      when "none"    => Console_Base := "0";
-   end case;
-
-   Console_Values := ();
-   case Omit is
-      when "console_base" => null;
-      when others => Console_Values := Console_Values & (Def & "__mpfs_console_base=" & Console_Base);
-   end case;
-   case Omit is
-      when "console_init" => null;
-      when others => Console_Values := Console_Values & (Def & "__mpfs_console_init=" & Console_Init);
-   end case;
-   case Omit is
-      when "console_dlr" => null;
-      when others => Console_Values := Console_Values & (Def & "__mpfs_console_dlr=" & Console_Dlr);
-   end case;
-   case Omit is
-      when "console_dfr" => null;
-      when others => Console_Values := Console_Values & (Def & "__mpfs_console_dfr=" & Console_Dfr);
-   end case;
-
-   Console_0 := (Def & "__mpfs_console_base=0x20000000", Def & "__mpfs_console_init=1",
-                 Def & "__mpfs_console_dlr=22", Def & "__mpfs_console_dfr=0");
-   Console_1 := (Def & "__mpfs_console_base=0x20100000", Def & "__mpfs_console_init=1",
-                 Def & "__mpfs_console_dlr=22", Def & "__mpfs_console_dfr=0");
-   Console_2 := (Def & "__mpfs_console_base=0x20102000", Def & "__mpfs_console_init=1",
-                 Def & "__mpfs_console_dlr=22", Def & "__mpfs_console_dfr=0");
-   Console_3 := (Def & "__mpfs_console_base=0x20104000", Def & "__mpfs_console_init=1",
-                 Def & "__mpfs_console_dlr=22", Def & "__mpfs_console_dfr=0");
-   Console_4 := (Def & "__mpfs_console_base=0x20106000", Def & "__mpfs_console_init=1",
-                 Def & "__mpfs_console_dlr=21", Def & "__mpfs_console_dfr=45");
-   Console_None := (Def & "__mpfs_console_base=0", Def & "__mpfs_console_init=1",
-                    Def & "__mpfs_console_dlr=22", Def & "__mpfs_console_dfr=0");
-   --  MMUART0 with __mpfs_console_init=0: the runtime writes no setup register
-   Console_No_Init := (Def & "__mpfs_console_base=0x20000000", Def & "__mpfs_console_init=0",
-                       Def & "__mpfs_console_dlr=22", Def & "__mpfs_console_dfr=0");
-
-      --  An application that runs code or data from the ITIM or DTIM (its app-sections.ld defines the
+   --  An application that runs code or data from the ITIM or DTIM (its app-sections.ld defines the
    --  __fast_* symbols) appends these: they put start_fast.o, the start code with the check and the
    --  copy step, on the link line, which defines _start and the rest before the library is searched, so
    --  that start.o of the library is not used. Without them the linker script refuses the image (ASSERT).
@@ -179,22 +61,8 @@ abstract project Mpfs_Link is
 
    Common :=
      ("-static", "-L", App_Ld, "-L", Ld, "-T", Ld & "/place-" & Placement & ".ld",
-      "-Wl,-u,_start", "-Wl,--gc-sections", "-Wl,--no-warn-rwx-segments",
-      "-Wl,--defsym=MPFS_ENVM_LENGTH=0x1ff00",
-      "-Wl,--defsym=MPFS_DTIM_LENGTH=0",
-      "-Wl,--defsym=MPFS_E51_ITIM_LENGTH=0",
-      "-Wl,--defsym=MPFS_U54_1_ITIM_LENGTH=0",
-      "-Wl,--defsym=MPFS_U54_2_ITIM_LENGTH=0",
-      "-Wl,--defsym=MPFS_U54_3_ITIM_LENGTH=0",
-      "-Wl,--defsym=MPFS_U54_4_ITIM_LENGTH=0",
-      "-Wl,--defsym=MPFS_LOCAL_ITIM_ORIGIN=0x01800000",
-      "-Wl,--defsym=MPFS_LOCAL_ITIM_LENGTH=0",
-      "-Wl,--defsym=MPFS_LIM_LENGTH=" & Lim_Length,
-      "-Wl,--defsym=MPFS_SCRATCHPAD_LENGTH=" & Pad_Length,
-      "-Wl,--defsym=MPFS_DDR_CACHED_LENGTH=0",
-      "-Wl,--defsym=MPFS_DDR_NC_LENGTH=0",
-      "-Wl,--defsym=MPFS_DDR_WCB_LENGTH=0") & Values;
+      "-Wl,-u,_start", "-Wl,--gc-sections", "-Wl,--no-warn-rwx-segments");
 
-   Switches := Common & Console_Values;
+   Switches := Common & Defsyms;
 
 end Mpfs_Link;

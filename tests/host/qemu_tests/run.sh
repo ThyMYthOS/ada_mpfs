@@ -314,14 +314,15 @@ for spec in heap_test:embedded secstack_test:embedded secstack_light_test:light 
 done
 # textio_test (six images: the console of the runtime on each MMUART and with init 0) and console_none_test
 for hart in e51 u54; do
-  grep -q "^textio_test_${hart}${tab}examples/textio_test${tab}0${tab}pass${tab}-${tab}-\$" "$list_c" \
+  hs=0; [ "$hart" = u54 ] && hs=1   # the console of the runtime is the MMUART of the hart
+  grep -q "^textio_test_${hart}${tab}examples/textio_test${tab}${hs}${tab}pass${tab}-${tab}-\$" "$list_c" \
     && pass "tests.list: textio_test_$hart" || fail "tests.list: textio_test_$hart"
   for n in 1 2 3 4; do
     grep -q "^console_mmuart${n}_test_${hart}${tab}examples/textio_test${tab}${n}${tab}pass${tab}-${tab}-\$" "$list_c" \
       && pass "tests.list: console_mmuart${n}_test_$hart reports on serial $n" \
       || fail "tests.list: console_mmuart${n}_test_$hart reports on serial $n"
   done
-  grep -q "^console_noinit_test_${hart}${tab}examples/textio_test${tab}0${tab}pass${tab}-${tab}-\$" "$list_c" \
+  grep -q "^console_noinit_test_${hart}${tab}examples/textio_test${tab}${hs}${tab}pass${tab}-${tab}-\$" "$list_c" \
     && pass "tests.list: console_noinit_test_$hart" || fail "tests.list: console_noinit_test_$hart"
   grep -q "^console_none_test_${hart}${tab}examples/console_none_test${tab}0${tab}pass${tab}-${tab}-\$" "$list_c" \
     && pass "tests.list: console_none_test_$hart" || fail "tests.list: console_none_test_$hart"

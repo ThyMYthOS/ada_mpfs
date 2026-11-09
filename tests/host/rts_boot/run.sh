@@ -106,17 +106,44 @@ cp "$CRATE/mpfs_rts.gpr" "$CRATE/mpfs_link.gpr" "$tree/crates/mpfs_rts/"
 rm -rf "$tree/examples/trap_test"/obj-* "$tree/examples/trap_test"/bin-*
 ex="$tree/examples/trap_test"
 
-# build <log> <hart> [NAME=value ...] [-- <gprbuild -largs arguments>]: gprbuild -f of the copy.
+# The partition data come from config/gen/standalone.py, as for ./x build (config/README.md):
+# build <log> <hart> [NAME=value ...] [-- <gprbuild -largs arguments>]: gprbuild -f of the copy. The
+# names are the knobs of the scenarios: MPFS_PLACEMENT (the memory profile), MPFS_BOOT_ROLE,
+# MPFS_HARTS, MPFS_STACK_SIZE, MPFS_INTERRUPT_STACK_SIZE, MPFS_OMIT (a link symbol left out, the
+# --omit of the generator) and MPFS_APP_LD (the hook of the application). The build is gprbuild
+# itself, not ./x build, so the Ada checks of the partition do not run: what the linker scripts
+# refuse on their own is what these negative builds look at.
+mpfs_find_python
 build () {
   local log="$1" hart="$2"; shift 2
-  local xs=() largs=() seen=0 a
+  local xs=() largs=() gen=(--hart "$hart") seen=0 a place=lim omit="" env_app=() defsyms
   for a in "$@"; do
     if [ "$a" = -- ]; then seen=1; continue; fi
-    if [ $seen = 1 ]; then largs+=("$a"); else xs+=("-X$a"); fi
+    if [ $seen = 1 ]; then largs+=("$a"); continue; fi
+    case "$a" in
+      MPFS_PLACEMENT=*)  place="${a#*=}"; gen+=(--memory "$place") ;;
+      MPFS_BOOT_ROLE=*)  gen+=(--role "${a#*=}") ;;
+      MPFS_HARTS=*)      gen+=(--harts "${a#*=}"); xs+=("-X$a") ;;
+      MPFS_STACK_SIZE=*) gen+=(--stack-size "${a#*=}") ;;
+      MPFS_INTERRUPT_STACK_SIZE=*) gen+=(--interrupt-stack-size "${a#*=}") ;;
+      MPFS_OMIT=none)    ;;
+      MPFS_OMIT=*)       omit="${a#*=}"
+                         case "$omit" in
+                           harts_mask|boot_role) gen+=(--omit "__mpfs_$omit") ;;
+                           stack_size) gen+=(--omit __stack_size) ;;
+                           interrupt_stack_size) gen+=(--omit __interrupt_stack_size) ;;
+                           console_*) gen+=(--omit "__mpfs_$omit") ;;
+                         esac ;;
+      MPFS_APP_LD=*)     env_app=("$a") ;;
+      *)                 xs+=("-X$a") ;;
+    esac
   done
-  rm -rf "$ex/obj-$hart" "$ex/bin-$hart"
-  ( cd "$ex" && gprbuild -q -p -f -P app.gpr "-XMPFS_RTS_ROOT=$rts" -XMPFS_HART="$hart" -XMPFS_PROFILE=light \
-      -XMPFS_CPUS=1 -XMPFS_PRIV=m ${xs[@]+"${xs[@]}"} ${largs[@]+-largs "${largs[@]}"} ) >"$log" 2>&1
+  rm -rf "$ex/obj-$hart" "$ex/bin-$hart" "$work/part"
+  "$MPFS_PYTHON" -I "$ROOT/config/gen/standalone.py" "${gen[@]}" --output "$work/part/mpfs_partition.ads" >"$log" 2>&1 || return 1
+  defsyms="$(sed -e '/^#/d' -e '/^$/d' -e 's/^/-Wl,--defsym=/' "$work/part/mpfs_partition.defsyms" | paste -sd";" -)"
+  ( cd "$ex" && env "MPFS_DEFSYMS=$defsyms" "MPFS_PLACEMENT=$place" ${env_app[@]+"${env_app[@]}"} \
+      gprbuild -q -p -f -P app.gpr "-XMPFS_RTS_ROOT=$rts" -XMPFS_HART="$hart" -XMPFS_PROFILE=light \
+      -XMPFS_CPUS=1 -XMPFS_PRIV=m ${xs[@]+"${xs[@]}"} ${largs[@]+-largs "${largs[@]}"} ) >>"$log" 2>&1
 }
 
 sym () {   # sym <elf> <name>: the value of a symbol, as nm prints it
@@ -328,15 +355,15 @@ grep -q 'UART_Base_Address' "$e51/adainclude/s-bbbopa.ads" && fail "s-bbbopa.ads
 
 tx="$ROOT/examples/textio_test"
 # xbuild <log> <example> <hart> [NAME=value ...]: ./x build of the real example with scenario variables.
-xbuild () {
+xbuild () {   # xbuild <log> <example> <hart> [./x build option ...]
   local log="$1" exname="$2" hart="$3"; shift 3
   rm -rf "$ROOT/examples/$exname/obj-$hart" "$ROOT/examples/$exname/bin-$hart"
-  env "$@" "$ROOT/x" build "$exname" --hart "$hart" >"$log" 2>&1
+  "$ROOT/x" build "$exname" --hart "$hart" "$@" >"$log" 2>&1
 }
 csym () {   # csym <elf> <name>: the value of an absolute symbol, as a number
   local v; v="$(sym "$1" "$2")"; [ -n "$v" ] && echo $((16#$v)) || echo missing
 }
-if xbuild "$work/tx.log" textio_test e51 MPFS_OMIT=none; then
+if xbuild "$work/tx.log" textio_test e51; then
   elf="$tx/bin-e51/textio_test.elf"
   got="$(csym "$elf" __mpfs_console_base) $(csym "$elf" __mpfs_console_init) $(csym "$elf" __mpfs_console_dlr) $(csym "$elf" __mpfs_console_dfr)"
   [ "$got" = "$((0x20000000)) 1 22 0" ] && pass "textio_test: console MMUART0, init 1, divisor 22, fraction 0" \
@@ -356,24 +383,24 @@ if xbuild "$work/tx.log" textio_test e51 MPFS_OMIT=none; then
 else
   fail "textio_test builds ($(tail -5 "$work/tx.log"))"
 fi
-if xbuild "$work/none.log" console_none_test e51 MPFS_OMIT=none; then
+if xbuild "$work/none.log" console_none_test e51; then
   got="$(csym "$ROOT/examples/console_none_test/bin-e51/console_none_test.elf" __mpfs_console_base)"
   [ "$got" = 0 ] && pass "console_none_test: the console base is 0" || fail "console_none_test: the console base is 0 ($got)"
 else
   fail "console_none_test builds ($(tail -5 "$work/none.log"))"
 fi
-# MPFS_CONSOLE and MPFS_CONSOLE_INIT select the console of textio_test
-if xbuild "$work/tx2.log" textio_test e51 MPFS_CONSOLE=mmuart2 MPFS_CONSOLE_INIT=0; then
+# --console and --console-init of ./x build select the console of textio_test
+if xbuild "$work/tx2.log" textio_test e51 --console mmuart2 --console-init 0; then
   elf="$tx/bin-e51/textio_test.elf"
   got="$(csym "$elf" __mpfs_console_base) $(csym "$elf" __mpfs_console_init)"
-  [ "$got" = "$((0x20102000)) 0" ] && pass "MPFS_CONSOLE=mmuart2 MPFS_CONSOLE_INIT=0 select the console of textio_test" \
-    || fail "MPFS_CONSOLE=mmuart2 MPFS_CONSOLE_INIT=0 select the console of textio_test ($got)"
+  [ "$got" = "$((0x20102000)) 0" ] && pass "--console mmuart2 --console-init 0 select the console of textio_test" \
+    || fail "--console mmuart2 --console-init 0 select the console of textio_test ($got)"
 else
-  fail "textio_test with MPFS_CONSOLE=mmuart2 builds ($(tail -5 "$work/tx2.log"))"
+  fail "textio_test with --console mmuart2 builds ($(tail -5 "$work/tx2.log"))"
 fi
 # A missing console symbol stops the link of an image that uses the console.
 for sy in base init dlr dfr; do
-  if xbuild "$work/neg-console_$sy.log" textio_test e51 MPFS_OMIT=console_$sy; then
+  if xbuild "$work/neg-console_$sy.log" textio_test e51 -- --omit "__mpfs_console_$sy"; then
     fail "missing_console_$sy: it linked, it must fail"
   elif [ -f "$tx/bin-e51/textio_test.elf" ]; then
     fail "missing_console_$sy: it failed but left an image"

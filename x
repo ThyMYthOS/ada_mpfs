@@ -26,6 +26,15 @@
 #                                      with the runtime variant build/rts/<profile>-<hart>-
 #                                      cpus<n>-<priv>/, which crates/mpfs_rts/gen_runtime.sh
 #                                      builds first, and only again when its inputs changed
+#                                      The partition of an image comes from config/gen/standalone.py (see
+#                                      config/README.md), which ./x build runs with these parameters:
+#                                        --console mmuart0..4|none|ram_fifo  (default: the MMUART of the
+#                                          lowest hart, hart n -> mmuartn; example.conf CONSOLE=)
+#                                        --console-init 0|1   --memory lim|scratchpad|envm
+#                                        --role primary|secondary
+#                                        --stack-size N  --interrupt-stack-size N  --secondary-stack-size N
+#                                        -- OPTION...   all that follows goes to the generator unchanged
+#                                      The Ada checks of the generated MPFS_Partition run before the link.
 #    ./x clean [<ex>|--rts|--packs]    remove build artifacts (all examples if omitted;
 #                                      --rts: the runtime variants in build/rts, not the
 #                                      generated packs; --packs: the packs in build/rts/packs)
@@ -414,10 +423,22 @@ count_harts () {
 }
 
 B_PROF=auto; B_HART=""; B_HARTS=""; B_PRIV=m
+B_CONSOLE=""; B_CONSOLE_INIT=""; B_MEMORY=""; B_ROLE=""; B_STACK=""; B_ISTACK=""; B_SSTACK=""
+B_PART=()
 parse_build_opts () {   # sets B_*; call with the options after <example>
   B_PROF=auto; B_HART=""; B_HARTS=""; B_PRIV=m
+  B_CONSOLE=""; B_CONSOLE_INIT=""; B_MEMORY=""; B_ROLE=""; B_STACK=""; B_ISTACK=""; B_SSTACK=""
+  B_PART=()
   while [ $# -gt 0 ]; do
     case "$1" in
+      --console)    [ $# -ge 2 ] || die "$1 needs a value"; B_CONSOLE="$2"; shift 2 ;;
+      --console-init) [ $# -ge 2 ] || die "$1 needs a value"; B_CONSOLE_INIT="$2"; shift 2 ;;
+      --memory)     [ $# -ge 2 ] || die "$1 needs a value"; B_MEMORY="$2"; shift 2 ;;
+      --role)       [ $# -ge 2 ] || die "$1 needs a value"; B_ROLE="$2"; shift 2 ;;
+      --stack-size) [ $# -ge 2 ] || die "$1 needs a value"; B_STACK="$2"; shift 2 ;;
+      --interrupt-stack-size) [ $# -ge 2 ] || die "$1 needs a value"; B_ISTACK="$2"; shift 2 ;;
+      --secondary-stack-size) [ $# -ge 2 ] || die "$1 needs a value"; B_SSTACK="$2"; shift 2 ;;
+      --)           shift; B_PART=("$@"); break ;;
       -P|--profile) [ $# -ge 2 ] || die "$1 needs a value"; B_PROF="$2"; shift 2 ;;
       --hart)       [ $# -ge 2 ] || die "$1 needs a value"; B_HART="$2"; shift 2 ;;
       --harts)      [ $# -ge 2 ] || die "$1 needs a value"; B_HARTS="$2"; shift 2 ;;
@@ -443,6 +464,40 @@ toolchain_ready () {
   mpfs_toolchain_on_path || die "pinned toolchain missing (try './x toolchain install')"
 }
 
+#  The partition data of an image linked with the runtime of crates/mpfs_rts: config/gen/standalone.py
+#  writes MPFS_Partition and the list of link symbols from the build parameters, the Ada checks of the
+#  package run (a failing check stops the build before the link), and the link symbols are left in
+#  P_DEFSYMS as -Wl,--defsym= switches, separated by semicolons, for Mpfs_Link (mpfs_link.gpr).
+#  Arguments: example, runtime directory, profile, directory name below build/partition, then the
+#  options of the image that come after those of the build (the IMAGE_<main> of example.conf).
+P_DEFSYMS=""; P_MEMORY=lim
+partition_prepare () {
+  local e="$1" rts="$2" prof="$3" name="$4"; shift 4
+  local dir="$ROOT/build/partition/$name" args
+  args=(--hart "$B_HART" --profile "$prof" --memory "${B_MEMORY:-$(conf_get "$e" MEMORY lim)}")
+  [ -z "${B_CONSOLE:-$(conf_get "$e" CONSOLE "")}" ] || args+=(--console "${B_CONSOLE:-$(conf_get "$e" CONSOLE "")}")
+  P_MEMORY="${B_MEMORY:-$(conf_get "$e" MEMORY lim)}"
+  [ -z "$B_HARTS" ] || args+=(--harts "$B_HARTS")
+  [ -z "$B_CONSOLE_INIT" ] || args+=(--console-init "$B_CONSOLE_INIT")
+  [ -z "$B_ROLE" ] || args+=(--role "$B_ROLE")
+  [ -z "$B_STACK" ] || args+=(--stack-size "$B_STACK")
+  [ -z "$B_ISTACK" ] || args+=(--interrupt-stack-size "$B_ISTACK")
+  [ -z "$B_SSTACK" ] || args+=(--secondary-stack-size "$B_SSTACK")
+  #  The options of the example are words (no quoting): PARTITION_OPTS=--itim-length 0x2000
+  # shellcheck disable=SC2046
+  args+=($(conf_get "$e" PARTITION_OPTS ""))
+  args+=(${B_PART[@]+"${B_PART[@]}"} "$@")
+  rm -rf "$dir"
+  mpfs_find_python
+  "$MPFS_PYTHON" -I "$ROOT/config/gen/standalone.py" "${args[@]}" --output "$dir/mpfs_partition.ads" \
+    || die "partition data of $e: config/gen/standalone.py refused its parameters"
+  ( cd "$dir" && riscv64-elf-gcc -c -gnatc -gnat2022 -gnatwa -gnatwe -gnaty \
+      --RTS="$rts" mpfs_partition.ads ) \
+    >"$dir/check.log" 2>&1 \
+    || { cat "$dir/check.log" >&2; die "the partition checks of $e failed (config/README.md): $dir/mpfs_partition.ads"; }
+  P_DEFSYMS="$(sed -e '/^#/d' -e '/^$/d' -e 's/^/-Wl,--defsym=/' "$dir/mpfs_partition.defsyms" | paste -sd";" -)"
+}
+
 #  Build one example; leaves the ELF path in B_ELF.  Warnings are errors: the
 #  project files set -gnatwe, and any compiler warning outside generated/ that
 #  still gets through fails the build as well.
@@ -458,10 +513,25 @@ build_example () {
   #  compiler warnings are errors. MPFS_CPUS is the number of harts of --harts.
   local prof="$B_PROF" cpus=1
   [ -z "$B_HARTS" ] || cpus="$(count_harts "$B_HARTS")"
+  local envs=()
   if [ "$(conf_get "$e" RUNTIME "")" = mpfs_rts ]; then
     [ "$prof" != auto ] || prof="$(conf_get "$e" PROFILE light)"
     "$ROOT/crates/mpfs_rts/gen_runtime.sh" "$prof" "$B_HART" "$cpus" "$B_PRIV" \
       || die "runtime variant $prof/$B_HART/cpus$cpus/$B_PRIV failed (crates/mpfs_rts/gen_runtime.sh)"
+    #  The partition of the image, and of each image of the example that has options of its own
+    #  (IMAGE_<main>= in example.conf: Mpfs_Link reads MPFS_DEFSYMS_<main> for that main).
+    local rts="${MPFS_RTS_ROOT:-$ROOT/build/rts}/$prof-$B_HART-cpus$cpus-$B_PRIV" name main opts
+    name="$e-$B_HART${B_HARTS:+-h$B_HARTS}"
+    if [ -f "$EXROOT/$e/example.conf" ]; then
+      for main in $(sed -n 's/^IMAGE_\([A-Za-z0-9_]*\)=.*/\1/p' "$EXROOT/$e/example.conf"); do
+        opts="$(conf_get "$e" "IMAGE_$main" "")"
+        # shellcheck disable=SC2086
+        partition_prepare "$e" "$rts" "$prof" "$name-$main" $opts
+        envs+=("MPFS_DEFSYMS_$main=$P_DEFSYMS")
+      done
+    fi
+    partition_prepare "$e" "$rts" "$prof" "$name"
+    envs+=("MPFS_DEFSYMS=$P_DEFSYMS" "MPFS_PLACEMENT=$P_MEMORY")
   fi
   local log rc=0
   log="$(mktemp)"
@@ -472,7 +542,7 @@ build_example () {
       MPFS_HART="$B_HART" MPFS_PRIV="$B_PRIV" MPFS_PROFILE="$prof" MPFS_HARTS="$B_HARTS" \
       MPFS_CPUS="$cpus" bash build.sh ) >"$log" 2>&1 || rc=$?
   else
-    ( cd "$EXROOT/$e" && gprbuild -p -P app.gpr \
+    ( cd "$EXROOT/$e" && env ${envs[@]+"${envs[@]}"} gprbuild -p -P app.gpr \
           -XMPFS_HART="$B_HART" -XMPFS_PRIV="$B_PRIV" -XMPFS_PROFILE="$prof" \
           -XMPFS_CPUS="$cpus" ${B_HARTS:+-XMPFS_HARTS="$B_HARTS"} ) >"$log" 2>&1 || rc=$?
   fi

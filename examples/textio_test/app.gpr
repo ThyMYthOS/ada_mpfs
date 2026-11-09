@@ -1,8 +1,9 @@
 --  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 --  SPDX-License-Identifier: Apache-2.0
 --
---  Seven images of the console of the runtime (System.Text_IO), each linked
---  with its own console symbols (Mpfs_Link, per main): textio_test (MMUART0),
+--  Six images of the console of the runtime (System.Text_IO), each linked
+--  with the console symbols of its own partition (Mpfs_Link, per main; the
+--  IMAGE_<main> lines of example.conf): textio_test (MMUART0),
 --  console_mmuart1_test to console_mmuart4_test (that MMUART) and
 --  console_noinit_test (MMUART0, __mpfs_console_init = 0). Test_Report is the
 --  shared one; its output goes through System.Text_IO (src/bare_console.adb
@@ -61,19 +62,19 @@ project App is
          "-ffunction-sections", "-fdata-sections") & Analysis & Repro_Switches;
    end Compiler;
 
-   --  textio_test takes the scenario of Mpfs_Link (MPFS_CONSOLE,
-   --  MPFS_CONSOLE_INIT, MPFS_OMIT); the others name their console.
+   --  Every main has its own partition: ./x build writes MPFS_DEFSYMS for textio_test and
+   --  MPFS_DEFSYMS_<main> for the others, from the IMAGE_<main> lines of example.conf.
    package Linker is
       for Default_Switches ("Ada") use Mpfs_Link.Switches;
       for Switches ("console_mmuart1_test.adb") use
-        Mpfs_Link.Common & Mpfs_Link.Console_1;
+        Mpfs_Link.Common & external_as_list ("MPFS_DEFSYMS_console_mmuart1_test", ";");
       for Switches ("console_mmuart2_test.adb") use
-        Mpfs_Link.Common & Mpfs_Link.Console_2;
+        Mpfs_Link.Common & external_as_list ("MPFS_DEFSYMS_console_mmuart2_test", ";");
       for Switches ("console_mmuart3_test.adb") use
-        Mpfs_Link.Common & Mpfs_Link.Console_3;
+        Mpfs_Link.Common & external_as_list ("MPFS_DEFSYMS_console_mmuart3_test", ";");
       for Switches ("console_mmuart4_test.adb") use
-        Mpfs_Link.Common & Mpfs_Link.Console_4;
+        Mpfs_Link.Common & external_as_list ("MPFS_DEFSYMS_console_mmuart4_test", ";");
       for Switches ("console_noinit_test.adb") use
-        Mpfs_Link.Common & Mpfs_Link.Console_No_Init;
+        Mpfs_Link.Common & external_as_list ("MPFS_DEFSYMS_console_noinit_test", ";");
    end Linker;
 end App;
