@@ -33,22 +33,11 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from xml.etree import ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from gen_ada import cli, errors  # noqa: E402
+from gen_ada import cli, errors, yamlio  # noqa: E402
 from gen_ada.digest import file_digest  # noqa: E402
 
-
-class _LazyYaml:
-    """PyYAML, imported when a fragment is first read: `ensure` of an SVD that has its hash needs no YAML."""
-
-    def __getattr__(self, name):
-        import yaml as module
-        return getattr(module, name)
-
-
-yaml = _LazyYaml()
 
 ROOT = Path(__file__).resolve().parent.parent
 SVD = ROOT / "svd"
@@ -75,7 +64,7 @@ def int_of(text: str) -> int:
 
 def load(path: Path):
     """Parsed YAML file."""
-    return yaml.safe_load(path.read_text(encoding="utf-8"))
+    return yamlio.load(path, error=SvdError)
 
 
 def base_peripherals() -> dict[str, dict]:
@@ -140,7 +129,7 @@ def check_device_yaml() -> list[str]:
     peripherals added by earlier ones.
     """
     includes = [(DEVICE_YAML.parent / i).resolve() for i in
-                yaml.safe_load(DEVICE_YAML.read_text(encoding="utf-8")).get("_include", [])]
+                load(DEVICE_YAML).get("_include", [])]
     present = {p.resolve() for p in merged_files()}
     errors = [f"svd/device.yaml: {p.relative_to(ROOT)} is not on disk" for p in includes if p not in present]
     errors += [f"svd/device.yaml: does not include {p.relative_to(ROOT)}" for p in sorted(present - set(includes))]
@@ -159,7 +148,7 @@ def check_patch_targets(names: list[str]) -> list[str]:
     """
     errors = []
     for path in sorted((SVD / "patches").glob("*.yaml")):
-        for key in yaml.safe_load(path.read_text(encoding="utf-8")) or {}:
+        for key in load(path) or {}:
             if key.startswith("_") or key.startswith("?~"):
                 continue
             if not any(fnmatch.fnmatchcase(n, g.strip()) for g in key.split(",") for n in names):
@@ -175,7 +164,7 @@ def check_local_interrupts(plic_names: set[str]) -> list[str]:
     of interrupts.yaml.
     """
     rel = LOCAL_INTERRUPTS.relative_to(ROOT)
-    data = yaml.safe_load(LOCAL_INTERRUPTS.read_text(encoding="utf-8"))
+    data = load(LOCAL_INTERRUPTS)
     if not isinstance(data, dict) or set(data) != {"schema", "harts", "interrupts"}:
         return [f"{rel}: expected exactly the keys schema, harts, interrupts"]
     errors = []

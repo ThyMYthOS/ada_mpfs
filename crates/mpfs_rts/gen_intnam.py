@@ -39,7 +39,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
-from gen_ada import ada, cli, errors, spdx, svdread  # noqa: E402
+from gen_ada import ada, cli, errors, spdx, svdread, yamlio  # noqa: E402
 from gen_ada.errors import InputError  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -77,12 +77,7 @@ def read_plic(svd: Path) -> list[tuple[int, str, str]]:
 
 def read_local(path: Path, plic: dict[str, int]) -> tuple[dict[str, int], list[dict]]:
     """The harts and the local interrupts (sorted by number, then name) of local_interrupts.yaml."""
-    import yaml  # PyYAML, as for the other tools
-
-    try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError) as err:
-        raise InputError(f"{path}: cannot read ({err})") from err
+    data = yamlio.load(path)
     if not isinstance(data, dict) or data.get("schema") != 1:
         raise InputError(f"{path}: not a local interrupt file of schema 1")
     harts = data.get("harts")

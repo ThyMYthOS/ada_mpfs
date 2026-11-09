@@ -33,10 +33,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-import yaml
-
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from gen_ada import cli, errors, spdx  # noqa: E402
+from gen_ada import cli, errors, spdx, yamlio  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 CATALOGUE = Path("docs/requirements")
@@ -64,10 +62,7 @@ def load_catalogue(root: Path):
     files = sorted((root / CATALOGUE).glob("*.yaml"))
     for f in files:
         rel = f.relative_to(root)
-        try:
-            data = yaml.safe_load(f.read_text(encoding="utf-8"))
-        except yaml.YAMLError as e:
-            raise Problem(f"{rel}: not valid YAML: {e}")
+        data = yamlio.load(f, error=Problem, name=str(rel))
         items = (data or {}).get("requirements") if isinstance(data, dict) else None
         if not isinstance(items, list):
             raise Problem(f"{rel}: the top level must be a mapping with a list `requirements`")
