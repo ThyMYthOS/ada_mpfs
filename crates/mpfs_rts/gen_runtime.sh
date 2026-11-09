@@ -134,18 +134,6 @@ mpfs_toolchain_on_path >/dev/null 2>&1 || mpfs_toolchain_on_path || die "pinned 
 command -v riscv64-elf-gcc >/dev/null 2>&1 || die "riscv64-elf-gcc not found"
 command -v gprbuild >/dev/null 2>&1 || die "gprbuild not found"
 
-sha () { sha256sum | cut -d' ' -f1; }
-# The content of a directory as one hash: names, modes and bytes of its files; an absent or an
-# empty directory has the hash of nothing.
-tree_hash () {
-  if [ -d "$1" ]; then
-    ( cd "$1" && find . -type f | sort | while IFS= read -r f; do
-        printf '%s %s\n' "$f" "$(sha < "$f")"
-      done ) | sha
-  else
-    printf '' | sha
-  fi
-}
 # The overlays are applied in the order of their names, so the names are part of the hash. Only what
 # lands in the variant is in it: gnat/, gnarl/ and ld/ of an overlay and the directory of the profile
 # (<overlay>/<profile>), so a change to the overlay of one profile leaves the variants of the others
@@ -157,11 +145,11 @@ overlay_hash () {
       [ -d "$d" ] || continue
       printf '%s\n' "$(basename "$d")"
       for s in gnat gnarl ld "$profile"; do
-        printf '%s %s\n' "$s" "$(tree_hash "${d%/}/$s")"
+        printf '%s %s\n' "$s" "$(mpfs_tree_hash "${d%/}/$s")"
       done
-    done | sha
+    done | mpfs_sha
   else
-    printf '' | sha
+    printf '' | mpfs_sha
   fi
 }
 
@@ -207,25 +195,19 @@ if [ -n "$pac_missing" ]; then
   die "no$pac_missing in $pac_dir (./x pac ensure)"
 fi
 [ "$profile" != embedded ] || [ -f "$spec_file" ] || die "no link spec $spec_file"
-pac_hash () { for f in $pac_files; do printf '%s %s\n' "$f" "$(sha < "$pac_dir/$f")"; done | sha; }
+pac_hash () { for f in $pac_files; do printf '%s %s\n' "$f" "$(mpfs_sha < "$pac_dir/$f")"; done | mpfs_sha; }
 
-key="$( {
-  echo "pack $pack_sha"
-  echo "pac $(pac_hash)"
-  echo "port-units $(tree_hash "$port_dir")"
-  echo "overlays $(overlay_hash "$overlay_dir")"
-  echo "ld $(tree_hash "$ld_dir")"
-  if [ "$profile" = embedded ]; then echo "spec $(sha < "$spec_file")"; fi
-  echo "switches $variant build=$build"
-  echo "script $(sha < "${BASH_SOURCE[0]}")"
-  echo "toolchain $toolchain"
-} | sha )"
+key_parts=("pack $pack_sha" "pac $(pac_hash)" "port-units $(mpfs_tree_hash "$port_dir")"
+           "overlays $(overlay_hash "$overlay_dir")" "ld $(mpfs_tree_hash "$ld_dir")")
+if [ "$profile" = embedded ]; then key_parts+=("spec $(mpfs_sha < "$spec_file")"); fi
+key_parts+=("switches $variant build=$build" "script $(mpfs_sha < "${BASH_SOURCE[0]}")" "toolchain $toolchain")
+key="$(mpfs_cache_key "${key_parts[@]}")"
 
 final="$out/$variant"
 stamp="$final/.mpfs_rts.stamp"
 
 up_to_date () {
-  [ -f "$stamp" ] && grep -qx "key=$key" "$stamp" \
+  mpfs_stamp_current "$stamp" "$key" \
     && [ -f "$final/adalib/libgnat.a" ] \
     && { [ "$profile" = light ] || [ -f "$final/adalib/libgnarl.a" ]; } \
     && [ -d "$final/adainclude" ] && [ -f "$final/runtime.xml" ] && [ -d "$final/ld" ]

@@ -90,6 +90,49 @@ mpfs_version_ge () {
     [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -1)" = "$2" ]
 }
 
+# -- Hashes, cache keys and --check of the shell generators ---------------------------------------------------
+# gen_runtime.sh, make_packs.sh and pac.sh share these (the Python generators have tools/gen_ada).
+
+# SHA-256 of stdin as a bare hex string.
+mpfs_sha () { sha256sum | cut -d' ' -f1; }
+
+# The content of a directory as one hash: the names and the hashes of its files, in name order; an
+# absent or an empty directory has the hash of nothing.
+mpfs_tree_hash () {
+    if [ -d "$1" ]; then
+        ( cd "$1" && find . -type f | sort | while IFS= read -r f; do
+            printf '%s %s\n' "$f" "$(mpfs_sha < "$f")"
+        done ) | mpfs_sha
+    else
+        printf '' | mpfs_sha
+    fi
+}
+
+# The key of a cache: the hash of the arguments, one per line (`name value`, in a fixed order).
+mpfs_cache_key () {
+    local part
+    for part in "$@"; do printf '%s\n' "$part"; done | mpfs_sha
+}
+
+# The hash recorded in a hash file $1: the first field of a one-line file, or with a name $2 the hash of
+# the line whose second field is $2. Empty (status 0) if the file or the entry is missing.
+mpfs_recorded_hash () {
+    [ -f "$1" ] || return 0
+    if [ $# -ge 2 ]; then awk -v n="$2" '$2 == n { print $1 }' "$1"; else cut -d' ' -f1 "$1"; fi
+}
+
+# The comparison of a regenerated hash $1 with the recorded one $2: 0 equal, 1 different, 2 nothing
+# recorded. The caller says what to print (every --check has its own words).
+mpfs_hash_check () {
+    [ -n "$2" ] || return 2
+    [ "$1" = "$2" ]
+}
+
+# True if the stamp file $1 holds the cache key $2 (`key=<key>` on a line of its own).
+mpfs_stamp_current () {
+    [ -f "$1" ] && grep -qx "key=$2" "$1"
+}
+
 # Virtual environment of the host tools (tools/requirements.txt), one per
 # tools prefix. Prints the path of its interpreter if it exists.
 mpfs_venv_dir () { printf '%s/venv\n' "$MPFS_TOOLS_PREFIX"; }

@@ -48,6 +48,9 @@ ZSTD_LEVEL=19
 
 die () { echo "make_packs: $*" >&2; exit 2; }
 
+# shellcheck source=tools/mpfs-env.sh
+. "$ROOT/tools/mpfs-env.sh"
+
 out="$ROOT/build/rts/packs"
 hashes="$HERE/packs.sha256"
 only=""
@@ -109,7 +112,7 @@ make_pack () {
   find "$stage" -type f -exec chmod 644 {} +
   tar --sort=name --format=gnu --mtime="$STAMP" --owner=0 --group=0 --numeric-owner \
       -C "$stage" -cf "$work/$name.tar" "$name"
-  sum="$(sha256sum < "$work/$name.tar" | cut -d' ' -f1)"
+  sum="$(mpfs_sha < "$work/$name.tar")"
   zstd -q -$ZSTD_LEVEL --single-thread -f "$work/$name.tar" -o "$work/$name.tar.zst"
   mv "$work/$name.tar.zst" "$dest/$name.tar.zst"
   rm -rf "$gen" "$stage" "$work/$name.tar"
@@ -117,10 +120,7 @@ make_pack () {
 }
 
 # recorded <cell>: the hash in the hash file, or nothing.
-recorded () {
-  [ -f "$hashes" ] || return 0
-  awk -v n="$1.tar" '$2 == n { print $1 }' "$hashes"
-}
+recorded () { mpfs_recorded_hash "$hashes" "$1.tar"; }
 
 # stream_hash <pack file>: the SHA-256 of the decompressed stream, or nothing if it cannot be read.
 stream_hash () {
@@ -153,13 +153,12 @@ case "$mode" in
       sum="$(make_pack "$name" "$work/fresh")"
       echo "$sum  $name.tar" >> "$work/new.sha256"
       want="$(recorded "$name")"
-      if [ -z "$want" ]; then
-        echo "FAIL: $name: no hash in $hashes" >&2; rc=1
-      elif [ "$want" = "$sum" ]; then
-        echo "ok:   $name: regenerated == committed hash"
-      else
-        echo "FAIL: $name: the regenerated tar stream ($sum) differs from the committed hash ($want); run make_packs.sh --update and commit packs.sha256" >&2; rc=1
-      fi
+      cmp_rc=0; mpfs_hash_check "$sum" "$want" || cmp_rc=$?
+      case "$cmp_rc" in
+        0) echo "ok:   $name: regenerated == committed hash" ;;
+        2) echo "FAIL: $name: no hash in $hashes" >&2; rc=1 ;;
+        *) echo "FAIL: $name: the regenerated tar stream ($sum) differs from the committed hash ($want); run make_packs.sh --update and commit packs.sha256" >&2; rc=1 ;;
+      esac
     done
     # a hash for a pack that no cell produces is stale
     for n in $(awk '{ print $2 }' "$hashes"); do

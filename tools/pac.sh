@@ -80,7 +80,7 @@ trap cleanup EXIT
 
 digest () { "$MPFS_PYTHON" "$ROOT/tools/pac_gen.py" hash "$1"; }
 
-recorded () { [ -f "$HASH_FILE" ] && cut -d' ' -f1 "$HASH_FILE" || true; }
+recorded () { mpfs_recorded_hash "$HASH_FILE"; }
 
 # install <dir>: <dir> becomes src/generated
 install_generated () {
@@ -110,14 +110,16 @@ cmd_ensure () {
 }
 
 cmd_check () {
-  local tmp got want; tmp="$(mktemp -d)"; TMP="$tmp"
+  local tmp got want rc; tmp="$(mktemp -d)"; TMP="$tmp"
   generate_into "$tmp/generated"
   got="$(digest "$tmp/generated")"; want="$(recorded)"
-  [ -n "$want" ] || die "${HASH_FILE#"$ROOT"/} does not exist (run './x pac generate')"
-  if [ "$got" != "$want" ]; then
-    [ ! -d "$GENERATED" ] || diff -r "$tmp/generated" "$GENERATED" 2>&1 | head -40 >&2 || true
-    die "${HASH_FILE#"$ROOT"/} does not match a regeneration (run './x pac generate')"
-  fi
+  rc=0; mpfs_hash_check "$got" "$want" || rc=$?
+  case "$rc" in
+    0) ;;
+    2) die "${HASH_FILE#"$ROOT"/} does not exist (run './x pac generate')" ;;
+    *) [ ! -d "$GENERATED" ] || diff -r "$tmp/generated" "$GENERATED" 2>&1 | head -40 >&2 || true
+       die "${HASH_FILE#"$ROOT"/} does not match a regeneration (run './x pac generate')" ;;
+  esac
   echo "pac: ${HASH_FILE#"$ROOT"/} matches a regeneration"
   # the compile below needs exactly this package in src/generated
   [ -d "$GENERATED" ] && [ "$(digest "$GENERATED" 2>/dev/null || true)" = "$want" ] || install_generated "$tmp/generated"
