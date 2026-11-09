@@ -36,7 +36,7 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from gen_ada import errors, spdx  # noqa: E402
+from gen_ada import cli, errors, spdx  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 CATALOGUE = Path("docs/requirements")
@@ -181,9 +181,7 @@ def main(argv) -> int:
             for p in problems + unknown:
                 print(f"trace: {p}", file=sys.stderr)
             return 1
-        out = root / MATRIX
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(matrix, encoding="utf-8")
+        cli.write_output(matrix, root / MATRIX)
         print(f"trace: wrote {MATRIX} ({len(reqs)} requirement(s))")
         return 0
     errors = list(problems) + unknown
@@ -193,10 +191,10 @@ def main(argv) -> int:
     for r in reqs.values():
         if not r["tsf"] and not r["verifies"]:
             print(f"trace: warning: {r['id']} has no @verifies", file=sys.stderr)
-    committed = root / MATRIX
-    if not committed.is_file():
+    found = cli.state(matrix, root / MATRIX)
+    if found == cli.MISSING:
         errors.append(f"{MATRIX} is missing (./x trace writes it)")
-    elif committed.read_text(encoding="utf-8") != matrix:
+    elif found == cli.STALE:
         errors.append(f"{MATRIX} is out of date (./x trace writes it)")
     for e in errors:
         print(f"trace: FAIL: {e}", file=sys.stderr)

@@ -33,14 +33,13 @@ Exit status: 0 ok (current with --check), 1 the output is not current (--check),
 missing or violates a rule (the message names it).
 """
 import argparse
-import difflib
 import re
 import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
-from gen_ada import ada, errors, spdx, svdread  # noqa: E402
+from gen_ada import ada, cli, errors, spdx, svdread  # noqa: E402
 from gen_ada.errors import InputError  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -208,11 +207,11 @@ def ensure_svd() -> Path:
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--check", action="store_true", help="compare with --output instead of writing it")
+    cli.add_check(parser)
     parser.add_argument("--svd", type=Path, help="the merged SVD (default: build/svd, made current)")
     parser.add_argument("--local", type=Path, default=DEFAULT_LOCAL)
     parser.add_argument("--parameters", type=Path, default=DEFAULT_PARAMETERS)
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    cli.add_output(parser, DEFAULT_OUTPUT)
     args = parser.parse_args(argv)
     svd = args.svd if args.svd else ensure_svd()
     plic = read_plic(svd)
@@ -220,20 +219,9 @@ def main(argv: list[str]) -> int:
     check_parameters(args.parameters, plic[0][0], plic[-1][0])
     text = render(plic, harts, local)
     if args.check:
-        try:
-            have = args.output.read_text(encoding="utf-8")
-        except OSError:
-            print(f"gen_intnam: {args.output} is missing; run crates/mpfs_rts/gen_intnam.py", file=sys.stderr)
-            return 1
-        if have != text:
-            diff = difflib.unified_diff(have.splitlines(), text.splitlines(), str(args.output), "generated", lineterm="", n=1)
-            print("\n".join(list(diff)[:40]), file=sys.stderr)
-            print(f"gen_intnam: {args.output} is not current; run crates/mpfs_rts/gen_intnam.py", file=sys.stderr)
-            return 1
-        return 0
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(text, encoding="utf-8")
-    return 0
+        return cli.check_output(text, args.output, tool="gen_intnam", command="crates/mpfs_rts/gen_intnam.py")
+    cli.write_output(text, args.output)
+    return errors.OK
 
 
 if __name__ == "__main__":

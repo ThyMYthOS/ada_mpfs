@@ -36,7 +36,7 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from gen_ada import errors  # noqa: E402
+from gen_ada import cli, errors  # noqa: E402
 from gen_ada.digest import file_digest  # noqa: E402
 
 
@@ -259,7 +259,7 @@ def build() -> Path:
 def cmd_merge() -> int:
     """Build the SVD and record its hash in svd/PolarfireSoC.sha256."""
     out = build()
-    HASH_FILE.write_text(f"{file_digest(out)}  {out.name}\n", encoding="utf-8")
+    cli.write_atomic(HASH_FILE, f"{file_digest(out)}  {out.name}\n")
     print(f"svd: wrote {out.relative_to(ROOT)} and {HASH_FILE.relative_to(ROOT)}")
     return 0
 

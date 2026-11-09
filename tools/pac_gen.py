@@ -34,7 +34,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from gen_ada import digest, errors, spdx, svdread  # noqa: E402
+from gen_ada import cli, digest, errors, spdx, svdread  # noqa: E402
 
 PACKAGE = "MPFS_Registers"
 FILE_PREFIX = PACKAGE.lower() + "-"
@@ -151,7 +151,7 @@ def annotate(directory: Path, peripherals: list[Peripheral]) -> int:
         text = read(path)
         new, n = annotate_text(text, reading, done)
         if n:
-            path.write_text(new, encoding="utf-8")
+            cli.write_atomic(path, new)
             total += n
     if done != reading:
         raise PacError("peripherals with a readAction in the SVD but no instance in the "
@@ -170,7 +170,7 @@ def strip_unused_system(text: str) -> str:
 def finish(directory: Path, sha256: str, commit: str) -> None:
     for path in sorted(directory.glob("*.ads")):
         text = strip_unused_system(read(path))
-        path.write_text(HEADER.format(sha256=sha256, commit=commit) + text, encoding="utf-8")
+        cli.write_atomic(path, HEADER.format(sha256=sha256, commit=commit) + text)
 
 
 def postprocess(directory: Path, svd: Path, sha256: str, commit: str) -> None:

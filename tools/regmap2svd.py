@@ -30,7 +30,7 @@ import yaml
 from bs4 import BeautifulSoup, Tag
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from gen_ada import errors, spdx  # noqa: E402
+from gen_ada import cli, errors, spdx  # noqa: E402
 
 XML_HEADER = '<?xml version="1.0" encoding="utf-8"?>\n' + spdx.header("xml", "CC-BY-4.0")
 YAML_HEADER = spdx.header("yaml", "CC-BY-4.0")
@@ -306,7 +306,7 @@ def write_fragment(p: Peripheral, out: Path) -> None:
     add = {p.name: peripheral_dict(p)}
     add.update({i.name: instance_dict(i, p.name) for i in p.instances})
     body = yaml.dump({"_add": without_empty(add)}, Dumper=Dumper, sort_keys=False, allow_unicode=True, width=1 << 30)
-    out.write_text(YAML_HEADER + body, encoding="utf-8")
+    cli.write_atomic(out, YAML_HEADER + body)
 
 
 def parse_instance_table(soup: BeautifulSoup) -> dict[str, str]:
@@ -373,8 +373,8 @@ def write_device(releases: list[Release], out: Path) -> None:
     ET.SubElement(root, "peripherals")
     ET.indent(root, space="  ")
     history = "".join(f"  {r.version:4} {r.date}  {r.details.replace('--', '- -')}\n" for r in releases)
-    out.write_text(XML_HEADER + "<!--\nMicrochip register map revision history:\n" + history + "-->\n"
-                   + ET.tostring(root, encoding="unicode") + "\n", encoding="utf-8")
+    cli.write_atomic(out, XML_HEADER + "<!--\nMicrochip register map revision history:\n" + history + "-->\n"
+                     + ET.tostring(root, encoding="unicode") + "\n")
 
 
 def main(argv: list[str]) -> int:
