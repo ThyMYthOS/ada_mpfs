@@ -28,7 +28,6 @@ interrupts do not fit the flat SVD model); it has its own schema, checked here.
 Requires svdtools (version pinned in tools/toolchain.env), xmllint and PyYAML.
 """
 import fnmatch
-import hashlib
 import os
 import re
 import subprocess
@@ -38,6 +37,7 @@ from xml.etree import ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gen_ada import errors  # noqa: E402
+from gen_ada.digest import file_digest  # noqa: E402
 
 
 class _LazyYaml:
@@ -256,15 +256,10 @@ def build() -> Path:
     return RESULT
 
 
-def digest(path: Path) -> str:
-    """SHA-256 of <path> as a hex string."""
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def cmd_merge() -> int:
     """Build the SVD and record its hash in svd/PolarfireSoC.sha256."""
     out = build()
-    HASH_FILE.write_text(f"{digest(out)}  {out.name}\n", encoding="utf-8")
+    HASH_FILE.write_text(f"{file_digest(out)}  {out.name}\n", encoding="utf-8")
     print(f"svd: wrote {out.relative_to(ROOT)} and {HASH_FILE.relative_to(ROOT)}")
     return 0
 
@@ -273,7 +268,7 @@ def cmd_check() -> int:
     """Build the SVD and fail if its hash differs from the one in svd/PolarfireSoC.sha256."""
     out = build()
     recorded = HASH_FILE.read_text(encoding="utf-8").split()[0] if HASH_FILE.is_file() else None
-    if recorded != digest(out):
+    if recorded != file_digest(out):
         raise SvdError(f"{HASH_FILE.relative_to(ROOT)} does not match the merged SVD; run ./x svd merge")
     print("svd: ok")
     return 0
@@ -282,11 +277,11 @@ def cmd_check() -> int:
 def cmd_ensure() -> int:
     """Rebuild the SVD unless build/svd/PolarfireSoC.svd has the recorded hash; warn if the rebuilt one differs."""
     recorded = HASH_FILE.read_text(encoding="utf-8").split()[0] if HASH_FILE.is_file() else None
-    if RESULT.is_file() and recorded == digest(RESULT):
+    if RESULT.is_file() and recorded == file_digest(RESULT):
         return 0
     print(f"svd: {RESULT.relative_to(ROOT)} is missing or does not have the recorded hash; regenerating")
     out = build()
-    if recorded != digest(out):
+    if recorded != file_digest(out):
         print(f"svd: warning: the sources do not match {HASH_FILE.relative_to(ROOT)}; run ./x svd merge", file=sys.stderr)
     return 0
 

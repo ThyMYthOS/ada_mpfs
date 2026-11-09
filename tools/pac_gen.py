@@ -29,14 +29,13 @@ Each step is a function that can be tested on small fixtures
 (tests/host/pac/run.sh).
 """
 import argparse
-import hashlib
 import re
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from gen_ada import errors, spdx  # noqa: E402
+from gen_ada import digest, errors, spdx  # noqa: E402
 
 PACKAGE = "MPFS_Registers"
 FILE_PREFIX = PACKAGE.lower() + "-"
@@ -215,13 +214,7 @@ def tree_digest(directory: Path) -> str:
     counterpart of svd/PolarfireSoC.sha256. It covers the SVD hash and the svd2ada commit, which the header of
     every file carries.
     """
-    files = sorted(directory.glob("*.ads"))
-    if not files:
-        raise PacError(f"no *.ads file in {directory}")
-    h = hashlib.sha256()
-    for path in files:
-        h.update(path.name.encode() + b"\0" + path.read_bytes() + b"\0")
-    return h.hexdigest()
+    return digest.tree_digest(directory, "*.ads", error=PacError)
 
 
 # -- hand-written base address helper ----------------------------------------
