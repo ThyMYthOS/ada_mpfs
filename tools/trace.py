@@ -36,7 +36,7 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from gen_ada import spdx  # noqa: E402
+from gen_ada import errors, spdx  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 CATALOGUE = Path("docs/requirements")
@@ -54,8 +54,8 @@ SKIP_DIRS = ("docs/requirements/", "docs/assurance/", "svd/", "LICENSES/",
 SKIP_FILES = ("tools/trace.py", "tests/host/trace/run.sh")
 
 
-class Problem(Exception):
-    pass
+class Problem(errors.InputError):
+    """The catalogue cannot be read at all (exit status 2)."""
 
 
 def load_catalogue(root: Path):
@@ -173,11 +173,7 @@ def main(argv) -> int:
         else:
             print("usage: trace.py [--check] [--root DIR]", file=sys.stderr)
             return 2
-    try:
-        reqs, problems = load_catalogue(root)
-    except Problem as e:
-        print(f"trace: {e}", file=sys.stderr)
-        return 2
+    reqs, problems = load_catalogue(root)
     unknown = collect(root, reqs)
     matrix = render(reqs)
     if not check:
@@ -211,4 +207,4 @@ def main(argv) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(errors.run(main, "trace", sys.argv[1:]))

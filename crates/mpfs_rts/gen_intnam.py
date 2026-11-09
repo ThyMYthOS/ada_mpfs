@@ -41,7 +41,8 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
-from gen_ada import spdx  # noqa: E402
+from gen_ada import errors, spdx  # noqa: E402
+from gen_ada.errors import InputError  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_SVD = ROOT / "build" / "svd" / "PolarfireSoC.svd"
@@ -59,10 +60,6 @@ RESERVED = frozenset("""
 """.split())
 RANGE_LINE = re.compile(r"subtype\s+Interrupt_Range\s+is\s+Natural\s+range\s+(\d+)\s*\.\.\s*(\d+)\s*;")
 WIDTH = 78
-
-
-class InputError(Exception):
-    """An input is missing or violates a rule; the message is shown to the user."""
 
 
 def identifier(name: str, where: str) -> str:
@@ -263,15 +260,11 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--parameters", type=Path, default=DEFAULT_PARAMETERS)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args(argv)
-    try:
-        svd = args.svd if args.svd else ensure_svd()
-        plic = read_plic(svd)
-        harts, local = read_local(args.local, {name: value for value, name, _ in plic})
-        check_parameters(args.parameters, plic[0][0], plic[-1][0])
-        text = render(plic, harts, local)
-    except InputError as err:
-        print(f"gen_intnam: {err}", file=sys.stderr)
-        return 2
+    svd = args.svd if args.svd else ensure_svd()
+    plic = read_plic(svd)
+    harts, local = read_local(args.local, {name: value for value, name, _ in plic})
+    check_parameters(args.parameters, plic[0][0], plic[-1][0])
+    text = render(plic, harts, local)
     if args.check:
         try:
             have = args.output.read_text(encoding="utf-8")
@@ -290,4 +283,4 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(errors.run(main, "gen_intnam", sys.argv[1:]))

@@ -36,6 +36,8 @@ import sys
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from gen_ada import errors  # noqa: E402
 
 
 class _LazyYaml:
@@ -60,8 +62,10 @@ STATUS = re.compile(r"unverified|verified-[A-Za-z0-9_.]+-\d{4}-\d{2}-\d{2}")
 IDENTIFIER = re.compile(r"[A-Z][A-Z0-9_]*")
 
 
-class SvdError(Exception):
-    """A violation of the SVD rules; the message is shown to the user."""
+class SvdError(errors.GenError):
+    """A violation of the SVD rules; the message is shown to the user (exit status 1)."""
+
+    status = errors.NOT_CURRENT
 
 
 def int_of(text: str) -> int:
@@ -292,12 +296,8 @@ def main(argv: list[str]) -> int:
     if len(argv) != 2 or argv[1] not in ("merge", "check", "ensure"):
         print(__doc__, file=sys.stderr)
         return 2
-    try:
-        return {"merge": cmd_merge, "check": cmd_check, "ensure": cmd_ensure}[argv[1]]()
-    except SvdError as e:
-        print(f"svd: {e}", file=sys.stderr)
-        return 1
+    return {"merge": cmd_merge, "check": cmd_check, "ensure": cmd_ensure}[argv[1]]()
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    sys.exit(errors.run(main, "svd", sys.argv))

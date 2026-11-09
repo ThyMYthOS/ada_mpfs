@@ -53,6 +53,18 @@ with tempfile.TemporaryDirectory() as tmp:
         assert text.startswith(head + "<!--\nMicrochip register map revision history:\n"), text[:300]
         assert "<version>1.1</version>" in text and "first - - release" in text
 
+    @case("a register that is listed twice is an input error with a message, not a traceback")
+    def _():
+        bad = Path(tmp) / "bad"
+        regmap_fixture.write(bad)
+        reg = ("CTRL", "0x20001000", "0x0", "RW", [["[7:0]", "data", "d", "RW", "0"]])
+        (bad / "MSS" / "pfsoc_mss_top_foo.htm").write_text(
+            regmap_fixture.page("foo", [reg, reg], [["CTRL", "32"]]), encoding="utf-16")
+        done = subprocess.run([sys.executable, "-I", str(TOOL), str(bad / "MSS"), str(bad / "out")],
+                              capture_output=True, text=True)
+        assert done.returncode == 2, (done.returncode, done.stderr)
+        assert done.stderr == "regmap2svd: FOO: duplicate register CTRL\n", done.stderr
+
     @case("the generator is licensed once: only the two lines of its header carry tags")
     def _():
         lines = TOOL.read_text(encoding="utf-8").splitlines()

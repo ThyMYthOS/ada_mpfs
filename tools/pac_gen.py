@@ -36,7 +36,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from gen_ada import spdx  # noqa: E402
+from gen_ada import errors, spdx  # noqa: E402
 
 PACKAGE = "MPFS_Registers"
 FILE_PREFIX = PACKAGE.lower() + "-"
@@ -63,8 +63,10 @@ INSTANCE_RE = re.compile(
     re.M)
 
 
-class PacError(Exception):
-    """A violation that aborts the generation; the message is shown to the user."""
+class PacError(errors.GenError):
+    """A violation that aborts the generation; the message is shown to the user (exit status 1)."""
+
+    status = errors.NOT_CURRENT
 
 
 def unit_file(directory: Path, name: str) -> Path:
@@ -264,18 +266,14 @@ def main(argv: list[str]) -> int:
     h = sub.add_parser("hash")
     h.add_argument("dir", type=Path)
     args = ap.parse_args(argv[1:])
-    try:
-        if args.cmd == "postprocess":
-            postprocess(args.dir, args.svd, args.svd_sha256, args.svd2ada_commit)
-        elif args.cmd == "hash":
-            print(tree_digest(args.dir))
-        else:
-            print(f"pac: {check_bases(args.dir, args.bases)} LO/HI base address pairs ok")
-    except PacError as e:
-        print(f"pac: {e}", file=sys.stderr)
-        return 1
+    if args.cmd == "postprocess":
+        postprocess(args.dir, args.svd, args.svd_sha256, args.svd2ada_commit)
+    elif args.cmd == "hash":
+        print(tree_digest(args.dir))
+    else:
+        print(f"pac: {check_bases(args.dir, args.bases)} LO/HI base address pairs ok")
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    sys.exit(errors.run(main, "pac", sys.argv))

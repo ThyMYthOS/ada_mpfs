@@ -30,7 +30,7 @@ import yaml
 from bs4 import BeautifulSoup, Tag
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from gen_ada import spdx  # noqa: E402
+from gen_ada import errors, spdx  # noqa: E402
 
 XML_HEADER = '<?xml version="1.0" encoding="utf-8"?>\n' + spdx.header("xml", "CC-BY-4.0")
 YAML_HEADER = spdx.header("yaml", "CC-BY-4.0")
@@ -262,11 +262,11 @@ def peripheral_dict(p: Peripheral) -> dict:
     regs = {}
     for r in p.registers:
         if r.name in regs:
-            raise ValueError(f"{p.name}: duplicate register {r.name}")
+            raise errors.InputError(f"{p.name}: duplicate register {r.name}")
         fields = {}
         for f in r.fields:
             if f.name in fields:
-                raise ValueError(f"{p.name}.{r.name}: duplicate field {f.name}")
+                raise errors.InputError(f"{p.name}.{r.name}: duplicate field {f.name}")
             msb, lsb = f.msb_lsb
             fields[f.name] = {"description": f.description, "bitOffset": lsb, "bitWidth": msb - lsb + 1,
                               "access": f.access}
@@ -399,4 +399,4 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    sys.exit(errors.run(main, "regmap2svd", sys.argv))
