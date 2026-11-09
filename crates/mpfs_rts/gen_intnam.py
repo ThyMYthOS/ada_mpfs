@@ -38,10 +38,9 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from xml.etree import ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
-from gen_ada import ada, errors, spdx  # noqa: E402
+from gen_ada import ada, errors, spdx, svdread  # noqa: E402
 from gen_ada.errors import InputError  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -55,18 +54,12 @@ RANGE_LINE = re.compile(r"subtype\s+Interrupt_Range\s+is\s+Natural\s+range\s+(\d
 
 def read_plic(svd: Path) -> list[tuple[int, str, str]]:
     """The PLIC sources of the SVD: (value, name, description) sorted by value."""
-    try:
-        root = ET.parse(svd).getroot()
-    except (OSError, ET.ParseError) as err:
-        raise InputError(f"{svd}: cannot read the SVD ({err})") from err
     found: list[tuple[int, str, str]] = []
-    for element in root.iter("interrupt"):
-        name = (element.findtext("name") or "").strip()
-        value = (element.findtext("value") or "").strip()
-        text = " ".join((element.findtext("description") or "").split())
-        if not value.isdigit():
-            raise InputError(f"{svd}: interrupt {name!r} has no numeric value")
-        found.append((int(value), ada.identifier(name, f"{svd}: interrupt {value}"), text))
+    for element in svdread.interrupts(svdread.load(svd)):
+        if not element.value.isdigit():
+            raise InputError(f"{svd}: interrupt {element.name!r} has no numeric value")
+        found.append((int(element.value), ada.identifier(element.name, f"{svd}: interrupt {element.value}"),
+                      element.description))
     if not found:
         raise InputError(f"{svd}: no <interrupt> element")
     found.sort()

@@ -31,11 +31,10 @@ Each step is a function that can be tested on small fixtures
 import argparse
 import re
 import sys
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from gen_ada import digest, errors, spdx  # noqa: E402
+from gen_ada import digest, errors, spdx, svdread  # noqa: E402
 
 PACKAGE = "MPFS_Registers"
 FILE_PREFIX = PACKAGE.lower() + "-"
@@ -78,36 +77,12 @@ def read(path: Path) -> str:
 
 # -- 1. groups of peripherals ---------------------------------------------------
 
-class Peripheral:
-    """What pac_gen needs to know about a peripheral of the SVD."""
-
-    def __init__(self, name: str, group: str, reads: bool):
-        self.name = name
-        self.group = group
-        self.reads = reads      # a register or field has a <readAction>
+Peripheral = svdread.Peripheral
 
 
 def read_svd(path: Path) -> list[Peripheral]:
-    """The peripherals of the SVD in file order. <groupName> and the registers are
-    resolved through derivedFrom the way svd2ada does (a derived peripheral
-    inherits them from its base)."""
-    elements = {p.findtext("name"): p for p in ET.parse(path).getroot().iter("peripheral")}
-
-    def group_of(name: str, seen: tuple[str, ...] = ()) -> str:
-        elt = elements[name]
-        own = (elt.findtext("groupName") or "").strip()
-        base = elt.get("derivedFrom")
-        if own or not base or base in seen:
-            return own
-        return group_of(base, seen + (name,))
-
-    def reads_of(name: str, seen: tuple[str, ...] = ()) -> bool:
-        elt = elements[name]
-        base = elt.get("derivedFrom")
-        return (elt.find(".//readAction") is not None
-                or bool(base and base not in seen and reads_of(base, seen + (name,))))
-
-    return [Peripheral(name, group_of(name), reads_of(name)) for name in elements]
+    """The peripherals of the SVD in file order (gen_ada.svdread); an SVD that cannot be read is a PacError."""
+    return svdread.peripherals(svdread.load(path, error=PacError))
 
 
 def groups_of(peripherals: list[Peripheral]) -> dict[str, list[str]]:
