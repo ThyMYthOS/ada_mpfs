@@ -17,10 +17,10 @@
 
 | `overlays/<name>/` | Overlays, laid over the pack after the port units (`gnat/`, `gnarl/`, `ld/` below each, and `<profile>/gnat`, `<profile>/gnarl`, `<profile>/ld` for that profile only). `overlays/tlsf/embedded/gnat/` is the heap of the embedded profile (see "Heap and secondary stack"). |
 | `ld/` | The linker scripts (P1.3): `mpfs-memory.ld`, `place-lim.ld`, `place-scratchpad.ld`, `place-envm.ld`, `sections.ld` (the shared `SECTIONS`) and `app-sections.ld` (the empty hook of the application). `gen_runtime.sh` puts them into `ld/` of every variant. |
-| `mpfs_link.gpr` | Abstract project with the link switches of an image: the placement script of the variant and the partition data as `--defsym` values (scenario variables `MPFS_PLACEMENT`, `MPFS_BOOT_ROLE`, `MPFS_HARTS`, `MPFS_APP_LD`, `MPFS_STACK_SIZE`, `MPFS_INTERRUPT_STACK_SIZE`, `MPFS_CONSOLE`, `MPFS_CONSOLE_INIT`), for the examples and tests until the partition generator writes the values. |
+| `mpfs_link.gpr` | Abstract project with the link switches of an image: the placement script of the variant (`MPFS_PLACEMENT`, the memory profile), the hook of the application (`MPFS_APP_LD`) and the partition data as `--defsym` values, which it takes from `MPFS_DEFSYMS`: the list of link symbols that `config/gen/standalone.py` writes and `./x build` passes (contract: `config/README.md`). |
 | `overlays/<name>/` | Overlays, laid over the pack after the port units (`gnat/`, `gnarl/`, `ld/` below each). The directory does not exist yet. |
 | `ld/` | The linker scripts: `mpfs-memory.ld`, `place-lim.ld`, `place-scratchpad.ld`, `place-envm.ld`, `sections.ld` (the shared `SECTIONS`) and `app-sections.ld` (the empty hook of the application, where code and data for the ITIM and DTIM are placed: see "ITIM and DTIM"). `gen_runtime.sh` puts them into `ld/` of every variant. |
-| `mpfs_link.gpr` | Abstract project with the link switches of an image: the placement script of the variant and the partition data as `--defsym` values (scenario variables `MPFS_PLACEMENT`, `MPFS_BOOT_ROLE`, `MPFS_HARTS`, `MPFS_APP_LD`, `MPFS_STACK_SIZE`, `MPFS_INTERRUPT_STACK_SIZE`), for the examples and tests until the partition generator (P1.12) writes the values. |
+| `mpfs_link.gpr` | Abstract project with the link switches of an image: the placement script of the variant (`MPFS_PLACEMENT`, the memory profile), the hook of the application (`MPFS_APP_LD`) and the partition data as `--defsym` values, which it takes from `MPFS_DEFSYMS`: the list of link symbols that `config/gen/standalone.py` writes and `./x build` passes (contract: `config/README.md`). |
 | `link-zcx.spec` | The link spec of the `embedded` profile (P1.7, R8): `crti.o crtbegin.o` before and `-u __register_frame_info crtend.o crtn.o` after the link, no `--eh-frame-hdr`. `gen_runtime.sh` puts it into the embedded variants in place of the spec of the pack (see "Zero-cost exceptions"). |
 | `port_units.list` | The board files that may differ from the toolchain's runtimes, with their source in `crates/bb-runtimes`. |
 
@@ -287,12 +287,13 @@ are not in the library, so one runtime serves every console:
   `Restrictions (No_Elaboration_Code)` instead of `No_Elaboration_Code_All`, because the body names the PAC, which has the
   former. The interface is unchanged.
 
-`mpfs_link.gpr` gives an image its console: `MPFS_CONSOLE` (`mmuart0` to `mmuart4`, `none`; default `mmuart0`) and
-`MPFS_CONSOLE_INIT` (`1`, `0`) as scenario variables, and the lists `Console_0` to `Console_4`, `Console_None` and
-`Console_No_Init` for a project with several images (`examples/textio_test`). The divisor is 22 (115200 baud at the
-~40 MHz APB clock of an Icicle Kit at reset, as measured for `--uart-standin`), 21 and 45/64 for MMUART4, which the board does not
-bring out and which exercises the fractional mode under QEMU. A partition generator will write these values from the
-clock of the configuration.
+The console of an image is partition data: `./x build --console` (`mmuart0` to `mmuart4`, `none`; the MMUART of the lowest hart unless
+`--console` or the `example.conf` says otherwise) and `--console-init` (`1`, `0`) go to `config/gen/standalone.py`, which writes the four
+`__mpfs_console_*` symbols, and an example with images of different consoles names one per main
+(`IMAGE_<main>=` in its `example.conf`, `examples/textio_test`). The divisor is 22 (115200 baud at the ~40 MHz APB
+clock of an Icicle Kit at reset, as measured for `--uart-standin`), 21 and 45/64 for MMUART4, which the board does not
+bring out and which exercises the fractional mode under QEMU. The configuration generator will write these values from
+the clock of the configuration.
 
 Tests: `examples/textio_test` (the console of the runtime: registers against the link symbols, `GNAT.IO`, loopback, all
 five MMUARTs, init 0), `examples/console_none_test`, and `tests/host/rts_boot` (the symbols in the images, a missing symbol

@@ -19,7 +19,7 @@ the `ok:` lines. If the trap never happens, or returns, there is no verdict line
     ./x qemu trap_test
     ./x test qemu tests trap_test_e51 trap_test_u54
 
-The scenario variables `MPFS_PLACEMENT` (`lim`, `scratchpad`, `envm`) and `MPFS_BOOT_ROLE` (`primary`,
-`secondary`) of `crates/mpfs_rts/mpfs_link.gpr` select the boot scenario; `tests/host/rts_boot` links the four
+The boot scenario is the partition of the build: `./x build trap_test --memory lim|scratchpad|envm` and
+`--role primary|secondary` (`--hart u54 --harts 2` for a secondary U54); `tests/host/rts_boot` links the four
 (primary and secondary, in the LIM and in the scratchpad). QEMU has no scratchpad, so the scratchpad images are
 only built, never run.

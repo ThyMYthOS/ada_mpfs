@@ -20,6 +20,22 @@ variables
 | `MPFS_PROFILE` | `auto`, `light`, `light-tasking`, `embedded` | runtime profile (`auto` is replaced by the `PROFILE=` of `example.conf`, `light` without it, for an example with `RUNTIME=mpfs_rts`) |
 | `MPFS_CPUS` | `1` | CPUs of the runtime variant: the number of harts of `--harts`, 1 without |
 
+An example with `RUNTIME=mpfs_rts` also gets its partition data. `./x build` runs `config/gen/standalone.py` with the
+parameters of the build (`--console`, `--console-init`, `--memory`, `--role`, `--stack-size`, `--interrupt-stack-size`,
+`--secondary-stack-size`, and everything after `--`; format and checks: `config/README.md`), compiles the generated
+`MPFS_Partition` (a failing check stops the build) and passes the link symbols to the project in the environment:
+
+| Variable | Meaning |
+|---|---|
+| `MPFS_DEFSYMS` | the `-Wl,--defsym=NAME=VALUE` switches of the partition, separated by semicolons; `Mpfs_Link.Switches` reads it |
+| `MPFS_DEFSYMS_<main>` | the same for the main `<main>` that has an `IMAGE_<main>=` line in `example.conf` |
+| `MPFS_PLACEMENT` | `lim`, `scratchpad` or `envm`: the placement script (`--memory`) |
+
+`example.conf` may say `CONSOLE=` (default: the generator's, the MMUART of the hart), `MEMORY=` (default `lim`), `PARTITION_OPTS=` (options of
+the generator, for example `--itim-length 0x2000 --dtim-length 0x2000`) and one `IMAGE_<main>=` line per main that
+needs options of its own (`--console mmuart1`). The project's linker switches are `Mpfs_Link.Switches`, or for a main
+`Mpfs_Link.Common & external_as_list ("MPFS_DEFSYMS_<main>", ";")`; no project names a value of the partition.
+
 One more variable is read from the environment of the project only: `STACK_ANALYSIS` (`0`, the default, or `1`).
 `./x stack` sets it to `1`; the project then adds `-fstack-usage -fcallgraph-info=su,da` to the Ada switches, so that
 the compiler writes the frame sizes (`.su`) and the call graph (`.ci`) next to the objects (`tools/stack_report`
