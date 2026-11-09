@@ -40,6 +40,9 @@ import sys
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
+from gen_ada import spdx  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_SVD = ROOT / "build" / "svd" / "PolarfireSoC.svd"
 DEFAULT_LOCAL = ROOT / "svd" / "additions" / "local_interrupts.yaml"
@@ -56,10 +59,6 @@ RESERVED = frozenset("""
 """.split())
 RANGE_LINE = re.compile(r"subtype\s+Interrupt_Range\s+is\s+Natural\s+range\s+(\d+)\s*\.\.\s*(\d+)\s*;")
 WIDTH = 78
-
-# The tags of the generated file are assembled so that REUSE does not read them as tags of this file
-# (the same as tools/pac_gen.py).
-_SPDX = "SPDX"
 
 
 class InputError(Exception):
@@ -197,10 +196,7 @@ def render(plic: list[tuple[int, str, str]], harts: dict[str, int], local: list[
         "of the type Local_Interrupt, which is not an Interrupt_ID: they cannot be attached by "
         "Attach_Handler or Interrupt_Handler.",
     ]
-    out = [
-        f"--  {_SPDX}-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>",
-        f"--  {_SPDX}-License-Identifier: GPL-3.0-or-later WITH GCC-exception-3.1",
-    ]
+    out = spdx.header("ada", "GPL-3.0-or-later WITH GCC-exception-3.1").splitlines()
     for paragraph in intro:
         out += ["--", *comment(paragraph, "")]
     out += [

@@ -29,15 +29,11 @@ from xml.etree import ElementTree as ET
 import yaml
 from bs4 import BeautifulSoup, Tag
 
-XML_HEADER = """<?xml version="1.0" encoding="utf-8"?>
-<!--
-SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
-SPDX-License-Identifier: CC-BY-4.0
--->
-"""
-YAML_HEADER = """# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
-# SPDX-License-Identifier: CC-BY-4.0
-"""
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from gen_ada import spdx  # noqa: E402
+
+XML_HEADER = '<?xml version="1.0" encoding="utf-8"?>\n' + spdx.header("xml", "CC-BY-4.0")
+YAML_HEADER = spdx.header("yaml", "CC-BY-4.0")
 # Pages without a base address: (new name, name in the instance table, further instances,
 # groupName of the base instance if there are further instances).
 MISSING_BASE = {
