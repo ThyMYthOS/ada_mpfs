@@ -8,7 +8,7 @@
 | `toolchain.env`, `mpfs-env.sh` | Pinned tool versions and the environment resolving them (including svd2ada, built from source into `$MPFS_TOOLS_PREFIX/svd2ada-<commit>`). `./x toolchain install` installs everything, `install svdtools` only svdtools, `install svd2ada` only svd2ada, `install pac` what `./x pac check` needs (the pinned gprbuild and GNAT toolchains, alr if missing, the python environment, svdtools and svd2ada; no gnatprove, no adalang_analyzer). |
 | `svd.py` | `./x svd merge\|check`. (`./x svd probe` is `hw/svd_probe.py`, see `hw/README.md`: a whole-device run skips the blocks of `hw/svd_probe.list`, `./x svd probe ENVM` reads a named block; Ctrl+C stops it at once with exit status 130, and the hart may stay halted.) |
 | `pac.sh`, `pac_gen.py` | `./x pac generate\|ensure\|check`: svd2ada run and post-processing of the register package, and its hash (`libs/mpfs_pac/MPFS_Registers.sha256`; the package itself is not committed). `ensure` regenerates it unless it has the recorded hash; `./x test lib` and `./x analyze` call it. |
-| `headers.py` | SPDX header and provenance check. |
+| `headers.py` | SPDX header and provenance check; also fails on an SPDX tag outside the header of a file under `tools/`, `crates/` (not the fork) or `tests/`, for example inside a string of a generator. |
 | `trace.py` | `./x trace [--check]`: the requirement catalogue (`docs/requirements/*.yaml`) and the `@req` / `@verifies` markers of the sources give `docs/assurance/trace-matrix.md`; `--check` fails on an unknown or malformed ID, a TSF requirement without a test and a stale matrix. Format: `docs/coding-standard.md`. |
 | `completion.bash` | Tab completion for `./x` (verbs, sub-commands, options, example names). Printed by `./x completion [bash\|zsh]`; `export.sh` loads it in an interactive bash or zsh; without that, load it with `source <(./x completion)` in bash, or `source <(./x completion zsh)` in zsh (through `bashcompinit`; not tested with zsh yet). |
 | `metrics.sh` | `./x metrics verify\|bless`: size, entry point, `e_flags` and `Tag_RISCV_arch` of every built image against `metrics.golden` in the repository root (rows keyed on image and compiler: the `GNAT Version:` string of the binder, `__gnat_version`, if the image has one, else the `.comment` string of the linker, which is all a bare image has). |
@@ -22,7 +22,26 @@
 | `stack_report/` | `./x stack <ex>`: native Ada tool (built on demand, copied unchanged from ada_esp32s3) that reads the `.su` and `.ci` files the compiler writes with `STACK_ANALYSIS=1` and reports the biggest frames, dynamic frames and the deepest call chain per entry; recursion is flagged, calls into code without a frame are marked `+ext`. It fails without `.su` files. |
 | `test_lib.sh` | `./x test lib`: every `libs/*/<name>.gpr` (not `*_prove.gpr`) compiles for the E51 and the U54 ABI; a warning outside `src/generated` is a failure. |
 | `regmap2svd.py` | One-time import of the Microchip register map into SVD fragments. |
+| `gen_ada/` | The library the code generators share (Python package `gen_ada`, see below). |
 | `requirements.txt` | Python packages of the host tools. |
+
+## The generator library `gen_ada/`
+
+`pac_gen.py`, `svd.py`, `trace.py`, `regmap2svd.py` and `crates/mpfs_rts/gen_intnam.py` use one library for what every generator needs; a generator holds only its inputs, its rules and its output format. A new generator (the ones for the configuration, partition, linker fragments and boot table, and `config/gen/standalone.py`, #53) imports the modules from here and does not write its own copy. A script puts `tools/` on `sys.path` first (`sys.path.insert(0, str(Path(__file__).resolve().parent))`; `-I` does not add the script directory).
+
+| Module | Content |
+|---|---|
+| `spdx` | `header(style, licence)` for Ada (`ada`), shell, Python and YAML (`shell`, `python`, `yaml`) and XML, Markdown and HTML (`xml`, `markdown`, `html`) comments. The tags are assembled here and nowhere else: a literal tag in a string of a generator is read by `reuse` as a tag of the generator, and `tools/headers.py check` fails on it. |
+| `errors` | `GenError` with the exit status convention 0 ok, 1 not current (`NotCurrent`; `svd.py` and `pac_gen.py` also report a violated rule with 1), 2 input error (`InputError`), and `run(main, "tool", ...)`, which prints `tool: message` for a `GenError` and returns its status. A tool derives its own class (`SvdError`, `PacError`, `Problem`) to keep its name and its status. |
+| `cli` | `add_check`, `add_output` (the common arguments `--check`, `--output`), `state` (current, stale, missing), `check_output` (diff of at most 40 lines, message, status 1), `write_output` and `write_atomic` (a temporary file next to the target, then a rename; an existing file keeps its permissions). |
+| `yamlio` | `load(path, error=...)`: PyYAML is imported on the first call; a missing PyYAML, an unreadable file and invalid YAML are each one message with the file name, as an error of the class the caller names. |
+| `svdread` | One reader of the merged SVD: `load` (the file or an error), `peripherals` (name, `groupName` and `readAction` resolved through `derivedFrom`) and `interrupts`. The rules about them are the generator's. |
+| `ada` | `identifier` (upper-case Ada identifier that is no reserved word), `comment` (wrapped at 78 columns), `banner`, `generated_notice`. |
+| `digest` | `file_digest` and `tree_digest` (name, NUL, content, NUL per file in name order: the format of `libs/mpfs_pac/MPFS_Registers.sha256`). |
+
+The shell generators (`pac.sh`, `crates/mpfs_rts/make_packs.sh`, `crates/mpfs_rts/gen_runtime.sh`) share the functions at the end of `mpfs-env.sh`: `mpfs_sha`, `mpfs_tree_hash`, `mpfs_cache_key` (the hash of its arguments, one per line), `mpfs_recorded_hash`, `mpfs_hash_check` (0 equal, 1 different, 2 nothing recorded) and `mpfs_stamp_current`. Each script keeps the words of its own `--check`.
+
+The outputs are deterministic (sorted, no time stamp, no host dependence), so `--check` compares byte for byte. The host suite `tests/host/gen_ada` has one test per module.
 
 ## What svd2ada does with the SVD
 

@@ -86,6 +86,9 @@ jobs:
       - name: Host tests of the interrupt names
         run: tests/host/rts_intnam/run.sh
 
+      - name: Host tests of the generator library
+        run: tests/host/gen_ada/run.sh
+
       # The merged SVD, whose hash `./x svd check` has just verified: the pac job takes it
       # instead of merging again (svd.py ensure accepts a file with the recorded hash).
       - name: Keep the merged SVD
