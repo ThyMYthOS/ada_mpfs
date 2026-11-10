@@ -6,6 +6,7 @@ pragma Suppress (All_Checks);
 with Ada.Unchecked_Conversion;
 with Bare_Console;
 with Interfaces;
+with Test_Name;
 with Test_Report;
 
 package body Early_Trap is
@@ -60,7 +61,8 @@ package body Early_Trap is
       Rec : Trap_Record renames To_Ptr (Record_Address).all;
       Id  : constant Bare_Console.U64 := Bare_Console.Hart_Id;
    begin
-      Test_Report.Start (if Id = 0 then "trap_test_e51" else "trap_test_u54");
+      Test_Report.Start
+        (if Id = 0 then Test_Name.Base & "_e51" else Test_Name.Base & "_u54");
       Test_Report.Check
         (Rec.Magic = Trap_Magic, "the trap stub wrote the record (magic)");
       Test_Report.Check

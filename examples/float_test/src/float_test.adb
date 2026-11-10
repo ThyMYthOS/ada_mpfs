@@ -25,6 +25,7 @@ with Ada.Numerics.Long_Elementary_Functions;
 with Ada.Unchecked_Conversion;
 with Bare_Console;
 with Interfaces;
+with Test_Name;
 with Test_Report;
 
 procedure Float_Test is
@@ -97,9 +98,9 @@ procedure Float_Test is
 
 begin
    if Is_E51 then
-      Test_Report.Start ("float_test_e51");
+      Test_Report.Start (Test_Name.Base & "_e51");
    else
-      Test_Report.Start ("float_test_u54");
+      Test_Report.Start (Test_Name.Base & "_u54");
    end if;
    Test_Report.Info ("hart", Bare_Console.Hart_Id);
 

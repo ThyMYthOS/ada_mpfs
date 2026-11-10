@@ -1,0 +1,13 @@
+  ok: the first output initialised the console
+  ok: the console base is the MMUART the test expects
+  ok: the line format is 8N1 and DLAB is clear
+  ok: the integer divisor is __mpfs_console_dlr
+  ok: DFR is __mpfs_console_dfr
+  ok: the fractional baud rate mode is on exactly for a fraction
+  ok: the FIFOs are enabled
+  ok: GNAT.IO.Put and Put_Line reach the console
+  ok: New_Line ends a line with CR LF
+  ok: Is_Rx_Ready is false when nothing was received
+  ok: Is_Tx_Ready becomes true again after every Put
+  ok: every byte put in loopback mode comes back through Get
+  ok: Is_Rx_Ready is false again after the last Get

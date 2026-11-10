@@ -1,0 +1,7 @@
+  ok: every unit was elaborated before the main program
+  ok: the units are elaborated in the order of their dependences
+  ok: a constant computed by a call (elaboration)
+  ok: a unit that uses its predecessor's constant
+  ok: and the next one the value of the one before
+  ok: the statements of the bodies ran in that order too
+  ok: no other unit noted itself in the log

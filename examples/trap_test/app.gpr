@@ -43,7 +43,7 @@ project App is
    for Source_Files use
      ("trap_test.adb", "early_trap.ads", "early_trap.adb", "fault.S",
       "bare_console.ads", "bare_console.adb",
-      "test_report.ads", "test_report.adb");
+      "test_name.ads", "test_report.ads", "test_report.adb");
    for Object_Dir use "obj-" & Hart;
    for Exec_Dir use "bin-" & Hart;
    for Main use ("trap_test.adb");

@@ -26,11 +26,12 @@ with GNAT.IO;
 with System.Text_IO;
 
 with Console_Checks;
+with Test_Name;
 with Test_Report;
 
 procedure Textio_Test is
 begin
-   Console_Checks.Start ("textio_test");
+   Console_Checks.Start (Test_Name.Base);
 
    Test_Report.Check
      (System.Text_IO.Initialized,

@@ -334,6 +334,58 @@ done
 for t in textio_test console_mmuart1_test console_mmuart2_test console_mmuart3_test console_mmuart4_test console_noinit_test; do
   [ -f "$ROOT/examples/textio_test/$t.expected" ] && pass "$t has its own .expected file" || fail "$t has its own .expected file"
 done
+# The cells of the test set (docs/assurance/test-matrix.md): a test that runs in several runtime profiles is one
+# example per profile (examples/STYLE.md, "Profile variants"). Each variant is built for the harts it names,
+# has the profile in its example.conf, a row per hart image in tests/qemu/tests.list, and the same expected
+# console (and input) as the example whose sources it shares, so that the two cannot drift apart.
+# <example>:<example of the sources>:<profile>:<harts>
+for spec in \
+  trap_tasking_test:trap_test:light-tasking:"e51 u54" \
+  textio_tasking_test:textio_test:light-tasking:"e51 u54" \
+  textio_embedded_test:textio_test:embedded:"e51 u54" \
+  float_tasking_test:float_test:light-tasking:"e51 u54" \
+  float_embedded_test:float_test:embedded:"e51 u54" \
+  tasking_embedded_test:tasking_test:embedded:"e51 u54" \
+  protected_embedded_test:protected_test:embedded:"e51 u54" \
+  interrupt_embedded_test:interrupt_test:embedded:"e51 u54" \
+  delay_accuracy_embedded_test:delay_accuracy_test:embedded:"e51 u54" \
+  fp_context_embedded_test:fp_context_test:embedded:u54 \
+  elab_embedded_test:elab_tasking_test:embedded:"e51 u54"; do
+  IFS=: read -r v o prof harts <<< "$spec"
+  ec="$ROOT/examples/$v/example.conf"
+  grep -q "^PROFILE=$prof\$" "$ec" && grep -q "^BUILD_HARTS=$harts\$" "$ec" \
+    && pass "$v is built for $harts with the $prof runtime" || fail "$v is built for $harts with the $prof runtime"
+  for hart in $harts; do
+    #  the report of a textio variant goes out through System.Text_IO, i.e. the console of the hart:
+    #  MMUART1 on hart 1 (serial 1 of QEMU); the other tests report through Bare_Console (MMUART0)
+    port=0; case "$v:$hart" in textio_*_test:u54) port=1 ;; esac
+    grep -q "^${v}_${hart}${tab}examples/${v}${tab}${port}${tab}pass${tab}-${tab}-\$" "$list_c" \
+      && pass "tests.list: ${v}_$hart" || fail "tests.list: ${v}_$hart"
+  done
+  #  (an example with several images has <image>.expected files instead of a console.expected)
+  src="$ROOT/examples/$o/console.expected"; [ -f "$src" ] || src="$ROOT/examples/$o/$o.expected"
+  cmp -s "$src" "$ROOT/examples/$v/console.expected" \
+    && pass "$v has the expected console of $o" || fail "$v has the expected console of $o"
+  if [ -f "$ROOT/examples/$o/console.in" ] || [ -f "$ROOT/examples/$v/console.in" ]; then
+    cmp -s "$ROOT/examples/$o/console.in" "$ROOT/examples/$v/console.in" \
+      && pass "$v has the console.in of $o" || fail "$v has the console.in of $o"
+  fi
+  grep -q "for Spec (\"Test_Name\") use \"test_name_[a-z]*\.ads\"" "$ROOT/examples/$v/app.gpr" \
+    && pass "$v has a Test_Name of its own" || fail "$v has a Test_Name of its own"
+done
+# Cells that are not variants of another example: one per profile and hart class
+for spec in protected_test:light-tasking trap_embedded_test:embedded elab_test:light elab_tasking_test:light-tasking; do
+  t="${spec%%:*}"; prof="${spec#*:}"
+  for hart in e51 u54; do
+    grep -q "^${t}_${hart}${tab}examples/${t}${tab}0${tab}pass${tab}-${tab}-\$" "$list_c" \
+      && pass "tests.list: ${t}_$hart" || fail "tests.list: ${t}_$hart"
+  done
+  grep -q '^BUILD_HARTS=e51 u54$' "$ROOT/examples/$t/example.conf" \
+    && grep -q "^PROFILE=$prof\$" "$ROOT/examples/$t/example.conf" \
+    && pass "$t is built for e51 and u54 with the $prof runtime" \
+    || fail "$t is built for e51 and u54 with the $prof runtime"
+  [ -f "$ROOT/examples/$t/console.expected" ] && pass "$t has a console.expected file" || fail "$t has a console.expected file"
+done
 grep -q -- '-smp 5' "$ROOT/tests/qemu/run_tests.sh" \
   && pass "the runner starts all five harts (-smp 5)" || fail "the runner starts all five harts (-smp 5)"
 

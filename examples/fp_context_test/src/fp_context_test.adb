@@ -20,6 +20,7 @@ with Ada.Real_Time; use Ada.Real_Time;
 with Bare_Console;
 with Holders;
 with Interfaces;
+with Test_Name;
 with Test_Report;
 
 procedure Fp_Context_Test is
@@ -29,7 +30,7 @@ procedure Fp_Context_Test is
    Limit : constant Time := Clock + Milliseconds (2_000);
 
 begin
-   Test_Report.Start ("fp_context_test_u54");
+   Test_Report.Start (Test_Name.Base & "_u54");
    Test_Report.Info ("hart", Bare_Console.Hart_Id);
 
    delay until Clock + Milliseconds (300);

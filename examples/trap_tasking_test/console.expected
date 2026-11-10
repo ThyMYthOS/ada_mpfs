@@ -1,0 +1,5 @@
+  ok: the trap stub wrote the record (magic)
+  ok: the record names this hart
+  ok: mcause is 2 (illegal instruction)
+  ok: mepc is the address of the illegal instruction
+  ok: mtval is the illegal instruction or 0

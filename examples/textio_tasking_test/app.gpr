@@ -1,0 +1,68 @@
+--  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+--  SPDX-License-Identifier: Apache-2.0
+--
+--  The textio_test of the light-tasking profile. The sources are those of
+--  examples/textio_test; the name of the test and of the image is
+--  textio_tasking_test (examples/STYLE.md, "Profile variants").
+--
+--  Build contract: see examples/STYLE.md.
+
+with "../../crates/mpfs_rts/mpfs_rts.gpr";
+with "../../crates/mpfs_rts/mpfs_link.gpr";
+with "../../libs/mpfs_pac/mpfs_pac.gpr";
+
+project App is
+   Hart := Mpfs_Rts.Hart;
+
+   --  STACK_ANALYSIS=1 (./x stack) makes the compiler also write the stack
+   --  usage (.su) and the call graph (.ci) of every unit. The code is the same.
+   type Switch is ("0", "1");
+   Stack_Analysis : Switch := external ("STACK_ANALYSIS", "0");
+   Analysis := ();
+   case Stack_Analysis is
+      when "1" => Analysis := ("-fstack-usage", "-fcallgraph-info=su,da");
+      when "0" => null;
+   end case;
+
+   --  The build directory must not reach the image (./x repro): see examples/STYLE.md.
+   Sdk_Root := external ("ADA_MPFS_SDK", "");
+   Repro_Switches := ("-gno-record-gcc-switches");
+   case Sdk_Root is
+      when ""     => null;
+      when others =>
+         Repro_Switches := Repro_Switches
+           & ("-ffile-prefix-map=" & Sdk_Root & "=.");
+   end case;
+
+   for Languages use ("Ada");
+   for Target use Mpfs_Rts.Target;
+   for Runtime ("Ada") use Mpfs_Rts.Runtime_Path;
+   --  The spec of Bare_Console is bare_hello's, its body is src/bare_console.adb.
+   for Source_Dirs use ("src", "../textio_test/src", "../bare_hello/src", "../../tests/common");
+   for Source_Files use
+     ("textio_test.adb", "console_checks.ads", "console_checks.adb", "test_name_tasking.ads",
+      "bare_console.ads", "bare_console.adb", "test_report.ads", "test_report.adb");
+   for Object_Dir use "obj-" & Hart;
+   for Exec_Dir use "bin-" & Hart;
+   for Main use ("textio_test.adb");
+
+   --  The sources are those of examples/textio_test; the name of the test and of the image is not.
+   package Naming is
+      for Spec ("Test_Name") use "test_name_tasking.ads";
+   end Naming;
+
+   package Builder is
+      for Executable ("textio_test.adb") use "textio_tasking_test";
+      for Executable_Suffix use ".elf";
+   end Builder;
+
+   package Compiler is
+      for Default_Switches ("Ada") use
+        ("-O2", "-g", "-gnat2022", "-gnatwa", "-gnatw.X", "-gnatwe", "-gnaty",
+         "-ffunction-sections", "-fdata-sections") & Analysis & Repro_Switches;
+   end Compiler;
+
+   package Linker is
+      for Default_Switches ("Ada") use Mpfs_Link.Switches;
+   end Linker;
+end App;

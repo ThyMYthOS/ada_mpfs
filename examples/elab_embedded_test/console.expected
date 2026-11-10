@@ -1,0 +1,10 @@
+  ok: every unit was elaborated before the main program
+  ok: the units are elaborated in the order of their dependences
+  ok: a constant computed by a call (elaboration)
+  ok: a unit that uses its predecessor's constant
+  ok: and the next one the value of the one before
+  ok: the statements of the bodies ran in that order too
+  ok: the task's declarative part was elaborated before main
+  ok: after the units of the chain, at the activation of the task
+  ok: and the task has run before the main program
+  ok: nothing else noted itself in the log later

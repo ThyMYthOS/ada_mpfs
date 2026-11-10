@@ -59,7 +59,7 @@ project App is
      ("delay_accuracy_test.adb", "accuracy_limits.ads", "csr.ads", "csr.adb", "probes.ads", "probes.adb",
       "standalone_clocks.ads",
       "bare_console.ads", "bare_console.adb",
-      "test_report.ads", "test_report.adb");
+      "test_name.ads", "test_report.ads", "test_report.adb");
    for Object_Dir use "obj-" & Hart & Suffix;
    for Exec_Dir use "bin-" & Hart & Suffix;
    for Main use ("delay_accuracy_test.adb");

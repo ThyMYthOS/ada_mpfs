@@ -1,0 +1,14 @@
+  ok: a caller waits while the barrier is false
+  ok: the caller is let through once the barrier is true
+  ok: and not before the barrier became true
+  ok: nothing is taken from an empty stock
+  ok: one item put, one item taken
+  ok: the consumer waits again at an empty stock
+  ok: two items put, two more items taken
+  ok: the handler is set
+  ok: the handler has not run before its time
+  ok: the handler has run once
+  ok: and not before the time of the event
+  ok: an event that has run has no handler
+  ok: Cancel_Handler cancels a pending event
+  ok: a cancelled event does not run

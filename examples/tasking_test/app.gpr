@@ -51,7 +51,7 @@ project App is
    for Source_Files use
      ("tasking_test.adb", "ticker.ads", "ticker.adb", "order.ads", "order.adb",
       "bare_console.ads", "bare_console.adb",
-      "test_report.ads", "test_report.adb");
+      "test_name.ads", "test_report.ads", "test_report.adb");
    for Object_Dir use "obj-" & Hart & Suffix;
    for Exec_Dir use "bin-" & Hart & Suffix;
    for Main use ("tasking_test.adb");

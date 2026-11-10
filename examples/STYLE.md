@@ -60,6 +60,22 @@ The project must
   temporary file of gprbuild) to the compiler switches (Ada, and Asm_Cpp where used); `./x new` writes the same into
   its template. A build script that links adds no path of its own to the image (`bare_link` passes none).
 
+## Profile variants
+
+An example is built with one runtime profile (`PROFILE=` of `example.conf`). A test that must run in several
+profiles (`docs/assurance/test-matrix.md`) is one example per profile, named `<test>_<profile>_test` for the
+`light-tasking` (`tasking`) and `embedded` ones; the example with the plain name keeps its own profile. The variants
+share the sources and differ in the name of the image, which is also the name in the report and the row of
+`tests/qemu/tests.list`:
+
+- the shared sources take the name of the test from a unit `Test_Name` (`Test_Name.Base & "_e51"`), whose file is
+  `src/test_name.ads` in the example with the plain name;
+- a variant has its own `src/test_name_<tag>.ads` (the same unit, with its own `Base`), maps it with
+  `package Naming is for Spec ("Test_Name") use "test_name_<tag>.ads"; end Naming;`, names the shared directory in
+  `Source_Dirs` after its own, gives the image its name with `for Executable ("<main>.adb") use "<image>"` and lists
+  the file in `Source_Files`;
+- `console.expected` (and `console.in`) are copies of the original's: `tests/host/qemu_tests` fails if they differ.
+
 ## Files
 
 | File | Purpose |

@@ -1,0 +1,6 @@
+  ok: the last chance handler is called once
+  ok: the trap ends as Program_Error
+  ok: the message names the cause
+  ok: mcause is 2 (illegal instruction)
+  ok: mepc is the address of the illegal instruction
+  ok: mtval is the illegal instruction or 0

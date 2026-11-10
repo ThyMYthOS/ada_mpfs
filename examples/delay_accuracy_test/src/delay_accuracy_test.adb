@@ -43,6 +43,7 @@ with Probes;
 with Standalone_Clocks;
 pragma Unreferenced (Standalone_Clocks);
 --  withed for its Compile_Time_Error
+with Test_Name;
 with Test_Report;
 
 with System.BB.RISCV_CLINT;
@@ -75,11 +76,11 @@ procedure Delay_Accuracy_Test is
    procedure Start is
    begin
       case Bare_Console.Hart_Id is
-         when 0      => Test_Report.Start ("delay_accuracy_test_e51");
-         when 1      => Test_Report.Start ("delay_accuracy_test_u54");
-         when 2      => Test_Report.Start ("delay_accuracy_test_u54h2");
-         when 3      => Test_Report.Start ("delay_accuracy_test_u54h3");
-         when others => Test_Report.Start ("delay_accuracy_test_u54h4");
+         when 0      => Test_Report.Start (Test_Name.Base & "_e51");
+         when 1      => Test_Report.Start (Test_Name.Base & "_u54");
+         when 2      => Test_Report.Start (Test_Name.Base & "_u54h2");
+         when 3      => Test_Report.Start (Test_Name.Base & "_u54h3");
+         when others => Test_Report.Start (Test_Name.Base & "_u54h4");
       end case;
    end Start;
 
