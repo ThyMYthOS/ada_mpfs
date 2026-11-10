@@ -17,6 +17,10 @@
 #            documented failure. "-" for a pass row.
 #   why      xfail only: the documented defect, one line. "-" for a pass row.
 #
+# The committed list has no `xfail` row: a test that cannot pass is not listed, and the reason is written
+# down where the tests are documented, not in a row that hides it (tests/host/qemu_tests fails on an `xfail`
+# row of this file). The mechanism stays for the runner's own tests and for a future known defect.
+#
 # `xfail` is not a skip. The test is still booted, and the run fails if it passes
 # (the defect is fixed -- flip the row) or fails in any way other than `observe`
 # describes (a different failure is a regression, not a known defect). See the

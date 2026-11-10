@@ -386,6 +386,21 @@ for spec in protected_test:light-tasking trap_embedded_test:embedded elab_test:l
     || fail "$t is built for e51 and u54 with the $prof runtime"
   [ -f "$ROOT/examples/$t/console.expected" ] && pass "$t has a console.expected file" || fail "$t has a console.expected file"
 done
+# No expected failure in the committed list: every cell of the test set is a test that passes on QEMU
+# (a row that documents a defect would hide that the cell is not green).
+if grep -v '^[[:space:]]*#' "$list_c" | awk -F'\t' '$4 == "xfail" { f = 1 } END { exit f ? 0 : 1 }'; then
+  fail "tests.list: no xfail row"
+else
+  pass "tests.list: no xfail row"
+fi
+# and none is skipped: the directory of every row is an example that has the image's project
+missing=0
+while IFS="$tab" read -r name dir rest; do
+  [ "$name" = name ] && continue
+  [ -f "$ROOT/$dir/app.gpr" ] && [ -f "$ROOT/$dir/example.conf" ] || { missing=$((missing + 1)); echo "  no project for $name in $dir" >&2; }
+done < <(grep -v '^[[:space:]]*#' "$list_c" | grep -v '^[[:space:]]*$')
+[ $missing -eq 0 ] && pass "tests.list: every row names an example with a project" \
+  || fail "tests.list: every row names an example with a project"
 grep -q -- '-smp 5' "$ROOT/tests/qemu/run_tests.sh" \
   && pass "the runner starts all five harts (-smp 5)" || fail "the runner starts all five harts (-smp 5)"
 
