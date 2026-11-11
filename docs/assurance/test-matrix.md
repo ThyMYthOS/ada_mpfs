@@ -79,9 +79,15 @@ Everything else runs the same image on both.
 
 ### For the hardware runs (#55)
 
+The results are in [`docs/lab/results/p1.md`](../lab/results/p1.md): 72 cells pass on the Icicle Kit, 3 are skipped (MMUART4 has no
+port in the lab, `itim_reject_test_e51` is QEMU only). What the list below was for, as it came out: the absolute rate of `mtime` is
+1 MHz and `Interrupt_Latency_Ticks` is 18 (measured on all five harts); `delay_accuracy_test` ran with the hardware bounds and
+the flat `minstret`; `interrupt_test` ran with the loopback (`RX_SOURCE=loopback`); the heap and `.noinit` need no clearing of the
+ECC memory; `trap_embedded_test` passes on the board; the scratchpad placement runs on the board once `hw/l2_scratchpad.py` has enabled the ways (16 cells, `tests/hw/run_matrix.sh -m scratchpad`). The list as it was planned:
+
 These are checks that only make sense on the board, or that QEMU cannot do. None of them is in `tests/qemu/tests.list`:
 
-- the scratchpad placement (`--memory scratchpad`): the images are built (`tests/host/rts_boot`), QEMU has no scratchpad;
+- the scratchpad placement (`--memory scratchpad`): the images are built (`tests/host/rts_boot`), QEMU has no scratchpad; on the board see the results (the boot stage that enables the ways is `hw/l2_scratchpad.py`);
 - the real ITIM: execution of `.fast_text` from `0x0180_0000` (`itim_test` with `ld/` of the board), the check word;
 - the absolute rate of `mtime` and `Interrupt_Latency_Ticks` on all harts (the placeholder is 30 ticks);
 - `delay_accuracy_test` with the hardware bounds and the flat `minstret` over 100 ms;

@@ -46,7 +46,42 @@ jumper or a switch.
 
 ## What boot mode 0 leaves undone
 
-In boot mode 0 no boot software runs, so the MSS keeps its reset state. `CLINT.MTIME` reads 0 and does not count, and the SGMII/DDR PHY registers read 0. `./x hw initialize` does through OpenOCD what Microchip's first-stage boot software does before it switches the MSS clock (details in `hw/README.md`, measurements in issue N32): after it, `MTIME` counts at about 1 MHz and the PHY block is readable; the CPU stays on its boot clock. `./x hw initialize --minimal` and `./x svd probe --enable-clocks` do only what `MTIME` needs: the RTC divisor, `IOSCBCFG.TIMER`, `SYSREG.DFIAPB_CR`, `SCB_REGS.MSSIO_CONTROL_CR` and `CFG_DDR_SGMII_PHY.CLK_CNTL`.
+In boot mode 0 no boot software runs, so the MSS keeps its reset state. Without `./x hw initialize` `CLINT.MTIME`
+reads 0 and does not count (measured on the board of the project owner, P1.14: the counter stayed at 0 for as long as it was
+watched), and the SGMII/DDR PHY registers read 0. Every image that uses `Ada.Real_Time`, `delay until` or the
+`mtime` of the PAC needs it, and `tests/hw/run_matrix.sh` runs it before every cell.
+
+    ./x hw initialize --minimal      # the six writes below: all that MTIME needs
+    ./x hw initialize                # the full sequence of the first-stage boot software, without the clock switch
+    ./x hw initialize --dry-run      # print the steps, write nothing (no OpenOCD needed)
+    ./x hw reset                     # back to the power-on state (undoes initialize)
+
+The full sequence is what Microchip's first-stage boot software (HSS, `mss_nwc_init`, `sgmii_setup`, `mss_pll_config`) does
+to the MSS before it switches the clock (details in `hw/README.md`, "Initialize"); after it the PHY block is readable and the
+MSS PLL is locked, and the CPU stays on its boot clock (80 MHz measured: 79 `mcycle` per `mtime` tick). `--minimal` does the
+six writes of `mss_init.REFCLK` (also `./x svd probe --enable-clocks`), in this order:
+
+| # | Write | Value | What for |
+|---|---|---|---|
+| 1 | `SYSREG.RTC_CLOCK_CR` | `0x0000007D` | RTC divisor: `PERIOD` 125 of the 125 MHz reference clock, clock still off |
+| 2 | `SYSREG.RTC_CLOCK_CR` | `0x0001007D` | RTC clock on (bit 16): the 1 MHz tick that `mtime` counts |
+| 3 | `IOSCBCFG.TIMER` | `0x0008A080` | timing of the accesses to the SCB bus |
+| 4 | `SYSREG.DFIAPB_CR` | `0x00000001` | clock of the DFI/APB bus of the PHY block on, reset released |
+| 5 | `SCB_REGS.MSSIO_CONTROL_CR` | `0x00003800` | `CORE_UP`, `FLASH_VALID`, `MSS_IO_EN` |
+| 6 | `CFG_DDR_SGMII_PHY.CLK_CNTL` | `0xF00050CC` | the clock receiver of the reference: **this write starts `MTIME`** |
+
+Measured by applying them one at a time after `./x hw reset` and reading `MTIME` twice, half a second apart: it stays 0 after
+writes 1 to 5 and counts after write 6. Write 6 alone does nothing, and neither does it after writes 1 and 2 only: it needs 3 to 5 before it
+(probably because the PHY block is not reachable until then; not measured). `MTIME` runs at 1 MHz: 997,252 ticks per second against the host clock over 20 s
+(the OpenOCD round trip is within 0.3 %), so the 125 MHz reference clock and `PERIOD` 125 of `initialize` are right.
+
+State that a `reset halt` does **not** clear, found by the hardware runs: the PLIC enables of every context (the enable words of
+the S mode contexts were random), `fcsr` of the U54 and the `mtimecmp` registers (one of them read 32 after a reset). A context of
+another hart that still has a source enabled takes the interrupt from the hart that runs, and an invalid `frm` in `fcsr` makes the
+floating-point instructions with dynamic rounding illegal. `./x hw reset` and `./x hw initialize` therefore clear the PLIC enables of
+all nine contexts and write `fcsr` = 0 on the four U54 (`hw/hart_state.py`); `run_image.py` clears the enables again before it loads
+an image. `mtimecmp` is not cleared: a test that looks at it compares with the value at its start. Reads of LIM that nothing has written since power-up return random data without a trap, see
+[`results/p1.md`](results/p1.md).
 
 ## Restoring the factory state
 
