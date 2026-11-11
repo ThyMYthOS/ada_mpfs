@@ -99,7 +99,11 @@ else
   rc=0
   "$root/x" build "$target" "${build[@]}" || rc=$?
   [ "$rc" -eq 0 ] || { [ "$rc" -ge 128 ] && exit "$rc"; exit 2; }   # Ctrl+C in the build ends with its 130
-  elf="$(find "$root/examples/$target/bin-$cls" -maxdepth 1 -name '*.elf' 2>/dev/null | sort | head -n 1)"
-  [ -n "$elf" ] || die "building $target produced no bin-$cls/*.elf"
+  bindir="bin-$cls"
+  case "$hart" in [2-4]) bindir="bin-u54-h$hart" ;; esac   # the images of U54 harts 2 to 4 are kept apart from hart 1's
+  #  an example that builds several images (textio_test, exceptions_test) runs the one named like it
+  elf="$root/examples/$target/$bindir/$target.elf"
+  [ -f "$elf" ] || elf="$(find "$root/examples/$target/$bindir" -maxdepth 1 -name '*.elf' 2>/dev/null | sort | head -n 1)"
+  [ -n "$elf" ] || die "building $target produced no $bindir/*.elf"
 fi
 exec "$MPFS_PYTHON" "$root/hw/run_image.py" "$elf" "$hart" "${rest[@]}"
