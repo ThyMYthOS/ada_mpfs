@@ -24,6 +24,14 @@ no serial port, no toolchain, bad arguments); 130 after Ctrl+C. `./x hw bootmode
 `tests/host/hw/run.sh` tests the scripts against a stand-in for the OpenOCD telnet port, and files and a stand-in for socat's TCP ports (`fake_uart.py`) in place of the serial ports; the live view runs on a pseudo-terminal whose screen a small emulator (`ptyrun.py`) reproduces; the
 hardware itself is not part of any automatic test.
 
+## OpenOCD on another machine
+
+`run_image.py` and `run_probe.py` give OpenOCD their images as files (`load_image FILE ADDRESS bin`), so OpenOCD must see the file.
+If it runs on another machine or in another container, set `OCD_ROOT` in `lab.conf` to the path of this repository as OpenOCD sees it
+(a mount of the same directory); the scripts then keep their temporary files in `build/ocd-tmp/` and name them with that prefix.
+OpenOCD answers a `load_image` that failed (`couldn't open ...`) with text, not with an error status; the scripts stop with exit
+status 2 and say so, instead of running whatever the memory held (measured: random LIM contents, a hart in the trap recorder).
+
 ## Serial ports
 
 `UART_COUNT` ports are read, MMUART0 .. MMUART<count-1>. Each one is either a device of this machine or a TCP port of another machine; both can be mixed in one `lab.conf`.

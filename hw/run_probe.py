@@ -53,7 +53,7 @@ def main(argv=None):
 
     lab_conf = lab.load(a.lab)
     tc = lab.toolchain_bin()
-    tmp = tempfile.mkdtemp()
+    tmp, ocd_path = lab.ocd_tempdir(lab_conf)
     elf, binf = os.path.join(tmp, "p.elf"), os.path.join(tmp, "p.bin")
     subprocess.run([str(tc / "riscv64-elf-gcc"), "-march=rv64imac_zicsr", "-mabi=lp64", "-nostdlib", "-Wl,-e,_start",
                     f"-Wl,-Ttext={BASE:#x}", "-o", elf, source], check=True)
@@ -69,7 +69,7 @@ def main(argv=None):
     o.cmd("riscv set_prefer_sba off")
     for i in range(a.words):
         o.cmd(f"mwd 0x{RESULT + 8 * i:x} 0")
-    o.cmd(f"load_image {binf} {BASE:#x} bin")
+    lab.check_load(o.cmd(f"load_image {ocd_path(binf)} {BASE:#x} bin"), binf)
     o.cmd(f"reg mcause 0; reg mie 0; reg pc {BASE:#x}")
     o.cmd("resume")
     time.sleep(a.secs)

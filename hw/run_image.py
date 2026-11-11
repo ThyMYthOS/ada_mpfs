@@ -143,14 +143,14 @@ def main(argv=None):
     except OSError as e:
         raise SystemExit(f"run_image: cannot read {a.elf}: {e}")
 
-    tmp = tempfile.mkdtemp()
+    tmp, ocd_path = lab.ocd_tempdir(lab_conf)
     trap_bin = build_trap_recorder(tc, tmp)
 
     def load(o, name, addr, data):
         path = os.path.join(tmp, name)
         with open(path, "wb") as f:
             f.write(data)
-        o.cmd(f"load_image {path} 0x{addr:x} bin")
+        lab.check_load(o.cmd(f"load_image {ocd_path(path)} 0x{addr:x} bin"), path)
         print(f"loaded {len(data):#x} bytes at {addr:#x}")
 
     o = OCD(int(lab_conf["OCD_PORT"]), lab_conf["OCD_HOST"])

@@ -155,3 +155,23 @@ def run(main, uses_hart: bool = True) -> int:
             print(e.code, file=sys.stderr)
             return 2
         raise
+
+
+def ocd_tempdir(values: dict[str, str]) -> tuple[str, "callable"]:
+    """A new temporary directory and the function that gives the path of a file in it as OpenOCD sees it.
+    Without OCD_ROOT OpenOCD runs on this machine and sees the same path. With OCD_ROOT (the path of the
+    repository on the OpenOCD machine) the directory lies under build/ of the repository, which OpenOCD sees."""
+    import tempfile
+    root = values.get("OCD_ROOT", "")
+    if not root:
+        return tempfile.mkdtemp(), lambda path: path
+    base = ROOT / "build" / "ocd-tmp"
+    base.mkdir(parents=True, exist_ok=True)
+    tmp = tempfile.mkdtemp(dir=base)
+    return tmp, lambda path: root.rstrip("/") + "/" + os.path.relpath(path, ROOT)
+
+
+def check_load(reply: str, path: str) -> None:
+    """OpenOCD answers a failed load_image with text, not with an error status."""
+    if "couldn't" in reply or "error" in reply.lower() or "failed" in reply.lower():
+        raise SystemExit(f"load_image {path}: {reply.strip()} (OCD_ROOT in lab.conf if OpenOCD runs on another machine)")

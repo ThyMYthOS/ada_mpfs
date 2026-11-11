@@ -11,6 +11,8 @@
 #   OCD_HOST      host of the OpenOCD telnet port (the Tcl RPC port is not used: the
 #   OCD_PORT      SoftConsole OpenOCD has no read_memory, and md[bhwd] output does
 #                 not come back through it)
+#   OCD_ROOT      empty if OpenOCD runs on this machine. Else the path of this repository as
+#                 OpenOCD sees it (hw/README.md, "OpenOCD on another machine")
 #   UART_PATTERN  where the serial port of MMUART <n> is; {n} is the number. Either a device
 #                 path (a glob), or a TCP port on another machine where socat tunnels the UART
 #                 (see "TCP ports" below): tcp:HOST:PORT or tcp://HOST:PORT. The CP2108 of the
@@ -47,6 +49,7 @@
 SOFT_CONSOLE=/opt/Microchip_SoftConsole-v2022.2
 OCD_HOST=localhost
 OCD_PORT=4444
+OCD_ROOT=
 UART_PATTERN=/dev/serial/by-id/usb-Silicon_Labs_CP2108_*-if0{n}-port0
 UART_COUNT=4
 JAVA=java
