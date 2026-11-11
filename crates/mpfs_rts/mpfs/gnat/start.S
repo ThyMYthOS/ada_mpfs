@@ -248,6 +248,10 @@ __mpfs_start_fast:
 	/* 5. Enable the FPU (U54 images; the E51 has none). */
 	li      t0, MSTATUS_FS
 	csrs    mstatus, t0
+	/* fcsr is not 0 after a reset of the silicon (QEMU's is): an invalid rounding mode in frm makes every
+	 * floating-point instruction that uses the dynamic mode (rm = 7, the compiler's default) an illegal
+	 * instruction. */
+	csrw    fcsr, zero
 #endif
 
 	/* The constructors: .preinit_array and .init_array are one run of 8-byte entries (ASSERT in
