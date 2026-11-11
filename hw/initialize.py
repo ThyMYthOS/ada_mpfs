@@ -9,7 +9,8 @@ Boot mode 0 leaves the MSS as the reset left it: CLINT.MTIME does not count and 
 set up. This runs the register writes of Microchip's mss_nwc_init without the switch of the MSS clock (hw/mss_init.py
 lists them): the RTC divisor, the SCB access timer, the dynamic enables, the IO mux and bank set-up, the MSSIO
 handshake, the SGMII channel set-up (reset, calibration, PLL and DLL lock) and the MSS PLL up to its lock. ENVM_CR,
-CLOCK_CONFIG_CR and MSSCLKMUX stay as they are, so the CPU keeps its boot clock. With the hart halted by this
+CLOCK_CONFIG_CR and MSSCLKMUX stay as they are, so the CPU keeps its boot clock. It also clears the PLIC enables
+and fcsr of the U54 (hw/hart_state.py), as ./x hw reset does. With the hart halted by this
 script and resumed at the end.
 
   --minimal   only what CLINT.MTIME needs (the sequence --enable-clocks of svd_probe.py uses)
@@ -27,6 +28,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import hart_state  # noqa: E402
 import lab  # noqa: E402
 import mss_init  # noqa: E402
 from svd_probe import DebugHang, Dead, OpenOcd  # noqa: E402
@@ -45,6 +47,7 @@ def main(argv=None):
     if a.dry_run:
         for step in steps:
             print(mss_init.describe(step))
+        print("clear the PLIC enables of all nine contexts and fcsr of the four U54 (hw/hart_state.py)")
         return 0
 
     lab_conf = lab.load(a.lab)
@@ -68,6 +71,9 @@ def main(argv=None):
         ocd.command("halt")
         halted = True
         mss_init.run(steps, write, read, lambda text: print(text, flush=True))
+        for problem in hart_state.clear(ocd.command, a.target):
+            print(f"initialize: {problem} (is the hart halted? ./x hw reset halts all)", file=sys.stderr)
+        print("initialize: PLIC enables and fcsr cleared")
         print(f"initialize: done ({len(steps)} steps); CLINT.MTIME now reads {read(0x0200BFF8):#x}")
     except KeyboardInterrupt:
         print("initialize: interrupted", file=sys.stderr)

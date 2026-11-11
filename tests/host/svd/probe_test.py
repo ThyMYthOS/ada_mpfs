@@ -117,8 +117,9 @@ class Stub:
                     mds += cmd.startswith("md")
                     out = self.script(conn_no, cmd, mds) if self.script else None
                     if out is None and cmd.startswith("mww "):
-                        _, a, v = cmd.split()
-                        self.mem[int(a, 16)] = int(v, 16) & self.write_mask.get(int(a, 16), 0xFFFFFFFF)
+                        for part in cmd.split(";"):   # the PLIC clearing sends six writes in one line, as OpenOCD takes them
+                            _, a, v = part.split()
+                            self.mem[int(a, 16)] = int(v, 16) & self.write_mask.get(int(a, 16), 0xFFFFFFFF)
                     if out == EOF:
                         c.close()
                         break
@@ -132,7 +133,7 @@ class Stub:
                     if out is None and cmd.startswith("echo "):
                         out = cmd[5:]
                     if out is None:
-                        out = self._md(cmd) if cmd.startswith("md") else self._targets() if cmd == "targets" else "pc (/64): 0x0000000008000010" if cmd == "reg pc" else ""
+                        out = self._md(cmd) if cmd.startswith("md") else self._targets() if cmd == "targets" else "pc (/64): 0x0000000008000010" if cmd == "reg pc" else "fcsr (/64): 0x0000000000000000" if cmd == "reg fcsr 0" else ""
                     c.sendall(cmd.encode() + b"\r\n" + (out.encode() + b"\r\n" if out else b"") + b"> ")
                 else:
                     continue

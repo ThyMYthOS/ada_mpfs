@@ -8,7 +8,8 @@
 Runs the sequence of hw/recover.py: reads abstractcs (riscv dmi_read 0x16), clears cmderr (riscv dmi_write 0x16
 0x700), sends "reset halt" and checks that SYSREG.SUBBLK_CLOCK_CR and SYSREG.SOFT_RESET_CR have their power-on
 values (resetValue of the SVD); if not, it toggles the debug module and tries once more. Every step prints the
-reply of OpenOCD. The hart stays halted. A reset undoes everything that was written (clocks, --poke) and any PLL or
+reply of OpenOCD. Then it clears what a reset leaves behind (hw/hart_state.py): the PLIC enables of all nine
+contexts and fcsr of the four U54. The hart stays halted. A reset undoes everything that was written (clocks, --poke) and any PLL or
 boot state; it is also fine when nothing is hung. Host and port of OpenOCD come from lab.conf.
 
 Exit status: 0 the check passed, 2 it failed (power-cycle the board and restart OpenOCD) or the set-up is wrong
@@ -22,6 +23,7 @@ from xml.etree import ElementTree as ET
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import lab  # noqa: E402
+import hart_state  # noqa: E402
 import recover  # noqa: E402
 from svd_probe import Dead, OpenOcd, peripheral_registers  # noqa: E402
 
@@ -57,6 +59,11 @@ def main(argv=None):
         ocd.command(f"targets {a.target}")
         ocd.command("riscv set_prefer_sba off")
         ok = recover.recover(ocd.command, lambda address: ocd.read(address, 32), checks, lambda text: print(text, flush=True))
+        if ok:
+            problems = hart_state.clear(ocd.command, a.target)
+            for problem in problems:
+                print(f"reset: {problem}", file=sys.stderr)
+            ok = not problems
     except (OSError, Dead) as e:
         raise SystemExit(f"reset: {e}; {recover.POWER_CYCLE}")
     finally:

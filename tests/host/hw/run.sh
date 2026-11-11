@@ -900,7 +900,13 @@ expect_rc  "initialize: --minimal against the stand-in exits 0" 0 init --minimal
 w="$(grep '^mww' "$tmp/init.log")"
 [ "$(printf '%s\n' "$w" | sed -n '1,2p;3,6p' | tr '\n' '|')" = "mww 0x2000200C 0x7D|mww 0x2000200C 0x1007D|mww 0x37080008 0x8A080|mww 0x20002098 0x1|mww 0x200031BC 0x3800|mww 0x20007C18 0xF00050CC|" ] \
   && pass "initialize: --minimal writes the five things CLINT.MTIME needs, in order" || fail "initialize: --minimal writes the five things CLINT.MTIME needs, in order ($w)"
-[ "$(printf '%s\n' "$w" | wc -l)" = 6 ] && pass "initialize: --minimal writes nothing else" || fail "initialize: --minimal writes nothing else"
+# after the six steps come only the nine command lines (six words each) that clear the PLIC enables
+[ "$(printf '%s\n' "$w" | wc -l)" = 15 ] && [ "$(printf '%s\n' "$w" | sed -n '7,$p' | grep -vc '^mww 0xc002[0-9a-f]* 0; ')" = 0 ] \
+  && [ "$(grep -o 'mww 0xc002[0-9a-f]* 0' "$tmp/init.log" | wc -l)" = 54 ] \
+  && pass "initialize: --minimal writes nothing else than the 54 PLIC enable words of nine contexts" \
+  || fail "initialize: --minimal writes nothing else than the 54 PLIC enable words of nine contexts"
+[ "$(grep -c '^reg fcsr 0$' "$tmp/init.log")" = 4 ] \
+  && pass "initialize: clears fcsr of the four U54" || fail "initialize: clears fcsr of the four U54"
 grep -q '^halt$' "$tmp/init.log" && grep -q '^resume$' "$tmp/init.log" && pass "initialize: halts the hart and resumes it at the end" || fail "initialize: halts the hart and resumes it at the end"
 expect_out "initialize: --dry-run prints the steps" "mww 0x20007C18 0xF00050CC    ;# CFG_DDR_SGMII_PHY.CLK_CNTL" init --minimal --dry-run
 : > "$tmp/init.log"

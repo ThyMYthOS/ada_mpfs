@@ -35,6 +35,7 @@ come from lab.conf.
                    Off by default: an image or a bootloader that sets the UARTs up itself must not be run
                    on top of this.
 
+Every run starts with the enables of the PLIC cleared (they survive a reset; see the code).
 The trap recorder (trap.S) lives at 0x08100000, above any image here, and logs the first trap.
 Segments load with 64-bit stores in whole 64-byte lines: LIM is ECC memory, uninitialised at
 power-up, and fetching a line that was only partly written faults (mcause 1).
@@ -51,6 +52,7 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import hart_state  # noqa: E402
 import lab  # noqa: E402
 import serialview  # noqa: E402
 from ocd import OCD, Serial  # noqa: E402
@@ -166,6 +168,10 @@ def main(argv=None):
         if a.uart_standin:
             for b in UARTS:
                 o.cmd("mww 0x%x 0x83; mww 0x%x %d; mww 0x%x 0; mww 0x%x 3; mww 0x%x 7" % (b + 0xC, b, a.div, b + 4, b + 0xC, b + 8))
+        # The enables of the PLIC survive ./x hw reset and the previous image: a context of another hart that
+        # still has a source enabled takes the interrupt away from the hart that runs (measured with
+        # interrupt_test), so every run starts with all enables clear.
+        hart_state.clear_plic(o.cmd)
         for i in range(8):
             o.cmd(f"mwd 0x{REC + 8 * i:x} 0")
         load(o, "trap.bin", 0x08100000, trap_bin)
