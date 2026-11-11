@@ -922,6 +922,9 @@ expect_out "initialize: a poll that never succeeds is an error that names it" "P
 expect_rc  "initialize: a poll that never succeeds exits 2" 2 init --lab "$LI"
 printf 'OCD_PORT=1\nSOFT_CONSOLE=%s\nUART_PATTERN=x{n}\nUART_COUNT=4\n' "$tmp/sc" > "$tmp/lab-nothing.conf"
 expect_rc  "initialize: no OpenOCD is exit status 2" 2 init --minimal --lab "$tmp/lab-nothing.conf"
+expect_rc  "l2_scratchpad: no OpenOCD is exit status 2" 2 "$PY" "$HW/l2_scratchpad.py" --lab "$tmp/lab-nothing.conf"
+expect_rc  "l2_scratchpad: no cache way is exit status 2" 2 "$PY" "$HW/l2_scratchpad.py" --cache-ways 0 --lab "$tmp/lab-nothing.conf"
+expect_rc  "l2_scratchpad: more than 16 ways is exit status 2" 2 "$PY" "$HW/l2_scratchpad.py" --scratchpad-ways 16 --lab "$tmp/lab-nothing.conf"
 # the executor itself, with reads that satisfy the polls
 "$PY" - "$HW" <<'PYEOF' && pass "mss_init.run: writes, read-modify-writes, polls, the silicon variant and the delays" || fail "mss_init.run: writes, read-modify-writes, polls, the silicon variant and the delays"
 import sys
