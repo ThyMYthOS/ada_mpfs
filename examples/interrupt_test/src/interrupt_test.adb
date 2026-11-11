@@ -41,6 +41,7 @@ with Ada.Real_Time; use Ada.Real_Time;
 with Bare_Console;
 with Interfaces;
 with PLIC_View;
+with Rx_Source;
 with Test_Name;
 with Test_Report;
 with UART_Rx;
@@ -91,6 +92,8 @@ procedure Interrupt_Test is
    Right_Context, Right_Addresses, Others_Quiet, Mtimecmp_Quiet : Boolean;
    Bounds_Right, Levels_Right, Threshold_Right : Boolean;
    Before : CLINT.Counter;
+   Mtimecmp_At_Start : array (CLINT.Hart_Id) of CLINT.Counter;
+   Others_Enabled : Natural := 0;
    Waited : Natural := 0;
    Same   : Boolean := True;
 
@@ -114,6 +117,9 @@ procedure Interrupt_Test is
 begin
    Start;
    Test_Report.Info ("hart", Bare_Console.Hart_Id);
+   for H in CLINT.Hart_Id loop
+      Mtimecmp_At_Start (H) := CLINT.Mtimecmp (H);
+   end loop;
 
    --  The PLIC context of every hart, and its registers.
    Right_Context :=
@@ -143,8 +149,20 @@ begin
          Others_Quiet := False;
       end if;
    end loop;
-   Test_Report.Check
-     (Others_Quiet, "and in no other context (QEMU: clear after reset)");
+   if Rx_Source.Reset_State_Known then
+      Test_Report.Check
+        (Others_Quiet, "and in no other context (QEMU: clear after reset)");
+   else
+      --  No reset value to compare with: the number is reported only
+      for H in PLIC_View.Hart_Id loop
+         if H /= Hart and then Enabled (H) then
+            Others_Enabled := Others_Enabled + 1;
+         end if;
+      end loop;
+      Test_Report.Info
+        ("other contexts with the source enabled",
+         Bare_Console.U64 (Others_Enabled));
+   end if;
    Test_Report.Check
      (Natural (MPFS_Registers.PLIC.PLIC_Periph.PRIORITY
                  (Natural (UART_Rx.IRQ) - 1).PRIORITY)
@@ -210,10 +228,12 @@ begin
       "the threshold of this hart is the level of the set priority");
 
    UART_Rx.Receiver.Enable_Interrupt;
+   Rx_Source.Feed (Expected);
    while UART_Rx.Receiver.Count < Expected'Length and Waited < 1000 loop
       delay until Clock + Milliseconds (2);
       Waited := Waited + 1;
    end loop;
+   Rx_Source.Finish;
    Test_Report.Info
      ("handler calls", Bare_Console.U64 (UART_Rx.Receiver.Calls));
    Test_Report.Check
@@ -242,7 +262,11 @@ begin
    Test_Report.Check (CLINT.Mtime > Before, "mtime runs");
    Mtimecmp_Quiet := True;
    for H in CLINT.Hart_Id loop
-      if H /= Hart and then CLINT.Mtimecmp (H) /= 0 then
+      if H /= Hart
+        and then CLINT.Mtimecmp (H)
+                   /= (if Rx_Source.Reset_State_Known then 0
+                       else Mtimecmp_At_Start (H))
+      then
          Mtimecmp_Quiet := False;
       end if;
    end loop;

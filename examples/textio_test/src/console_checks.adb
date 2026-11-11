@@ -174,6 +174,14 @@ package body Console_Checks is
          Got (Got'First) := System.Text_IO.Get;
       end loop;
 
+      --  On the board the output so far is still in the transmitter when
+      --  the last Put returns (QEMU sends at once): looped back with it, the
+      --  rest of the line would come back as received bytes, so wait until
+      --  the transmitter is empty (LSR.TEMT).
+      for Spin in 1 .. Spin_Limit loop
+         exit when Port.LSR.TEMT;
+      end loop;
+
       Port.MCR := (LOOP_k => True, others => <>);
 
       Idle := not System.Text_IO.Is_Rx_Ready;
