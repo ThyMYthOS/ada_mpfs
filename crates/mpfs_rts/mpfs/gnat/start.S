@@ -4,7 +4,7 @@
  *
  * start.S -- entry point of every image linked with the runtime mpfs_rts. It replaces the
  * start-ram.S of the upstream runtime (which sends every hart but hart 1 into a loop and only
- * clears .bss) and is written for the partition model of the master plan: which harts run the
+ * clears .bss) and is written for the partition model: which harts run the
  * image, and whether the image is the primary one (it owns the boot flow) or a secondary one,
  * is decided at link time by two absolute symbols that the partition data sets with --defsym:
  *
@@ -15,11 +15,11 @@
  * layout symbols (__global_pointer$, __stack_end, __data_*, __bss_*, __mpfs_trap_record)
  * come from the placement script (ld/sections.ld).
  *
- * Order, as in master plan #41, work package P1.3:
+ * Order:
  *   1. mtvec to the trap stub (before any other instruction can trap), then gp and sp
  *   2. interrupts masked (mstatus.MIE, mie)
  *   3. hart gate: a hart that is not in the mask parks; only on a primary image the parked
- *      hart is prepared for the release of P8 (mie.MSIE, woken by a software interrupt)
+ *      hart is prepared for a later release (mie.MSIE, woken by a software interrupt)
  *   4. .data is copied from its load address if that differs from its address; .bss and the
  *      stacks are cleared; the code and data that the application runs from the ITIM and DTIM
  *      (see below) are checked and copied
@@ -39,16 +39,16 @@
  * at power-up, and a partial store into a word that was never written is a read-modify-write
  * of garbage (an ECC fault inside the trap handler would be a double trap).
  * The magic tells a record from the random content of RAM after power-up. All harts of the
- * partition share the record: until the SMP work package only one hart writes it.
+ * partition share the record: while the runtime is single-CPU only one hart writes it.
  *
  * The start code also initialises the memory that the program then uses partially: .bss and
  * both kinds of stack are cleared with 64-bit stores (ECC, as above). .noinit and the heap
  * are deliberately left alone; whether the LIM needs zeroing as a whole is a question for the
- * hardware (work packages P1.8 and P1.14).
+ * hardware (the runs on the Icicle Kit, see README.md).
  *
  * Hart gate, a deliberate deviation: a hart outside the mask is parked on EVERY image, also on
- * a secondary one. The reference runtime of the earlier project and step 1.3 of the work
- * package gate on the primary image only, but QEMU's reset code sends every hart to the entry
+ * a secondary one. The reference runtime of the earlier project gates
+ * on the primary image only, but QEMU's reset code sends every hart to the entry
  * point with no hart gate of its own, so an ungated secondary image would run on all of them.
  * On hardware nothing but the release of the right hart reaches a secondary image, and the
  * gate costs nothing there. A parked hart of a secondary image has its mtvec, mie and
@@ -76,7 +76,7 @@
  * the run address), and fence.i makes the hart fetch what it has stored. The check comes after
  * .bss, because the record is in the RAM region; it does not use the stack.
  *
- * Constructors (R8): the entries of .preinit_array and then of .init_array (ld/sections.ld
+ * Constructors: the entries of .preinit_array and then of .init_array (ld/sections.ld
  * puts the two arrays one behind the other, from __preinit_array_start to __init_array_end) are
  * called in order, with no arguments, before main. The embedded runtime has exactly one of its own: the
  * frame_dummy of crtbegin.o, which registers .eh_frame with libgcc (__register_frame_info), so
@@ -86,7 +86,7 @@
  * runtimes link without libc (-nolibc), where a call would not resolve, and a weak call to an
  * undefined symbol is out of the reach of auipc/addi from an image placed above 0x8000_0000.
  * The arrays are empty in an image without constructors: one compare, nothing called. Run on
- * the one hart of the image; the SMP work package (P8) lets only the first hart of the mask
+ * the one hart of the image; an SMP runtime must let only the first hart of the mask
  * do this, a second registration of .eh_frame would corrupt libgcc's list.
  *
  * Test seam: if an image defines __mpfs_early_trap_hook, the stub jumps to it with the address
@@ -184,7 +184,7 @@ __mpfs_start_fast:
 	bnez    t0, .Lrun
 
 	/* Not a hart of this partition. On a secondary image it belongs to somebody else and is
-	 * left alone; on the primary image it is parked, prepared for the release of P8 (a software
+	 * left alone; on the primary image it is parked, prepared for a later release (a software
 	 * interrupt wakes it; mstatus.MIE stays clear, so it takes no trap). */
 	lui     t2, %hi(__mpfs_boot_role)
 	addi    t2, t2, %lo(__mpfs_boot_role)

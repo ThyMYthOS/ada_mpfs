@@ -7,8 +7,8 @@
  * (GPL-3.0-or-later WITH GCC-exception-3.1); modified for PolarFire SoC: the callee-saved
  * floating-point registers fs0 - fs11 of the incoming task are loaded from its context buffer
  * (a1), not from the one of the outgoing task (t0). The upstream restore used t0, so every
- * task that was switched in got the fs0 - fs11 of the task that was switched out (defect no. 1
- * of the master plan). fcsr is not part of the context, see crates/mpfs_rts/README.md.
+ * task that was switched in got the fs0 - fs11 of the task that was switched out (the upstream
+ * defect in this file). fcsr is not part of the context, see crates/mpfs_rts/README.md.
  */
 /* @req RTS-007 */
 

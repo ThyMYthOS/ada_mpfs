@@ -11,7 +11,7 @@
 --  The timer of the executing hart: mtime and the mtimecmp of this hart
 --  (0x4000 + 8 * mhartid), through System.BB.RISCV_CLINT and the PAC.
 --
---  Tickless (master plan #41, work package P1.6): there is no periodic tick.
+--  Tickless: there is no periodic tick.
 --  The generic code (System.BB.Time) calls Set_Alarm with the next alarm of
 --  the hart (the earliest of the delayed tasks and the timing events, or
 --  Time'Last if there is none) and Clear_Alarm_Interrupt in its alarm handler.

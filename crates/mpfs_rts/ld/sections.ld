@@ -21,8 +21,8 @@
  *
  *   .bss | interrupt stacks | .noinit | stack of the environment task | heap ... | trap record
  *
- * The values that vary with the partition come from --defsym (link-time interface, master plan
- * #41 section 4.2): __stack_size, __interrupt_stack_size, __mpfs_harts_mask, __mpfs_boot_role
+ * The values that vary with the partition come from --defsym (link-time interface,
+ * see config/README.md): __stack_size, __interrupt_stack_size, __mpfs_harts_mask, __mpfs_boot_role
  * and the MPFS_*_LENGTH symbols of mpfs-memory.ld. None has a default: a link without one
  * fails ("undefined symbol ... referenced in expression"), and an invalid value fails an
  * ASSERT at the end of this file.
@@ -31,7 +31,7 @@
  *   __data_load __data_start __data_end __bss_start __bss_end
  *   __interrupt_stack_start __interrupt_stack_end __stack_start __stack_end
  *   _end __heap_start __heap_end   (the heap ends where the trap record starts)
- *   __global_pointer$  __eh_frame_start __eh_frame_end  (for the zero-cost exceptions, R8)
+ *   __global_pointer$  __eh_frame_start __eh_frame_end  (for the zero-cost exceptions)
  *   __preinit_array_start/_end __init_array_start/_end __fini_array_start/_end  (the constructor
  *                      arrays, 8-byte entries; start.S calls the first two before main)
  *   __gnat_gdb_cpu_first_id  (a 32-bit constant for the debugger: the lowest hart of the mask)
@@ -64,7 +64,7 @@ SECTIONS
 
 	/* The constructor arrays that __libc_init_array of the C library runs before main (the
 	 * embedded runtime: frame_dummy of crtbegin.o is the only entry that the runtime itself
-	 * has, it registers .eh_frame with libgcc; R8). The symbols are defined here, not
+	 * has, it registers .eh_frame with libgcc). The symbols are defined here, not
 	 * PROVIDEd, so that the weak references of __libc_init_array always bind to them: an
 	 * image without constructors has empty arrays and start.S calls nothing. The arrays hold
 	 * absolute addresses of the static link (no relocation at run time) and stay in the
@@ -95,13 +95,13 @@ SECTIONS
 		. = ALIGN(4);
 	} > REGION_TEXT
 
-	/* The unwind tables for R8. The embedded runtime is linked with crtbegin.o first and crtend.o
+	/* The unwind tables of the zero-cost exceptions. The embedded runtime is linked with crtbegin.o first and crtend.o
 	 * last (link-zcx.spec): the empty .eh_frame of crtbegin.o is the first input, so
 	 * __eh_frame_start is its __EH_FRAME_BEGIN__, which frame_dummy passes to libgcc's
 	 * __register_frame_info (run from .init_array by start.S), and the zero word of crtend.o
 	 * ends the list. The zero word of this script ends it in an image without crtend.o (light,
 	 * light-tasking); it is not part of the range __eh_frame_start .. __eh_frame_end, which is what
-	 * a search without registration (a fallback of R8) walks. */
+	 * a search without registration (a fallback of the zero-cost exceptions) walks. */
 	.eh_frame : ALIGN(8) {
 		__eh_frame_start = .;
 		KEEP (*(.eh_frame))

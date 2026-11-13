@@ -3,7 +3,7 @@
 # Derived from alire-project/bb-runtimes riscv/link-zcx.spec @ 09e7cd6 (GPL-3.0-or-later WITH GCC-exception-3.1); modified for PolarFire SoC.
 #
 # link-zcx.spec -- the link spec of the embedded profile of the runtime mpfs_rts (zero-cost
-# exceptions, master plan #41 work package P1.7, R8). gen_runtime.sh puts it into the variant in
+# exceptions). gen_runtime.sh puts it into the variant in
 # place of the link-zcx.spec of the pack, which is the one of bb-runtimes v15.1.0-1
 # (riscv/link-zcx.spec): there "-u _Unwind_Find_FDE --eh-frame-hdr" makes the unwinder of the
 # bare-board runtimes (unwind-dw2-fde-bb.c) find the frame descriptions through .eh_frame_hdr, but

@@ -8,7 +8,7 @@
 --  (GPL-3.0-or-later WITH GCC-exception-3.1); modified for PolarFire SoC:
 --  Power_Down is wfi.
 --
---  Idle (master plan #41, work package P1.6). Power_Down is called only by
+--  Idle. Power_Down is called only by
 --  the idle task (System.Task_Primitives.Operations.Idle) with
 --  mstatus.MIE set and the PLIC threshold at 0, in a loop that has no state
 --  of its own: wfi returns when an interrupt that is enabled in mie is

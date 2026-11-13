@@ -7,7 +7,7 @@
  * (GPL-3.0-or-later WITH GCC-exception-3.1); modified for PolarFire SoC: the frame of the trap
  * handler is checked against the ABI at assembly time (see below).
  *
- * The ABI decides what a trap frame holds (master plan #41, section 4.1):
+ * The ABI decides what a trap frame holds:
  *
  *   E51   -march=rv64imac -mabi=lp64      __riscv_float_abi_soft   x1 - x31 only: 32 * 8 = 256 bytes
  *   U54   -march=rv64imafdc -mabi=lp64d   no such macro            x1 - x31 and f0 - f31: 64 * 8 = 512 bytes

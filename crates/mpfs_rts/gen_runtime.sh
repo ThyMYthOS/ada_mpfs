@@ -8,8 +8,8 @@
 #
 #   profile   light | light-tasking | embedded
 #   hart      e51 | u54          hart class (-march and -mabi come from the pack's runtime.xml)
-#   cpus      1                  (SMP: P8)
-#   priv      m                  (U mode: P7)
+#   cpus      1                  (no SMP runtime yet)
+#   priv      m                  (no U-mode runtime yet)
 #
 #   --check          do not build; exit 0 if the variant is up to date, 1 if it would be rebuilt
 #   --force          rebuild even if the variant is up to date
@@ -114,12 +114,12 @@ case "$profile" in light|light-tasking|embedded) ;; *) die "invalid profile '$pr
 case "$hart" in e51|u54) ;; *) die "invalid hart '$hart' (e51|u54)" ;; esac
 case "$cpus" in
   1) ;;
-  2|3|4) die "cpus $cpus: the runtime is single-CPU until the SMP work package (P8)" ;;
+  2|3|4) die "cpus $cpus: the runtime is single-CPU until an SMP runtime exists" ;;
   *) die "invalid cpus '$cpus' (1)" ;;
 esac
 case "$priv" in
   m) ;;
-  u) die "priv u: the runtime runs in M mode until the U-mode work package (P7)" ;;
+  u) die "priv u: the runtime runs in M mode until a U-mode runtime exists" ;;
   *) die "invalid priv '$priv' (m)" ;;
 esac
 build="${MPFS_RTS_BUILD:-Production}"
@@ -308,7 +308,7 @@ if [ -d "$ld_dir" ]; then
   cp -R "$ld_dir/." "$work/ld/"
 fi
 
-# The link spec of the zero-cost exceptions (R8). The pack's link-zcx.spec passes --eh-frame-hdr,
+# The link spec of the zero-cost exceptions. The pack's link-zcx.spec passes --eh-frame-hdr,
 # which the riscv64 ld does not know, and puts no crtbegin.o and crtend.o around the link; ours
 # (crates/mpfs_rts/link-zcx.spec) does what README.md describes. Only the embedded profile has one.
 if [ "$profile" = embedded ]; then

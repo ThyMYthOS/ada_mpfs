@@ -5,8 +5,8 @@
 --  0x4000 + 8 * Hart and msip (Hart) at 4 * Hart, through the PAC
 --  (MPFS_Registers.CLINT). The timer of the executing hart is
 --  Mtimecmp (System.BB.Hart.Id); the runtime never writes the mtimecmp or the
---  msip of another hart by itself (an IPI to another hart is the SMP work
---  package, P8).
+--  msip of another hart by itself (an IPI to another hart is for an SMP
+--  runtime, which does not exist yet).
 
 pragma Restrictions (No_Elaboration_Code);
 
