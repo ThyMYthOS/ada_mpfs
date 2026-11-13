@@ -54,7 +54,6 @@ project App is
    --  Only what the image needs of the shared directories.
    for Source_Files use
      ("delay_accuracy_test.adb", "accuracy_limits.ads", "csr.ads", "csr.adb", "probes.ads", "probes.adb",
-      "standalone_clocks.ads",
       "bare_console.ads", "bare_console.adb",
       "test_name_embedded.ads", "test_report.ads", "test_report.adb");
    for Object_Dir use "obj-" & Hart & Suffix;

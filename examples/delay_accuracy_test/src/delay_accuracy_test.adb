@@ -19,8 +19,9 @@
 --      on the board (strict), millions for an idle task that polls. QEMU's
 --      minstret does not count executed instructions, so it is reported
 --      there and not asserted;
---    - Clock_Frequency: Standalone_Clocks states at compile time that
---      Time_Unit is 1 / Clocks.Rtc_Toggle_Hz.
+--    - Clock_Frequency: the partition package of the build states at compile
+--      time that it is Clocks.Rtc_Toggle_Hz (./x build compiles it against
+--      the runtime), so the test needs nothing for it.
 --
 --  Reported with Test_Report as delay_accuracy_test_e51,
 --  delay_accuracy_test_u54 (hart 1) or delay_accuracy_test_u54h2 .. 4, the
@@ -41,9 +42,6 @@ with Bare_Console;
 with CSR;
 with Interfaces;
 with Probes;
-with Standalone_Clocks;
-pragma Unreferenced (Standalone_Clocks);
---  withed for its Compile_Time_Error
 with Test_Name;
 with Test_Report;
 

@@ -14,7 +14,7 @@ numbers and asserts what QEMU can decide (only the accuracy bound is loose there
 | `delay until` in the past returns at once and arms nothing; a timing event in the past runs at once | yes | yes | an alarm in the past is pending immediately and handled, no hang, no extra tick |
 | the alarm interrupt while every task sleeps finds the hart in `wfi` (the instruction in front of the interrupted pc, `mepc`, is `wfi`) | yes | yes | `Power_Down` is `wfi`: with a `null` `Power_Down` it fails (checked by building the runtime that way) |
 | `minstret` over a 100 ms delay with every task asleep is at most 20 000 | reported only | yes | the hart does not execute instructions while idle |
-| `Standalone_Clocks`: `Ada.Real_Time.Time_Unit * Clocks.Rtc_Toggle_Hz = 1.0` | compile time | compile time | `Clock_Frequency` of the runtime is the RTC clock of the partition (see below) |
+| `Clock_Frequency` = `Clocks.Rtc_Toggle_Hz` (the generated `MPFS_Partition`) | compile time | compile time | `Clock_Frequency` of the runtime is the RTC clock of the partition (see below) |
 
 The `info:` lines carry the numbers (`late min/avg/max` in ticks of 1 us, `mcycle` and `minstret` over the idle delay and
 the cycles per `mtime` tick). QEMU's `mcycle` and `minstret` are the host's time stamp counter, not counters of the guest:
@@ -34,12 +34,12 @@ of hart 3, `bin-u54-h3/`); the rows are in `tests/qemu/tests.list`, `console.exp
 ## `Clock_Frequency` and `Clocks.Rtc_Toggle_Hz`
 
 The runtime fixes `Clock_Frequency` to 1 MHz (`System.BB.Board_Parameters`), and `Ada.Real_Time.Time_Unit` is `1.0 / Clock_Frequency`.
-The partition package that `config/gen/standalone.py` writes has no clock yet; `src/standalone_clocks.ads` is the stand-in and has the check that
-the generated package is to have, in the form that needs nothing but the public `Ada.Real_Time`:
+The partition package that `config/gen/standalone.py` writes has `Clocks.Rtc_Toggle_Hz` (1 MHz by default) and the check that
+the runtime agrees; `./x build` compiles the package against the runtime before the link, so the test carries nothing of its own:
 
     pragma Compile_Time_Error
-      (Ada.Real_Time.Time_Unit * Clocks.Rtc_Toggle_Hz /= 1.0, "...");
+      (System.BB.Board_Parameters.Clock_Frequency /= Clocks.Rtc_Toggle_Hz, "...");
 
-`tests/host/rts_tick` compiles it with 1 MHz (must compile) and with 2 MHz and 999 999 Hz (must fail with the message). What
-is missing: the generated package must carry `Clocks.Rtc_Toggle_Hz` (the standalone default, 1 MHz) and the same pragma. The runs on the Icicle Kit measured `mtime` against the host clock and `mcycle`: it counts at 1 MHz (997,252 ticks per second over 20 s, 79 `mcycle` per tick
+The check reads the constant of which `Time_Unit` is the reciprocal, so that it works in the light profile as well (no `Ada.Real_Time`)
+and the package stays `pragma Pure`. It compares the nominal rate of the configuration, not a measured one. `tests/host/rts_negative` compiles the package with other frequencies (must fail with the message). The runs on the Icicle Kit measured `mtime` against the host clock and `mcycle`: it counts at 1 MHz (997,252 ticks per second over 20 s, 79 `mcycle` per tick
 at 80 MHz) with `RTC_CLOCK_CR.PERIOD` 125 that `./x hw initialize` writes, so the reference clock is 125 MHz, not 100 MHz (see `docs/lab/icicle.md`).
