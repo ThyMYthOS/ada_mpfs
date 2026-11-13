@@ -41,7 +41,7 @@ missing or differs from what the parameters give.
 | `--memory lim\|scratchpad\|envm` | `--memory` | `lim` | the L2 ways (below) and the placement script `place-<memory>.ld` (`MPFS_PLACEMENT`) |
 | `--role primary\|secondary` | `--role` (or the number) | primary | `__mpfs_boot_role` |
 | `--stack-size N` | `--stack-size` | 16384 | `__stack_size` |
-| `--interrupt-stack-size N` | `--interrupt-stack-size` | 8192 | `__interrupt_stack_size` |
+| `--interrupt-stack-size N` | `--interrupt-stack-size` | by profile: 8192, 8192, 12912 | `__interrupt_stack_size`: the size of the interrupt stack, exactly (the `embedded` profile has the larger default because the first unwind inside a trap runs on it: `crates/mpfs_rts/README.md`, "Interrupt stack") |
 | `--secondary-stack-size N` | `--secondary-stack-size` | by profile: 16384, 8192, 16384 | `Secondary_Stack_Size` (checked; not a link symbol, the runtime takes the default of its profile) |
 | `-- OPTION...` | `--cache-ways`, `--lim-ways`, `--scratchpad-ways`, `--itim-length`, `--dtim-length`, `--omit` | by memory profile, 0, 0 | the L2 ways, the ITIM of each hart of the mask, the DTIM, a link symbol left out |
 

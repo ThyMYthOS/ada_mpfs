@@ -229,6 +229,21 @@ def _():
     with_tmp(one)
 
 
+@case("the interrupt stack follows the profile unless it is given: 8 KiB, and 12 912 bytes for embedded")
+def _():
+    def one(tmp):
+        for profile, size in (("light", "8192"), ("light-tasking", "8192"), ("embedded", "12912")):
+            package, got = generate(["--hart", "u54", "--profile", profile], tmp)
+            assert f"Interrupt_Stack_Size     : constant := {size};" in package, profile
+            assert got["__interrupt_stack_size"] == size, profile
+        assert 12912 % 16 == 0
+        for profile in ("light", "embedded"):
+            package, got = generate(["--hart", "e51", "--profile", profile, "--interrupt-stack-size", "4096"], tmp)
+            assert "Interrupt_Stack_Size     : constant := 4096;" in package, profile
+            assert got["__interrupt_stack_size"] == "4096", profile
+    with_tmp(one)
+
+
 @case("the list: every link symbol once, in the order of VALUE_SYMBOLS; --omit leaves exactly one out")
 def _():
     def one(tmp):

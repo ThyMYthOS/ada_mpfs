@@ -286,6 +286,18 @@ form uses 8 608 on the U54 and so just meets it; the warm-up form leaves 72 % ov
 application code), and nested interrupts, each of which adds a frame (256 or 512 bytes; the interrupt priorities allow 7
 levels).
 
+**Default sizes.** `config/gen/standalone.py` gives the size by profile when `--interrupt-stack-size` is not given
+(`INTERRUPT_STACK`; the runtime has no default of its own any more, so there is nothing that must agree with it):
+
+| Profile | Default | Why |
+|---|---|---|
+| `light` | 8 192 | no interrupt stack in the image (the value is only the one that the partition data names) |
+| `light-tasking` | 8 192 | the peak of the trap is 856 bytes at most; the rest holds nested trap frames and the handlers of the application, as upstream |
+| `embedded` | 12 912 | the peak of the first unwind in a trap, 8 608 bytes (U54), plus 50 %, a multiple of 16: the margin that `interrupt_stack_peak_test` checks |
+
+`--interrupt-stack-size N` overrides each of them (a multiple of 16, checked by the partition data and the linker script);
+the cost of a larger stack is its size in RAM and the time that `start.S` takes to clear it.
+
 ## Tick and idle
 
 There is no periodic tick. `System.BB.Time` (common GNARL code) computes the next alarm of the hart (the earliest delayed task or timing event, `Time'Last` if none) and calls `Board_Support.Time.Set_Alarm`; its alarm handler calls `Clear_Alarm_Interrupt` first and then `Set_Alarm` with the next alarm. `s-bbsuti.adb` implements this on the CLINT:

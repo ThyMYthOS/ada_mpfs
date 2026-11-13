@@ -54,7 +54,7 @@ package MPFS_Partition is
 
    Stack_Size               : constant := 16384;
    --  Bytes, the stack of the environment task.
-   Interrupt_Stack_Size     : constant := 8192;
+   Interrupt_Stack_Size     : constant := 12912;
    --  Bytes, per hart.
    Secondary_Stack_Size     : constant := 16384;
    --  Bytes, the secondary stack of the environment task. Not a link symbol:

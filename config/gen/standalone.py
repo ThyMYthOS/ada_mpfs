@@ -70,7 +70,12 @@ CONSOLE_CHOICES = (*CONSOLES, "none", "ram_fifo")
 # The secondary stack of the environment task, by profile (the defaults of System.BB.Parameters).
 SECONDARY_STACK = {"light": 16384, "light-tasking": 8192, "embedded": 16384}
 DEFAULT_STACK_SIZE = 16384
-DEFAULT_INTERRUPT_STACK_SIZE = 8192
+# The interrupt stack, by profile. The embedded profile needs more than the others because the first
+# exception that is raised in a trap handler runs libgcc's unwinder on it: the peak measured with
+# examples/interrupt_stack_embedded_test is 8256 bytes (E51) and 8608 bytes (U54); the default is the
+# larger one plus 50 %, a multiple of 16. The other profiles measure 600 and 856 bytes and keep 8 KiB,
+# which also holds nested trap frames (crates/mpfs_rts/README.md, "Interrupt stack").
+INTERRUPT_STACK = {"light": 8192, "light-tasking": 8192, "embedded": 12912}
 
 # The L2 cache is 16 ways of 128 KB, shared out between cache, LIM and scratchpad. At reset the LIM
 # has 15 of them (1920 KB) and the cache one. The scratchpad profile takes two ways from the LIM.
@@ -162,7 +167,8 @@ class Partition:
         self.console_name = args.console or f"mmuart{self.local_hart}"
         self.console_init = args.console_init
         self.stack_size = args.stack_size
-        self.interrupt_stack_size = args.interrupt_stack_size
+        self.interrupt_stack_size = (INTERRUPT_STACK[args.profile] if args.interrupt_stack_size is None
+                                     else args.interrupt_stack_size)
         self.secondary_stack_size = (SECONDARY_STACK[args.profile] if args.secondary_stack_size is None
                                      else args.secondary_stack_size)
         cache, lim, scratchpad = MEMORY_WAYS[args.memory]
@@ -392,7 +398,7 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--console-init", type=int, choices=(0, 1), default=1,
                    help="1 the runtime programs the MMUART, 0 the boot stage has")
     p.add_argument("--stack-size", type=number, default=DEFAULT_STACK_SIZE)
-    p.add_argument("--interrupt-stack-size", type=number, default=DEFAULT_INTERRUPT_STACK_SIZE)
+    p.add_argument("--interrupt-stack-size", type=number, help="default: that of the profile")
     p.add_argument("--secondary-stack-size", type=number, help="default: that of the profile")
     p.add_argument("--cache-ways", type=number, help="L2 ways used as cache (default: by memory profile)")
     p.add_argument("--lim-ways", type=number, help="L2 ways used as LIM (default: 15 at reset)")

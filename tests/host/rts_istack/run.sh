@@ -8,6 +8,7 @@
 #     __interrupt_stack_end is __interrupt_stack_size, whatever it is (--interrupt-stack-size of ./x build),
 #     for the E51 and the U54, in the light-tasking and the embedded profile. The runtime used to declare
 #     an array of a size of its own, so a larger value changed nothing and a smaller one failed the link.
+#   - The defaults by profile: 8192 for light-tasking, 12912 for embedded (examples/interrupt_stack_*_test).
 #   - An image that does not link System.BB.Interrupts has no interrupt stack at all: the light profile
 #     (no tasking, no trap handler of its own) and a tasking-profile image of a program without tasks.
 #
@@ -70,6 +71,19 @@ for example in interrupt_stack_tasking_test interrupt_stack_embedded_test; do
           || fail "$example $hart: __interrupt_stack_size is $(sym "$elf" __interrupt_stack_size)"
       fi
     done
+    rm -rf "$ROOT/examples/$example/obj-$hart" "$ROOT/examples/$example/bin-$hart"
+  done
+done
+
+# -- the defaults by profile (config/gen/standalone.py): 8 KiB, and 12 912 bytes (the peak of the first unwind in a
+# trap plus 50 %) for the embedded profile
+for hart in e51 u54; do
+  for pair in interrupt_stack_tasking_test:8192 interrupt_stack_embedded_test:12912; do
+    example="${pair%%:*}"; want="${pair##*:}"
+    if xbuild "$example" "$hart"; then
+      elf="$(ls "$ROOT/examples/$example/bin-$hart/"*.elf | head -1)"
+      stack_size_is "$elf" "$want" "$example $hart by default"
+    fi
     rm -rf "$ROOT/examples/$example/obj-$hart" "$ROOT/examples/$example/bin-$hart"
   done
 done

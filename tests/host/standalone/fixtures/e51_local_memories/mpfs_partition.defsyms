@@ -7,7 +7,7 @@
 __mpfs_harts_mask=1
 __mpfs_boot_role=1
 __stack_size=16384
-__interrupt_stack_size=8192
+__interrupt_stack_size=12912
 __mpfs_console_base=0x20106000
 __mpfs_console_init=0
 __mpfs_console_dlr=21
