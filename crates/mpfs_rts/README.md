@@ -298,6 +298,50 @@ levels).
 `--interrupt-stack-size N` overrides each of them (a multiple of 16, checked by the partition data and the linker script);
 the cost of a larger stack is its size in RAM and the time that `start.S` takes to clear it.
 
+**Overflow check (guard word).** The lowest 8 bytes of the stack, `__interrupt_stack_start`, hold their own address. A trap
+or an interrupt that used more stack than there is has written there (the stack grows down towards it), and the word then
+differs. The check is software: it finds an overrun after it has happened, not before, and what the overrun overwrote below
+the stack (the end of `.bss`) stays overwritten.
+
+| Where | What |
+|---|---|
+| Arming | `__mpfs_interrupt_guard_arm` (`mpfs/gnarl/trap_handler.S`) writes the word, one 64-bit store, if the image has an interrupt stack. It is an entry of `.preinit_array`, so `start.S` runs it before `main` and before any elaboration; `System.BB.Interrupts.Initialize_Interrupts` calls it again, which also ties the object to the unit that declares the stack. |
+| Exit of a trap | `__gnat_trap_entry` compares the word after the handler has returned and interrupts are disabled again: `la`, `ld`, `bne` (the word is the address of its own location, so no constant is needed). This covers the alarm interrupt of the timer, the external interrupts and a trap that returns: the runtime is tickless, so there is no periodic tick routine of its own, the alarm handler is called by the trap handler. |
+| Last chance handler | The own `Ada.Exceptions.Last_Chance_Handler` of the `light-tasking` and the `embedded` profile (`mpfs/<profile>/gnat/a-elchha.adb`) looks at the word first. A trap that nobody handles never returns through the exit of the trap, it ends here, so this is where an overrun of the first unwind is found. The `light` profile has no interrupt stack and no change. An application that defines `__gnat_last_chance_handler` itself replaces this check: it can read the word the same way (the two link symbols, `ld/sections.ld`), the tests do not need it to. |
+| Action | The program ends with the message `interrupt stack overflow` and halts, and it is not restarted. From the exit of a trap, `__mpfs_interrupt_stack_overflow` (an Ada procedure of `System.BB.Interrupts`) raises `Program_Error` with that message after the trap handler has put `sp` at the top of the stack of the environment task (the interrupt stack is not to be trusted, the interrupted context is not resumed); the unwinder of the `embedded` profile needs that much stack. The last chance handler of the runtime prints `In last chance handler` and `interrupt stack overflow` and stops, with nothing else that could use the damaged stack or the secondary stack of a thread that has none (the idle task). |
+
+An image without an interrupt stack (`__interrupt_stack_start` = `__interrupt_stack_end`) arms nothing, checks nothing and has no
+trace of the guard: `trap_handler.o` and `System.BB.Interrupts` are the objects that carry it, and an image links them only if it
+uses the stack (`tests/host/rts_istack` checks that `light` images and `light-tasking` images without tasks have none of the
+symbols). The code is in `trap_handler.S`, which is the upstream file with the arming function, the three-instruction check and
+its failure path added.
+
+**Limits.** The guard word finds an overrun that reaches it; a frame that jumps over it (a large local array that is not
+written at its lower end) is not found, and an overrun of kilobytes can destroy what the report needs before anything checks
+(the unwinder of the `embedded` profile with a stack far below 8 KiB treads on the heap and on libgcc's tables: the message
+is not guaranteed there). With one hart there is one
+stack and one guard; the SMP work will need one for each hart (`__interrupt_stack_start` + hart * size). A hardware guard
+(PMP) does not help an M-mode runtime on this core (unlocked entries do not apply to M mode, a locked one stays until the
+reset) and is for the partition model of the later phases.
+
+**Cost of the guard.** An image that uses the interrupt stack grows by the code of the arming function, the check, the
+failure path, the entry of `.preinit_array`, the message and the check in the last chance handler; an image that does not
+grows by nothing, except for the check in the default last chance handler of a tasking profile (it cannot know at link
+time that there is no stack). Measured as `text`, `data` and `bss` of the images of the examples (`size -B`; all 83 images before and after, same compiler):
+
+| Images | `text` | `data` | `bss` |
+|---|---|---|---|
+| the `light` profile, bare images, and the images of a tasking profile with no interrupt stack and no default last chance handler (`trap_test`, `textio_test`, `trap_tasking_test`, ...) | 0 | 0 | 0 |
+| `light-tasking` with an interrupt stack | +142 to +248 bytes | +8 (the entry of `.preinit_array`) | 0 |
+| `light-tasking` without an interrupt stack, that links the default last chance handler (`float_tasking_test`, `textio_tasking_test`) | +82 (the check in the handler, which cannot know at link time that there is no stack) | 0 | 0 |
+| `embedded` | +182 to +298 bytes | +8 | 0 |
+
+The range is the check in the default last chance handler (an image with a handler of its own does not link it: the lower
+end), the arming function, the check and the failure path in `trap_handler.o`, the raise of `Program_Error` and the message
+(`s-bbinte.o`). At run time a trap that returns executes four more instructions (`auipc`, `addi`, `ld`, `bne`; the load is the last word of
+the interrupt stack, which stays in the data cache while traps are frequent) and start-up one call of the arming function
+(a few instructions); neither is measurable under QEMU, which does not model time.
+
 ## Tick and idle
 
 There is no periodic tick. `System.BB.Time` (common GNARL code) computes the next alarm of the hart (the earliest delayed task or timing event, `Time'Last` if none) and calls `Board_Support.Time.Set_Alarm`; its alarm handler calls `Clear_Alarm_Interrupt` first and then `Set_Alarm` with the next alarm. `s-bbsuti.adb` implements this on the CLINT:

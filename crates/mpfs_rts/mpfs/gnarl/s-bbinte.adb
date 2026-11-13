@@ -15,6 +15,11 @@
 --  partition data was only an upper bound (a link error if the array was
 --  larger): a larger value changed nothing and a smaller one could not be
 --  linked. Now ./x build --interrupt-stack-size is the size of the stack.
+--
+--  The guard word at the lower end of the interrupt stack (issue #91): the
+--  trap handler (trap_handler.S) checks it at the exit of every trap, the last
+--  chance handler of the runtime checks it, and Stack_Overflow below is what
+--  the trap handler calls when it is not intact. Initialize_Interrupts arms it.
 --  Nothing else of the unit changed.
 
 pragma Restrictions (No_Elaboration_Code);
@@ -76,6 +81,19 @@ package body System.BB.Interrupts is
    --  there is always one task not in the interrupt priority range (the
    --  environment task), and this one must be active or idle when a higher
    --  priority task is resumed.
+
+   procedure Arm_Guard;
+   pragma Import (Asm, Arm_Guard, "__mpfs_interrupt_guard_arm");
+   --  Writes the guard word at the lower end of the interrupt stack (trap_handler.S, which
+   --  also arms it before main through .preinit_array: this call makes sure that an image
+   --  that uses the interrupt stack has the code, and re-arms the word).
+
+   procedure Stack_Overflow;
+   pragma Export (Asm, Stack_Overflow, "__mpfs_interrupt_stack_overflow");
+   pragma No_Return (Stack_Overflow);
+   --  Called by the trap handler (trap_handler.S) when the guard word is not intact, on the
+   --  stack of the environment task: the program ends in the last chance handler with
+   --  this message, there is no way back (no restart of the partition).
 
    Interrupt_Stack_Table : array (CPU) of System.Address;
    pragma Export (Asm, Interrupt_Stack_Table, "interrupt_stack_table");
@@ -245,6 +263,15 @@ package body System.BB.Interrupts is
              ..
           To_Integer (Interrupt_Stack_End'Address) - 1);
 
+   --------------------
+   -- Stack_Overflow --
+   --------------------
+
+   procedure Stack_Overflow is
+   begin
+      raise Program_Error with "interrupt stack overflow";
+   end Stack_Overflow;
+
    ---------------------------
    -- Initialize_Interrupts --
    ---------------------------
@@ -255,6 +282,8 @@ package body System.BB.Interrupts is
                / Storage_Elements.Storage_Offset (CPU'Last - CPU'First + 1);
       --  The stack of each CPU: the space that the linker script reserved
    begin
+      Arm_Guard;
+
       for Proc in CPU loop
 
          CPU_Primitives.Initialize_Stack

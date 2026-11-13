@@ -11,6 +11,10 @@
 #   - The defaults by profile: 8192 for light-tasking, 12912 for embedded (examples/interrupt_stack_*_test).
 #   - An image that does not link System.BB.Interrupts has no interrupt stack at all: the light profile
 #     (no tasking, no trap handler of its own) and a tasking-profile image of a program without tasks.
+#   - The guard word at the lower end of the stack: an image that has a stack has the arming function (the
+#     only entry of .preinit_array), the check at the exit of the trap (la t0, ld t1, bne t0 t1 after the
+#     handler) and the failure path (__mpfs_interrupt_stack_overflow, called with sp at __stack_end); an
+#     image that has none has no trace of it, so it does not grow.
 #
 # The builds are skipped when the pinned GNAT, zstd or GNU tar is missing. Exits non-zero on any failure.
 
@@ -95,6 +99,63 @@ for hart in e51 u54; do
     stack_size_is "$elf" 0 "trap_test $hart (light) with a large --interrupt-stack-size"
   fi
   rm -rf "$ROOT/examples/trap_test/obj-$hart" "$ROOT/examples/trap_test/bin-$hart"
+done
+
+# -- the guard word: code in the images that have a stack, none in the others ------------------------------------
+# guard_code <image> <what>: the arming function is the only entry of .preinit_array, the trap entry compares
+# the word and ends a failed check in the overflow procedure
+guard_code () {
+  local elf="$1" what="$2" arm ps pe entry want dis
+  arm="$(sym "$elf" __mpfs_interrupt_guard_arm)"
+  ps="$(sym "$elf" __preinit_array_start)"; pe="$(sym "$elf" __preinit_array_end)"
+  if [ -z "$arm" ] || [ -z "$(sym "$elf" __mpfs_interrupt_stack_overflow)" ]; then
+    fail "$what: no arming function or no overflow procedure"; return
+  fi
+  if [ -n "$ps" ] && [ $((pe - ps)) -eq 8 ]; then
+    entry="$(riscv64-elf-objdump -s -j .preinit_array "$elf" | awk '/^ [0-9a-f]+ / { print $2 $3 }' | head -1)"
+    # the entry is the address of the arming function, as a little-endian word
+    want="$(printf '%016x' $((arm)) | fold -w2 | tac | tr -d '\n')"
+    [ "$entry" = "$want" ] && pass "$what: the only entry of .preinit_array is the arming function" \
+      || fail "$what: .preinit_array holds $entry, not the address of the arming function ($want)"
+  else
+    fail "$what: .preinit_array has $((pe - ps)) bytes, expected one entry"
+  fi
+  dis="$(riscv64-elf-objdump -d "$elf" | awk '/<__gnat_trap_entry>:/,/mret/')"
+  if printf '%s\n' "$dis" | grep -qE 'ld[[:space:]]+t1,0\(t0\)' && printf '%s\n' "$dis" | grep -qE 'bne[[:space:]]+t0,t1,'; then
+    pass "$what: the trap entry compares the guard word (ld t1,0(t0); bne t0,t1)"
+  else
+    fail "$what: the trap entry has no comparison of the guard word"
+  fi
+  if riscv64-elf-objdump -d "$elf" | grep -q 'jal.*<__mpfs_interrupt_stack_overflow>'; then
+    pass "$what: a failed check ends in __mpfs_interrupt_stack_overflow"
+  else
+    fail "$what: nothing calls __mpfs_interrupt_stack_overflow"
+  fi
+}
+# no_guard <image> <what>: no trace of the guard
+no_guard () {
+  local elf="$1" what="$2" found
+  found="$(riscv64-elf-nm "$elf" | grep -E '__mpfs_interrupt_guard_arm|__mpfs_interrupt_stack_overflow' || true)"
+  if [ -z "$found" ] && [ "$(sym "$elf" __preinit_array_start)" = "$(sym "$elf" __preinit_array_end)" ]; then
+    pass "$what: no guard code, empty .preinit_array"
+  else
+    fail "$what: guard code in an image without interrupt stack ($found)"
+  fi
+}
+
+for hart in e51 u54; do
+  for example in interrupt_test interrupt_embedded_test; do
+    if xbuild "$example" "$hart"; then
+      guard_code "$ROOT/examples/$example/bin-$hart/$example.elf" "$example $hart"
+    fi
+    rm -rf "$ROOT/examples/$example/obj-$hart" "$ROOT/examples/$example/bin-$hart"
+  done
+  for example in trap_test trap_tasking_test; do
+    if xbuild "$example" "$hart"; then
+      no_guard "$ROOT/examples/$example/bin-$hart/$example.elf" "$example $hart (no interrupt stack)"
+    fi
+    rm -rf "$ROOT/examples/$example/obj-$hart" "$ROOT/examples/$example/bin-$hart"
+  done
 done
 
 [ $fails -eq 0 ] || { echo "$fails failure(s)" >&2; exit 1; }

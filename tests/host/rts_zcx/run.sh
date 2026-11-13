@@ -164,10 +164,11 @@ for hart in e51 u54; do
   if "$ROOT/x" build exceptions_test --hart "$hart" >"$work/build.out" 2>&1; then
     d="$ROOT/examples/exceptions_test/bin-$hart"
     # exceptions_test has the two constructors of ctor.S (one preinit, one init) besides frame_dummy;
-    # the others only frame_dummy
-    image_checks "exceptions_test ($hart)" "$d/exceptions_test.elf" 2 1
-    image_checks "unhandled_test ($hart)" "$d/unhandled_test.elf" 1 0
-    image_checks "unhandled_task_test ($hart)" "$d/unhandled_task_test.elf" 1 0
+    # the others only frame_dummy. Every image of the embedded profile has the arming function of the guard
+    # word of the interrupt stack as an entry of .preinit_array (issue #91): it links System.BB.Interrupts.
+    image_checks "exceptions_test ($hart)" "$d/exceptions_test.elf" 2 2
+    image_checks "unhandled_test ($hart)" "$d/unhandled_test.elf" 1 1
+    image_checks "unhandled_task_test ($hart)" "$d/unhandled_task_test.elf" 1 1
   else
     tail -5 "$work/build.out" >&2; fail "./x build exceptions_test --hart $hart"
   fi
