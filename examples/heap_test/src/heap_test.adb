@@ -5,8 +5,9 @@
 --  allocator behind malloc, free, realloc and calloc (MPFS_Heap), over the
 --  memory between __heap_start and __heap_end.
 --
---    - the symbols: libgcc's unwinder allocates at the first raise (the heap
---      shrinks), and the heap lock leaves mstatus.MIE as it found it;
+--    - the symbols: libgcc's unwinder allocates (once, at start-up: the
+--      warm-up of the runtime), and the heap lock leaves mstatus.MIE as it
+--      found it;
 --    - the interface: alignment, the refusal of a request that cannot be
 --      served, calloc, realloc, Ada's new and Unchecked_Deallocation;
 --    - random sequences of allocation, release and reallocation of blocks
@@ -282,11 +283,16 @@ begin
       "the heap size is the distance of the two symbols");
 
    Free_Before_Raise := MPFS_Heap.Free_Bytes;
+   Test_Report.Check
+     (MPFS_Heap.Heap_Size - Free_Before_Raise >= 1024,
+      "libgcc's unwinder took memory from this heap before main (the sorted "
+      & "frame descriptions of the warm-up)");
    Raise_And_Handle;
    Test_Report.Check (Raised, "an exception is raised and handled");
    Test_Report.Check
-     (MPFS_Heap.Free_Bytes < Free_Before_Raise,
-      "libgcc's unwinder took memory from this heap at the first raise");
+     (MPFS_Heap.Free_Bytes = Free_Before_Raise,
+      "the first raise takes no memory from this heap: libgcc sorted its "
+      & "frame descriptions (a malloc) before main");
    Test_Report.Check
      (MPFS_Heap.Invariants_Hold, "the chain of blocks is intact after it");
 

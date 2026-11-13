@@ -7,20 +7,25 @@ pragma Suppress (All_Checks);
 
 with Bare_Console;
 with Istack;
+with Test_Name;
 with Test_Report;
 
 package body Istack_Check is
 
    Current : Test := Peak_Of_Trap;
+   Main_Count, Fault_Count : Interfaces.Unsigned_64 := 0;
+   --  Instructions retired from reset to the main program, and at the trap
 
    -----------
    -- Start --
    -----------
 
-   procedure Start (Which : Test) is
+   procedure Start (Which : Test; At_Main : Interfaces.Unsigned_64 := 0) is
    begin
       Current := Which;
+      Main_Count := At_Main;
       Istack.Paint;
+      Fault_Count := Istack.Instret;
    end Start;
 
    ---------------
@@ -39,6 +44,11 @@ package body Istack_Check is
 
    procedure Last_Chance (Message : String) is
       use type Bare_Console.U64;
+      use type Interfaces.Unsigned_64;
+
+      Trap_Count : constant Interfaces.Unsigned_64 :=
+                     Istack.Instret - Fault_Count;
+      --  First thing: the instructions from the trap to here
 
       Size : constant Bare_Console.U64 := Bare_Console.U64 (Istack.Size);
       --  Modular arithmetic for the comparison: no overflow check, which
@@ -50,6 +60,12 @@ package body Istack_Check is
               (Message = "Unhandled trap: 2",
                "the trap ends as Program_Error with the message of the cause");
             Test_Report.Info ("interrupt stack, bytes", Size);
+            Test_Report.Info
+              ("instructions, reset to the main program",
+               Bare_Console.U64 (Main_Count));
+            Test_Report.Info
+              ("instructions, trap to the last chance handler",
+               Bare_Console.U64 (Trap_Count));
 
             declare
                --  After the report above: what it used is part of the peak
@@ -61,6 +77,10 @@ package body Istack_Check is
                  (Peak > 0 and then Peak * 3 <= Size * 2,
                   "the peak is at most two thirds of the stack "
                   & "(a margin of 50 %)");
+               Test_Report.Check
+                 (Peak <= Test_Name.Peak_Limit,
+                  "the peak is below the limit of the profile (embedded: the "
+                  & "frame descriptions were sorted before main)");
             end;
 
          when Overrun_In_Handler =>

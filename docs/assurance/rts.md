@@ -129,6 +129,7 @@ files are in `mpfs/gnat`, `mpfs/gnarl` and `overlays/`.
 | `start.S` | Entry of every image: `mtvec` first, hart gate, `.data`, `.bss` and stacks with 64-bit stores, `mstatus.FS`, constructor arrays, `main`, exit by role; the early trap stub and the trap record. | `start-ram.S` |
 | `start_fast.S` | `start.S` with the check and the copy of the application's ITIM and DTIM sections (section 5.5). | none |
 | `trap_handler.S` | The upstream trap entry with the guard word of the interrupt stack: the arming function (an entry of `.preinit_array`), the check at the exit of the trap, the failure path (RTS-023). | `trap_handler.S` of the pack |
+| `embedded/gnat/unwind_warmup.S` | The first search of libgcc's unwinder, an entry of `.init_array` (RTS-024). | none |
 
 `s-bbpara.ads` (the interrupt range 1 to 186, one CPU) and the system packages of the profiles come
 from the fork `crates/bb-runtimes` (`s-bbpara__polarfiresoc.ads` and the `system-xi-riscv*` files
@@ -215,6 +216,11 @@ with the message `interrupt stack overflow` (RTS-023). The check is software and
 a hardware guard (PMP) does not help in machine mode on this core and is for later. The peak measurement, the numbers, the
 limits and the cost in bytes are in "Interrupt stack" in the runtime README.
 
+The `embedded` runtime also sorts libgcc's frame descriptions before `main` (`unwind_warmup.S`, RTS-024): left to the
+first exception, the sort (a `malloc` under the heap lock, then the sorting) would run in the first trap handler, with
+interrupts off and on the interrupt stack, and its time is not bounded by the program. After it, the first unwind in a
+trap only searches the sorted table (1 112 bytes less stack, 54 791 instructions less in the trap).
+
 ## 6. Deviations from upstream bb-runtimes
 
 Everything not listed is the upstream source, which `compare_toolchain.sh` proves against the
@@ -274,6 +280,7 @@ profiles is one example per profile with shared sources (`textio_tasking_test`, 
 | RTS-021 | Protected objects and timing events | | `protected_test` |
 | RTS-022 | Interrupt stack: size from the partition data, defaults by profile, the first exception in a trap fits it | `rts_istack`, `standalone` | `interrupt_stack_embedded_test`, `interrupt_stack_tasking_test`, `trap_embedded_test` |
 | RTS-023 | Guard word of the interrupt stack, `interrupt stack overflow` | `rts_istack`, `qemu_tests` | `interrupt_stack_embedded_test`, `interrupt_stack_tasking_test` |
+| RTS-024 | Frame descriptions sorted before `main` (embedded) | `rts_zcx` | `interrupt_stack_embedded_test` |
 | SVD-002 | Interrupt names from the SVD | `rts_intnam` | `interrupt_test` |
 
 **No test yet:** RTS-016. The tests of the examples are written to run on the board as well, but the hardware

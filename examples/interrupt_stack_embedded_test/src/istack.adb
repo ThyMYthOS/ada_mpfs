@@ -5,7 +5,7 @@ pragma Suppress (All_Checks);
 --  The light-tasking profile has no exception propagation, so a check that
 --  could fail would be a warning (an error here); the code is exact without
 
-with Interfaces;
+with System.Machine_Code;
 with System.Storage_Elements;
 
 package body Istack is
@@ -40,6 +40,20 @@ package body Istack is
      with Import,
           Address => Stack_Start'Address + Storage_Offset (Unpainted);
    pragma Warnings (On, "*alignment*");
+
+   -------------
+   -- Instret --
+   -------------
+
+   function Instret return Interfaces.Unsigned_64 is
+      Value : Interfaces.Unsigned_64;
+   begin
+      System.Machine_Code.Asm
+        ("csrr %0, minstret",
+         Outputs  => Interfaces.Unsigned_64'Asm_Output ("=r", Value),
+         Volatile => True);
+      return Value;
+   end Instret;
 
    -----------
    -- Paint --

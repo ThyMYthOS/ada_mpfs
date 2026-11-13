@@ -22,13 +22,18 @@
 #       links unwind-dw2-fde.o of libgcc (the registration-based _Unwind_Find_FDE: the bb unwinder
 #       is not in libgnat.a, mpfs/remove.list) for the weak reference of frame_dummy.
 #
+#   -u __mpfs_unwind_warmup
+#       links unwind_warmup.o of libgnat.a (mpfs/embedded/gnat), whose .init_array entry makes the
+#       first search of the unwinder, and with it the sort of the frame descriptions, happen
+#       before main and not in the first trap (issue #91).
+#
 # The libraries are those of runtime.xml (-lgnarl -lgnat -lc -lgcc); libgcc's unwind-dw2.o and
 # unwind-dw2-fde.o come from there.
 #
-# @req RTS-011
+# @req RTS-011, RTS-024
 
 *startfile:
 crti.o%s crtbegin.o%s
 
 *endfile:
--u __register_frame_info crtend.o%s crtn.o%s
+-u __register_frame_info -u __mpfs_unwind_warmup crtend.o%s crtn.o%s

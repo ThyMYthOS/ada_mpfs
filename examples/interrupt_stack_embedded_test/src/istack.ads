@@ -11,6 +11,8 @@
 --  high-water mark since Paint. Paint must run while nothing uses the stack
 --  (the main program of the environment task does not run on it).
 
+with Interfaces;
+
 package Istack is
 
    Unpainted : constant := 16;
@@ -20,6 +22,9 @@ package Istack is
 
    function Size return Natural;
    --  Bytes of the interrupt stack of the image (0 if it has none)
+
+   function Instret return Interfaces.Unsigned_64;
+   --  minstret of this hart: the instructions retired since reset
 
    procedure Paint;
 

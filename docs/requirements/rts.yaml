@@ -206,3 +206,12 @@ requirements:
       covered). An image without an interrupt stack has no trace of the guard.
     tsf: false
     source: crates/mpfs_rts/README.md
+  - id: RTS-024
+    text: >-
+      The embedded profile sorts the frame descriptions of libgcc's unwinder before main, with
+      interrupts off, so that the first unwind in a trap handler does no malloc and no sorting: an
+      entry of .init_array behind the registration of .eh_frame calls _Unwind_Find_FDE once. The
+      first exception in a trap then needs at most 7680 bytes of interrupt stack (8256 and 8608
+      bytes when it sorts), and the light and light-tasking profiles do not have the code.
+    tsf: false
+    source: crates/mpfs_rts/README.md

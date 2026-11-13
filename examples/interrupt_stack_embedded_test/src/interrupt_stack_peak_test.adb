@@ -13,10 +13,12 @@
 --
 --  Reported with Test_Report as <Test_Name.Peak>_e51 or _u54.
 --
---  @verifies RTS-022
+--  @verifies RTS-022, RTS-024
 
 with Ada.Real_Time;
 with Bare_Console;
+with Interfaces;
+with Istack;
 with Istack_Check;
 with Istack_Handler;
 pragma Unreferenced (Istack_Handler);
@@ -32,6 +34,9 @@ procedure Interrupt_Stack_Peak_Test is
    procedure Fault
      with Import, Convention => C, External_Name => "trap_test_fault";
 
+   Main_Count : constant Interfaces.Unsigned_64 := Istack.Instret;
+   --  First, before anything is printed
+
    Start : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
    --  Links the tasking part of the runtime in the light-tasking profile,
    --  which is what installs the trap handler there
@@ -40,7 +45,7 @@ begin
    Test_Report.Start
      (if Bare_Console.Hart_Id = 0 then Test_Name.Peak & "_e51"
       else Test_Name.Peak & "_u54");
-   Istack_Check.Start (Istack_Check.Peak_Of_Trap);
+   Istack_Check.Start (Istack_Check.Peak_Of_Trap, Main_Count);
    Fault;
 
    --  Not reached.

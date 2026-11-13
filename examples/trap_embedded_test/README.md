@@ -22,16 +22,19 @@ assertion. The test raised and handled one exception before the trap (`Warm_Up_U
 at its lower end turns an overrun into the message `interrupt stack overflow` instead of a hang; see `crates/mpfs_rts/README.md`,
 section "Interrupt stack", and `examples/interrupt_stack_embedded_test`, which measures the peak and tests the guard.
 
-The two forms of the test, measured with stack painting in the `embedded` profile (the warm-up form is the original):
+The warm-up exception is not needed any more because the runtime does that work itself: `mpfs/embedded/gnat/unwind_warmup.S`
+makes libgcc sort its frame descriptions before `main`, so that the first unwind in a trap does no `malloc` and no sorting
+(unbounded latency with interrupts off, on the interrupt stack). Measured with stack painting and `minstret` under QEMU
+(`crates/mpfs_rts/README.md`, "Interrupt stack"):
 
-| | peak E51 / U54 | text of the image E51 / U54 |
-|---|---|---|
-| the trap is the first exception (this test) | 8 256 / 8 608 bytes | 48139 / 49435 |
-| one exception raised and handled before the trap | 7 144 / 7 496 bytes | 48413 / 49709 |
+| This test, `embedded` | peak E51 / U54 | instructions, trap to the handler E51 / U54 | text of the image E51 / U54 |
+|---|---|---|---|
+| sorted in the trap (before the runtime warm-up) | 8 256 / 8 608 bytes | 105 355 / 106 354 | 48139 / 49435 |
+| sorted before `main` (now) | 7 144 / 7 496 bytes | 50 564 / 51 564 | 48189 / 49485 |
+| with its own warm-up exception (the original form) | 7 144 / 7 496 bytes | not measured | 48413 / 49709 |
 
-The warm-up moves the sort of libgcc's frame descriptions out of the trap (1 112 bytes less on the interrupt stack on both hart
-classes); the 12 912 bytes of the stack keep the margin of 50 % in both forms. A test with the warm-up next to this one would
-cover the other path (a trap after the tables exist: search and unwind without the sort); it is proposed, not added.
+The 12 912 bytes of the stack keep the margin of 50 % in all forms. A test with its own warm-up exception next to this one
+would now only repeat the second row (the tables are sorted before it runs); it is not worth an image.
 
     ./x build trap_embedded_test --hart e51    # bin-e51/
     ./x build trap_embedded_test --hart u54    # bin-u54/

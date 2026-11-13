@@ -8,7 +8,7 @@ the heap lock (`MPFS_Heap_Lock`: no interrupt on the hart during an operation of
 | Check | What it proves |
 |---|---|
 | the heap is at least 512 KiB and is the distance of the two linker symbols | the arena is the range of the linker script (about 1.8 MB in the LIM) |
-| at the first raise the free bytes of the heap shrink | libgcc's unwinder calls `malloc` by name and gets its memory from this heap, not from newlib's |
+| before main the heap holds the sorted frame descriptions of libgcc's unwinder (the warm-up) and the first raise takes no more | libgcc's unwinder calls `malloc` by name and gets its memory from this heap, not from newlib's |
 | `Acquire` masks `mstatus.MIE`, also nested; `Release` restores it, the outer one last; `malloc` leaves it as it was | the lock interface and its body for one hart |
 | blocks of 1 to 100 bytes are 16-byte aligned and inside the heap; freeing them gives the heap back | alignment and the accounting of the free bytes |
 | `malloc (0)`, `malloc (2**32)`, `malloc (size_t'Last)` and `calloc` of a product that wraps return no block; `free (null)` does nothing | the refusals of `Heap_Guard` and of the allocator, and no change of the heap by them |

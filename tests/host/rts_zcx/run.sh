@@ -25,7 +25,7 @@
 # gen_runtime.sh runs tools/pac.sh ensure (the pinned svd2ada, ./x toolchain install pac, unless the
 # package is there). Exits non-zero on any failure.
 #
-# @verifies RTS-011
+# @verifies RTS-011, RTS-024
 
 set -u
 export LC_ALL=C
@@ -166,9 +166,16 @@ for hart in e51 u54; do
     # exceptions_test has the two constructors of ctor.S (one preinit, one init) besides frame_dummy;
     # the others only frame_dummy. Every image of the embedded profile has the arming function of the guard
     # word of the interrupt stack as an entry of .preinit_array (issue #91): it links System.BB.Interrupts.
-    image_checks "exceptions_test ($hart)" "$d/exceptions_test.elf" 2 2
-    image_checks "unhandled_test ($hart)" "$d/unhandled_test.elf" 1 1
-    image_checks "unhandled_task_test ($hart)" "$d/unhandled_task_test.elf" 1 1
+    # and the warm-up of the unwinder (unwind_warmup.S, issue #91) is one more entry of .init_array
+    image_checks "exceptions_test ($hart)" "$d/exceptions_test.elf" 3 2
+    image_checks "unhandled_test ($hart)" "$d/unhandled_test.elf" 2 1
+    image_checks "unhandled_task_test ($hart)" "$d/unhandled_task_test.elf" 2 1
+    for t in exceptions_test unhandled_test unhandled_task_test; do
+      w="$(sym "$d/$t.elf" __mpfs_unwind_warmup)"
+      [ -n "$w" ] && riscv64-elf-objdump -s -j .init_array "$d/$t.elf" | grep -q "$(printf '%016x' $((w)) | fold -w2 | tac | tr -d '\n' | sed 's/\(.\{8\}\)\(.\{8\}\)/\1 \2/')" \
+        && pass "$t ($hart): the warm-up of the unwinder is an entry of .init_array" \
+        || fail "$t ($hart): the warm-up of the unwinder is an entry of .init_array"
+    done
   else
     tail -5 "$work/build.out" >&2; fail "./x build exceptions_test --hart $hart"
   fi
@@ -181,6 +188,8 @@ if "$ROOT/x" build trap_test --hart e51 >"$work/build.out" 2>&1; then
     && pass "light image: no crtbegin.o (frame_dummy) and no registration" || fail "light image: no crtbegin.o and no registration"
   [ "$(num "$(sym "$elf" __init_array_start)")" = "$(num "$(sym "$elf" __init_array_end)")" ] \
     && pass "light image: .init_array is empty" || fail "light image: .init_array is empty"
+  [ -z "$(sym "$elf" __mpfs_unwind_warmup)" ] \
+    && pass "light image: no warm-up of the unwinder" || fail "light image: no warm-up of the unwinder"
 else
   tail -5 "$work/build.out" >&2; fail "./x build trap_test --hart e51"
 fi

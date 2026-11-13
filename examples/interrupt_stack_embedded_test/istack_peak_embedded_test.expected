@@ -1,2 +1,3 @@
   ok: the trap ends as Program_Error with the message of the cause
   ok: the peak is at most two thirds of the stack (a margin of 50 %)
+  ok: the peak is below the limit of the profile (embedded: the frame descriptions were sorted before main)

@@ -270,24 +270,42 @@ U54. What that does depends on what lies below the stack. In the layout of the i
 which the unwinder then asserts on, and the U54 image of `trap_embedded_test` hung; with the layout of `origin/main` (QEMU
 10.2.1) the same test, without its warm-up exception, passes on both hart classes, because the bytes land on data that is not
 used any more. So the test alone is not the evidence; the peak is.
-A later exception does not sort again: the exception that makes libgcc sort its frame descriptions is the first one; `trap_embedded_test` as it was written (one exception raised and
-handled before the trap) and as it is now (the trap is the first) were both measured the same way, in the `embedded`
-profile:
+**The sort of the frame descriptions is done before `main`.** The numbers above are those of a first search of the unwinder
+that happens in the trap. libgcc's unwinder sorts the frame descriptions of the registered `.eh_frame` at the first
+`_Unwind_Find_FDE` that searches it: a `malloc` for the sort array (with the heap lock, interrupts off) and the sorting
+frames, about 1.1 KiB of stack. In a trap handler that is the worst place for it: the time is not bounded by the program
+(it grows with the number of frame descriptions, and `malloc` takes what the allocator needs) and it is spent in the
+handler, with interrupts off, on the interrupt stack. So the `embedded` runtime does the first search itself at start-up:
+`mpfs/embedded/gnat/unwind_warmup.S` is an entry of `.init_array` behind `frame_dummy` of `crtbegin.o` (which registers
+`.eh_frame`), run by `start.S` before `main`, interrupts off, on the stack of the environment task, and it calls
+`_Unwind_Find_FDE` for a pc inside itself (the function has a frame description of its own, from `.cfi` directives). That is
+the public function of libgcc that every search starts with, so the call needs no knowledge of libgcc's internals (the
+object list, the `init_object` of `unwind-dw2-fde.c`, which changed between GCC releases); it finds the registered object,
+sorts it, finds the description, and the result is dropped. `link-zcx.spec` links it (`-u __mpfs_unwind_warmup`); only the
+`embedded` profile has it, `light` and `light-tasking` do not change.
 
-| `trap_embedded_test` | Peak E51 | Peak U54 | text / data / bss E51 | text / data / bss U54 |
-|---|---|---|---|---|
-| without the warm-up (the trap is the first exception) | 8 256 B | 8 608 B | 48139 / 2125 / 65000 | 49435 / 2125 / 65000 |
-| with the warm-up (the original form) | 7 144 B | 7 496 B | 48413 / 2133 / 65000 | 49709 / 2133 / 65000 |
+Measured under QEMU 10.2.1 (`-icount shift=0`, `minstret` read by `interrupt_stack_*_test`, a stack of 64 KiB, the same for
+both rows), the first trap of the program, in `embedded`:
 
-(The peaks are those of the `istack_peak_*` program with the warm-up added in front of the trap, which is the same unwind
-and the same print; the sizes are those of the example itself.) The warm-up moves the sort of the frame descriptions (a
-`malloc` and the sorting frames of `unwind-dw2-fde.o`) out of the trap: it runs on the stack of the task, and the unwind in
-the trap then only searches the sorted table. That is 1 112 bytes less on the interrupt stack on both hart classes, not
-"far less": a later exception in a trap still needs 7 144 and 7 496 bytes. The warm-up costs 274 bytes of text and 8 of data
-in the image. The default of 12 912 bytes keeps the margin of 50 % in both forms (8 608 is the limit, the first-exception
-form uses 8 608 on the U54 and so just meets it; the warm-up form leaves 72 % over its peak). Not measured: the stack that a user's interrupt handler needs (that is
-application code), and nested interrupts, each of which adds a frame (256 or 512 bytes; the interrupt priorities allow 7
-levels).
+| | Peak E51 | Peak U54 | Instructions, trap to the last chance handler E51 / U54 | Instructions, reset to the main program E51 / U54 | text / data / bss of `trap_embedded_test` E51 / U54 |
+|---|---|---|---|---|---|
+| sorted in the trap (before) | 8 256 B | 8 608 B | 105 355 / 106 354 | 48 281 / 48 190 | 48139 / 2125 / 65000, 49435 / 2125 / 65000 |
+| sorted before `main` (runtime warm-up) | 7 144 B | 7 496 B | 50 564 / 51 564 | about 104 300 / 104 300 | 48189 / 2133 / 65000, 49485 / 2133 / 65000 |
+
+The trap now executes 54 791 instructions fewer (the `malloc`, the sort and its frames: the same on both hart classes) and
+needs 1 112 bytes less interrupt stack; the start-up executes about 56 000 instructions more, the same work moved to where
+it costs no latency (the start-up figure varies by about 100 between runs, the trap figure does not). The image grows by
+50 bytes of text and 8 of data. The exception that `trap_embedded_test` used to raise and handle before the trap, which
+had the same effect on the peak, is not needed any more and not in the test; it measured the same peak (7 144 and 7 496
+bytes) and cost 274 bytes of text in the image.
+
+**What this means for the default of 12 912 bytes.** The default stays as decided in #91 (the first search in the trap plus
+50 %): with the warm-up the peak is 7 496 bytes on the U54, and 12 912 bytes leave 72 % over it. A later exception in a trap
+does not sort again, but it is not "far less": it still needs 7 144 and 7 496 bytes (search, unwind, handler and its print).
+`istack_peak_*` keeps both checks: the peak is at most two thirds of the stack, and it is at most 7 680 bytes, which the
+sort in the trap would exceed (8 256 and 8 608 bytes), so the test fails if the warm-up is not done. Not measured: the
+stack that a user's interrupt handler needs (that is application code), and nested interrupts, each of which adds a frame
+(256 or 512 bytes; the interrupt priorities allow 7 levels).
 
 **Default sizes.** `config/gen/standalone.py` gives the size by profile when `--interrupt-stack-size` is not given
 (`INTERRUPT_STACK`; the runtime has no default of its own any more, so there is nothing that must agree with it):

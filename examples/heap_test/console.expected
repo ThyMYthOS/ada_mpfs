@@ -1,7 +1,8 @@
   ok: the heap is at least 512 KiB (the range __heap_start .. __heap_end)
   ok: the heap size is the distance of the two symbols
   ok: an exception is raised and handled
-  ok: libgcc's unwinder took memory from this heap at the first raise
+  ok: libgcc's unwinder took memory from this heap before main (the sorted frame descriptions of the warm-up)
+  ok: the first raise takes no memory from this heap: libgcc sorted its frame descriptions (a malloc) before main
   ok: the chain of blocks is intact after it
   ok: interrupts are enabled in the task
   ok: Acquire masks the interrupts, also nested

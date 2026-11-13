@@ -5,6 +5,8 @@
 --  (Istack_Handler of the profile calls Last_Chance with the message of the
 --  unhandled exception). Start paints the stack and says which test this is.
 
+with Interfaces;
+
 package Istack_Check is
 
    type Test is (Peak_Of_Trap, Overrun_In_Handler);
@@ -16,7 +18,10 @@ package Istack_Check is
    --  finds that when the handler returns, and the program ends in the last
    --  chance handler with the message "interrupt stack overflow"
 
-   procedure Start (Which : Test);
+   procedure Start (Which : Test; At_Main : Interfaces.Unsigned_64 := 0);
+   --  At_Main: Istack.Instret at the start of the main program; Start ends by
+   --  taking the count again, the program then takes its trap
+
 
    procedure Last_Chance (Message : String);
    pragma No_Return (Last_Chance);

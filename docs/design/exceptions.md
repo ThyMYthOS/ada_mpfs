@@ -68,6 +68,9 @@ a hang.
 
 On the Icicle Kit, `exceptions_test` passes on the E51 and on the U54 (`docs/lab/results/p1.md`).
 
+- The first search of the unwinder sorts the frame descriptions (a `malloc` and the sort). `mpfs/embedded/gnat/unwind_warmup.S`
+  does that search before `main`, so no trap handler pays for it (issue #91; `crates/mpfs_rts/README.md`, "Interrupt stack").
+
 ## Not done, and why
 
 | Alternative | Status |

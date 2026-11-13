@@ -145,7 +145,7 @@ raising and handling one exception before the trap. It is resolved in the runtim
 | Test | Where | What it shows |
 |---|---|---|
 | `trap_embedded_test_e51`, `trap_embedded_test_u54` | `tests/qemu/tests.list` | the trap in the first statement of the program, with no exception before it, reaches the last chance handler with the diagnosis |
-| `istack_peak_embedded_test_*`, `istack_peak_tasking_test_*` | `tests/qemu/tests.list` | the peak of the first unwind in a trap is at most two thirds of the default stack (the margin of 50 %) |
+| `istack_peak_embedded_test_*`, `istack_peak_tasking_test_*` | `tests/qemu/tests.list` | the peak of the first unwind in a trap is at most two thirds of the default stack (the margin of 50 %) and, in `embedded`, at most 7 680 bytes: the runtime has sorted libgcc's frame descriptions before `main` |
 | `istack_overflow_embedded_test_*`, `istack_overflow_tasking_test_*` | `tests/qemu/tests.list` | a timing event handler (interrupt context) that uses a frame of the size of the whole stack, on a stack of 2 048 bytes, ends the program with the message `interrupt stack overflow` at the exit of the trap |
 | `istack_halt_*` (both profiles), `istack_tiny_tasking_test` (`light-tasking`, stack of 512 bytes) | `tests/qemu/tests.list`, `console` rows | the last chance handler of the runtime prints `interrupt stack overflow` and stops instead of the report of the exception; for the `tiny` image the stack really is too small for the trap |
 | the guard code and its absence | `tests/host/rts_istack` | images with an interrupt stack have the arming function, the check and the failure path, images without one have none of them |
