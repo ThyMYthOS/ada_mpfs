@@ -71,7 +71,7 @@ is 1664 KB and 256 KB); `envm` has the LIM of `lim`.
 | `__mpfs_console_dlr`, `__mpfs_console_dfr` | divisor and fraction of the baud rate | the list |
 | `__mpfs_console_init` | 1 the runtime sets divisor and format, 0 the boot stage has | the list |
 | `__mpfs_harts_mask` | mask of the partition, bit n is hart n | the list |
-| `__stack_size`, `__interrupt_stack_size` | stack sizes in bytes | the list |
+| `__stack_size`, `__interrupt_stack_size` | stack sizes in bytes: the stack of the environment task and the interrupt stack (the size, not a limit: `ld/sections.ld` reserves exactly this for an image that links `System.BB.Interrupts`, none for another) | the list |
 | `MPFS_ENVM_LENGTH`, `MPFS_DTIM_LENGTH`, `MPFS_E51_ITIM_LENGTH`, `MPFS_U54_1_ITIM_LENGTH` to `MPFS_U54_4_ITIM_LENGTH`, `MPFS_LIM_LENGTH`, `MPFS_SCRATCHPAD_LENGTH`, `MPFS_DDR_CACHED_LENGTH`, `MPFS_DDR_NC_LENGTH`, `MPFS_DDR_WCB_LENGTH` | the lengths of the regions of `ld/mpfs-memory.ld` (the origins are literals there) | the list |
 | `MPFS_LOCAL_ITIM_ORIGIN`, `MPFS_LOCAL_ITIM_LENGTH` | the ITIM of the first hart of the mask; a window of length 0 keeps the origin of the E51 window | the list |
 

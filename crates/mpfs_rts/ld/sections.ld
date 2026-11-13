@@ -199,11 +199,15 @@ SECTIONS
 		__bss_end = .;
 	} > REGION_RAM
 
-	/* The interrupt stacks are allocated by System.BB.Interrupts (the runtime of the tasking
-	 * profiles); the trap handler finds them between these two symbols. */
+	/* The interrupt stacks. System.BB.Interrupts (the runtime of the tasking profiles) declares
+	 * one byte for each CPU in .noinit.interrupt_stacks; each of them becomes __interrupt_stack_size
+	 * bytes, the stack that the trap handler finds between the two symbols and that the partition
+	 * data sizes. An image without that unit has no input here and no stack: start == end. KEEP,
+	 * because nothing refers to the bytes themselves. */
 	.interrupt_stacks (NOLOAD) : ALIGN(16) {
 		__interrupt_stack_start = .;
-		*(.noinit.interrupt_stacks)
+		KEEP(*(.noinit.interrupt_stacks))
+		. = __interrupt_stack_start + (. - __interrupt_stack_start) * __interrupt_stack_size;
 		. = ALIGN(16);
 		__interrupt_stack_end = .;
 	} > REGION_RAM
@@ -301,8 +305,6 @@ ASSERT((__stack_start & 15) == 0 && (__stack_end & 15) == 0,
        "the stack of the environment task is not 16-byte aligned")
 ASSERT((__interrupt_stack_start & 15) == 0 && (__interrupt_stack_end & 15) == 0,
        "the interrupt stacks are not 16-byte aligned")
-ASSERT(__interrupt_stack_end - __interrupt_stack_start <= __interrupt_stack_size,
-       "the interrupt stacks of the runtime are larger than __interrupt_stack_size")
 
 /* .data and .bss are copied and cleared in units of 8 bytes. */
 ASSERT(((__data_start | __data_end | __data_load | __bss_start | __bss_end) & 7) == 0,

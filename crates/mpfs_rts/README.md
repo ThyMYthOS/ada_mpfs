@@ -108,7 +108,7 @@ The trap stub handles every trap until the runtime installs its own handler. It 
 - The hook `app-sections.ld` is included between the load sections and `.bss`, with the meaning it has in the reference runtime: an application that places code or data of its own ships a file of that name and puts its `-L` ahead of the runtime's (`MPFS_APP_LD` of `mpfs_link.gpr`), and the runtime does not declare sections for what an application chooses. Code in the ITIM and data in the DTIM are such a choice, and the runtime therefore has no `.fast_text` and no `.fast_data`: see "ITIM and DTIM" below.
 - `.eh_frame` is bracketed by `__eh_frame_start` and `__eh_frame_end` (a zero word follows the range for libgcc); `.preinit_array`, `.init_array` and `.fini_array` are in the region of the code, bracketed by `__preinit_array_start`/`_end`, `__init_array_start`/`_end` and `__fini_array_start`/`_end` (defined, not `PROVIDE`d; `ASSERT`: 8-byte entries, in that order), and `.tm_clone_table` of the crt files is in `.data`.
 - `__gnat_gdb_cpu_first_id` is a 32-bit constant in `.mpfs_gdb`, the lowest hart of `__mpfs_harts_mask`. It replaces the hard-wired 1 of `s-bbbopa.ads` and the `-u __gnat_gdb_cpu_first_id` of the upstream link: nothing refers to the symbol, so the library unit that exports the upstream constant is not linked.
-- `ASSERT`s: stack and interrupt stack sizes and the stack addresses are multiples of 16 and the stack is not empty; the interrupt stacks of the runtime fit `__interrupt_stack_size`; `.data` and `.bss` are 8-byte aligned (start.S copies and clears in 8-byte units); the regions of the placement are not empty; `.bss`, the stacks, the heap and the trap record do not overlap and fit; `_start` is the first byte of `.text` and no loadable section lies below it (QEMU's `-kernel` starts every hart at the lowest loaded address, not at `e_entry`); the mask names harts 0 to 4.
+- `ASSERT`s: stack and interrupt stack sizes and the stack addresses are multiples of 16 and the stack is not empty; `.data` and `.bss` are 8-byte aligned (start.S copies and clears in 8-byte units); the regions of the placement are not empty; `.bss`, the stacks, the heap and the trap record do not overlap and fit; `_start` is the first byte of `.text` and no loadable section lies below it (QEMU's `-kernel` starts every hart at the lowest loaded address, not at `e_entry`); the mask names harts 0 to 4.
 - A missing `--defsym` stops the link: `__mpfs_boot_role` with "undefined reference" (only `start.S` reads it), the others with "undefined symbol ... referenced in expression" (the script reads them). There are no defaults. `tests/host/rts_boot` builds the four boot scenarios (primary on the E51 and secondary on U54 hart 2, each in the LIM and in the scratchpad) and the negative builds.
 
 ## ITIM and DTIM
@@ -214,7 +214,7 @@ slots); `trap_handler.S` and `context_switch.S` name an f register only under `#
 upstream header and trap handler were already right for both classes; the overlay of the header adds assembly-time checks
 (a hard-float ABI without `__riscv_flen` and a frame that is not a multiple of 16 do not assemble) and the table above as
 a comment, the trap handler is unchanged. The frame of the E51 is 256 bytes, of the U54 512: the interrupt stacks of the
-runtime (`__interrupt_stack_size`) hold nested frames of that size.
+runtime (`__interrupt_stack_size`) hold nested frames of that size (see "Interrupt stack").
 
 Known limit: `Context_Buffer` (`s-bbcpsp.ads`, upstream, not an own unit) always has the twelve `FS` words, so on the E51
 each task context carries 96 bytes that nothing uses; the assembly code does not touch them. A conditional record would
@@ -224,6 +224,67 @@ per-task `fcsr`).
 `tests/host/rts_context` checks all of it on the disassembly of the real objects (the twelve `fsd` and the twelve `fld`, the
 frame sizes, the slots, no f instruction on the E51, a control that fails on the upstream file); `examples/fp_context_test`
 (U54) and `examples/float_test` (E51 and U54) run under QEMU.
+
+## Interrupt stack (#91)
+
+A trap and an interrupt run on the interrupt stack: `__gnat_trap_entry` (`trap_handler.S`) switches to it, saves the
+context of the interrupted code in a frame (256 bytes on the E51, 512 on the U54) and calls the handler, which runs the
+interrupt handlers, the alarm handler, and for a trap that nobody handles the raise of `Program_Error` up to the last
+chance handler.
+
+**Where the size comes from.** The size is the partition data `__interrupt_stack_size` (`./x build
+--interrupt-stack-size N`, `config/README.md`), and nothing else. The upstream unit `System.BB.Interrupts` declared an
+array of `System.BB.Parameters.Interrupt_Stack_Size` (8 KiB) and the partition value was only an upper bound that the
+link checked: a larger value changed nothing and a smaller one could not be linked. The own `mpfs/gnarl/s-bbinte.adb`
+declares one byte for each CPU in `.noinit.interrupt_stacks` instead, and `ld/sections.ld` turns it into
+`__interrupt_stack_size` bytes between `__interrupt_stack_start` and `__interrupt_stack_end`. An image that does not link
+the unit (the `light` profile, which has no tasking and no trap handler of its own, and a program of a tasking profile
+that uses no task, no protected object and no `Ada.Real_Time`) has no interrupt stack at all, so it does not pay for one.
+The constant of `s-bbpara.ads` (`Interrupt_Stack_Size`, 8 KiB) is not used any more. Nothing else of the unit changed, and
+the existing images are identical to what they were (`./x metrics verify`: no row changed for this).
+
+**Measurement.** The static analysis of `./x stack` knows the frames of the application, not those of libgcc, which is
+what the first exception of the `embedded` profile runs on the interrupt stack when it happens in a trap handler (the
+registration-based unwinder sorts its frame descriptions at the first search, see `docs/design/exceptions.md`). So the
+peak is measured by stack painting: `examples/interrupt_stack_embedded_test` and `examples/interrupt_stack_tasking_test`
+(`interrupt_stack_peak_test`) fill the interrupt stack with a pattern (`Istack.Paint`, all but the lowest 16 bytes),
+execute an illegal instruction (the one of `examples/trap_test`), let the trap end in the last chance handler of the test
+and read the lowest word that no longer holds the pattern after it has reported. The peak is the distance from the top of
+the stack to that word, so it includes the trap frame, the handler, the raise, the unwinder (embedded) and the print of
+the report. Built with a stack that is large enough (`./x build interrupt_stack_embedded_test --hart u54
+--interrupt-stack-size 65536`) the test says what it measured; with the default stack it fails if the peak is more than
+two thirds of the stack, that is when the margin is less than 50 %.
+
+Measured under QEMU 10.2.1 (`microchip-icicle-kit`), GNAT 15.3.1, runtime variants as built by `gen_runtime.sh`, trap in
+the program after the runtime has installed its trap handler:
+
+| Profile | E51 (frame 256 B) | U54 (frame 512 B) | What runs on the stack |
+|---|---|---|---|
+| `light` | no interrupt stack | no interrupt stack | the runtime has no trap handler of its own: the trap stub of `start.S` uses no stack |
+| `light-tasking` | 600 B | 856 B | frame, `__gnat_trap_handler`, the raise (no propagation: a direct call of the last chance handler), the handler and its print |
+| `embedded` | 8 256 B | 8 608 B | the same, and the first unwind: libgcc's `_Unwind_Find_FDE` sorts the frame descriptions (the registration of `crtbegin.o`), then the search and the unwind, then the handler and its print |
+
+Both `embedded` numbers are above the 8 KiB (8 192 bytes) of the upstream default: the first exception of a program, when
+it is raised in a trap handler, does not fit the default stack on either hart class (the issue observed the failure on the
+U54; `trap_embedded_test` passed on the E51 with its own handler and after the warm-up exception).
+A later exception does not sort again: the exception that makes libgcc sort its frame descriptions is the first one; `trap_embedded_test` as it was written (one exception raised and
+handled before the trap) and as it is now (the trap is the first) were both measured the same way, in the `embedded`
+profile:
+
+| `trap_embedded_test` | Peak E51 | Peak U54 | text / data / bss E51 | text / data / bss U54 |
+|---|---|---|---|---|
+| without the warm-up (the trap is the first exception) | 8 256 B | 8 608 B | 48139 / 2125 / 65000 | 49435 / 2125 / 65000 |
+| with the warm-up (the original form) | 7 144 B | 7 496 B | 48413 / 2133 / 65000 | 49709 / 2133 / 65000 |
+
+(The peaks are those of the `istack_peak_*` program with the warm-up added in front of the trap, which is the same unwind
+and the same print; the sizes are those of the example itself.) The warm-up moves the sort of the frame descriptions (a
+`malloc` and the sorting frames of `unwind-dw2-fde.o`) out of the trap: it runs on the stack of the task, and the unwind in
+the trap then only searches the sorted table. That is 1 112 bytes less on the interrupt stack on both hart classes, not
+"far less": a later exception in a trap still needs 7 144 and 7 496 bytes. The warm-up costs 274 bytes of text and 8 of data
+in the image. The default of 12 912 bytes keeps the margin of 50 % in both forms (8 608 is the limit, the first-exception
+form uses 8 608 on the U54 and so just meets it; the warm-up form leaves 72 % over its peak). Not measured: the stack that a user's interrupt handler needs (that is
+application code), and nested interrupts, each of which adds a frame (256 or 512 bytes; the interrupt priorities allow 7
+levels).
 
 ## Tick and idle
 

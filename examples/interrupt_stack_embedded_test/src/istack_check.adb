@@ -1,0 +1,59 @@
+--  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+--  SPDX-License-Identifier: Apache-2.0
+
+pragma Suppress (All_Checks);
+--  The light-tasking profile has no exception propagation, so a check that
+--  could fail would be a warning (an error here); the code is exact without
+
+with Bare_Console;
+with Istack;
+with Test_Report;
+
+package body Istack_Check is
+
+   Current : Test := Peak_Of_Trap;
+
+   -----------
+   -- Start --
+   -----------
+
+   procedure Start (Which : Test) is
+   begin
+      Current := Which;
+      Istack.Paint;
+   end Start;
+
+   -----------------
+   -- Last_Chance --
+   -----------------
+
+   procedure Last_Chance (Message : String) is
+      use type Bare_Console.U64;
+
+      Size : constant Bare_Console.U64 := Bare_Console.U64 (Istack.Size);
+      --  Modular arithmetic for the comparison: no overflow check, which
+      --  the light-tasking profile could not raise
+   begin
+      case Current is
+         when Peak_Of_Trap =>
+            Test_Report.Check
+              (Message = "Unhandled trap: 2",
+               "the trap ends as Program_Error with the message of the cause");
+            Test_Report.Info ("interrupt stack, bytes", Size);
+
+            declare
+               --  After the report above: what it used is part of the peak
+               Peak : constant Bare_Console.U64 :=
+                        Bare_Console.U64 (Istack.Peak);
+            begin
+               Test_Report.Info ("interrupt stack, peak in bytes", Peak);
+               Test_Report.Check
+                 (Peak > 0 and then Peak * 3 <= Size * 2,
+                  "the peak is at most two thirds of the stack "
+                  & "(a margin of 50 %)");
+            end;
+      end case;
+      Test_Report.Finish;
+   end Last_Chance;
+
+end Istack_Check;
