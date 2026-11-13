@@ -168,8 +168,8 @@ There is no periodic tick. `System.BB.Time` computes the next alarm of the hart 
 `s-bbsuti.adb` writes it to `mtimecmp` of that hart with one 64-bit store; the same register, set to
 the maximum, is the acknowledge and the disarmed state. The idle task executes `wfi` with interrupts
 enabled (RTS-009, RTS-010). `Clock_Frequency` is 1 MHz; that `mtime` really runs at that rate is
-checked at compile time against the clock of the partition (the clock is not part of the standalone partition
-data, so an example uses a stand-in package for the check) and on the hardware, where the absolute rate is not yet measured (section 8). See "Tick and idle".
+checked at compile time against `Clocks.Rtc_Toggle_Hz` of the partition package (RTS-025: the nominal rate, not the
+measured one) and on the hardware, where the absolute rate is not yet measured (section 8). See "Tick and idle".
 
 ### 5.4 Interrupt names and priorities
 
@@ -281,6 +281,7 @@ profiles is one example per profile with shared sources (`textio_tasking_test`, 
 | RTS-022 | Interrupt stack: size from the partition data, defaults by profile, the first exception in a trap fits it | `rts_istack`, `standalone` | `interrupt_stack_embedded_test`, `interrupt_stack_tasking_test`, `trap_embedded_test` |
 | RTS-023 | Guard word of the interrupt stack, `interrupt stack overflow` | `rts_istack`, `qemu_tests` | `interrupt_stack_embedded_test`, `interrupt_stack_tasking_test` |
 | RTS-024 | Frame descriptions sorted before `main` (embedded) | `rts_zcx` | `interrupt_stack_embedded_test` |
+| RTS-025 | `Clocks.Rtc_Toggle_Hz` of the partition data and the check against `Clock_Frequency` | `rts_negative`, `standalone` | |
 | SVD-002 | Interrupt names from the SVD | `rts_intnam` | `interrupt_test` |
 
 **No test yet:** RTS-016. The tests of the examples are written to run on the board as well, but the hardware

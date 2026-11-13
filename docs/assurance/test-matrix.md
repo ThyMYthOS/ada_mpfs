@@ -122,6 +122,7 @@ entries of the other suites are still there.
 | a mandatory link symbol missing | `undefined reference to` the symbol, or `undefined symbol ... referenced in expression` for those the linker script reads | `tests/host/rts_boot` (`missing_*`) |
 | a mask that mixes the E51 and the U54 | `a partition mask must not mix the E51 and U54 harts` (`Compile_Time_Error` of `MPFS_Partition`) | `tests/host/standalone` |
 | a stack size that is not a multiple of 16 | the linker's `__stack_size is not a multiple of 16` and the check of the partition package; likewise for the interrupt stack and the secondary stack | `tests/host/rts_boot`, `tests/host/standalone` |
+| a partition whose `Clocks.Rtc_Toggle_Hz` is not the `Clock_Frequency` of the runtime (any profile), or a runtime of another `Clock_Frequency` | `Clock_Frequency of the runtime is not Clocks.Rtc_Toggle_Hz` | `tests/host/rts_negative`, `tests/host/standalone` |
 | the console `ram_fifo` before SMP exists | `the console ram_fifo needs a second hart; SMP does not exist yet` | `tests/host/standalone` |
 | the other checks of the partition package (L2 way sum, LIM ways, DTIM on a U54, ITIM above the size of its hart, boot role) | the message of the check | `tests/host/standalone` |
 | a stack that leaves no room, an empty region, an invalid mask, a `_start` that is not first, an `.init_array` entry that is not 8 bytes | the linker's message | `tests/host/rts_boot` |

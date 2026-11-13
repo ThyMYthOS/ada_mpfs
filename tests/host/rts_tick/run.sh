@@ -14,11 +14,9 @@
 #     of 32-bit accesses, whose intermediate value could raise or hide a timer interrupt);
 #   - the image of delay_accuracy_test: Install_Alarm_Handler disarms mtimecmp (Set_Mtimecmp) BEFORE it
 #     installs the handler, which sets mie.MTIE (a stale mtimecmp would raise a spurious tick); the alarm
-#     handler acknowledges with Set_Mtimecmp; Clear_Alarm_Interrupt writes the maximum (all ones);
-#   - Clock_Frequency = Clocks.Rtc_Toggle_Hz as a compile-time check (examples/delay_accuracy_test/src/
-#     standalone_clocks.ads, the stand-in for the partition package): a partition with 1 MHz
-#     compiles, one with 2 MHz, 999 999 Hz or 100 MHz does not, with the message of the check; a runtime
-#     whose Clock_Frequency is not 1 MHz (checked on a copy of the variant) fails the 1 MHz partition.
+#     handler acknowledges with Set_Mtimecmp; Clear_Alarm_Interrupt writes the maximum (all ones).
+#
+# Clock_Frequency against the partition's Clocks.Rtc_Toggle_Hz is tested in tests/host/rts_negative.
 #
 # The builds are skipped when the pinned GNAT, zstd or GNU tar is missing. The variants need the register package
 # of the PAC, which is not committed: gen_runtime.sh runs tools/pac.sh ensure (the pinned svd2ada,
@@ -114,50 +112,6 @@ for hart in e51 u54; do
     tail -5 "$work/build.out" >&2; fail "./x build delay_accuracy_test --hart $hart"
   fi
 done
-
-# -- Clock_Frequency against Clocks.Rtc_Toggle_Hz, at compile time -----------------------------------------
-clk="$ROOT/examples/delay_accuracy_test/src/standalone_clocks.ads"
-ARCH=(-march=rv64imafdc_zicsr_zifencei -mabi=lp64d)
-try_clock () { # <Rtc_Toggle_Hz literal> <runtime dir>: compile the stand-in with that frequency, output in $work/clk.err
-  mkdir -p "$work/clk"
-  sed "s/Rtc_Toggle_Hz : constant := 1_000_000;/Rtc_Toggle_Hz : constant := $1;/" "$clk" >"$work/clk/standalone_clocks.ads"
-  (cd "$work/clk" && riscv64-elf-gcc -c "${ARCH[@]}" --RTS="$2" standalone_clocks.ads) 2>"$work/clk.err"
-}
-grep -q 'Rtc_Toggle_Hz : constant := 1_000_000;' "$clk" && pass "the stand-in has the standalone default 1 MHz" \
-  || fail "the stand-in has the standalone default 1 MHz"
-for dir in light-tasking-u54 embedded-e51; do
-  d="$rts/$dir-cpus1-m"
-  if try_clock 1_000_000 "$d"; then pass "$dir: a partition with Rtc_Toggle_Hz = 1 MHz compiles"
-  else fail "$dir: a partition with Rtc_Toggle_Hz = 1 MHz compiles ($(cat "$work/clk.err"))"; fi
-  for hz in 2_000_000 999_999 100_000_000 32_768; do
-    if try_clock "$hz" "$d"; then
-      fail "$dir: a partition with Rtc_Toggle_Hz = $hz is rejected"
-    elif grep -q 'Clock_Frequency of the runtime is not Clocks.Rtc_Toggle_Hz' "$work/clk.err"; then
-      pass "$dir: a partition with Rtc_Toggle_Hz = $hz is rejected with the message of the check"
-    else
-      fail "$dir: a partition with Rtc_Toggle_Hz = $hz is rejected with the message of the check ($(cat "$work/clk.err"))"
-    fi
-  done
-done
-
-# the other way round: the partition says 1 MHz, the runtime has another Clock_Frequency (a copy of the variant)
-cp -r "$rts/light-tasking-u54-cpus1-m" "$work/rts-2mhz"
-chmod -R u+w "$work/rts-2mhz"
-rm -f "$work/rts-2mhz"/adainclude/s-bbbopa.ad? "$work/rts-2mhz"/adalib/s-bbbopa.ali "$work/rts-2mhz"/adalib/a-reatim.ali \
-  "$work/rts-2mhz"/adalib/s-bbpara.ali
-sed 's/Decrementer_Frequency : constant Positive := 1_000_000;/Decrementer_Frequency : constant Positive := 2_000_000;/' \
-  "$rts/light-tasking-u54-cpus1-m/adainclude/s-bbbopa.ads" >"$work/rts-2mhz/adainclude/s-bbbopa.ads"
-if grep -q '2_000_000' "$work/rts-2mhz/adainclude/s-bbbopa.ads"; then
-  if try_clock 1_000_000 "$work/rts-2mhz"; then
-    fail "a runtime whose Clock_Frequency is 2 MHz is rejected by the 1 MHz partition"
-  elif grep -q 'Clock_Frequency of the runtime is not Clocks.Rtc_Toggle_Hz' "$work/clk.err"; then
-    pass "a runtime whose Clock_Frequency is 2 MHz is rejected by the 1 MHz partition"
-  else
-    fail "a runtime whose Clock_Frequency is 2 MHz is rejected by the 1 MHz partition ($(cat "$work/clk.err"))"
-  fi
-else
-  fail "the copy of the runtime has a Clock_Frequency of 2 MHz"
-fi
 
 echo "summary: $fails failure(s)"
 [ $fails -eq 0 ]

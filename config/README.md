@@ -85,7 +85,7 @@ second line.
 
 The values are named numbers: `Harts_Mask`, `Boot_Role`, `Console_Kind` (`Console_None`, `Console_MMUART`,
 `Console_RAM_FIFO`), `Console_Base`, `Console_Init`, `Console_Divisor`, `Console_Fraction`, `Stack_Size`,
-`Interrupt_Stack_Size`, `Secondary_Stack_Size`, `Cache_Ways`, `LIM_Ways`, `Scratchpad_Ways`, `LIM_Length`,
+`Interrupt_Stack_Size`, `Secondary_Stack_Size`, `Clocks.Rtc_Toggle_Hz`, `Cache_Ways`, `LIM_Ways`, `Scratchpad_Ways`, `LIM_Length`,
 `Scratchpad_Length`, `DTIM_Length`, `ITIM_Length_0` to `ITIM_Length_4`, `SMP_Available`, and the constants that the
 checks compare with (`L2_Ways`, `Max_LIM_Ways`, `DTIM_Max`, `ITIM_Max_0` to `ITIM_Max_4`). Excerpt for an E51 with the
 defaults:
@@ -134,6 +134,7 @@ image.
 
 | Check | Message | Negative build |
 |---|---|---|
+| the runtime's `Clock_Frequency` is not `Clocks.Rtc_Toggle_Hz` | Clock_Frequency of the runtime is not Clocks.Rtc_Toggle_Hz | `clock_not_rtc_toggle_hz`; every profile and a runtime copy: `tests/host/rts_negative` |
 | the mask names no hart or a hart above 4 | the harts mask names no hart or a hart above 4 | `mask_names_no_hart`, `mask_empty` |
 | the mask mixes E51 and U54 | a partition mask must not mix the E51 and U54 harts | `mask_mixes_e51_and_u54` |
 | the boot role is above 1 | `__mpfs_boot_role` must be 1 (primary) or 0 (secondary) | `boot_role_above_1` |

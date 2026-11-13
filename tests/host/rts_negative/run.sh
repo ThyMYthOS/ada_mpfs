@@ -14,6 +14,11 @@
 #     F or D) linked with the library of the U54 (lp64d) fails with the linker's float ABI message,
 #     and so does the reverse; objects and library of one hart class link (the link has no linker
 #     script and no partition data, so unresolved symbols are ignored: only the ABI is under test).
+#   - The clock of the partition package against the runtime (RTS-025): the package that
+#     config/gen/standalone.py writes compiles against each of the three profiles with the 1 MHz of the
+#     runtime, and with 2 MHz, 999 999 Hz, 100 MHz or 32 768 Hz it is rejected with the message of the
+#     check (Compile_Time_Error), as is the 1 MHz package against a copy of a runtime whose
+#     Clock_Frequency is 2 MHz.
 #   - The other negative builds (a mandatory link symbol missing, a mask that
 #     mixes the E51 and the U54, a stack size that is not a multiple of 16, the console ram_fifo before
 #     SMP) are the cases of tests/host/rts_boot and tests/host/standalone. They are not repeated here;
@@ -22,7 +27,7 @@
 #
 # The builds are skipped when the pinned GNAT, zstd or GNU tar is missing. Exits non-zero on any failure.
 #
-# @verifies RTS-020, BLD-002
+# @verifies RTS-020, RTS-025, BLD-002
 
 set -u
 export LC_ALL=C
@@ -48,6 +53,8 @@ covered "a mandatory symbol missing (undefined reference)" tests/host/rts_boot/r
   "negative missing_boot_role e51 \"undefined reference to \\\`__mpfs_boot_role'\""
 covered "a mandatory symbol missing (the mask)" tests/host/rts_boot/run.sh \
   "negative missing_harts_mask e51"
+covered "a RTC clock that is not the Clock_Frequency of the runtime (the build of an image)" tests/host/standalone/run.sh \
+  "negative clock_not_rtc_toggle_hz e51 \"Clock_Frequency of the runtime is not Clocks.Rtc_Toggle_Hz\""
 covered "a mask that mixes the E51 and the U54 (Compile_Time_Error)" tests/host/standalone/run.sh \
   "negative mask_mixes_e51_and_u54 e51 \"a partition mask must not mix the E51 and U54 harts\""
 covered "a stack size that is not a multiple of 16 (linker)" tests/host/rts_boot/run.sh \
@@ -209,6 +216,49 @@ for pair in "e51:u54" "u54:e51"; do
     fail "an object of the $obj linked with the library of the $lib failed, but not with the float ABI message:"; sed 's/^/    /' "$work/link.log" >&2
   else pass "an object of the $obj linked with the library of the $lib fails (float ABI)"; fi
 done
+
+# -- the clock of the partition package against Clock_Frequency of the runtime ---------------------------
+MSG='Clock_Frequency of the runtime is not Clocks.Rtc_Toggle_Hz'
+mpfs_find_python
+# try_clock <profile> <Rtc_Toggle_Hz> <runtime dir>: compile the package of the generator with that frequency; log in $work/clk.err
+try_clock () {
+  rm -rf "$work/clk"; mkdir -p "$work/clk"
+  "$MPFS_PYTHON" -I "$ROOT/config/gen/standalone.py" --hart e51 --profile "$1" --rtc-toggle-hz "$2" \
+    --output "$work/clk/mpfs_partition.ads" || return 2
+  (cd "$work/clk" && riscv64-elf-gcc -c -gnatc -gnat2022 -gnatwa -gnatwe -gnaty --RTS="$3" mpfs_partition.ads) 2>"$work/clk.err"
+}
+for pv in "light light-e51" "light-tasking light-tasking-e51" "embedded embedded-e51"; do
+  prof="${pv%% *}"; d="$rts/${pv#* }-cpus1-m"
+  if try_clock "$prof" 1000000 "$d"; then pass "$prof: a partition with Rtc_Toggle_Hz = 1 MHz compiles"
+  else fail "$prof: a partition with Rtc_Toggle_Hz = 1 MHz compiles ($(cat "$work/clk.err"))"; fi
+  for hz in 2000000 999999 100000000 32768; do
+    if try_clock "$prof" "$hz" "$d"; then
+      fail "$prof: a partition with Rtc_Toggle_Hz = $hz is rejected"
+    elif grep -q "$MSG" "$work/clk.err"; then
+      pass "$prof: a partition with Rtc_Toggle_Hz = $hz is rejected with the message of the check"
+    else
+      fail "$prof: a partition with Rtc_Toggle_Hz = $hz is rejected with the message of the check ($(cat "$work/clk.err"))"
+    fi
+  done
+done
+
+# the other way round: the partition says 1 MHz, the runtime has another Clock_Frequency (a copy of the variant)
+cp -r "$rts/light-tasking-e51-cpus1-m" "$work/rts-2mhz"
+chmod -R u+w "$work/rts-2mhz"
+rm -f "$work/rts-2mhz"/adainclude/s-bbbopa.ad? "$work/rts-2mhz"/adalib/s-bbbopa.ali
+sed 's/Decrementer_Frequency : constant Positive := 1_000_000;/Decrementer_Frequency : constant Positive := 2_000_000;/' \
+  "$rts/light-tasking-e51-cpus1-m/adainclude/s-bbbopa.ads" >"$work/rts-2mhz/adainclude/s-bbbopa.ads"
+if grep -q '2_000_000' "$work/rts-2mhz/adainclude/s-bbbopa.ads"; then
+  if try_clock light-tasking 1000000 "$work/rts-2mhz"; then
+    fail "a runtime whose Clock_Frequency is 2 MHz is rejected by the 1 MHz partition"
+  elif grep -q "$MSG" "$work/clk.err"; then
+    pass "a runtime whose Clock_Frequency is 2 MHz is rejected by the 1 MHz partition"
+  else
+    fail "a runtime whose Clock_Frequency is 2 MHz is rejected by the 1 MHz partition ($(cat "$work/clk.err"))"
+  fi
+else
+  fail "the copy of the runtime has a Clock_Frequency of 2 MHz"
+fi
 
 echo "summary: $fails failure(s)"
 [ "$fails" -eq 0 ]

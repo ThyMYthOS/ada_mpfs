@@ -12,15 +12,16 @@
 #     It needs no toolchain.
 #   - a negative build for EACH check of the package MPFS_Partition: ./x build of examples/trap_test
 #     with a partition that violates the rule fails before the link, with the message of the check and
-#     no image: a mask that mixes the E51 and U54, a mask that names no hart, a boot role above 1, a
-#     stack, interrupt stack or secondary stack size that is not a multiple of 16, the console ram_fifo
+#     no image: a RTC clock that is not the Clock_Frequency of the runtime, a mask that mixes the E51
+#     and U54, a mask that names no hart, a boot role above 1, a stack, interrupt stack or secondary
+#     stack size that is not a multiple of 16, the console ram_fifo
 #     before SMP exists, L2 ways that do not add up to 16, more than 15 LIM ways, a DTIM on a U54 or
 #     above 8 KB, an ITIM larger than that of its hart. And the controls: the same build without a
 #     fault, and the parameters of ./x build reaching the image.
 #
 # The builds are skipped when the pinned GNAT, zstd or GNU tar is missing. Exits non-zero on any failure.
 #
-# @verifies RTS-019, RTS-022
+# @verifies RTS-019, RTS-022, RTS-025
 
 set -u
 export LC_ALL=C
@@ -116,6 +117,7 @@ negative () {
   fi
 }
 
+negative clock_not_rtc_toggle_hz e51 "Clock_Frequency of the runtime is not Clocks.Rtc_Toggle_Hz" --rtc-toggle-hz 2000000
 negative mask_mixes_e51_and_u54 e51 "a partition mask must not mix the E51 and U54 harts" --harts 0,1
 negative mask_names_no_hart e51 "the harts mask names no hart or a hart above 4" --mask 0x20
 negative mask_empty e51 "the harts mask names no hart or a hart above 4" --mask 0

@@ -215,3 +215,13 @@ requirements:
       bytes when it sorts), and the light and light-tasking profiles do not have the code.
     tsf: false
     source: crates/mpfs_rts/README.md
+  - id: RTS-025
+    text: >-
+      The partition data of an image carries the frequency of the RTC clock, which mtime counts,
+      as Clocks.Rtc_Toggle_Hz (1 MHz in the standalone default), and states at compile time that
+      Clock_Frequency of the runtime, of which Ada.Real_Time.Time_Unit is the reciprocal, is that
+      frequency: a partition with another frequency, or a runtime with another Clock_Frequency,
+      does not compile in any of the three profiles, and no application states the check itself.
+      The configured rate is compared, not a measured one.
+    tsf: false
+    source: crates/mpfs_rts/README.md

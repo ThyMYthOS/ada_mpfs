@@ -9,7 +9,7 @@
                 [--memory lim|scratchpad|envm] [--console C] [--console-init 0|1]
                 [--stack-size N] [--interrupt-stack-size N] [--secondary-stack-size N]
                 [--cache-ways N] [--lim-ways N] [--scratchpad-ways N]
-                [--itim-length N] [--dtim-length N] [--omit SYMBOL]
+                [--itim-length N] [--dtim-length N] [--rtc-toggle-hz N] [--omit SYMBOL]
                 [--check] [--output FILE] [--defsyms FILE]
 
 Two files come out of the parameters of `./x build`:
@@ -97,6 +97,12 @@ NUMBER_OF_HARTS = 5
 # RAM that the other hart drains) is refused until SMP exists.
 SMP_AVAILABLE = False
 
+# The RTC clock, which mtime counts: the 125 MHz reference clock divided by RTC_CLOCK_CR.PERIOD (125).
+# The runtime's Clock_Frequency (System.BB.Board_Parameters, Ada.Real_Time.Time_Unit = 1.0 / Clock_Frequency)
+# is 1 MHz, and the package checks that the partition says the same. It is the nominal rate that is
+# compared, not the measured one (the board counts 997,252 ticks per second, docs/lab/results/p1.md).
+DEFAULT_RTC_TOGGLE_HZ = 1_000_000
+
 # The link symbols that the partition data set (this order is the order of the list), and the symbols
 # that the placement script defines. The second list is the part of the interface that the data does
 # not carry; it is here so that the contract has one list (config/README.md) and a test can check that
@@ -177,6 +183,7 @@ class Partition:
         self.scratchpad_ways = scratchpad if args.scratchpad_ways is None else args.scratchpad_ways
         self.dtim_length = args.dtim_length
         self.itim_length = [args.itim_length if self.mask >> h & 1 else 0 for h in range(NUMBER_OF_HARTS)]
+        self.rtc_toggle_hz = args.rtc_toggle_hz
         self.omit = args.omit
 
     @property
@@ -289,7 +296,16 @@ def render_package(part: Partition) -> str:
         "Compile_Time_Error on it, because GNAT ignores one whose condition is not static. The "
         "linker scripts and the start code read the same values as link symbols, which the "
         "list mpfs_partition.defsyms carries.", "")]
-    out += ["", "package MPFS_Partition is", "", "   pragma Pure;", ""]
+    out += ["", *ada.comment(
+        "The check on the clock reads Clock_Frequency of the runtime, of which Ada.Real_Time.Time_Unit is "
+        "the reciprocal. It is read from System.BB.Board_Parameters (pure, in every variant) and not from "
+        "Ada.Real_Time, which is not pure and which the light profile does not have.", "")]
+    out += ["", "pragma Warnings (Off, \"*internal GNAT unit*\");",
+            "pragma Warnings (Off, \"*non-portable*\");",
+            "with System.BB.Board_Parameters;",
+            "pragma Warnings (On, \"*internal GNAT unit*\");",
+            "pragma Warnings (On, \"*non-portable*\");",
+            "", "package MPFS_Partition is", "", "   pragma Pure;", ""]
 
     out += ada.banner("Harts")
     out += [""]
@@ -341,11 +357,21 @@ def render_package(part: Partition) -> str:
     out += constant("SMP_Available", "0", "1 once the runtime has more than one CPU.")
     out += [""]
 
+    out += ada.banner("Clocks")
+    out += [""]
+    out += ["   package Clocks is"]
+    out += ada.comment("The frequency of the RTC clock in Hz, which is what mtime counts (the reference clock "
+                       "divided by RTC_CLOCK_CR.PERIOD). The nominal rate, not a measured one.", "      ")
+    out += [f"      Rtc_Toggle_Hz : constant := {part.rtc_toggle_hz:_};", "   end Clocks;", ""]
+
     out += ada.banner("Checks")
     out += [""]
     out += ada.comment("Each check is a flat static Boolean constant, then the pragma. A false condition "
                        "costs nothing; a true one stops the compilation with the message.")
     out += [""]
+    out += check("Clock_Rate_Mismatch",
+                 "System.BB.Board_Parameters.Clock_Frequency /= Clocks.Rtc_Toggle_Hz",
+                 "Clock_Frequency of the runtime is not Clocks.Rtc_Toggle_Hz")
     out += check("Mask_Names_No_Hart",
                  "Harts_Mask = 0 or else Harts_Mask > 16#1F#",
                  "the harts mask names no hart or a hart above 4")
@@ -405,6 +431,8 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--scratchpad-ways", type=number, help="L2 ways used as scratchpad (default: by memory profile)")
     p.add_argument("--itim-length", type=number, default=0, help="bytes of ITIM of each hart of the partition")
     p.add_argument("--dtim-length", type=number, default=0, help="bytes of DTIM (E51)")
+    p.add_argument("--rtc-toggle-hz", type=number, default=DEFAULT_RTC_TOGGLE_HZ,
+                   help="frequency of the RTC clock (mtime) in Hz (default: 1 MHz; the runtime has to agree)")
     p.add_argument("--omit", choices=VALUE_SYMBOLS, help="leave this link symbol out (test seam: the link must fail)")
     cli.add_check(p, "compare with the committed outputs instead of writing them")
     cli.add_output(p, DEFAULT_OUTPUT, "the package (default: build/partition/mpfs_partition.ads)")

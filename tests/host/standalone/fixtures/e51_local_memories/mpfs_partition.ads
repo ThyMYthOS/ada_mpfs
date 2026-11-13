@@ -13,6 +13,18 @@
 --  start code read the same values as link symbols, which the list
 --  mpfs_partition.defsyms carries.
 
+--  The check on the clock reads Clock_Frequency of the runtime, of which
+--  Ada.Real_Time.Time_Unit is the reciprocal. It is read from
+--  System.BB.Board_Parameters (pure, in every variant) and not from
+--  Ada.Real_Time, which is not pure and which the light profile does not
+--  have.
+
+pragma Warnings (Off, "*internal GNAT unit*");
+pragma Warnings (Off, "*non-portable*");
+with System.BB.Board_Parameters;
+pragma Warnings (On, "*internal GNAT unit*");
+pragma Warnings (On, "*non-portable*");
+
 package MPFS_Partition is
 
    pragma Pure;
@@ -95,12 +107,29 @@ package MPFS_Partition is
    --  1 once the runtime has more than one CPU.
 
    ------------
+   -- Clocks --
+   ------------
+
+   package Clocks is
+      --  The frequency of the RTC clock in Hz, which is what mtime counts
+      --  (the reference clock divided by RTC_CLOCK_CR.PERIOD). The nominal
+      --  rate, not a measured one.
+      Rtc_Toggle_Hz : constant := 1_000_000;
+   end Clocks;
+
+   ------------
    -- Checks --
    ------------
 
    --  Each check is a flat static Boolean constant, then the pragma. A false
    --  condition costs nothing; a true one stops the compilation with the
    --  message.
+
+   Clock_Rate_Mismatch      : constant Boolean :=
+     System.BB.Board_Parameters.Clock_Frequency /= Clocks.Rtc_Toggle_Hz;
+   pragma Compile_Time_Error
+     (Clock_Rate_Mismatch,
+      "Clock_Frequency of the runtime is not Clocks.Rtc_Toggle_Hz");
 
    Mask_Names_No_Hart       : constant Boolean :=
      Harts_Mask = 0 or else Harts_Mask > 16#1F#;

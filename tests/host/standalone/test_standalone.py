@@ -244,6 +244,19 @@ def _():
     with_tmp(one)
 
 
+@case("the clock: Clocks.Rtc_Toggle_Hz is 1 MHz by default, --rtc-toggle-hz changes it, the check is not refused here")
+def _():
+    def one(tmp):
+        package, _ = generate(["--hart", "e51"], tmp)
+        assert "Rtc_Toggle_Hz : constant := 1_000_000;" in package
+        assert "System.BB.Board_Parameters.Clock_Frequency /= Clocks.Rtc_Toggle_Hz" in package
+        package, got = generate(["--hart", "e51", "--rtc-toggle-hz", "999999"], tmp)
+        assert "Rtc_Toggle_Hz : constant := 999_999;" in package
+        assert "pragma Pure;" in package
+        assert not any("rtc" in name.lower() for name in got), "the clock is not a link symbol"
+    with_tmp(one)
+
+
 @case("the list: every link symbol once, in the order of VALUE_SYMBOLS; --omit leaves exactly one out")
 def _():
     def one(tmp):
@@ -282,8 +295,11 @@ def _():
         for check in pragmas:
             kind, expression = declared[check]
             assert kind, f"{check} is not a Boolean constant"
+            # the clock check names the runtime's constant and the nested package Clocks: both static
+            expression = expression.replace("System.BB.Board_Parameters.Clock_Frequency", "Clock_Frequency")
+            expression = expression.replace("Clocks.Rtc_Toggle_Hz", "Clock_Frequency")
             for word in re.findall(r"[A-Za-z_][A-Za-z_0-9]*", re.sub(r"16#[0-9A-F_]+#", "", expression)):
-                assert word in declared or word in ("and", "or", "then", "else", "mod"), (check, word)
+                assert word in declared or word == "Clock_Frequency" or word in ("and", "or", "then", "else", "mod"), (check, word)
             assert "'" not in expression and "(" not in expression, f"{check} is not a flat expression"
         for line in text.splitlines():
             assert len(line) <= 79, (name, line)
