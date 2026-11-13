@@ -2,10 +2,10 @@
 SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 SPDX-License-Identifier: CC-BY-4.0
 -->
-# Zero-cost exceptions in the embedded runtime (R8)
+# Zero-cost exceptions in the embedded runtime
 
-Design note of work package P1.7 (#48, part of #41). The mechanism is described where it lives, in
-[`crates/mpfs_rts/README.md`](../../crates/mpfs_rts/README.md#zero-cost-exceptions-p17-r8); this note gives the
+Design note of the exception propagation of `mpfs_rts` (RTS-011). The mechanism is described where it lives, in
+[`crates/mpfs_rts/README.md`](../../crates/mpfs_rts/README.md#zero-cost-exceptions); this note gives the
 decision, the evidence and what was not done.
 
 ## Decision
@@ -26,11 +26,11 @@ our own, no SJLJ. `light` and `light-tasking` have no exception propagation and 
 
 ## Spike
 
-The path derived on paper in #41 section 3a was linked and **executed** under QEMU 10.2.1 (`microchip-icicle-kit`, five
+The path that was derived on paper first was linked and **executed** under QEMU 10.2.1 (`microchip-icicle-kit`, five
 harts) for the E51 (hart 0) and for the U54 (hart 1), with `examples/exceptions_test`. It worked at the first run; what
 had to change from the paper version:
 
-| Step of #48 | Result |
+| Step of the paper path | Result |
 |---|---|
 | 1. libgcc's `unwind-dw2-fde.o` instead of the bb unwinder | Works. The bb unwinder is also taken out of `libgnat.a` (`mpfs/remove.list`, `embedded: gnat/unwind-dw2-fde-bb.c`), because with two definitions of `_Unwind_Find_FDE` the order of the archives would decide silently. |
 | 2. own spec: `crti`, `crtbegin`, `-u __register_frame_info`, `crtend`, `crtn`; `-lgcc` first in the group | Spec as written (`crates/mpfs_rts/link-zcx.spec`). `-lgcc` first is **not needed**: after the removal there is one `_Unwind_Find_FDE` and `-u __register_frame_info` pulls the object that has it. |
@@ -66,20 +66,19 @@ hart takes a load access fault (`mcause` 5, `mtval` 0x2f0, a small offset from a
 analysed further) and loops in the trap stub: START but no verdict, which `run_tests.sh` reports as
 a hang.
 
-The hardware run (E51 and U54 on the Icicle Kit) is P1.14 (#55) and has **not** been done.
+On the Icicle Kit, `exceptions_test` passes on the E51 and on the U54 (`docs/lab/results/p1.md`).
 
 ## Not done, and why
 
 | Alternative | Status |
 |---|---|
-| (a) own `_Unwind_Find_FDE` that searches `__eh_frame_start` .. `__eh_frame_end` linearly (SPARK-suitable, no header, no `malloc`) | Not needed: the path of #48 works. It would save about 5.5 KiB of code (`unwind-dw2-fde.o`) and the dependency on `malloc`. The brackets and the zero word that it needs are in place and checked, so it can be added without touching the link. |
+| (a) own `_Unwind_Find_FDE` that searches `__eh_frame_start` .. `__eh_frame_end` linearly (SPARK-suitable, no header, no `malloc`) | Not needed: the path that was taken works. It would save about 5.5 KiB of code (`unwind-dw2-fde.o`) and the dependency on `malloc`. The brackets and the zero word that it needs are in place and checked, so it can be added without touching the link. |
 | (b) SJLJ | Not needed; a project decision that was not taken. |
 | `.eh_frame_hdr` by a linker script (`PT_GNU_EH_FRAME`-style table made by hand) | Not tried: the table must be sorted by address and is made by the linker, not by a script. |
 
-## Consequences for the plan
+## Consequences
 
-- #48 step 3 (`__libc_init_array`) and step 2 (`-lgcc` first) are replaced as in the table above; the acceptance
-  criterion on QEMU is met, the one on the hardware belongs to P1.14.
-- The registration is run by every hart that runs the image (`start.S`); P8 must restrict it to the first hart of the
-  mask.
+- The call of `__libc_init_array` (step 3) and `-lgcc` first (step 2) of the paper path are replaced as in the table above.
+- The registration is run by every hart that runs the image (`start.S`); an SMP runtime must restrict it to the first hart of the
+  mask (a second registration of the same object corrupts libgcc's list).
 - Adopting the v16 runtime sources keeps this design: the spec, the removal and `start.S` replace what v16 has.

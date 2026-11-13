@@ -1,27 +1,22 @@
 # `crates/mpfs_rts/`
 
 - **Purpose:** Runtime `mpfs_rts`; `kernel/` holds the M-mode kernel (TSF).
-- **Owning phase:** P1
 - **License:** the runtime sources and the packs made of them GPL-3.0-or-later WITH GCC-exception-3.1; the scripts of this directory are project code, Apache-2.0
 
 | Path | Content |
 |---|---|
-| `packs.sha256` | The hashes of the six runtime packs, one line `<sha256>  <profile>-<hart>.tar` each: the SHA-256 of the uncompressed tar stream. Committed; the packs are not. |
 | `build/rts/packs/<profile>-<hart>.tar.zst` | The six runtime packs (profile `light`, `light-tasking` or `embedded`; hart class `e51` or `u54`), generated, not committed (`build/` is git-ignored). Each is the source text of one runtime made by `crates/bb-runtimes/build_rts.py`: `gnat/`, `gnarl/`, `runtime.xml`, the project files, `COPYING3`, `COPYING.RUNTIME`; no objects. |
-| `make_packs.sh` | `--ensure` (re)generates the packs in `build/rts/packs` that are missing or do not match `packs.sha256`; `--check` regenerates all six into a temporary directory and fails unless every hash equals `packs.sha256`; `--update` regenerates and writes `packs.sha256`. `--out DIR` and `--hashes FILE` name other locations. Exit status 0 ok, 1 difference (`--check`), 2 set-up error. Needs GNU tar, zstd, python3 and sha256sum. |
 | `compare_toolchain.sh` | Compares `gnat/` and `gnarl/` of the packs (after `make_packs.sh --ensure`, or `--packs DIR`) with the runtimes shipped with the pinned `gnat_riscv64_elf` (`light-polarfiresoc` and so on, `light-rv64imac`): everything that is not a port unit must be identical. |
-| `gen_runtime.sh` | `gen_runtime.sh <profile> <hart> <cpus> <priv>` builds one variant of the runtime into `build/rts/<profile>-<hart>-cpus<n>-<priv>/` (see below). |
 | `gen_intnam.py` | `gen_intnam.py [--check]` writes `mpfs/gnarl/a-intnam.ads` (`Ada.Interrupts.Names`) from the merged SVD and `svd/additions/local_interrupts.yaml`; `--check` (CI) fails unless the committed file is what the generator makes. See "Interrupt names". |
-| `mpfs_rts.gpr` | Abstract project: `Runtime_Path` and `Target` from the scenario variables `MPFS_PROFILE`, `MPFS_HART`, `MPFS_CPUS`, `MPFS_PRIV` (and `MPFS_RTS_ROOT` for the root of the variants). |
-| `mpfs/` | Own port units, laid over the pack by `gen_runtime.sh` (`gnat/`, `gnarl/` below it): `gnat/start.S`, `gnat/s-bbbopa.ads`, `gnat/s-textio.ad[sb]` (the console, see below), `gnarl/s-bbripl.ad[sb]`, `gnarl/s-bbsuti.adb`, `gnarl/s-bbhart.ad[sb]` and `gnarl/s-bbricl.ad[sb]`, `gnarl/context_switch.S` and `gnat/riscv_def.h`, `gnarl/s-bbbosu.adb`. `mpfs/remove.list` names the files of the pack that an own unit replaces under another name (`gnat/start-ram.S`) or that must stay out of the library (`embedded: gnat/unwind-dw2-fde-bb.c`: a line `<profile>: <path>` applies to that profile's pack only). |
-
-| `overlays/<name>/` | Overlays, laid over the pack after the port units (`gnat/`, `gnarl/`, `ld/` below each, and `<profile>/gnat`, `<profile>/gnarl`, `<profile>/ld` for that profile only). `overlays/tlsf/embedded/gnat/` is the heap of the embedded profile (see "Heap and secondary stack"). |
-| `ld/` | The linker scripts (P1.3): `mpfs-memory.ld`, `place-lim.ld`, `place-scratchpad.ld`, `place-envm.ld`, `sections.ld` (the shared `SECTIONS`) and `app-sections.ld` (the empty hook of the application). `gen_runtime.sh` puts them into `ld/` of every variant. |
-| `mpfs_link.gpr` | Abstract project with the link switches of an image: the placement script of the variant (`MPFS_PLACEMENT`, the memory profile), the hook of the application (`MPFS_APP_LD`) and the partition data as `--defsym` values, which it takes from `MPFS_DEFSYMS`: the list of link symbols that `config/gen/standalone.py` writes and `./x build` passes (contract: `config/README.md`). |
-| `overlays/<name>/` | Overlays, laid over the pack after the port units (`gnat/`, `gnarl/`, `ld/` below each). The directory does not exist yet. |
+| `gen_runtime.sh` | `gen_runtime.sh <profile> <hart> <cpus> <priv>` builds one variant of the runtime into `build/rts/<profile>-<hart>-cpus<n>-<priv>/` (see below). |
 | `ld/` | The linker scripts: `mpfs-memory.ld`, `place-lim.ld`, `place-scratchpad.ld`, `place-envm.ld`, `sections.ld` (the shared `SECTIONS`) and `app-sections.ld` (the empty hook of the application, where code and data for the ITIM and DTIM are placed: see "ITIM and DTIM"). `gen_runtime.sh` puts them into `ld/` of every variant. |
+| `link-zcx.spec` | The link spec of the `embedded` profile (zero-cost exceptions): `crti.o crtbegin.o` before and `-u __register_frame_info crtend.o crtn.o` after the link, no `--eh-frame-hdr`. `gen_runtime.sh` puts it into the embedded variants in place of the spec of the pack (see "Zero-cost exceptions"). |
+| `make_packs.sh` | `--ensure` (re)generates the packs in `build/rts/packs` that are missing or do not match `packs.sha256`; `--check` regenerates all six into a temporary directory and fails unless every hash equals `packs.sha256`; `--update` regenerates and writes `packs.sha256`. `--out DIR` and `--hashes FILE` name other locations. Exit status 0 ok, 1 difference (`--check`), 2 set-up error. Needs GNU tar, zstd, python3 and sha256sum. |
+| `mpfs/` | Own port units, laid over the pack by `gen_runtime.sh` (`gnat/`, `gnarl/` below it): `gnat/start.S`, `gnat/s-bbbopa.ads`, `gnat/s-textio.ad[sb]` (the console, see below), `gnarl/s-bbripl.ad[sb]`, `gnarl/s-bbsuti.adb`, `gnarl/s-bbhart.ad[sb]` and `gnarl/s-bbricl.ad[sb]`, `gnarl/context_switch.S` and `gnat/riscv_def.h`, `gnarl/s-bbbosu.adb`. `mpfs/remove.list` names the files of the pack that an own unit replaces under another name (`gnat/start-ram.S`) or that must stay out of the library (`embedded: gnat/unwind-dw2-fde-bb.c`: a line `<profile>: <path>` applies to that profile's pack only). |
 | `mpfs_link.gpr` | Abstract project with the link switches of an image: the placement script of the variant (`MPFS_PLACEMENT`, the memory profile), the hook of the application (`MPFS_APP_LD`) and the partition data as `--defsym` values, which it takes from `MPFS_DEFSYMS`: the list of link symbols that `config/gen/standalone.py` writes and `./x build` passes (contract: `config/README.md`). |
-| `link-zcx.spec` | The link spec of the `embedded` profile (P1.7, R8): `crti.o crtbegin.o` before and `-u __register_frame_info crtend.o crtn.o` after the link, no `--eh-frame-hdr`. `gen_runtime.sh` puts it into the embedded variants in place of the spec of the pack (see "Zero-cost exceptions"). |
+| `mpfs_rts.gpr` | Abstract project: `Runtime_Path` and `Target` from the scenario variables `MPFS_PROFILE`, `MPFS_HART`, `MPFS_CPUS`, `MPFS_PRIV` (and `MPFS_RTS_ROOT` for the root of the variants). |
+| `overlays/<name>/` | Overlays, laid over the pack after the port units (`gnat/`, `gnarl/`, `ld/` below each, and `<profile>/gnat`, `<profile>/gnarl`, `<profile>/ld` for that profile only). `overlays/tlsf/embedded/gnat/` is the heap of the embedded profile (see "Heap and secondary stack"). |
+| `packs.sha256` | The hashes of the six runtime packs, one line `<sha256>  <profile>-<hart>.tar` each: the SHA-256 of the uncompressed tar stream. Committed; the packs are not. |
 | `port_units.list` | The board files that may differ from the toolchain's runtimes, with their source in `crates/bb-runtimes`. |
 
 ## Packs and their hashes
@@ -60,7 +55,7 @@ A difference outside the list fails; on a deviation prefer the source from the t
 ## Variant build
 
 `gen_runtime.sh <profile> <hart> <cpus> <priv>` (profile `light`, `light-tasking` or `embedded`; hart `e51` or `u54`; cpus `1`; priv `m`:
-SMP is P8 and U mode P7, so other values are refused) does this:
+the runtime is single-CPU and runs in M mode, so other values are refused) does this:
 
 1. gets the pack with `make_packs.sh --ensure --cells <profile>-<hart>` (`build/rts/packs/<profile>-<hart>.tar.zst`, generated only if it is missing, unreadable or does not have its hash in `packs.sha256`; about 20 s then, nothing otherwise) and unpacks it into a work directory next to the result;
 2. deletes the files that `mpfs/remove.list` names, lays the own port units (`mpfs/`) and then the overlays (`overlays/<name>/`, in the order of their names) over the pack: `gnat/*` and `gnarl/*` replace or add sources, `ld/*` goes to `ld/` (and `<overlay>/<profile>/gnat`, `gnarl` and `ld` the same for that profile only: the heap is the overlay of the embedded profile); then the register packages the port units use (`MPFS_Registers`, `MPFS_Registers.PLIC` and `MPFS_Registers.CLINT` of `libs/mpfs_pac/src/generated`, byte for byte: an application that compiles the PAC itself has the same units, and the binder compares their checksums) go to `gnat/`: they are compiled into `libgnat.a` and are in `adainclude/`, and the PAC is their only source. The PAC is not committed, only its hash (`libs/mpfs_pac/MPFS_Registers.sha256`), like the packs: unless `--pac-dir DIR` names a directory, which is then used as it is and never generated, `gen_runtime.sh` first runs `tools/pac.sh ensure` (what `./x pac ensure` does: nothing if `libs/mpfs_pac/src/generated` has the recorded hash, otherwise a generation with the pinned svd2ada, `./x toolchain install pac`; `--check` does not generate: a missing package is "not up to date"). The pack compiles with `-gnatg`, whose style check rejects the 90-character header line of the generated files, so `gen_runtime.sh` adds `-gnatyM120` (line length 120, the other style checks stay) to the `ADAFLAGS` of the pack's `target_options.gpr`; then the linker scripts of `ld/` of this crate go to `ld/` of the variant;
@@ -76,11 +71,11 @@ An application selects the variant with `mpfs_rts.gpr`:
        for Target use Mpfs_Rts.Target;
        for Runtime ("Ada") use Mpfs_Rts.Runtime_Path;
 
-`./x build` does that for an example whose `example.conf` has `RUNTIME=mpfs_rts` (`PROFILE=` is the profile for `-P auto`): it sets the four variables (`MPFS_CPUS` is the number of harts of `--harts`, 1 without), calls `gen_runtime.sh` and then `gprbuild`. `examples/tasking_test` is the minimal example for this (a periodic task and an environment task, no output); the real test of P1.13 replaces it.
+`./x build` does that for an example whose `example.conf` has `RUNTIME=mpfs_rts` (`PROFILE=` is the profile for `-P auto`): it sets the four variables (`MPFS_CPUS` is the number of harts of `--harts`, 1 without), calls `gen_runtime.sh` and then `gprbuild`. `examples/tasking_test` is the minimal example for this.
 
 Reproducibility: the switches are not recorded in the debug info (`-gno-record-gcc-switches`) and the paths of the sources are mapped to `./build/rts/<variant>/adainclude` (relative to the repository root, like `ADA_MPFS_SDK` for the examples), so an image linked with a variant does not depend on the directory of the checkout; `./x repro` covers `tasking_test`.
 
-Known limit of this step: the build mode `Production` keeps the `-gnatp` of the pack's `target_options.gpr` (the plan wants no `-gnatp` outside the TSF: that is a change of the fork, not of the build).
+Known limit of this step: the build mode `Production` keeps the `-gnatp` of the pack's `target_options.gpr` (`-gnatp` is not wanted outside the TSF: that is a change of the fork, not of the build).
 
 ## Start code and linker base
 
@@ -94,9 +89,9 @@ Start, in this order:
 5. `mstatus.FS` (U54 images)
 6. the constructor arrays (`.preinit_array`, then `.init_array`, called in order with no arguments)
 7. `main`
-8. then `__gnat_exit`, which resets the MSS on a primary image and halts on a secondary one. A hart whose bit is clear in `__mpfs_harts_mask` is parked in `wfi`; on a primary image with `mie.MSIE` set (prepared for the release of P8), on a secondary image without it.
+8. then `__gnat_exit`, which resets the MSS on a primary image and halts on a secondary one. A hart whose bit is clear in `__mpfs_harts_mask` is parked in `wfi`; on a primary image with `mie.MSIE` set (prepared for a runtime that releases the other harts with a software interrupt; none does yet), on a secondary image without it.
 
-**Deliberate deviation (hart gate):** foreign harts are parked on every image, also on a secondary one. Step 1.3 of the work package (#44) and the reference runtime gate on the primary image only. But QEMU's reset code sends every hart to the entry point and has no hart gate of its own, so an ungated secondary image would run on all harts; on hardware only the release of the right hart reaches it and the gate costs nothing. The cost: a foreign hart reaching a secondary image has its `mtvec`, `mie` and `mstatus.MIE` written, as every hart does before the gate.
+**Deliberate deviation (hart gate):** foreign harts are parked on every image, also on a secondary one. The reference runtime gates on the primary image only. But QEMU's reset code sends every hart to the entry point and has no hart gate of its own, so an ungated secondary image would run on all harts; on hardware only the release of the right hart reaches it and the gate costs nothing. The cost: a foreign hart reaching a secondary image has its `mtvec`, `mie` and `mstatus.MIE` written, as every hart does before the gate.
 
 **Memory initialisation:** the LIM is ECC memory that is uninitialised at power-up, so every store of the start code and of the trap stub is a whole 64-bit word (the trap record is written with 64-bit stores only), and `start.S` clears `.bss`, the interrupt stacks and the stack of the environment task (a partial store into a never-written word is a read-modify-write of garbage; on hardware it would show as an ECC fault). `.noinit` and the heap are deliberately not cleared: whether the LIM needs zeroing as a whole is a hardware question (see "Heap and secondary stack"; the Icicle Kit runs answer it).
 
@@ -104,9 +99,9 @@ The trap stub handles every trap until the runtime installs its own handler. It 
 
 | Placement | Code and read-only data | `.data` (VMA / LMA) | `.bss`, stacks, heap, trap record | For |
 |---|---|---|---|---|
+| `place-envm.ld` | `envm` | `l2lim` / `envm` (start.S copies) | `l2lim` | the bootloader only |
 | `place-lim.ld` | `l2lim` | `l2lim` / `l2lim` | `l2lim` | the first boot: no L2 or DDR set-up |
 | `place-scratchpad.ld` | `scratchpad` | `scratchpad` / `scratchpad` (the boot stage loads it) | `scratchpad` | scratchpad ways; no scratchpad in QEMU: build-only there |
-| `place-envm.ld` | `envm` | `l2lim` / `envm` (start.S copies) | `l2lim` | the bootloader only |
 
 `sections.ld` is the shared `SECTIONS`; a placement binds the region names `REGION_TEXT`, `REGION_DATA`, `REGION_DATA_LOAD`, `REGION_RAM`, `REGION_FAST_TEXT`, `REGION_FAST_DATA` and `REGION_FAST_LOAD` to the regions of `mpfs-memory.ld` (literal `ORIGIN`s, `LENGTH`s from `MPFS_*_LENGTH`). Notes:
 
@@ -118,14 +113,14 @@ The trap stub handles every trap until the runtime installs its own handler. It 
 
 ## ITIM and DTIM
 
-**Decision: the application owns the sections.** `.fast_text` (code that runs from the ITIM) and `.fast_data` (data in the DTIM, E51 only) are not declared by the runtime but by the application's own `app-sections.ld`, the hook that `sections.ld` includes. The runtime provides what only it can: the copy step and the check, `start_fast.S`, driven by six symbols that the application's sections define. The alternative, sections in the shared `sections.ld` with the copy step added to `start.S`, was rejected because it makes the runtime decide what an application puts in tightly integrated memory: the sections would exist (empty) in every image, a name and a memory region would be fixed for all applications, and an application that wants other names or a second region would have to fight the script. The rule is the one of the reference runtime, whose contract document (ada-machine `CONTRACT.md`, lines 736-760, as quoted in #52) says that the runtime must not declare sections for what an application chooses to put there, and that an earlier spike got this wrong twice. That document is not in this repository and could not be read here; the decision rests on the quotation in the issue and on the same rule being the reason for the hook.
+**Decision: the application owns the sections.** `.fast_text` (code that runs from the ITIM) and `.fast_data` (data in the DTIM, E51 only) are not declared by the runtime but by the application's own `app-sections.ld`, the hook that `sections.ld` includes. The runtime provides what only it can: the copy step and the check, `start_fast.S`, driven by six symbols that the application's sections define. The alternative, sections in the shared `sections.ld` with the copy step added to `start.S`, was rejected because it makes the runtime decide what an application puts in tightly integrated memory: the sections would exist (empty) in every image, a name and a memory region would be fixed for all applications, and an application that wants other names or a second region would have to fight the script. The rule is the one of the reference runtime, whose contract document (ada-machine `CONTRACT.md`, lines 736-760, as it was quoted when the feature was designed) says that the runtime must not declare sections for what an application chooses to put there, and that an earlier spike got this wrong twice. That document is not in this repository and could not be read here; the decision rests on that quotation and on the same rule being the reason for the hook.
 
 The contract between the hook and `start_fast.S`, for the kinds `text` (ITIM) and `data` (DTIM):
 
 | Symbol | Meaning |
 |---|---|
-| `__fast_<kind>_start`, `__fast_<kind>_end` | the run address range, multiples of 8 (`ASSERT`) |
 | `__fast_<kind>_load` | where the image holds the bytes, a multiple of 8 (`ASSERT`; above `_start` of the image like every loaded section) |
+| `__fast_<kind>_start`, `__fast_<kind>_end` | the run address range, multiples of 8 (`ASSERT`) |
 
 The names `REGION_FAST_TEXT` (`local_itim`), `REGION_FAST_DATA` (`dtim`) and `REGION_FAST_LOAD` (the load region of the placement) are bound by the placement scripts and visible to the hook, so a hook usually reads
 
@@ -147,7 +142,7 @@ The names `REGION_FAST_TEXT` (`local_itim`), `REGION_FAST_DATA` (`dtim`) and `RE
 2. The 64-bit word `0x4954494d4954494d` is stored to the first and to the last word of the run range and read back. Whether the ITIM or DTIM ways are enabled is the business of the boot stage, not of this code; a range that is not backed by memory raises a store access fault (QEMU, and the board where the access is not answered) or reads back something else. Both end in the rejection below, before anything has been copied.
 3. `mtvec` goes back to the trap stub, the bytes are copied from the load address to the run address in 64-bit units (nothing if the two are the same), and `fence.i` makes the hart fetch what it has stored.
 
-**The rejection** does not return. It writes the 32 bytes at `__mpfs_trap_record` (the same place and the same hook as the trap stub, so a debugger finds it where it looks for a trap): `+0` the kind (1 = `.fast_text`, 2 = `.fast_data`), `+8` the address that failed (`mtval` of the fault, or the word that read back wrongly), `+16` `mcause` of the fault (7, store access fault) or all ones if the word read back wrongly, `+24` the magic `0x4d495449` ("ITIM" in ASCII, low word) and `mhartid` (high word). Then it jumps to `__mpfs_early_trap_hook` if the image defines one (the test seam, with the address of the record in `a0`) and halts otherwise. This replaces the silent crash of an image with code in the ITIM that nobody enabled (defect no. 15, `hello_mpfs`): now the image stops at the first instruction with a record that says which range is missing.
+**The rejection** does not return. It writes the 32 bytes at `__mpfs_trap_record` (the same place and the same hook as the trap stub, so a debugger finds it where it looks for a trap): `+0` the kind (1 = `.fast_text`, 2 = `.fast_data`), `+8` the address that failed (`mtval` of the fault, or the word that read back wrongly), `+16` `mcause` of the fault (7, store access fault) or all ones if the word read back wrongly, `+24` the magic `0x4d495449` ("ITIM" in ASCII, low word) and `mhartid` (high word). Then it jumps to `__mpfs_early_trap_hook` if the image defines one (the test seam, with the address of the record in `a0`) and halts otherwise. This replaces the silent crash of an image with code in the ITIM that nobody enabled (as `hello_mpfs` of the earlier project did): now the image stops at the first instruction with a record that says which range is missing.
 
 **Not here:** enabling the ITIM and DTIM ways (the boot stage), and the choice of the ITIM size: `MPFS_LOCAL_ITIM_LENGTH` and `MPFS_DTIM_LENGTH` size the regions of `mpfs-memory.ld`; `mpfs_link.gpr` sets both to 0, so an application that places code in the ITIM gives them with a later `-Wl,--defsym` in its own linker switches (`examples/itim_reject_test/app.gpr`: 8 KB each, the size of the E51; the last definition wins), and with 0 the link fails with ``region `local_itim' overflowed`` instead of producing an image that could not run. `MPFS_LOCAL_ITIM_ORIGIN` is that of the E51 (`0x0180_0000`); a U54 ITIM is another origin and length (`mpfs-memory.ld`).
 
@@ -157,15 +152,15 @@ The names `REGION_FAST_TEXT` (`local_itim`), `REGION_FAST_DATA` (`dtim`) and `RE
 
 The E51 is `-march=rv64imac_zicsr_zifencei -mabi=lp64` (the pack's `light`, `light-tasking` and `embedded` runtimes for `e51`), so every floating-point operation is a call into libgcc, `Sqrt` of `Ada.Numerics.Elementary_Functions` is the software square root of the Ada math sources of the pack (`s-lidosq.adb`, `s-lisisq.adb`: reciprocal square root by Newton-Raphson, within 2 ulp), the trap frame has no f registers (256 bytes) and the task context no `fs0` - `fs11`; all of it is described and checked under "Context switch, FPU and trap frame". The `libgnat-patched` of the reference runtime, which carries a software `sqrt`, is not needed. `tests/host/rts_itim` builds `examples/float_test` for both hart classes and checks that the E51 image has the soft-float ABI, has no instruction on an f register and links a square root, and that the U54 image has `fsqrt.d` (so the check can see such an instruction); `examples/float_test` runs on both under QEMU.
 
-## PLIC and CLINT (P1.4)
+## PLIC and CLINT
 
 Nothing in the runtime names a hart. The id of the executing hart is `mhartid`, read at run time by `System.BB.Hart.Id` (`gnarl/s-bbhart.ad[sb]`); the PLIC context and the timer of that hart follow from it. The old literals are gone: `PLIC_Hart_Id` and `GDB_First_CPU_Id` of `s-bbbopa.ads` (the first CPU id of the debugger is the constant of the linker script, see above) and the `mtimecmp` offset `16#4008#`.
 
 | Unit | Content |
 |---|---|
 | `s-bbbopa.ads` | `System.BB.Board_Parameters`: the clock (1 MHz `mtime`). The console is not here: see "Console". The bases and the layout of the PLIC and the CLINT are the PAC's (`MPFS_Registers.PLIC_Base`, `.CLINT_Base`), not repeated here. |
+| `s-bbricl.ad[sb]` | `System.BB.RISCV_CLINT`: `Mtime`, `Mtimecmp (Hart)` and `Set_Mtimecmp` (`0x4000 + 8 * Hart`, one 64-bit access), `MSIP (Hart)` and `Clear_MSIP (Hart)` (`4 * Hart`; no SMP runtime uses them yet). |
 | `s-bbripl.ad[sb]` | `System.BB.RISCV_PLIC`: `Context_Of (Hart)` (hart 0 is context 0, hart n is context 2n-1: the E51 has no S mode, every U54 has M and S); enable block, threshold and claim/complete of the context. The registers are the PAC types (`ENABLE_H0_M_Registers`, `THRESHOLD_H0_M_Register`: 32 bits, `Volatile_Full_Access`) at "the address of the registers of context 0 plus context times the distance between context 0 and context 1", taken from the PAC components themselves (`Enable_Address`, `Threshold_Address` and `Claim_Address (Hart)` export them; `examples/interrupt_test` compares them with the named registers `ENABLE_H<n>_M` and so on for all five harts). One 32-bit access per register, loops per word, no aggregate: a 64-bit store to the PLIC is an error of the SoC (and of QEMU). `Initialize` resets only the own context: threshold (7 while it works, then 0), enables, an open claim. It does not clear the priorities (later `mpfs_boot` sets them statically) and does not touch the enables, thresholds or sources of other harts, which in an AMP system are theirs. |
-| `s-bbricl.ad[sb]` | `System.BB.RISCV_CLINT`: `Mtime`, `Mtimecmp (Hart)` and `Set_Mtimecmp` (`0x4000 + 8 * Hart`, one 64-bit access), `MSIP (Hart)` and `Clear_MSIP (Hart)` (`4 * Hart`; for P8). |
 | `s-bbsuti.adb` | `Board_Support.Time`: `Read_Clock` from `Mtime`, `Set_Alarm` and `Clear_Alarm_Interrupt` write the `mtimecmp` of the executing hart, with one 64-bit store (RV64) instead of the three-word sequence of RV32. The tickless logic is described under "Tick and idle" below. |
 
 `tools/check_plic_stores.py` disassembles objects, libraries or images with the pinned `riscv64-elf-objdump` and fails if it finds a 64-bit store (`sd`, `fsd`, `amo*.d`, `sc.d`) whose base register holds an address of the window `0x0C00_0000` .. `0x1000_0000` of the PLIC: a register is "in the window" after a `lui` into it and stays so through the arithmetic that builds an address (`addi`, `add`, `slli`, `mv`, ...), a load or `csrr` gives an ordinary value, the analysis follows the branches of a function (also the back edge of a loop) and ends at a call (limit: an address that a called function returns is not followed), and stores through `sp` are stack accesses. The real compiler does write `Enables := (others => 0)` for an array of PLIC registers with three `sd`: `tests/host/rts_plic/fixtures/aggregate.adb` is the proof, and the suite `tests/host/rts_plic` runs the check over the six runtime variants and over the images of `interrupt_test` and `tasking_test`, with assembler fixtures that must fail (constant base, base computed from a hart, base set at the end of a loop, atomic, floating-point store, edge of the window) and that must pass.
@@ -173,14 +168,14 @@ Nothing in the runtime names a hart. The id of the executing hart is `mhartid`, 
 **QEMU and the harts.** The default of QEMU's `microchip-icicle-kit` has the E51 and one U54 (`-smp 2`; `info cpus` shows `CPU #0 sifive-e51` and `CPU #1 sifive-u54`). An image linked for hart 2 to 4 would be started on a machine without that hart and print nothing. `tests/qemu/run_tests.sh` and `./x qemu` pass `-smp 5`. Its PLIC has the contexts `M, MS, MS, MS, MS` (context 0 is hart 0, context 2n-1 the M mode of hart n) and its CLINT the `mtimecmp` at `0x4000 + 8 * hart`, as the SoC does; both accept 32-bit accesses to the PLIC only.
 
 
-## Context switch, FPU and trap frame (P1.5)
+## Context switch, FPU and trap frame
 
 | Hart class | `-march` / `-mabi` | f registers | Task context (`__gnat_context_switch`) | Trap frame (`__gnat_trap_entry`) |
 |---|---|---|---|---|
 | E51 | `rv64imac_zicsr_zifencei` / `lp64` (`__riscv_float_abi_soft`) | none | `ra`, `sp`, `s0` - `s11` | 256 bytes: `x1` - `x31` |
 | U54 | `rv64imafdc_zicsr_zifencei` / `lp64d` | `f0` - `f31`, `mstatus.FS` set by `start.S` | the same and `fs0` - `fs11` (offsets 112 to 200 of the context) | 512 bytes: `x1` - `x31` and `f0` - `f31` |
 
-**Defect no. 1 (FP context), fixed in `mpfs/gnarl/context_switch.S`.** The upstream fil
+**Defect of the upstream FP context switch, fixed in `mpfs/gnarl/context_switch.S`.** The upstream fil
 (`riscv/src/context_switch.S` of bb-runtimes `v15.1.0-1` @ 09e7cd6) saves
 `fs0` - `fs11` to the context of the outgoing task (`t0`, the address that `LREG t0, 0(a0)` read) and then restores them
 with `FLREG fs0, 14*REGBYTES(t0)`, again from the outgoing context; the integer registers are restored from `a1`, the
@@ -197,7 +192,7 @@ from `gnat-fsf-15` or `gnat-fsf-16`, and can go when they contain `86367b9`. Thi
 `examples/fp_context_test` is the regression test:
 with the upstream restore all twelve registers of all three of its tasks are lost, with the fix none.
 
-**`fcsr` is not part of the task context (decision of P1.5).** Saving it would cost two instructions for the save and two
+**`fcsr` is not part of the task context.** Saving it would cost two instructions for the save and two
 for the restore (`csrr`, `sd`; `ld`, `csrw`), one more word in `Context_Buffer`, and an initial value for a new task.
 Against that stands what `fcsr` holds:
 
@@ -223,14 +218,14 @@ runtime (`__interrupt_stack_size`) hold nested frames of that size.
 
 Known limit: `Context_Buffer` (`s-bbcpsp.ads`, upstream, not an own unit) always has the twelve `FS` words, so on the E51
 each task context carries 96 bytes that nothing uses; the assembly code does not touch them. A conditional record would
-need an own `s-bbcpsp.ads`, which is not worth 96 bytes per task for the E51 images of P1 (it can be done together with a
+need an own `s-bbcpsp.ads`, which is not worth 96 bytes per task for the E51 images (it can be done together with a
 per-task `fcsr`).
 
 `tests/host/rts_context` checks all of it on the disassembly of the real objects (the twelve `fsd` and the twelve `fld`, the
 frame sizes, the slots, no f instruction on the E51, a control that fails on the upstream file); `examples/fp_context_test`
 (U54) and `examples/float_test` (E51 and U54) run under QEMU.
 
-## Tick and idle (P1.6)
+## Tick and idle
 
 There is no periodic tick. `System.BB.Time` (common GNARL code) computes the next alarm of the hart (the earliest delayed task or timing event, `Time'Last` if none) and calls `Board_Support.Time.Set_Alarm`; its alarm handler calls `Clear_Alarm_Interrupt` first and then `Set_Alarm` with the next alarm. `s-bbsuti.adb` implements this on the CLINT:
 
@@ -242,12 +237,12 @@ There is no periodic tick. `System.BB.Time` (common GNARL code) computes the nex
 
 **Idle.** `s-bbbosu.adb` is the upstream unit with `Power_Down` = `wfi` (the upstream body is `null`: the idle task would poll). `System.Task_Primitives.Operations.Idle` calls it in a loop with `mstatus.MIE` set and the PLIC threshold at 0; the loop has no state, so there is no window between "decide to idle" and `wfi` in which a wake-up could be lost. `wfi` returns when an interrupt that is enabled in `mie` is pending (`MTIE` for the alarm, `MEIE` for the PLIC; `MSIE` is not enabled on a running hart, only on a parked one, see start code), whatever `mstatus.MIE` says; the trap is then taken, the scheduler switches to the task that became ready, and the idle task resumes after the `wfi` when nothing is ready. A `wfi` that returns without a pending interrupt (the architecture allows it) costs one more turn of the loop.
 
-**`Clock_Frequency` = 1 MHz** is `System.BB.Board_Parameters.Clock_Frequency` (`s-bbbopa.ads`: `Decrementer_Frequency` times `Clock_Scale`), the rate of `mtime` (the RTC clock, divided from the reference clock by `RTC_CLOCK_CR.PERIOD`: the reset value 100 gives 1 MHz for a 100 MHz reference clock, a 125 MHz one needs 125, see the SVD). `Ada.Real_Time.Time_Unit` is `1.0 / Clock_Frequency`. The generated partition package (P1.12, #53; in P1 the standalone default, from P2 the XML) has `Clocks.Rtc_Toggle_Hz` and states
+**`Clock_Frequency` = 1 MHz** is `System.BB.Board_Parameters.Clock_Frequency` (`s-bbbopa.ads`: `Decrementer_Frequency` times `Clock_Scale`), the rate of `mtime` (the RTC clock, divided from the reference clock by `RTC_CLOCK_CR.PERIOD`: the reset value 100 gives 1 MHz for a 100 MHz reference clock, a 125 MHz one needs 125, see the SVD). `Ada.Real_Time.Time_Unit` is `1.0 / Clock_Frequency`. The generated partition package is to have `Clocks.Rtc_Toggle_Hz` (the standalone default, later the clock of the configuration) and to state
 
     pragma Compile_Time_Error
       (Ada.Real_Time.Time_Unit * Clocks.Rtc_Toggle_Hz /= 1.0, "...");
 
-The package does not exist yet, so the check is exercised with its stand-in `examples/delay_accuracy_test/src/standalone_clocks.ads`: `tests/host/rts_tick` compiles it against the runtime variants with 1 MHz (compiles) and with 2 MHz, 999 999 Hz, 100 MHz and 32 768 Hz (rejected with the message), and against a copy of a variant whose `Clock_Frequency` is 2 MHz (rejected). What only the hardware can show is that `mtime` really runs at that rate (the GDB init sets `RTC_CLOCK_CR`, P1.14 compares `mtime` with `mcycle` and the CFM) and the accuracy of `delay until` (acceptance of #47: at most 2 ticks plus the interrupt latency; `DELAY_ACCURACY=hardware ./x build delay_accuracy_test`). A link-time form of the check (an `ASSERT` on a `--defsym` of the partition data in `ld/`) would be a new mandatory link symbol and is not part of the interface of #41 section 4.2; the compile-time check needs none.
+The generator does not write the clock yet, so the check is exercised with its stand-in `examples/delay_accuracy_test/src/standalone_clocks.ads`: `tests/host/rts_tick` compiles it against the runtime variants with 1 MHz (compiles) and with 2 MHz, 999 999 Hz, 100 MHz and 32 768 Hz (rejected with the message), and against a copy of a variant whose `Clock_Frequency` is 2 MHz (rejected). What only the hardware can show is that `mtime` really runs at that rate (the GDB init sets `RTC_CLOCK_CR`; the runs on the Icicle Kit compared `mtime` with `mcycle` and the CFM, see `docs/lab/results/p1.md`) and the accuracy of `delay until` (at most 2 ticks plus the interrupt latency; `DELAY_ACCURACY=hardware ./x build delay_accuracy_test`). A link-time form of the check (an `ASSERT` on a `--defsym` of the partition data in `ld/`) would be a new mandatory link symbol and is not part of the link-time interface (`config/README.md`); the compile-time check needs none.
 ## Console
 
 `System.Text_IO` (`mpfs/gnat/s-textio.adb`, replacing `s-textio__ns16550.adb`) is the console of all three profiles
@@ -258,9 +253,9 @@ are not in the library, so one runtime serves every console:
 | Symbol | Meaning |
 |---|---|
 | `__mpfs_console_base` | Base address of the MMUART (`MMUART0_LO_Base` to `MMUART4_LO_Base` of the PAC), or 0 for no console |
-| `__mpfs_console_init` | 1: `Initialize` programs the port; 0: the boot stage has done it and `Initialize` only records that the service is ready |
-| `__mpfs_console_dlr` | The integer baud rate divisor (16 bits: `DLR`, the low byte, and `DMR`, the high byte, of the divisor latch) |
 | `__mpfs_console_dfr` | The fractional divisor in 1/64 (0 to 63); the fractional baud rate mode (`MM0.EFBR`) is on for a value other than 0 |
+| `__mpfs_console_dlr` | The integer baud rate divisor (16 bits: `DLR`, the low byte, and `DMR`, the high byte, of the divisor latch) |
+| `__mpfs_console_init` | 1: `Initialize` programs the port; 0: the boot stage has done it and `Initialize` only records that the service is ready |
 
 - **Init 1.** `Initialize` (called by the first output of `GNAT.IO`) writes, in this order: `LCR` with `DLAB` set and 8 data
   bits, the divisor latches, `DFR` and `MM0.EFBR` (the other multi-mode bits stay as they are), `LCR` 8N1 with `DLAB` clear,
@@ -299,7 +294,7 @@ Tests: `examples/textio_test` (the console of the runtime: registers against the
 five MMUARTs, init 0), `examples/console_none_test`, and `tests/host/rts_boot` (the symbols in the images, a missing symbol
 fails the link).
 
-## Zero-cost exceptions (P1.7, R8)
+## Zero-cost exceptions
 
 Only the `embedded` profile propagates exceptions (`light` and `light-tasking` have no propagation). Its unwinder is
 the **registration-based unwinder of libgcc** (`unwind-dw2.o` and `unwind-dw2-fde.o` of `libgcc.a`), not the one of
@@ -321,10 +316,10 @@ embedded program fails to link with `unrecognized option '--eh-frame-hdr'`
 | `ld/sections.ld` | `.eh_frame` with `KEEP` between `__eh_frame_start` and `__eh_frame_end`; `.preinit_array`, `.init_array`, `.fini_array` with `KEEP` and their symbols; `.init` and `.fini`; `ASSERT`s for the 8-byte entries and the alignment of `.eh_frame`. The empty `.eh_frame` of `crtbegin.o` is the first input, so its `__EH_FRAME_BEGIN__` is `__eh_frame_start`, and the zero word of `crtend.o` ends the list. |
 | `mpfs/gnat/start.S` | Before `main`, a loop calls the entries of `.preinit_array` and `.init_array` (one run of entries, `ASSERT`ed in the script). `frame_dummy` of `crtbegin.o` is an entry of `.init_array`; it calls `__register_frame_info (__EH_FRAME_BEGIN__, &object)`, which only links the object into libgcc's list (no allocation). The first search (`_Unwind_Find_FDE`, at the first raise) sorts the FDEs with `malloc`; if that fails libgcc searches linearly, so a missing heap costs time and not correctness. |
 
-**Deviation from the work package.** Step 3 of #48 has `start.S` call `__libc_init_array`. The loop does the same
+**Deviation from the usual way.** The usual way is that `start.S` calls `__libc_init_array`. The loop does the same
 without libc: `light` and `light-tasking` link with `-nolibc`, where a call could not resolve, and a weak call to an
 undefined symbol resolves to address 0, out of the reach of `auipc`/`addi` from an image above `0x8000_0000` (DDR). The
-loop costs 16 to 32 bytes of code in every image (`metrics.golden`) and calls nothing where the arrays are empty. Step 2 has `-lgcc` first in the
+loop costs 16 to 32 bytes of code in every image (`metrics.golden`) and calls nothing where the arrays are empty. The usual spec also has `-lgcc` first in the
 start group; with the bb unwinder removed from the library and `-u __register_frame_info` that is not needed (the group
 of the upstream `runtime.xml` stays as it is).
 
@@ -333,15 +328,15 @@ libgcc, `crtbegin.o` (158 bytes of code, 56 of `.bss`, 8 of data, two array entr
 is linked (the unwinder's own part is 3.8 KiB; `exceptions_test_u54` has 11.9 KiB in all, of 63 KiB of code and
 constants) and the heap allocator (3.6 KiB of code and 6.5 KiB of `.bss` for the TLSF allocator, see "Heap and secondary stack"; newlib's `malloc` was about 4 KiB with its data). The images are in
 `metrics.golden`: `exceptions_test` 61.8 KiB (E51) and 63.1 KiB (U54) of `text` (code and constants), `unhandled_test` 48.2 and 49.5 KiB. A search
-function of our own (fallback (a) of the work package) would save the 5.5 KiB of `unwind-dw2-fde.o` and the `malloc`; it is not needed to make exceptions work.
+function of our own (alternative (a) of the design note) would save the 5.5 KiB of `unwind-dw2-fde.o` and the `malloc`; it is not needed to make exceptions work.
 
-**For other work packages.**
+**For later changes.**
 
 - Heap: libgcc calls `malloc` and `free` by name. `MPFS_Heap` of the TLSF heap defines both and newlib's allocator is
   not linked (see "Heap and secondary stack").
-- P8 (SMP): `start.S` runs the constructor arrays on every hart that runs the image. `frame_dummy` registers once; a
-  second registration of the same object corrupts libgcc's list. Only the first hart of the mask may run them.
-- The switch to the v16 runtime sources (#41, section 3a): its `link-zcx.spec` still passes `--eh-frame-hdr`, its start
+- SMP: `start.S` runs the constructor arrays on every hart that runs the image. `frame_dummy` registers once; a
+  second registration of the same object corrupts libgcc's list. An SMP runtime must let only the first hart of the mask run them.
+- The switch to the v16 runtime sources: its `link-zcx.spec` still passes `--eh-frame-hdr`, its start
   code calls `__libc_init_array`. This crate's spec, `remove.list` and `start.S` replace both; `gen_runtime.sh` stops
   with a message if the pack no longer has `gnat/unwind-dw2-fde-bb.c`.
 - The unhandled exception ends in `Ada.Exceptions.Last_Chance_Handler`: it prints with `System.IO` and calls
