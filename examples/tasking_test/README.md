@@ -1,11 +1,10 @@
 # tasking_test
 
-The tasking runtime of `crates/mpfs_rts` runs on the hart of the image: the timer of that hart wakes tasks up. Until
-work package P1.4 the runtime had hart 1 hard-wired (its `mtimecmp` at `0x4008`, its PLIC context) and this program
-only had to link; since then the timer is `mtimecmp (mhartid)` and the test runs under QEMU on hart 0 (E51), hart 1 and
-hart 3 (U54). The program of P1.2 (a periodic task and an environment task that sleeps, no output) is now the test that
-reports with `Test_Report`; the full test of work package P1.13 (`delay_accuracy_test`, `protected_test`, ...) adds to
-it.
+The tasking runtime of `crates/mpfs_rts` runs on the hart of the image: the timer of that hart wakes tasks up. The
+upstream runtime had hart 1 hard-wired (its `mtimecmp` at `0x4008`, its PLIC context); here the timer is
+`mtimecmp (mhartid)` and the test runs under QEMU on hart 0 (E51), hart 1 and hart 3 (U54). It is a small test (a periodic
+task and an environment task that sleeps) that reports with `Test_Report`; `delay_accuracy_test` and `protected_test`
+test the timer and the protected objects in more depth.
 
 | Check | What it proves |
 |---|---|

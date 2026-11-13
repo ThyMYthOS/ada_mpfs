@@ -2,7 +2,7 @@
 --  SPDX-License-Identifier: Apache-2.0
 --
 --  Where the bytes of the receive test come from: the MMUART in loopback
---  (RX_SOURCE=loopback, the Icicle Kit, P1.14, #55).
+--  (RX_SOURCE=loopback, the Icicle Kit).
 
 package Rx_Source is
 

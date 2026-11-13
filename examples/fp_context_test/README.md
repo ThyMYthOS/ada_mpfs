@@ -1,6 +1,6 @@
 # fp_context_test
 
-Regression test for defect no. 1 of the master plan (work package P1.5 of #41): the callee-saved floating-point registers
+Regression test for a defect of the upstream runtime: the callee-saved floating-point registers
 `fs0` - `fs11` belong to the task. The upstream `context_switch.S` saved them to the context of the outgoing task and
 then loaded them from the same context (`t0`) instead of the one of the incoming task (`a1`): every task that was
 switched in got the registers of the task that was switched out. U54 only: the E51 has no FPU, its context and its trap

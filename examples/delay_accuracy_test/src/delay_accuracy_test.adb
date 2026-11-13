@@ -1,8 +1,7 @@
 --  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 --  SPDX-License-Identifier: Apache-2.0
 --
---  delay_accuracy_test: the tickless timer and the idle of the runtime
---  (master plan #41, work package P1.6, #47).
+--  delay_accuracy_test: the tickless timer and the idle of the runtime.
 --
 --    - mtimecmp of the own hart is the next alarm and nothing else: the
 --      maximum (disarmed) at the start, the alarm of the delay while the main
@@ -10,7 +9,7 @@
 --      clear whenever no alarm is due (no spurious tick);
 --    - a delay until never returns early, and its deviation from the
 --      requested instant, read from mtime, is within
---      Accuracy_Limits.Max_Late_Ticks (the acceptance of #47 on the board:
+--      Accuracy_Limits.Max_Late_Ticks (on the board:
 --      2 ticks plus the interrupt latency; under QEMU only a loose bound,
 --      because mtime follows the host's clock); mcycle gives it in cycles;
 --    - a delay until in the past returns at once and arms nothing, a timing
@@ -25,8 +24,8 @@
 --
 --  Reported with Test_Report as delay_accuracy_test_e51,
 --  delay_accuracy_test_u54 (hart 1) or delay_accuracy_test_u54h2 .. 4, the
---  rows of tests/qemu/tests.list. On the board (P1.14) it is built with
---  DELAY_ACCURACY=hardware; QEMU is the "-" column of the test table of #41.
+--  rows of tests/qemu/tests.list. On the board it is built with
+--  DELAY_ACCURACY=hardware; under QEMU only the accuracy bound is loose.
 --
 --  @verifies RTS-009, RTS-010
 

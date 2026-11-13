@@ -1,7 +1,7 @@
 # float_test
 
-Floating point on both hart classes of the runtime `crates/mpfs_rts` (work package P1.5 of #41; the full `float_test` of
-P1.13 adds the profiles `light-tasking` and `embedded`). Linked with the `light` runtime.
+Floating point on both hart classes of the runtime `crates/mpfs_rts`. Linked with the `light` runtime; `float_tasking_test` and `float_embedded_test` run the checks with the
+`light-tasking` and the `embedded` profile.
 
 | | E51 | U54 |
 |---|---|---|

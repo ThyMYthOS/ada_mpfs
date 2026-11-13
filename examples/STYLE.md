@@ -14,11 +14,11 @@ variables
 
 | Variable | Values | Meaning |
 |---|---|---|
+| `MPFS_CPUS` | `1` | CPUs of the runtime variant: the number of harts of `--harts`, 1 without |
 | `MPFS_HART` | `e51`, `u54` | hart class of the image |
 | `MPFS_HARTS` | empty, or a U54 hart set (`2`, `1-4`, `1,3`) | harts of an SMP partition |
 | `MPFS_PRIV` | `m`, `u` | privilege model |
 | `MPFS_PROFILE` | `auto`, `light`, `light-tasking`, `embedded` | runtime profile (`auto` is replaced by the `PROFILE=` of `example.conf`, `light` without it, for an example with `RUNTIME=mpfs_rts`) |
-| `MPFS_CPUS` | `1` | CPUs of the runtime variant: the number of harts of `--harts`, 1 without |
 
 An example with `RUNTIME=mpfs_rts` also gets its partition data. `./x build` runs `config/gen/standalone.py` with the
 parameters of the build (`--console`, `--console-init`, `--memory`, `--role`, `--stack-size`, `--interrupt-stack-size`,

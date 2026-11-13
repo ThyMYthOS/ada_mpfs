@@ -6,9 +6,9 @@ size that the caller does not know (a `String` of a computed length). See "Secon
 
 | Example | Profile | Default size | An overflow ends |
 |---|---|---|---|
-| `secstack_test` | `embedded` | 16 KiB | in `Storage_Error`, which the test handles; a task has the size of its `Secondary_Stack_Size` aspect (4096) |
-| `secstack_tasking_test` | `light-tasking` | 8 KiB | in the last chance handler of the test (the profile does not propagate exceptions) |
 | `secstack_light_test` | `light` | 16 KiB | in the last chance handler of the test |
+| `secstack_tasking_test` | `light-tasking` | 8 KiB | in the last chance handler of the test (the profile does not propagate exceptions) |
+| `secstack_test` | `embedded` | 16 KiB | in `Storage_Error`, which the test handles; a task has the size of its `Secondary_Stack_Size` aspect (4096) |
 
 The sources are shared: `secstack_test/src` has `Secstack_Cases` (the functions with a result of unknown size and
 `Exhaust`), `Secstack_Worker` (the task, whose body for `light-tasking` is in `secstack_tasking_test/src`) and

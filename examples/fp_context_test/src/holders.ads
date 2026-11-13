@@ -13,7 +13,7 @@
 --           from the trap) and gives it back the same way.
 --
 --  With the restore of context_switch.S from the context of the outgoing
---  task (the upstream defect, master plan appendix A no. 1) every task that
+--  task (the upstream defect) every task that
 --  is switched in finds the registers of the one that was switched out, and
 --  A, B and Spin report a mismatch.
 

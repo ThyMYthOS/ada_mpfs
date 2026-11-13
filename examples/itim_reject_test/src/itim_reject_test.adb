@@ -3,10 +3,10 @@
 --
 --  itim_reject_test: an image with code in the ITIM, started on a hart whose
 --  ITIM is not enabled, is rejected by the start code with a clear record
---  instead of crashing later (defect no. 15, hello_mpfs). The check is done
---  by start.S before this main program; Reject.Hook reports it. If control
---  ever reaches the main program, the image was not rejected, which is a
---  failure.
+--  instead of crashing later (as hello_mpfs of the earlier project did).
+--  The check is done by start.S before this main program; Reject.Hook
+--  reports it. If control ever reaches the main program, the image was not
+--  rejected, which is a failure.
 --
 --  @verifies RTS-017
 

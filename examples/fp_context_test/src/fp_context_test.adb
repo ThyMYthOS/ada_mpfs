@@ -2,8 +2,8 @@
 --  SPDX-License-Identifier: Apache-2.0
 --
 --  fp_context_test: the callee-saved floating-point registers fs0 .. fs11
---  belong to the task, not to the processor (regression test for defect no. 1
---  of the master plan: context_switch.S restored them from the context of the
+--  belong to the task, not to the processor (regression test for an upstream
+--  defect: context_switch.S restored them from the context of the
 --  task that was switched out). Three tasks of package Holders keep a
 --  different value in each of the twelve registers across delay until (two of
 --  them) and across the timer interrupt (the third, which never waits); the

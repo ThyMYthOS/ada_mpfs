@@ -1,6 +1,6 @@
 # exceptions_test
 
-Zero-cost exceptions (R8) of the `embedded` runtime of `crates/mpfs_rts`, work package P1.7. The unwinder of libgcc
+Zero-cost exceptions of the `embedded` runtime of `crates/mpfs_rts`. The unwinder of libgcc
 finds the frame descriptions of `.eh_frame` through a registration that the start code triggers (`crtbegin.o`,
 `.init_array`, `start.S`), not through `.eh_frame_hdr`, which the linker of the toolchain cannot make; see
 `crates/mpfs_rts/README.md` and `docs/design/exceptions.md`. One project, three images:
@@ -8,8 +8,8 @@ finds the frame descriptions of `.eh_frame` through a registration that the star
 | Image | What it shows |
 |---|---|
 | `exceptions_test` | The positive test, 16 checks. |
-| `unhandled_test` | An exception that nobody handles leaves the environment task and ends in the last chance handler. |
 | `unhandled_task_test` | An exception that a task does not handle ends in the last chance handler too. |
+| `unhandled_test` | An exception that nobody handles leaves the environment task and ends in the last chance handler. |
 
 `exceptions_test` checks
 

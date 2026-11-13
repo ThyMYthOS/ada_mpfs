@@ -3,7 +3,7 @@
 --
 --  The received-data interrupt of MMUART0 as a protected handler
 --  (Attach_Handler). Under QEMU the bytes come from console.in, on the board
---  from the MMUART in loopback (a later work package).
+--  from the MMUART in loopback (src/loopback/).
 
 with Ada.Interrupts;
 with Ada.Interrupts.Names;

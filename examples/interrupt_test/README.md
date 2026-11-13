@@ -1,8 +1,7 @@
 # interrupt_test
 
-The PLIC and the CLINT of the runtime `crates/mpfs_rts` (work package P1.4) are those of the hart that runs the image,
-not of hart 1. A minimal test, small on purpose; the full `interrupt_test` of work package P1.13 (ceilings of several
-handlers, the board loopback) builds on it. It links with the `light-tasking` runtime and uses the PAC (`mpfs_pac.gpr`).
+The PLIC and the CLINT of the runtime `crates/mpfs_rts` are those of the hart that runs the image,
+not of hart 1. It links with the `light-tasking` runtime and uses the PAC (`mpfs_pac.gpr`).
 
 | Check | What it proves |
 |---|---|
@@ -18,7 +17,7 @@ handlers, the board loopback) builds on it. It links with the `light-tasking` ru
 | the `mtimecmp` of the other harts is untouched | the runtime no longer writes the `mtimecmp` of hart 1 (QEMU: 0 after reset) |
 
 The "no other context" and "other `mtimecmp` untouched" checks rely on QEMU's reset state (all zero); on the board the
-enables, thresholds and `mtimecmp` have no defined value at power-up, so work package P1.14 changes them there.
+enables, thresholds and `mtimecmp` have no defined value at power-up, so the build for the board (`RX_SOURCE=loopback`, `Reset_State_Known = False`) does not rely on them.
 
 The image reports as `interrupt_test_e51`, `interrupt_test_u54` (hart 1) or `interrupt_test_u54h3` (the image of hart 3,
 `bin-u54-h3/`). `console.in` feeds the bytes `plic` and a line feed to MMUART0 (the runner starts QEMU with `-chardev

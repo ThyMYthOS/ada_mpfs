@@ -1,7 +1,7 @@
 --  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 --  SPDX-License-Identifier: Apache-2.0
 --
---  exceptions_test: zero-cost exceptions (R8) of the embedded runtime of
+--  exceptions_test: zero-cost exceptions of the embedded runtime of
 --  crates/mpfs_rts. An exception is propagated by the unwinder of libgcc,
 --  which finds the frame descriptions (FDEs) of the .eh_frame section through
 --  the registration that start.S triggers (no .eh_frame_hdr, see

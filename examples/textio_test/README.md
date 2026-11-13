@@ -10,10 +10,10 @@ shows that the console works.
 
 | Image | Console | Init | What it proves |
 |---|---|---|---|
-| `textio_test` | MMUART of the hart (hart 0: MMUART0, U54 hart 1: MMUART1) | 1 | The first output initialised the service; the registers of that MMUART are those of the link symbols (8N1, divisor 22, DFR 0, FIFOs on); `GNAT.IO` reaches the same port; with `MCR.LOOP` every byte put comes back through `Is_Rx_Ready` and `Get` and the receiver is empty afterwards |
 | `console_mmuart1_test` to `console_mmuart3_test` | MMUART1 to MMUART3 | 1 | The report is on that port and on no other (the runner of `tests/qemu` fails a test that writes to another port); the registers of that MMUART are those of the link symbols |
 | `console_mmuart4_test` | MMUART4 | 1 | The same on a port the board does not bring out, with the divisor 21 and the fraction 45/64: DFR and `MM0.EFBR` (fractional baud rate mode) are set |
 | `console_noinit_test` | MMUART of the hart | 0 | `Initialize` writes no setup register (a value left in DFR, and LCR, are found again): the boot stage has set the port up and the runtime only writes and reads |
+| `textio_test` | MMUART of the hart (hart 0: MMUART0, U54 hart 1: MMUART1) | 1 | The first output initialised the service; the registers of that MMUART are those of the link symbols (8N1, divisor 22, DFR 0, FIFOs on); `GNAT.IO` reaches the same port; with `MCR.LOOP` every byte put comes back through `Is_Rx_Ready` and `Get` and the receiver is empty afterwards |
 
 `examples/console_none_test` has the console `none`. The images report as `<image>_e51` and `<image>_u54`.
 

@@ -1,7 +1,7 @@
 # trap_test
 
-An early trap is reported correctly (defect no. 5 of the master plan: `mtvec` was not set before the first trap).
-It is linked with the `light` runtime of `crates/mpfs_rts` (work package P1.3): the start code `start.S`
+An early trap is reported correctly (`mtvec` must be set before the first trap).
+It is linked with the `light` runtime of `crates/mpfs_rts`: the start code `start.S`
 points `mtvec` at the trap stub as its first action. While the package `Early_Trap` is elaborated, before the
 main program, it executes an illegal instruction (`fault.S`). The stub records `mcause`, `mepc`, `mtval` and
 `mhartid` at `__mpfs_trap_record` and jumps to `Early_Trap.Hook` (the test seam `__mpfs_early_trap_hook`, see
