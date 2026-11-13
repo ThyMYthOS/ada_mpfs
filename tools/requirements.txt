@@ -5,5 +5,5 @@
 # a virtual environment. Pin every package; a change here is its own pull request.
 PyYAML==6.0.3
 beautifulsoup4==4.15.0
-soupsieve==2.10
+soupsieve==4.0
 typing_extensions==4.16.0
