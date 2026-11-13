@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# Tests for the standalone partition data (config/gen/standalone.py, issue #53):
+# Tests for the standalone partition data (config/gen/standalone.py):
 #
 #   - test_standalone.py: the generator on fixtures (the package and the list of link symbols byte for
 #     byte), the defaults (the console is the MMUART of the lowest hart, LIM 15 ways), the harts, the

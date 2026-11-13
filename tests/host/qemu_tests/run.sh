@@ -260,7 +260,7 @@ done
 grep -q '^BUILD_HARTS=e51 u54$' "$ROOT/examples/report_test/example.conf" \
   && pass "report_test is built for both harts" || fail "report_test is built for both harts"
 
-# tasking_test and interrupt_test (P1.4) run on hart 0, hart 1 and on U54 hart 3 (-smp 5 in the runner)
+# tasking_test and interrupt_test run on hart 0, hart 1 and on U54 hart 3 (-smp 5 in the runner)
 for ex in tasking_test interrupt_test; do
   for hart in e51 u54 u54h3; do
     grep -q "^${ex}_${hart}${tab}examples/${ex}${tab}0${tab}pass${tab}-${tab}-\$" "$list_c" \
@@ -269,7 +269,7 @@ for ex in tasking_test interrupt_test; do
   grep -q '^BUILD_HARTS=e51 u54 u54-h3$' "$ROOT/examples/$ex/example.conf" \
     && pass "$ex is built for e51, u54 and u54-h3" || fail "$ex is built for e51, u54 and u54-h3"
 done
-# float_test (both hart classes) and fp_context_test (U54 only: the E51 has no FP registers), P1.5
+# float_test (both hart classes) and fp_context_test (U54 only: the E51 has no FP registers)
 for hart in e51 u54; do
   grep -q "^float_test_${hart}${tab}examples/float_test${tab}0${tab}pass${tab}-${tab}-\$" "$list_c" \
     && pass "tests.list: float_test_$hart" || fail "tests.list: float_test_$hart"
@@ -283,7 +283,7 @@ grep -q '^fp_context_test_e51' "$list_c" \
   || pass "tests.list: no fp_context_test row for the E51 (no FP registers)"
 grep -q '^BUILD_HARTS=u54$' "$ROOT/examples/fp_context_test/example.conf" \
   && pass "fp_context_test is built for the U54 only" || fail "fp_context_test is built for the U54 only"
-# exceptions_test, unhandled_test and unhandled_task_test (P1.7) are three images of one example
+# exceptions_test, unhandled_test and unhandled_task_test are three images of one example
 # with the embedded runtime, for the E51 and hart 1 of the U54
 for t in exceptions_test unhandled_test unhandled_task_test; do
   for hart in e51 u54; do

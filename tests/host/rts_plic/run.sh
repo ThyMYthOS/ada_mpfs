@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Tests for the hart-indexed PLIC and CLINT of the runtime (crates/mpfs_rts: mpfs/gnarl/s-bbripl.ad[sb],
-# s-bbricl.ad[sb], s-bbsuti.adb, s-bbhart.ad[sb], mpfs/gnat/s-bbbopa.ads), master plan #41 work package P1.4:
+# s-bbricl.ad[sb], s-bbsuti.adb, s-bbhart.ad[sb], mpfs/gnat/s-bbbopa.ads):
 #
 #   - tools/check_plic_stores.py, the disassembly check for a 64-bit store (sd, fsd, amo*.d, sc.d) in the
 #     window 0x0C00_0000 - 0x1000_0000 of the PLIC, on fixtures: a store with a constant base, a base computed

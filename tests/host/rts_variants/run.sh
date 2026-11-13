@@ -43,9 +43,9 @@ out="$work/rts"
 expect_out "a wrong number of arguments is a set-up error" 2 "usage: gen_runtime.sh" bash "$GEN" light e51 1
 expect_out "an unknown profile is rejected" 2 "invalid profile 'full'" bash "$GEN" --out "$out" full e51 1 m
 expect_out "an unknown hart is rejected" 2 "invalid hart 'e52'" bash "$GEN" --out "$out" light e52 1 m
-expect_out "cpus 2 is rejected (P8)" 2 "single-CPU until" bash "$GEN" --out "$out" light-tasking u54 2 m
+expect_out "cpus 2 is rejected" 2 "single-CPU until" bash "$GEN" --out "$out" light-tasking u54 2 m
 expect_out "cpus 0 is rejected" 2 "invalid cpus '0'" bash "$GEN" --out "$out" light e51 0 m
-expect_out "priv u is rejected (P7)" 2 "M mode until" bash "$GEN" --out "$out" light e51 1 u
+expect_out "priv u is rejected" 2 "M mode until" bash "$GEN" --out "$out" light e51 1 u
 expect_out "an unknown option is rejected" 2 "unknown option '--bogus'" bash "$GEN" --bogus light e51 1 m
 expect_out "an unknown build mode is rejected" 2 "invalid MPFS_RTS_BUILD 'Fast'" env MPFS_RTS_BUILD=Fast bash "$GEN" --out "$out" light e51 1 m
 expect_out "--hashes needs a file" 2 "--hashes needs a file" bash "$GEN" --out "$out" --hashes

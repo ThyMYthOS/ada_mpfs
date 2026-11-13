@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Tests for the E51 specifics of the runtime (crates/mpfs_rts): the software floating point of the E51 and
-# the local memories (ITIM and DTIM), issue #52.
+# the local memories (ITIM and DTIM).
 #
 #   - the E51 image of examples/float_test is a soft-float image (ABI lp64, no instruction on an f register,
 #     a square root in it); the U54 image has fsqrt.d: the check is not vacuous. (The trap frame and the

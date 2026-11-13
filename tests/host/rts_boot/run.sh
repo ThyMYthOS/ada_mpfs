@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Tests for the start code and the linker base of the runtime (crates/mpfs_rts: mpfs/gnat/start.S,
-# ld/*.ld, mpfs_link.gpr), master plan #41 work package P1.3:
+# ld/*.ld, mpfs_link.gpr):
 #
 #   - gen_runtime.sh puts the linker scripts into ld/ of a variant, replaces the upstream
 #     start-ram.S by start.S (mpfs/remove.list) and refuses a remove list that names a file the
@@ -17,7 +17,7 @@
 #   - the start code: whole 64-bit stores in the trap stub, three clear loops, one loop that calls
 #     the entries of .preinit_array and .init_array; the hook app-sections.ld of an application is
 #     included, the empty one of the runtime otherwise;
-#   - the constructor arrays and .eh_frame (R8, P1.7): in every scenario image the arrays are
+#   - the constructor arrays and .eh_frame (zero-cost exceptions): in every scenario image the arrays are
 #     bracketed by their symbols (empty without constructors, 8-byte entries, in the order
 #     preinit, init, fini) and .eh_frame is bracketed by __eh_frame_start and __eh_frame_end with
 #     the zero word of the linker script behind it; an object with a constructor entry gets it into

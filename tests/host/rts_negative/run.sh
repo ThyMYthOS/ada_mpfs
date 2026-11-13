@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# Negative builds of the runtime variants of crates/mpfs_rts (issue #54): what a program of one profile
+# Negative builds of the runtime variants of crates/mpfs_rts: what a program of one profile
 # or hart class must not be able to do, and the one place for each negative build that exists elsewhere.
 #
 #   - Profile restrictions, with the compiler against the variants: a task in the light profile
@@ -14,7 +14,7 @@
 #     F or D) linked with the library of the U54 (lp64d) fails with the linker's float ABI message,
 #     and so does the reverse; objects and library of one hart class link (the link has no linker
 #     script and no partition data, so unresolved symbols are ignored: only the ABI is under test).
-#   - The other negative builds of the list in the plan (a mandatory link symbol missing, a mask that
+#   - The other negative builds (a mandatory link symbol missing, a mask that
 #     mixes the E51 and the U54, a stack size that is not a multiple of 16, the console ram_fifo before
 #     SMP) are the cases of tests/host/rts_boot and tests/host/standalone. They are not repeated here;
 #     this suite only checks that each of them is still there, under the name and with the message
@@ -38,7 +38,7 @@ skip () { echo "skip: $1"; }
 work="$(mktemp -d)"
 trap 'chmod -R u+w "$work" 2>/dev/null; rm -rf "$work"' EXIT
 
-# -- where each negative build of the plan lives (no toolchain needed) -----------------------------------
+# -- where each negative build lives (no toolchain needed) -----------------------------------
 # covered <what> <file> <fixed string that must be in it>
 covered () {
   if grep -qF -- "$3" "$ROOT/$2"; then pass "negative build: $1 (in $2)"

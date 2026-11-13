@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Tests for the zero-cost exceptions of the embedded runtime (crates/mpfs_rts: link-zcx.spec,
-# mpfs/remove.list, mpfs/gnat/start.S, ld/sections.ld), master plan #41 work package P1.7 (R8):
+# mpfs/remove.list, mpfs/gnat/start.S, ld/sections.ld):
 #
 #   - the premise: the linker of the pinned toolchain does not know --eh-frame-hdr (if it ever does,
-#     the decision of P1.7 is to be revisited, so this fails);
+#     the decision for the registration-based unwinder is to be revisited, so this fails);
 #   - link-zcx.spec: no --eh-frame-hdr, crtbegin.o and crtend.o around the link, -u
 #     __register_frame_info; the variant of the embedded profile has exactly this file, the others
 #     have none; the spec is part of the cache key, a missing one is refused for the embedded
@@ -63,7 +63,7 @@ num () { echo $(( 16#${1:-0} )); }
 out="$(riscv64-elf-ld --eh-frame-hdr 2>&1)"
 case "$out" in
   *"unrecognized option"*) pass "the linker does not know --eh-frame-hdr (the premise of link-zcx.spec)" ;;
-  *) fail "the linker does not know --eh-frame-hdr: it does now ($out), revisit R8 (P1.7)" ;;
+  *) fail "the linker does not know --eh-frame-hdr: it does now ($out), revisit the decision in docs/design/exceptions.md" ;;
 esac
 
 # -- the spec ---------------------------------------------------------------------------------------

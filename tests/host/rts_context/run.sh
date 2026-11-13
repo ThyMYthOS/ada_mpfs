@@ -3,11 +3,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Tests for the context switch and the trap frame of the runtime (crates/mpfs_rts: mpfs/gnarl/context_switch.S,
-# mpfs/gnat/riscv_def.h), master plan #41 work package P1.5, on the disassembly of the real objects:
+# mpfs/gnat/riscv_def.h), on the disassembly of the real objects:
 #
 #   - U54 (-mabi=lp64d): __gnat_context_switch stores fs0 - fs11 with fsd to 112 + 8 * i (t0, the context of the
 #     outgoing task) and loads them with fld from the same offsets from a1, the context of the INCOMING task. The
-#     upstream file loads from t0 (defect no. 1 of the master plan): the same check run on a copy of the overlay
+#     upstream file loads from t0 (the upstream defect): the same check run on a copy of the overlay
 #     with t0 in the loads must FAIL, so that the check is not vacuous;
 #   - E51 (-mabi=lp64): neither context_switch.o nor trap_handler.o has an instruction on an f register;
 #   - the trap frame: 256 bytes (x1 - x31) on the E51, 512 bytes (x1 - x31 and f0 - f31) on the U54, every slot
@@ -141,7 +141,7 @@ sed -E '/FLREG/ s/\(a1\)/(t0)/' "$CRATE/mpfs/gnarl/context_switch.S" >"$work/con
 if riscv64-elf-gcc -c -I"$inc" "${U54[@]}" -o "$work/old.o" "$work/context_switch_old.S" 2>"$work/old.err"; then
   out="$(ctx_check "$work/old.o")" \
     && fail "the upstream restore (fld from t0) passes the check: the check is vacuous" \
-    || pass "the upstream restore (fld from t0) fails the check (defect no. 1)"
+    || pass "the upstream restore (fld from t0) fails the check (the upstream defect)"
 else
   fail "assembling the upstream restore ($(cat "$work/old.err"))"
 fi

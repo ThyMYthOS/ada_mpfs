@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Tests for the tick and the idle of the runtime (crates/mpfs_rts: mpfs/gnarl/s-bbsuti.adb, s-bbbosu.adb,
-# s-bbricl.ad[sb], mpfs/gnat/s-bbbopa.ads), master plan #41 work package P1.6 (#47). What QEMU cannot decide
-# (the accuracy of delay until, the power of wfi) is decided on the board (P1.14); what a host test can decide
+# s-bbricl.ad[sb], mpfs/gnat/s-bbbopa.ads). What QEMU cannot decide
+# (the accuracy of delay until, the power of wfi) is decided on the board (docs/lab/results/p1.md); what a host test can decide
 # is decided here:
 #
 #   - the four tasking runtime variants: the idle task (System.Task_Primitives.Operations.Idle) executes wfi
@@ -16,7 +16,7 @@
 #     installs the handler, which sets mie.MTIE (a stale mtimecmp would raise a spurious tick); the alarm
 #     handler acknowledges with Set_Mtimecmp; Clear_Alarm_Interrupt writes the maximum (all ones);
 #   - Clock_Frequency = Clocks.Rtc_Toggle_Hz as a compile-time check (examples/delay_accuracy_test/src/
-#     standalone_clocks.ads, the stand-in for the partition package of P1.12): a partition with 1 MHz
+#     standalone_clocks.ads, the stand-in for the partition package): a partition with 1 MHz
 #     compiles, one with 2 MHz, 999 999 Hz or 100 MHz does not, with the message of the check; a runtime
 #     whose Clock_Frequency is not 1 MHz (checked on a copy of the variant) fails the 1 MHz partition.
 #
