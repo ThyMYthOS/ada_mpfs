@@ -5,10 +5,10 @@ SPDX-License-Identifier: CC-BY-4.0
 # The test set of the runtime: tests, profiles, hart classes
 
 The runtime of `crates/mpfs_rts` has six cells for one hart in machine mode: the three profiles `light`,
-`light-tasking` and `embedded`, each for the hart classes E51 and U54. The detail plan (#41, section 5) says which test
-runs in which cell, on QEMU and on the Icicle Kit. This page is that table as it is implemented, so that it can be
+`light-tasking` and `embedded`, each for the hart classes E51 and U54. This page says which test
+runs in which cell, on QEMU and on the Icicle Kit, as it is implemented, so that it can be
 reviewed: what an image is called, where it is built, which row of `tests/qemu/tests.list` runs it, what is
-left for the hardware (#55), and where each negative build lives.
+left for the hardware, and where each negative build lives.
 
 Rules the set keeps (checked by `tests/host/qemu_tests`):
 
@@ -23,7 +23,7 @@ Rules the set keeps (checked by `tests/host/qemu_tests`):
 ## The matrix
 
 Each cell names the example whose image runs there (`<example>_e51`, `<example>_u54` are the rows of the list). A dash is a
-cell the plan does not mark. **Bold** are the cells that this work added; the others existed.
+cell in which the test does not run. **Bold** are the cells that this work added; the others existed.
 
 | Test | light E51 | light U54 | light-tasking E51 | light-tasking U54 | embedded E51 | embedded U54 |
 |---|---|---|---|---|---|---|
@@ -46,7 +46,7 @@ images of `tasking_test`, `interrupt_test` and `delay_accuracy_test` of the `lig
 hart 3 (`_u54h3`, one image per hart because the mask is link-time data); the `embedded` variants are not, the cell is the
 hart class.
 
-Not in the plan's table but in the list, as the plan's text asks for them or because they close a gap of the same
+In the list but not in the table above, because they close a gap of the same
 tests: `report_test` (the protocol itself), `console_noinit_test` and `console_none_test` (the console variants of the
 partition), `itim_test` and `itim_reject_test` (the E51 fast path: the copy step, and the rejection where the ITIM is
 not enabled), `unhandled_test` and `unhandled_task_test` (an exception nobody handles, in the environment task and in a
@@ -62,22 +62,22 @@ task).
 - `float_test`: the E51 images are soft-float (`lp64`, `Sqrt` of the runtime within 2 ulp), the U54 images hard-float; the
   expected console is the same.
 - `textio_test`: the other consoles (`console_mmuartN_test`, `console_noinit_test`) are selected by link symbols that do
-  not depend on the profile; they are built for the `light` profile only, as in the plan.
+  not depend on the profile; they are built for the `light` profile only.
 
 ## QEMU and hardware
 
-The plan has one more column per test: what the check is on the board. Only these differ from the QEMU image:
+On the board, what the check is differs from the QEMU image only for these tests:
 
 | Test | On QEMU | On the Icicle Kit |
 |---|---|---|
-| `interrupt_test` | the receive interrupt of MMUART0 is raised by `console.in` | the interrupt is raised by the loopback of the MMUART (`MCR.LOOP`) |
-| `delay_accuracy_test` | loose bound (QEMU's `mtime` follows the host clock); the idle is checked as `wfi` before `mepc` | `DELAY_ACCURACY=hardware`: 2 ticks plus interrupt latency; `minstret` stays flat over 100 ms |
 | `console_mmuartN_test` | N = 1 to 4 | N up to 3 (the CP2108 has three ports) |
+| `delay_accuracy_test` | loose bound (QEMU's `mtime` follows the host clock); the idle is checked as `wfi` before `mepc` | `DELAY_ACCURACY=hardware`: 2 ticks plus interrupt latency; `minstret` stays flat over 100 ms |
+| `interrupt_test` | the receive interrupt of MMUART0 is raised by `console.in` | the interrupt is raised by the loopback of the MMUART (`MCR.LOOP`) |
 | `itim_test`, `itim_reject_test` | the ranges are in the LIM (QEMU has no ITIM and no scratchpad) | the ITIM at `0x0180_0000` itself |
 
 Everything else runs the same image on both.
 
-### For the hardware runs (#55)
+### For the hardware runs
 
 The results are in [`docs/lab/results/p1.md`](../lab/results/p1.md): 72 cells pass on the Icicle Kit, 3 are skipped (MMUART4 has no
 port in the lab, `itim_reject_test_e51` is QEMU only). What the list below was for, as it came out: the absolute rate of `mtime` is
@@ -99,7 +99,7 @@ These are checks that only make sense on the board, or that QEMU cannot do. None
 
 ## Negative builds
 
-The negative builds of the plan, each with where it is tested. Together they are the ones of the plan (#41, section 5) plus
+The negative builds, each with where it is tested. Together they are those of the profiles and hart classes plus
 the Ada-side checks of the partition package; the new suite is `tests/host/rts_negative`, which also checks that the
 entries of the other suites are still there.
 

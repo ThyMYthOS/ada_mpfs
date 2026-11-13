@@ -2,8 +2,7 @@
 # SPDX-License-Identifier: CC-BY-4.0
 #
 # Requirements on the runtime crates/mpfs_rts. See README.md for the format. The structure of the
-# runtime and the old labels of the plan that these requirements replace are in
-# docs/assurance/rts.md. The names of the interrupts (Ada.Interrupts.Names) are SVD-002.
+# runtime is in docs/assurance/rts.md. The names of the interrupts (Ada.Interrupts.Names) are SVD-002.
 requirements:
   - id: RTS-001
     text: >-

@@ -16,7 +16,7 @@ The format and the rules are in [docs/coding-standard.md](../coding-standard.md#
 | File | Area |
 |---|---|
 | `bld.yaml` | The build and the toolchain. |
-| `svd.yaml` | The register description. |
-| `pac.yaml` | The register package. |
 | `hw.yaml` | The board tools. |
+| `pac.yaml` | The register package. |
 | `rts.yaml` | The runtime `crates/mpfs_rts` (see [docs/assurance/rts.md](../assurance/rts.md)). |
+| `svd.yaml` | The register description. |

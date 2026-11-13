@@ -24,14 +24,14 @@ the own port units and overlays over a pack and builds the library of one varian
 
 | Path in `crates/mpfs_rts/` | Role |
 |---|---|
-| `make_packs.sh`, `packs.sha256` | Generates the six packs reproducibly from the fork; only the hash of the uncompressed tar stream is committed, the packs are not. |
 | `compare_toolchain.sh`, `port_units.list` | Proves that everything in a pack that is not a port unit is the source of the toolchain's own runtime. |
+| `gen_intnam.py` | Writes `mpfs/gnarl/a-intnam.ads` from the SVD (section 5.4). |
 | `gen_runtime.sh`, `mpfs_rts.gpr` | Builds one variant (pack, then `remove.list`, port units, overlays, the register packages of the PAC, linker scripts); an application selects it with `mpfs_rts.gpr`. |
-| `mpfs/` | The own port units (section 4); `mpfs/remove.list` names the files of a pack that an own unit replaces. |
-| `overlays/` | Units laid over the pack, for all profiles or for one: today the TLSF heap of the embedded profile (`overlays/tlsf/embedded/gnat`). |
 | `ld/`, `mpfs_link.gpr` | The linker base and the project that gives an image its `--defsym` values (section 3). |
 | `link-zcx.spec` | The link spec of the embedded profile (section 5.6). |
-| `gen_intnam.py` | Writes `mpfs/gnarl/a-intnam.ads` from the SVD (section 5.4). |
+| `make_packs.sh`, `packs.sha256` | Generates the six packs reproducibly from the fork; only the hash of the uncompressed tar stream is committed, the packs are not. |
+| `mpfs/` | The own port units (section 4); `mpfs/remove.list` names the files of a pack that an own unit replaces. |
+| `overlays/` | Units laid over the pack, for all profiles or for one: today the TLSF heap of the embedded profile (`overlays/tlsf/embedded/gnat`). |
 
 The runtime sources are GPL-3.0-or-later WITH GCC-exception-3.1, the scripts are Apache-2.0
 (see the header of each file and [`PROVENANCE.md`](../../PROVENANCE.md)). The packs, the PAC and the
@@ -71,14 +71,14 @@ every console. Requirement RTS-004.
 
 | Symbol | Meaning | Read by |
 |---|---|---|
-| `__mpfs_harts_mask` | Bit n set: hart n belongs to the partition. A hart outside the mask is parked in `wfi`. | `start.S`, `sections.ld` (debug constant) |
+| `__data_load`, `__data_start`, `__data_end`, `__bss_start`, `__bss_end`, `__heap_start`, `__heap_end`, `__stack_end`, `__interrupt_stack_start`/`_end`, `__global_pointer$`, `__eh_frame_start`/`_end`, the bounds of the constructor arrays, `__mpfs_trap_record` | The layout of the image. | `place-*.ld` and `sections.ld` define, `start.S`, the heap and libgcc read |
+| `__fast_text_start`/`_end`/`_load` and the same for `__fast_data_*` | Run and load range of the application's ITIM and DTIM sections; empty by default. | the application's `app-sections.ld` defines, `start_fast.S` reads |
+| `__gnat_gdb_cpu_first_id` | The lowest hart of the mask, for the debugger. | `.mpfs_gdb` constant of `sections.ld` |
 | `__mpfs_boot_role` | 1 primary (owns the boot flow, resets the MSS at exit), 0 secondary (halts at exit). | `start.S` |
 | `__mpfs_console_base`, `_init`, `_dlr`, `_dfr` | The MMUART of the console (0: none), whether the runtime programs it, the divisor and its fraction. | `System.Text_IO` |
-| `MPFS_*_LENGTH`, `MPFS_LOCAL_ITIM_ORIGIN` | The lengths of the regions (the origins are literals). | `mpfs-memory.ld` |
+| `__mpfs_harts_mask` | Bit n set: hart n belongs to the partition. A hart outside the mask is parked in `wfi`. | `start.S`, `sections.ld` (debug constant) |
 | `__stack_size`, `__interrupt_stack_size` | The stack of the environment task and the interrupt stacks. | `sections.ld` |
-| `__data_load`, `__data_start`, `__data_end`, `__bss_start`, `__bss_end`, `__heap_start`, `__heap_end`, `__stack_end`, `__interrupt_stack_start`/`_end`, `__global_pointer$`, `__eh_frame_start`/`_end`, the bounds of the constructor arrays, `__mpfs_trap_record` | The layout of the image. | `place-*.ld` and `sections.ld` define, `start.S`, the heap and libgcc read |
-| `__gnat_gdb_cpu_first_id` | The lowest hart of the mask, for the debugger. | `.mpfs_gdb` constant of `sections.ld` |
-| `__fast_text_start`/`_end`/`_load` and the same for `__fast_data_*` | Run and load range of the application's ITIM and DTIM sections; empty by default. | the application's `app-sections.ld` defines, `start_fast.S` reads |
+| `MPFS_*_LENGTH`, `MPFS_LOCAL_ITIM_ORIGIN` | The lengths of the regions (the origins are literals). | `mpfs-memory.ld` |
 
 The rules: there are no defaults, so a missing symbol is a link error ("undefined reference" or
 "undefined symbol ... referenced in expression"); an invalid value is stopped by an `ASSERT` of the
@@ -113,19 +113,19 @@ files are in `mpfs/gnat`, `mpfs/gnarl` and `overlays/`.
 
 | Unit | What it is | Upstream |
 |---|---|---|
-| `start.S` | Entry of every image: `mtvec` first, hart gate, `.data`, `.bss` and stacks with 64-bit stores, `mstatus.FS`, constructor arrays, `main`, exit by role; the early trap stub and the trap record. | `start-ram.S` |
-| `s-bbhart` | `System.BB.Hart.Id`, from `mhartid`. | hart literals in several units |
-| `s-bbbopa.ads` | `Clock_Frequency` (1 MHz `mtime`); no hart and no console literals. | `s-bbbopa__polarfiresoc` |
-| `s-bbripl` | The PLIC of the own hart: context from `mhartid`, 32-bit accesses to PAC registers, the priority mapping. | `s-bbripl` of `polarfiresoc` |
-| `s-bbricl` | The CLINT: `Mtime`, `Mtimecmp (Hart)`, `MSIP (Hart)`. | the CLINT code of `s-bbsuti` |
-| `s-bbsuti.adb` | The tickless timer on `mtimecmp` of the own hart. | `s-bbsuti__riscv_clint` |
-| `s-bbbosu.adb` | Board initialisation of the own PLIC context; `Power_Down` is `wfi`. | `s-bbbosu__riscv` |
-| `context_switch.S`, `riscv_def.h` | The FP restore from the incoming task; assembly-time checks of the frame against the float ABI. | the same files |
-| `s-textio.ad[sb]` | The polled MMUART console driven by link symbols. | `s-textio__ns16550` |
 | `a-intnam.ads` | Generated from the SVD. | `a-intnam` of the pack |
-| `start_fast.S` | `start.S` with the check and the copy of the application's ITIM and DTIM sections (section 5.5). | none |
+| `context_switch.S`, `riscv_def.h` | The FP restore from the incoming task; assembly-time checks of the frame against the float ABI. | the same files |
 | `link-zcx.spec` | The embedded link spec, without `--eh-frame-hdr`. | `link-zcx.spec` of the pack |
 | `overlays/tlsf/embedded/gnat` | `tlsf_core`, `tlsf_math`, `heap_guard`, `mpfs_heap`, `mpfs_heap_lock`. | `s-memory` (bump allocator; `System.Memory` of the pack stays) |
+| `s-bbbopa.ads` | `Clock_Frequency` (1 MHz `mtime`); no hart and no console literals. | `s-bbbopa__polarfiresoc` |
+| `s-bbbosu.adb` | Board initialisation of the own PLIC context; `Power_Down` is `wfi`. | `s-bbbosu__riscv` |
+| `s-bbhart` | `System.BB.Hart.Id`, from `mhartid`. | hart literals in several units |
+| `s-bbricl` | The CLINT: `Mtime`, `Mtimecmp (Hart)`, `MSIP (Hart)`. | the CLINT code of `s-bbsuti` |
+| `s-bbripl` | The PLIC of the own hart: context from `mhartid`, 32-bit accesses to PAC registers, the priority mapping. | `s-bbripl` of `polarfiresoc` |
+| `s-bbsuti.adb` | The tickless timer on `mtimecmp` of the own hart. | `s-bbsuti__riscv_clint` |
+| `s-textio.ad[sb]` | The polled MMUART console driven by link symbols. | `s-textio__ns16550` |
+| `start.S` | Entry of every image: `mtvec` first, hart gate, `.data`, `.bss` and stacks with 64-bit stores, `mstatus.FS`, constructor arrays, `main`, exit by role; the early trap stub and the trap record. | `start-ram.S` |
+| `start_fast.S` | `start.S` with the check and the copy of the application's ITIM and DTIM sections (section 5.5). | none |
 
 `s-bbpara.ads` (the interrupt range 1 to 186, one CPU) and the system packages of the profiles come
 from the fork `crates/bb-runtimes` (`s-bbpara__polarfiresoc.ads` and the `system-xi-riscv*` files
@@ -258,49 +258,25 @@ profiles is one example per profile with shared sources (`textio_tasking_test`, 
 **No test yet:** RTS-016. The tests of the examples are written to run on the board as well, but the hardware
 runs are not a check of this repository (`./x hw run` needs a board in the lab, and not every cell has
 been run); until a hardware report is part of a check, the requirement stays without a `@verifies`
-and `./x trace` lists it as such. The runs of the first hart are recorded in the issues #47 and #55.
+and `./x trace` lists it as such. The runs on the Icicle Kit are recorded in [`docs/lab/results/p1.md`](../lab/results/p1.md).
 Checks that are not tied to a requirement: the proofs of the heap arithmetic (`./x prove`), the
 sizes of all images (`metrics.golden`, BLD-003) and the negative build of the ABI mismatch (BLD-002).
 
 ## 8. Open points
 
-- **Hardware.** The first hardware result is the tick and the console of U54 hart 1. The other cells, the
-  absolute rate of `mtime` (the `delay_accuracy_test` and `./x hw initialize` disagree on 100 and
-  125 MHz references) and the interrupt latency (`Interrupt_Latency_Ticks`) are still to be measured
-  (issue #55); until then RTS-016 and the 1 MHz are a target, not a result.
+- **Hardware.** The runs on the Icicle Kit (`docs/lab/results/p1.md`: 72 cells pass, 3 are skipped; `mtime`
+  at 1 MHz; the interrupt latency behind `Interrupt_Latency_Ticks`) are a report, not a check of this
+  repository, so RTS-016 stays without a test. They are the runs of one board; the report lists what they
+  do not cover.
 - **Interrupt stack of the embedded profile.** The first unwind inside a trap handler may overflow the 8 KiB
   interrupt stack on the U54; `trap_embedded_test` works around it by raising one exception first
   (issue #91). RTS-005 holds for that test as it is.
 - **ITIM and DTIM on the board.** QEMU cannot show that the real ITIM and DTIM work once the boot stage
-  has enabled them (section 5.5); that is part of the hardware runs.
+  has enabled them (section 5.5); `itim_test_e51` passes on the board with `.fast_text` in the ITIM, and the
+  report says what else is not covered.
 - **GNAT 16.** The pin is 15.3.1. The switch needs the v16 runtime sources; the link spec,
   `remove.list` and `start.S` have to be reviewed then (the exceptions design note has the details).
 - **SMP and user mode** are not part of this runtime. The port units are written for it (hart
-  index, the lock interface of the heap, `mcause` 3 in the trap handler, the first hart of the mask runs
-  the constructors); the requirements come with that work.
-
-## 9. Labels of the plan are not used any more
-
-During the first phase the requirements on the runtime were called `R1` to `R11` in the plan, and some
-of those labels were written into comments and test descriptions. The `RTS-*` IDs above are the stable
-requirement set; the old labels are not used any more and not defined anywhere else. Where they
-survive in a comment, this table says what they became. (This is the only place that names them.)
-
-| Old label | Subject | Requirement now |
-|---|---|---|
-| R0 | (never a requirement of the runtime) | none |
-| R1 | Start code, link symbols, `mtvec` first | RTS-004, RTS-005 |
-| R2 | Hart-indexed CLINT and PLIC, 32-bit accesses | RTS-006 |
-| R3 | The FP context switch | RTS-007 |
-| R4 | Tickless timer, 1 MHz | RTS-009 |
-| R5 | Idle with `wfi` | RTS-010 |
-| R6 | SMP | none yet (SMP is not part of this runtime) |
-| R7 | Light multi-hart | none yet (as R6) |
-| R8 | Zero-cost exceptions | RTS-011 |
-| R9 | TLSF heap, secondary stack | RTS-012, RTS-013 |
-| R10 | The console | RTS-014 |
-| R11 | Interrupt names and the priority mapping | SVD-002 (the names), RTS-015 (the priorities) |
-
-RTS-001 to RTS-003, RTS-008 and RTS-016 are new: they had no label (the packs, the variant build,
-floating point and the hardware runs). An ID is never reused or renumbered, as in
-[the coding standard](../coding-standard.md#requirement-ids).
+  index, the lock interface of the heap, `mcause` 3 in the trap handler); the requirements come with that
+  work. `start.S` runs the constructor arrays on every hart that runs the image; an SMP runtime must let only the
+  first hart of the mask do it, because `.eh_frame` is registered once.

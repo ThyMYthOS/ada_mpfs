@@ -47,7 +47,7 @@ jumper or a switch.
 ## What boot mode 0 leaves undone
 
 In boot mode 0 no boot software runs, so the MSS keeps its reset state. Without `./x hw initialize` `CLINT.MTIME`
-reads 0 and does not count (measured on the board of the project owner, P1.14: the counter stayed at 0 for as long as it was
+reads 0 and does not count (measured on the board of the project owner: the counter stayed at 0 for as long as it was
 watched), and the SGMII/DDR PHY registers read 0. Every image that uses `Ada.Real_Time`, `delay until` or the
 `mtime` of the PAC needs it, and `tests/hw/run_matrix.sh` runs it before every cell.
 
