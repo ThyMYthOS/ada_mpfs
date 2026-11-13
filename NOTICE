@@ -74,5 +74,5 @@ Third-party components
     the top of the upstream repository (PROVENANCE.md).
   * The scripts and tests of this project that call the generator
     (crates/mpfs_rts/*.sh, tests/host/rts_packs): Apache-2.0.
-- SPARKNaCl (crates/sparknacl, from P6): BSD-3-Clause (license text added
+- SPARKNaCl (crates/sparknacl, once it is imported): BSD-3-Clause (license text added
   with the import).

@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
-# LIM ECC probe, part 3 (P1.14, #55): which single access raises an ECC event, and does a fetch from a line that
+# LIM ECC probe, part 3: which single access raises an ECC event, and does a fetch from a line that
 # was written in part work? Every test uses its own 64-byte line at 0x081C4000 + 0x100 * n, which nothing has
 # written since power-up (a power cycle makes them fresh again). The ECC counters of the L2 (DatECCFixCount at
 # 0x02010148, DatECCFailCount at 0x02010168) are read before and after the one access under test.

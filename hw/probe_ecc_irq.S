@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
-# LIM ECC probe, part 2 (P1.14, #55), after probe_ecc.S: (a) what does an instruction fetch from a LIM line
+# LIM ECC probe, part 2, after probe_ecc.S: (a) what does an instruction fetch from a LIM line
 # that nothing has written do, (b) are the ECC events of the L2 delivered as an interrupt once the PLIC
 # sources 1..4 are enabled? Fresh lines: 0x081C2000 (fetch), 0x081C2800 (load). Hart 1, M mode.
 # Results at 0x08102000, "cause" is 0 for no trap, else mcause + 1:

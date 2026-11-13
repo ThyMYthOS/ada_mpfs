@@ -1,5 +1,5 @@
 # `config/schema/`
 
 - **Purpose:** Schemas for `system.yaml` and profiles.
-- **Owning phase:** P2
+- **Status:** not written yet; this README is all there is.
 - **License:** Apache-2.0

@@ -1,11 +1,11 @@
 ---
 name: Task
-about: Work package or improvement
+about: Task or improvement
 labels: task
 ---
 
 **Goal**
 
-**Reference** (work package, requirement ID)
+**Reference** (issue, requirement ID)
 
 **Acceptance**

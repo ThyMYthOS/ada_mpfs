@@ -1,7 +1,6 @@
 # `config/`
 
 - **Purpose:** System configuration and generator.
-- **Owning phase:** P2
 - **License:** Apache-2.0
 
 ## Standalone partition data
@@ -11,6 +10,11 @@ partition data from `config/gen/standalone.py`. The configuration generator writ
 system description, so what is written here is the contract between the generator and what reads the data: the
 runtime, its linker scripts and start code (`crates/mpfs_rts`), and the build. A reader that works with this tool
 works with the configuration generator.
+
+**Images that run together.** The tool describes one partition, one image. Nothing compares the memory regions
+of two images that run on the same board, so the LIM regions of such images must be kept apart by hand until the
+configuration generator checks the windows (open issue
+[#89](https://github.com/ThyMYthOS/ada_mpfs/issues/89)).
 
 ### The two files
 
@@ -60,16 +64,16 @@ is 1664 KB and 256 KB); `envm` has the LIM of `lim`.
 
 | Symbol | Meaning | Set by |
 |---|---|---|
-| `__mpfs_harts_mask` | mask of the partition, bit n is hart n | the list |
+| `__data_load`, `__data_start`, `__data_end`, `__bss_start`, `__bss_end`, `__heap_start`, `__heap_end`, `__stack_end`, `__interrupt_stack_start`, `__interrupt_stack_end`, `__global_pointer$` | the layout | the placement script (`ld/sections.ld`) |
+| `__eh_frame_start`, `__eh_frame_end` | the range of `.eh_frame` that the zero-cost exceptions of the `embedded` profile register | the placement script |
 | `__mpfs_boot_role` | 1 primary, 0 secondary | the list |
 | `__mpfs_console_base` | base of the console MMUART (LO), 0 for none | the list |
 | `__mpfs_console_dlr`, `__mpfs_console_dfr` | divisor and fraction of the baud rate | the list |
 | `__mpfs_console_init` | 1 the runtime sets divisor and format, 0 the boot stage has | the list |
+| `__mpfs_harts_mask` | mask of the partition, bit n is hart n | the list |
 | `__stack_size`, `__interrupt_stack_size` | stack sizes in bytes | the list |
 | `MPFS_ENVM_LENGTH`, `MPFS_DTIM_LENGTH`, `MPFS_E51_ITIM_LENGTH`, `MPFS_U54_1_ITIM_LENGTH` to `MPFS_U54_4_ITIM_LENGTH`, `MPFS_LIM_LENGTH`, `MPFS_SCRATCHPAD_LENGTH`, `MPFS_DDR_CACHED_LENGTH`, `MPFS_DDR_NC_LENGTH`, `MPFS_DDR_WCB_LENGTH` | the lengths of the regions of `ld/mpfs-memory.ld` (the origins are literals there) | the list |
 | `MPFS_LOCAL_ITIM_ORIGIN`, `MPFS_LOCAL_ITIM_LENGTH` | the ITIM of the first hart of the mask; a window of length 0 keeps the origin of the E51 window | the list |
-| `__data_load`, `__data_start`, `__data_end`, `__bss_start`, `__bss_end`, `__heap_start`, `__heap_end`, `__stack_end`, `__interrupt_stack_start`, `__interrupt_stack_end`, `__global_pointer$` | the layout | the placement script (`ld/sections.ld`) |
-| `__eh_frame_start`, `__eh_frame_end` | the range of `.eh_frame` that the zero-cost exceptions of the `embedded` profile register | the placement script |
 
 A value symbol that is missing stops the link (an undefined reference, or an undefined symbol in the linker script);
 `--omit SYMBOL` leaves one out for the negative builds. The value of `__mpfs_boot_role` is not checked in the linker

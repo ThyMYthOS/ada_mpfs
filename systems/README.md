@@ -1,5 +1,5 @@
 # `systems/`
 
 - **Purpose:** System descriptions (`system.yaml`) and reference systems `amp_a`..`amp_d`.
-- **Owning phase:** P2, P9
+- **Status:** not written yet; this README is all there is.
 - **License:** Apache-2.0

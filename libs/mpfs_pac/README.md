@@ -6,8 +6,8 @@
 | Path | Content |
 |---|---|
 | `mpfs_pac.gpr` | Library project. `src/generated` is compiled without `-gnatwe`, every hand-written source in `src/` with `-gnatwa -gnatwe -gnaty`. |
-| `src/generated/` | Output of `./x pac generate`, never edited by hand and **not committed** (`.gitignore`). Every file carries the generated notice, the SHA-256 of the SVD, the svd2ada commit and the attribution. `./x test lib`, `./x analyze` and `./x pac ensure` generate it when it is missing or does not have the recorded hash. |
 | `MPFS_Registers.sha256` | The SHA-256 of the generated package (`tools/pac_gen.py hash`: the `*.ads` files in name order), the counterpart of `svd/PolarfireSoC.sha256`. It changes with the SVD, with svd2ada and with the post-processing; `./x pac generate` rewrites it and the commit that changes the SVD commits it. |
+| `src/generated/` | Output of `./x pac generate`, never edited by hand and **not committed** (`.gitignore`). Every file carries the generated notice, the SHA-256 of the SVD, the svd2ada commit and the attribution. `./x test lib`, `./x analyze` and `./x pac ensure` generate it when it is missing or does not have the recorded hash. |
 | `src/mpfs_registers-bases.ads` | Hand-written: the distance between the `_LO` and the `_HI` base address of a peripheral. `./x pac check` verifies it against the SVD. |
 
 ## Generation
@@ -37,11 +37,11 @@ Definitions: [SPARK Reference Manual](https://docs.adacore.com/spark2014-docs/ht
 
 | Aspect | Meaning | Why the register instances have it |
 |---|---|---|
-| `Volatile` | The object can be read or written by something outside the program. Each access is a real access: the compiler may not remove, merge or reorder it, and SPARK treats the object as external state, which it handles differently from an ordinary variable. | Every register is memory-mapped hardware. |
 | `Async_Readers` | A component outside the program (a device, another processor or task) might read or consume a value written to the object. Every update is considered to be read by some external reader, so a write is never useless, even if the program never reads the value back. (7.1.2) | The hardware acts on what is written: a control register, a data register, an interrupt enable. |
 | `Async_Writers` | A component outside the program might update the value of the object. Each successive read might return a different value, so a read is an input to the program. (7.1.2) | Status, FIFO, counter and interrupt registers change by themselves. |
-| `Effective_Writes` | Every update of the object is significant: every value written matters, for example a sequence of values written to a port, so no write may be dropped as redundant. (7.1.2) | A write to a register can start something (a command, a clear or a trigger), so a repeated write is not the same as one write. |
 | `Effective_Reads` | Every read of the object is significant: the value read is used in determining how the next value is processed, as with a value read from a port. A read changes the state of the hardware, for example it removes a byte from a FIFO or clears a flag, so it cannot be dropped and reading twice is not reading once. SPARK counts such a read as an update of the object: only a function with side effects can read the object, a nonvolatile or volatile function cannot. (7.1.2, 7.1.3) | Only the registers with a read side effect, which the SVD names with `<readAction>`: the instances listed in step 3 of the generation. |
+| `Effective_Writes` | Every update of the object is significant: every value written matters, for example a sequence of values written to a port, so no write may be dropped as redundant. (7.1.2) | A write to a register can start something (a command, a clear or a trigger), so a repeated write is not the same as one write. |
+| `Volatile` | The object can be read or written by something outside the program. Each access is a real access: the compiler may not remove, merge or reorder it, and SPARK treats the object as external state, which it handles differently from an ordinary variable. | Every register is memory-mapped hardware. |
 
 Two rules of 7.1.2 explain why the generator lists the aspects one by one. If an external state is declared without any property, all the properties default to `True`, `Effective_Reads` included. If any property is given, the ones not given default to `False`. The generated instances give `Async_Readers`, `Async_Writers` and `Effective_Writes` (and `Effective_Reads` where it applies), so `Effective_Reads` is `False` everywhere else. The combinations stay valid: `Effective_Reads` needs `Async_Writers` and `Effective_Writes` needs `Async_Readers`.
 

@@ -1,5 +1,5 @@
 # `libs/mpfs_storage/`
 
 - **Purpose:** Storage drivers (eNVM, sNVM, QSPI, F-RAM).
-- **Owning phase:** P4
+- **Status:** not written yet; this README is all there is.
 - **License:** Apache-2.0

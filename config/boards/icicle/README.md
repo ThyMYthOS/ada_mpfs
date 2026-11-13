@@ -1,5 +1,5 @@
 # `config/boards/icicle/`
 
 - **Purpose:** Icicle Kit board.
-- **Owning phase:** P2
+- **Status:** not written yet; this README is all there is.
 - **License:** Apache-2.0

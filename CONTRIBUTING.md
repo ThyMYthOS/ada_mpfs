@@ -10,9 +10,9 @@
 
 | Area | Pattern |
 |-------------------|----------------------------------------------------|
+| Generator outputs | `MPFS_Config`, `MPFS_System_Map`, `MPFS_Partition` |
 | HAL and drivers   | `MPFS.*`                                           |
 | PAC               | `MPFS_Registers.*`                                 |
-| Generator outputs | `MPFS_Config`, `MPFS_System_Map`, `MPFS_Partition` |
 | Runtime           | `System.BB.*`                                      |
 
 ## File names

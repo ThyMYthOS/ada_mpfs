@@ -2,8 +2,9 @@
 
 Bare-metal Ada for the Microchip PolarFire SoC (MPFS): runtime, PAC, HAL, bootloader and generator.
 
-Status: **P0 (foundation)** is complete: skeleton and licensing, the toolchain pin, `./x`, SVD and PAC,
-bare-metal hello, the test harnesses, CI and the hardware lab tools. The runtime (P1) follows.
+Status: the foundation is in place (skeleton and licensing, the toolchain pin, `./x`, SVD and PAC, bare-metal hello,
+the test harnesses, CI and the hardware lab tools) and so is the runtime `crates/mpfs_rts`: three profiles (`light`,
+`light-tasking`, `embedded`) for the E51 and the U54, one hart in machine mode.
 
 ## Getting started
 
@@ -20,7 +21,7 @@ other projects) and, in an interactive bash or zsh, loads the tab completion for
 `export.sh`: it finds the pinned tools by itself. `./x toolchain check` reports a pinned tool that is
 installed but not first on `PATH` as an error, which is the sign that `export.sh` was not sourced.
 
-- Layout: every directory has a `README.md` (purpose, owning phase, license).
+- Layout: every directory has a `README.md` (purpose, license; a directory that holds nothing yet says so).
 - Contributing and conventions: [CONTRIBUTING.md](CONTRIBUTING.md).
 - Licensing: [LICENSE](LICENSE), [NOTICE](NOTICE), [PROVENANCE.md](PROVENANCE.md); texts in `LICENSES/`.
 
@@ -38,9 +39,8 @@ MMUART0 to MMUART3, the factory restore, and the register measurements that fed 
 (`./x test qemu`), and the same smoke test under Renode (`./x test renode`, not required for a merge).
 QEMU models the PolarFire SoC only in part, so a pass there says nothing about the peripherals.
 
-**Not done yet:** eNVM placement and boot modes 1 to 3, the runtime, the HAL, anything beyond the E51 and U54 start code
-that the examples carry. The plan is in [issue #7](https://github.com/ThyMYthOS/ada_mpfs/issues/7) and the
-detail plan of the current phase in [issue #8](https://github.com/ThyMYthOS/ada_mpfs/issues/8).
+**Not done yet:** eNVM placement and boot modes 1 to 3, SMP and U mode in the runtime, the HAL, the configuration
+generator, the bootloader. The roadmap is [issue #7](https://github.com/ThyMYthOS/ada_mpfs/issues/7).
 
 ### What CI checks on every push
 
@@ -81,17 +81,17 @@ Both gates are tripwires: they report only what a change introduces, and neither
 
 ## Repository layout
 
-Directories marked (later) hold only a `README.md` that names the phase that fills them.
+Directories marked (later) hold only a `README.md` that says so.
 
 ```
-crates/    mpfs_rts (the runtime), bb-runtimes fork, sparknacl (all later)
+crates/    mpfs_rts (the runtime), bb-runtimes fork, sparknacl (sparknacl: later)
 libs/      mpfs_pac (generated registers), mpfs_hal and mpfs_storage (later)
 svd/       the SVD: base/, patches/, additions/ merged by ./x svd merge
 examples/  bare_hello, pmp_probe, report_test, common/ (linker scripts, start code); see examples/README.md
 tests/     host suites, qemu, renode, negative builds, prove, hw
 hw/        host tools for the Icicle Kit (OpenOCD supervisor, run, probe, monitor, reset, bootmode)
 boot/      two-stage bootloader (later)
-config/, systems/   system description and generator, reference systems (later)
+config/, systems/   partition data of an image (config/gen/standalone.py); system description and reference systems (later)
 book/, ide/         handbook and editor support (later)
 docs/      coding standard, requirements, assurance, lab notes
 tools/     toolchain pin, ./x helpers, headers, trace, proof, analyzer baselines

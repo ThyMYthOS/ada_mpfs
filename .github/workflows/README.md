@@ -19,11 +19,11 @@
 
 | Workflow | Runs on |
 |---|---|
-| `registers.yml` | a push to any branch and a pull request against `main` that touch the SVD, the PAC, their tools, the host tests or the actions |
+| `analyze.yml` | a push to any branch and a pull request against `main` that touch `libs/` (which includes the recorded hash of the register package), the examples, the analyzer files, the baselines, the pins or `x`; by hand for the baselines |
+| `hygiene.yml` | every push to any branch and every pull request against `main` |
 | `images.yml` | a push to any branch and a pull request against `main` that touch the examples, `crates/bb-runtimes`, `crates/mpfs_rts`, `hw/`, the tests, the tools, `metrics.golden`, `x` or the actions |
 | `quality.yml` | a push to any branch and a pull request against `main` that touch the proof projects, the SPARK units of the heap (`crates/mpfs_rts/overlays`), `tools/prove.*`, the pins, `libs/`, `x` or the actions |
-| `hygiene.yml` | every push to any branch and every pull request against `main` |
-| `analyze.yml` | a push to any branch and a pull request against `main` that touch `libs/` (which includes the recorded hash of the register package), the examples, the analyzer files, the baselines, the pins or `x`; by hand for the baselines |
+| `registers.yml` | a push to any branch and a pull request against `main` that touch the SVD, the PAC, their tools, the host tests or the actions |
 
 The workflows stay separate on purpose: each installs only what it needs (the `svd` job and `hygiene` no Ada toolchain, `pac` and `images` the compilers, `quality` and `analyze` the proof and analysis tools; the `toolchain` action caches them) and runs only for the paths it depends on, so a change to a README does not start a gnatprove build. All logic is in `./x` and the tools, so a workflow only installs, caches and calls; moving to a runner of our own means changing the `runs-on` lines. A push to any branch starts the workflows whose paths it touches and a pull request against `main` runs them again as a pull request, on the merge result (a pull request against another branch shows the checks of its head commit); a newer push to the same branch cancels the run in progress. A path filter means a workflow does not report for a change outside its paths, so a status must not be required for merging unless the workflow has no filter (`hygiene.yml`).
 

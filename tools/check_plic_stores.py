@@ -5,8 +5,8 @@
 
 The PLIC of PolarFire SoC (and QEMU's model of it) accepts 32-bit accesses
 only. The compiler turns an assignment of an aggregate to an array of registers
-(`Enables := (others => 0)`) into 64-bit stores, which is the defect no. 3 of
-the master plan (the upstream s-bbripl.adb did it). This check disassembles
+(`Enables := (others => 0)`) into 64-bit stores, which the upstream s-bbripl.adb
+did. This check disassembles
 objects, libraries (.a) or images with the pinned RISC-V objdump and looks for
 a 64-bit store (`sd`, `fsd`, `sc.d`, `amo*.d`, the compressed forms) whose base
 register holds an address of the window 0x0C00_0000 .. 0x1000_0000.

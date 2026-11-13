@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
-# LIM ECC probe (P1.14, #55): what do loads and stores do on 64-byte lines of the LIM that nothing has written
+# LIM ECC probe: what do loads and stores do on 64-byte lines of the LIM that nothing has written
 # since power-up (the lines at 0x081C0000, which no image or probe uses)? A trap is recorded and skipped.
 # Run it on a board that was power-cycled since the last run of the probe: it writes the lines.
 # Results at 0x08102000, four words per test (0x20 bytes); "cause" is 0 for no trap, else mcause + 1:

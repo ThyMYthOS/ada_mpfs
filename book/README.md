@@ -1,5 +1,5 @@
 # `book/`
 
 - **Purpose:** Book (project handbook).
-- **Owning phase:** later
+- **Status:** not written yet; this README is all there is.
 - **License:** CC-BY-4.0
