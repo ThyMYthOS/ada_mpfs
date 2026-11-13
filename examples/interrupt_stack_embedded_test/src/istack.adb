@@ -67,4 +67,48 @@ package body Istack is
       return 0;
    end Peak;
 
+   Reached_Below : Boolean := False with Volatile;
+
+   -------------
+   -- Overrun --
+   -------------
+
+   procedure Overrun is
+      Frame : Storage_Array (1 .. Storage_Offset (Size)) with Volatile;
+      --  On the stack: its size is not static
+
+      Offset : constant Storage_Offset := Stack_Start'Address - Frame'Address;
+      --  Where the lowest byte of the stack is in Frame; negative if the
+      --  frame starts above it, which it cannot do: it is as large as the
+      --  stack and the stack pointer is inside the stack
+   begin
+      Reached_Below := Offset > 0;
+      if Offset in 0 .. Frame'Length - 8 then
+         declare
+            Word : Interfaces.Unsigned_64
+              with Volatile, Import, Address => Frame'Address + Offset;
+         begin
+            Word := 0;
+         end;
+      end if;
+   end Overrun;
+
+   ------------
+   -- Overran --
+   ------------
+
+   function Overran return Boolean is (Reached_Below);
+
+   -------------------
+   -- Clobber_Guard --
+   -------------------
+
+   procedure Clobber_Guard is
+      Word : Interfaces.Unsigned_64
+        with Volatile, Import, Convention => C,
+             External_Name => "__interrupt_stack_start";
+   begin
+      Word := 0;
+   end Clobber_Guard;
+
 end Istack;

@@ -68,7 +68,7 @@ for example in interrupt_stack_tasking_test interrupt_stack_embedded_test; do
   for hart in e51 u54; do
     for size in 4096 32768; do
       if xbuild "$example" "$hart" --interrupt-stack-size "$size"; then
-        elf="$(ls "$ROOT/examples/$example/bin-$hart/"*.elf | head -1)"
+        elf="$(ls "$ROOT/examples/$example/bin-$hart/"istack_peak_*.elf | head -1)"
         stack_size_is "$elf" "$size" "$example $hart --interrupt-stack-size $size"
         [ "$(sym "$elf" __interrupt_stack_size)" = "$(printf '0x%016x' "$size")" ] \
           && pass "$example $hart: __interrupt_stack_size is $size" \
@@ -85,7 +85,7 @@ for hart in e51 u54; do
   for pair in interrupt_stack_tasking_test:8192 interrupt_stack_embedded_test:12912; do
     example="${pair%%:*}"; want="${pair##*:}"
     if xbuild "$example" "$hart"; then
-      elf="$(ls "$ROOT/examples/$example/bin-$hart/"*.elf | head -1)"
+      elf="$(ls "$ROOT/examples/$example/bin-$hart/"istack_peak_*.elf | head -1)"
       stack_size_is "$elf" "$want" "$example $hart by default"
     fi
     rm -rf "$ROOT/examples/$example/obj-$hart" "$ROOT/examples/$example/bin-$hart"

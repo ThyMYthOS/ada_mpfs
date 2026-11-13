@@ -42,14 +42,19 @@ project App is
       "../../tests/common");
    --  Only what the image needs of the shared directories.
    for Source_Files use
-     ("interrupt_stack_peak_test.adb", "istack.ads", "istack.adb",
+     ("interrupt_stack_peak_test.adb", "interrupt_stack_overflow_test.adb",
+      "interrupt_stack_halt_test.adb", "interrupt_stack_tiny_test.adb",
+      "istack.ads", "istack.adb",
+      "istack_overrun.ads", "istack_overrun.adb",
       "istack_check.ads", "istack_check.adb", "istack_handler_tasking.ads",
       "istack_handler_tasking.adb", "test_name_tasking.ads", "fault.S",
       "bare_console.ads", "bare_console.adb",
       "test_report.ads", "test_report.adb");
    for Object_Dir use "obj-" & Hart;
    for Exec_Dir use "bin-" & Hart;
-   for Main use ("interrupt_stack_peak_test.adb");
+   for Main use
+     ("interrupt_stack_peak_test.adb", "interrupt_stack_overflow_test.adb",
+      "interrupt_stack_halt_test.adb", "interrupt_stack_tiny_test.adb");
 
    --  The sources are those of the embedded variant; the handler, the name of the test and of the
    --  image are not.
@@ -60,7 +65,10 @@ project App is
    end Naming;
 
    package Builder is
-      for Executable ("interrupt_stack_peak_test.adb") use "interrupt_stack_peak_tasking_test";
+      for Executable ("interrupt_stack_peak_test.adb") use "istack_peak_tasking_test";
+      for Executable ("interrupt_stack_overflow_test.adb") use "istack_overflow_tasking_test";
+      for Executable ("interrupt_stack_halt_test.adb") use "istack_halt_tasking_test";
+      for Executable ("interrupt_stack_tiny_test.adb") use "istack_tiny_tasking_test";
       for Executable_Suffix use ".elf";
    end Builder;
 
@@ -73,5 +81,11 @@ project App is
 
    package Linker is
       for Default_Switches ("Ada") use Mpfs_Link.Switches;
+      for Switches ("interrupt_stack_overflow_test.adb") use
+        Mpfs_Link.Common
+        & external_as_list ("MPFS_DEFSYMS_interrupt_stack_overflow_test", ";");
+      for Switches ("interrupt_stack_tiny_test.adb") use
+        Mpfs_Link.Common
+        & external_as_list ("MPFS_DEFSYMS_interrupt_stack_tiny_test", ";");
    end Linker;
 end App;

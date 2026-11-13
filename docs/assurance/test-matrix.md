@@ -15,7 +15,7 @@ Rules the set keeps (checked by `tests/host/qemu_tests`):
 - every test reports with `Test_Report` (`TEST <name>: START`, `ok:`/`FAIL:` lines, `TEST <name>: PASS|FAIL`);
 - every cell of the table that is marked for QEMU is one image and one row of `tests/qemu/tests.list`
   (`<image>_e51`, `<image>_u54`), and runs under `./x test qemu` and in the `qemu` job of CI;
-- there is no `xfail` row and no skipped cell on QEMU: a test that cannot pass on QEMU is not listed, and the reason is
+- there is no `xfail` row and no skipped cell on QEMU (a `console` row, the program that ends in the last chance handler of the runtime, is a test that passes): a test that cannot pass on QEMU is not listed, and the reason is
   in the section on the hardware below, not in a row that hides it;
 - a test that runs in several profiles is one example per profile that shares the sources (`examples/STYLE.md`,
   "Profile variants"); the image carries the profile in its name.
@@ -40,6 +40,13 @@ cell in which the test does not run. **Bold** are the cells that this work added
 | `secstack_test`: functions with unconstrained result | `secstack_light_test` | `secstack_light_test` | `secstack_tasking_test` | `secstack_tasking_test` | `secstack_test` | `secstack_test` |
 | `heap_test`: TLSF, random allocation and release | - | - | - | - | `heap_test` | `heap_test` |
 | `elab_test`: elaboration order, library tasks | **`elab_test`** | **`elab_test`** | **`elab_tasking_test`** | **`elab_tasking_test`** | **`elab_embedded_test`** | **`elab_embedded_test`** |
+| `interrupt_stack_test`: peak use of the interrupt stack in a trap (margin 50 %), an overrun in an interrupt handler ends with "interrupt stack overflow" | - (no interrupt stack) | - | **`interrupt_stack_tasking_test`** | **`interrupt_stack_tasking_test`** | **`interrupt_stack_embedded_test`** | **`interrupt_stack_embedded_test`** |
+
+The images of `interrupt_stack_*_test` are `istack_peak_<profile>_test` (the peak) and `istack_overflow_<profile>_test` (the
+overrun in a handler), two rows each in `tests/qemu/tests.list`. The same examples build `istack_halt_<profile>_test` and
+(`light-tasking`) `istack_tiny_tasking_test`, which end in the last chance handler of the runtime and so cannot report with
+`Test_Report`: their rows are of the kind `console` (the line `interrupt stack overflow` on the serial port of the hart, the
+other ports silent; see `tests/qemu/run_tests.sh`), and they are the only rows that are not `pass` rows.
 
 The hart classes of one image are the harts the example names in `BUILD_HARTS`: `e51` (hart 0) and `u54` (hart 1). The
 images of `tasking_test`, `interrupt_test` and `delay_accuracy_test` of the `light-tasking` profile are also built for U54
@@ -58,7 +65,11 @@ task).
   runtime has installed its own trap handler, so the trap stub of the start code writes the record that the test
   checks. The `embedded` runtime installs its handler before the first unit of the application is elaborated; the trap
   arrives as `Program_Error` in the last chance handler, where `trap_embedded_test` reads `mcause`, `mepc` and
-  `mtval`. See the finding at the end.
+  `mtval`. See the section on the interrupt stack at the end.
+- `interrupt_stack_test`: the `light` profile has no interrupt stack and no trap handler of its own, so there is no
+  cell; the `embedded` profile has a larger stack (12 912 bytes against 8 192) because the first unwind in a trap runs
+  on it. The last chance handler of the test differs (an exception occurrence in `embedded`, a C string in
+  `light-tasking`: `Istack_Handler`).
 - `float_test`: the E51 images are soft-float (`lp64`, `Sqrt` of the runtime within 2 ulp), the U54 images hard-float; the
   expected console is the same.
 - `textio_test`: the other consoles (`console_mmuartN_test`, `console_noinit_test`) are selected by link symbols that do
@@ -115,14 +126,26 @@ entries of the other suites are still there.
 | the other checks of the partition package (L2 way sum, LIM ways, DTIM on a U54, ITIM above the size of its hart, boot role) | the message of the check | `tests/host/standalone` |
 | a stack that leaves no room, an empty region, an invalid mask, a `_start` that is not first, an `.init_array` entry that is not 8 bytes | the linker's message | `tests/host/rts_boot` |
 
-## Finding: the interrupt stack and the first exception in a trap
+## The interrupt stack and the first exception in a trap
 
-`trap_embedded_test_u54` hangs without a verdict if the first exception of the program is raised in a trap
-handler: libgcc sorts its frame descriptions at the first unwind (this takes memory from the heap, which starts at its first
-use), and with the U54's larger frames that takes more than the 8 KiB of the interrupt stack of the runtime
-(`Interrupt_Stack_Size` in the unmodified fork, `crates/bb-runtimes`). Under QEMU the stack pointer reaches the last 16
-bytes of the stack, the next frame overwrites the `.bss` behind it (libgcc's register size table first), and the unwinder
-stops at an assertion. The E51 image, with smaller frames, is not affected. The test raises and handles one exception
-before the trap (`Warm_Up_Unwinder`), which makes the unwinder's tables exist, and says so in its README and its source.
-The cause is a stack size of the runtime, not of the test; it needs a decision in the runtime work (a larger interrupt
-stack for the `embedded` profile, or an overflow check), and is reported with this change.
+`trap_embedded_test_u54` used to hang without a verdict if the first exception of the program was raised in a trap
+handler (issue #91): libgcc sorts its frame descriptions at the first unwind, and that needs more than the 8 KiB of the
+interrupt stack that the runtime had. The stack pointer reached the last 16 bytes of the stack, the next frame overwrote the
+`.bss` behind it (libgcc's register size table first), and the unwinder stopped at an assertion. The test hid this by
+raising and handling one exception before the trap. It is resolved in the runtime, and the workaround is gone:
+
+- the peak was measured (stack painting, `examples/interrupt_stack_*_test`, table in `crates/mpfs_rts/README.md`): 8 256
+  bytes (E51) and 8 608 bytes (U54) for the first unwind in a trap of the `embedded` profile, 600 and 856 bytes in
+  `light-tasking`, no interrupt stack in `light`;
+- the `embedded` profile has an interrupt stack of 12 912 bytes (the U54 peak plus 50 %, a multiple of 16), the other
+  profiles keep 8 192; the size is the partition data `__interrupt_stack_size` (`./x build --interrupt-stack-size`);
+- a guard word at the lower end of the stack is checked at the exit of every trap and in the last chance handler of the
+  runtime; an overrun ends with the message `interrupt stack overflow` and a halt, not a hang.
+
+| Test | Where | What it shows |
+|---|---|---|
+| `trap_embedded_test_e51`, `trap_embedded_test_u54` | `tests/qemu/tests.list` | the trap in the first statement of the program, with no exception before it, reaches the last chance handler with the diagnosis |
+| `istack_peak_embedded_test_*`, `istack_peak_tasking_test_*` | `tests/qemu/tests.list` | the peak of the first unwind in a trap is at most two thirds of the default stack (the margin of 50 %) |
+| `istack_overflow_embedded_test_*`, `istack_overflow_tasking_test_*` | `tests/qemu/tests.list` | a timing event handler (interrupt context) that uses a frame of the size of the whole stack, on a stack of 2 048 bytes, ends the program with the message `interrupt stack overflow` at the exit of the trap |
+| `istack_halt_*` (both profiles), `istack_tiny_tasking_test` (`light-tasking`, stack of 512 bytes) | `tests/qemu/tests.list`, `console` rows | the last chance handler of the runtime prints `interrupt stack overflow` and stops instead of the report of the exception; for the `tiny` image the stack really is too small for the trap |
+| the guard code and its absence | `tests/host/rts_istack` | images with an interrupt stack have the arming function, the check and the failure path, images without one have none of them |

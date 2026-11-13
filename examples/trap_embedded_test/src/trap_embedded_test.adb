@@ -6,15 +6,11 @@
 --  (Trap_Last_Chance). The instruction is the one of examples/trap_test
 --  (fault.S); if control returns from it, the check below fails.
 --
---  The first exception of a program makes libgcc sort its frame descriptions
---  (malloc, a heap that starts at its first use), which on the U54 needs more
---  than the 8 KiB of the interrupt stack of the runtime when it happens in a
---  trap handler: the stack is used up to its last 16 bytes and the next frame
---  overwrites the .bss behind it (libgcc's register size table, first). So the
---  program raises and handles one exception before the trap, on the stack of
---  its task; with that the trap is reported on both hart classes. The size of
---  the interrupt stack (s-bbpara.ads of the fork) is not this test's to
---  change; see the README.
+--  The trap is the first exception of the program: libgcc sorts its frame
+--  descriptions at the first unwind, on the interrupt stack, which needs more
+--  than the 8 KiB that the interrupt stack of the embedded profile used to
+--  have (issue #91; the stack is now 12 912 bytes, and
+--  examples/interrupt_stack_embedded_test measures the peak).
 --
 --  Reported with Test_Report as trap_embedded_test_e51 or _u54.
 --
@@ -33,20 +29,10 @@ procedure Trap_Embedded_Test is
    procedure Fault
      with Import, Convention => C, External_Name => "trap_test_fault";
 
-   procedure Warm_Up_Unwinder;
-
-   procedure Warm_Up_Unwinder is
-   begin
-      raise Constraint_Error;
-   exception
-      when Constraint_Error => null;
-   end Warm_Up_Unwinder;
-
 begin
    Test_Report.Start
      (if Bare_Console.Hart_Id = 0 then "trap_embedded_test_e51"
       else "trap_embedded_test_u54");
-   Warm_Up_Unwinder;
    Fault;
 
    --  Not reached.

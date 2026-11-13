@@ -13,14 +13,25 @@ reports `mcause`, `mepc` and `mtval` of a record) is not what happens here: the 
 
 and reports with `Test_Report` as `trap_embedded_test_e51` or `trap_embedded_test_u54`.
 
-The program raises and handles one exception before the trap (`Warm_Up_Unwinder`). The first exception of a
-program makes libgcc sort its frame descriptions, which takes memory from the heap (its first use) and, on the U54,
-more than the 8 KiB of the interrupt stack of the runtime (`Interrupt_Stack_Size` of `s-bbpara__polarfiresoc.ads`)
-when it happens in a trap handler: the stack is used up to its last 16 bytes (measured under QEMU with the register
-dump of every block) and the next frame overwrites the `.bss` behind it, libgcc's register size table first, so that
-the unwinder stops at an assertion (`ebreak`) and the program hangs without a verdict. Without the warm-up the
-E51 image passes and the U54 image hangs. The stack is the runtime's (`crates/bb-runtimes` is the unmodified fork); this
-is recorded for the runtime work, and not hidden by the test, which says so here and in its source.
+The trap is the first exception of the program. libgcc sorts its frame descriptions at the first unwind, and here that
+happens on the interrupt stack of the trap handler. It needed more than the 8 KiB that the interrupt stack of the `embedded`
+profile used to have (8 256 bytes on the E51 and 8 608 on the U54 were measured), so the U54 image hung without a verdict:
+the next frame overwrote the `.bss` behind the stack, libgcc's register size table first, and the unwinder stopped at an
+assertion. The test raised and handled one exception before the trap (`Warm_Up_Unwinder`) as a workaround; that is gone
+(issue #91). The interrupt stack of the `embedded` profile is now 12 912 bytes (the measured peak plus 50 %) and a guard word
+at its lower end turns an overrun into the message `interrupt stack overflow` instead of a hang; see `crates/mpfs_rts/README.md`,
+section "Interrupt stack", and `examples/interrupt_stack_embedded_test`, which measures the peak and tests the guard.
+
+The two forms of the test, measured with stack painting in the `embedded` profile (the warm-up form is the original):
+
+| | peak E51 / U54 | text of the image E51 / U54 |
+|---|---|---|
+| the trap is the first exception (this test) | 8 256 / 8 608 bytes | 48139 / 49435 |
+| one exception raised and handled before the trap | 7 144 / 7 496 bytes | 48413 / 49709 |
+
+The warm-up moves the sort of libgcc's frame descriptions out of the trap (1 112 bytes less on the interrupt stack on both hart
+classes); the 12 912 bytes of the stack keep the margin of 50 % in both forms. A test with the warm-up next to this one would
+cover the other path (a trap after the tables exist: search and unwind without the sort); it is proposed, not added.
 
     ./x build trap_embedded_test --hart e51    # bin-e51/
     ./x build trap_embedded_test --hart u54    # bin-u54/

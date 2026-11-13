@@ -7,10 +7,14 @@
 
 package Istack_Check is
 
-   type Test is (Peak_Of_Trap);
+   type Test is (Peak_Of_Trap, Overrun_In_Handler);
    --  Peak_Of_Trap: an illegal instruction in the program raises
    --  Program_Error in the trap handler, on the interrupt stack, and the
-   --  peak of the use of the stack up to this point leaves a margin of 50 %
+   --  peak of the use of the stack up to this point leaves a margin of 50 %.
+   --  Overrun_In_Handler: an interrupt handler (a timing event) uses more
+   --  stack than there is and overwrites the guard word; the trap handler
+   --  finds that when the handler returns, and the program ends in the last
+   --  chance handler with the message "interrupt stack overflow"
 
    procedure Start (Which : Test);
 

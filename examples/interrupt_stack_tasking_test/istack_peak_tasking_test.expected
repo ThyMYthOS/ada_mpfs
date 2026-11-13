@@ -1,0 +1,2 @@
+  ok: the trap ends as Program_Error with the message of the cause
+  ok: the peak is at most two thirds of the stack (a margin of 50 %)

@@ -223,6 +223,39 @@ list "$tmp/xf3.list" "good${tab}$good${tab}0${tab}xfail${tab}desc=fault_store${t
 expect_rc  "runner: an unexpected pass of an xfail row fails" nonzero run "$tmp/xf3.list"
 expect_out "runner: says unexpected pass" "UNEXPECTED PASS" run "$tmp/xf3.list"
 
+# console rows: a program without Test_Report (it ends in the last chance handler of the runtime); the
+# verdict is that the line of the row is on the port of the row and that no other port is written
+halted="$tmp/t/halted"
+image "$halted" halted <<EOF
+${S}In last chance handler
+${S}interrupt stack overflow
+EOF
+list "$tmp/console.list" "halted${tab}$halted${tab}0${tab}console${tab}^interrupt stack overflow${tab}the guard word is found"
+expect_rc  "runner: a console row whose line is on its port passes" 0 run "$tmp/console.list"
+expect_out "runner: says the console row passed" "PASS halted: the guard word is found" run "$tmp/console.list"
+list "$tmp/console2.list" "halted${tab}$halted${tab}0${tab}console${tab}^Unhandled${tab}the guard word is found"
+expect_rc  "runner: a console row whose line never appears fails" nonzero run "$tmp/console2.list"
+expect_out "runner: says what did not match" "nothing matched /^Unhandled/" run "$tmp/console2.list"
+list "$tmp/console3.list" "halted${tab}$halted${tab}1${tab}console${tab}^interrupt stack overflow${tab}the guard word is found"
+expect_rc  "runner: a console row whose line is on another port fails" nonzero run "$tmp/console3.list"
+halted_stray="$tmp/t/halted_stray"
+image "$halted_stray" halted_stray <<EOF
+${S}interrupt stack overflow
+S${tab}2${tab}noise
+EOF
+list "$tmp/console4.list" "halted_stray${tab}$halted_stray${tab}0${tab}console${tab}^interrupt stack overflow${tab}the guard word is found"
+expect_rc  "runner: a console row that writes to another port fails" nonzero run "$tmp/console4.list"
+expect_out "runner: names the port of a console row" "MMUART2" run "$tmp/console4.list"
+halted_hang="$tmp/t/halted_hang"
+image "$halted_hang" halted_hang <<EOF
+${S}In last chance handler
+HANG
+EOF
+list "$tmp/console5.list" "halted_hang${tab}$halted_hang${tab}0${tab}console${tab}^interrupt stack overflow${tab}the guard word is found"
+expect_rc  "runner: a console row whose program hangs without the line is killed and fails" nonzero run "$tmp/console5.list"
+list "$tmp/console6.list" "halted${tab}$halted${tab}0${tab}console${tab}-${tab}-"
+expect_rc  "runner: a console row without regexp and reason fails" nonzero run "$tmp/console6.list"
+
 # one failing test among passing ones fails the run, and the others still run
 list "$tmp/mix.list" "good${tab}$good${tab}0${tab}pass${tab}-${tab}-" "failing${tab}$failing${tab}0${tab}pass${tab}-${tab}-"
 expect_rc  "runner: one failing test fails the run" nonzero run "$tmp/mix.list"
@@ -386,6 +419,37 @@ for spec in protected_test:light-tasking trap_embedded_test:embedded elab_test:l
     || fail "$t is built for e51 and u54 with the $prof runtime"
   [ -f "$ROOT/examples/$t/console.expected" ] && pass "$t has a console.expected file" || fail "$t has a console.expected file"
 done
+# The tests of the interrupt stack (#91, docs/assurance/test-matrix.md): two examples that share their sources, one
+# per profile; each is built for both harts with its profile; the images that report (peak, overflow) have a row
+# of the kind pass and an <image>.expected file, the images that end in the last chance handler of the runtime
+# (halt, and tiny in light-tasking) a row of the kind console on the port of the console of the runtime (MMUART0 on
+# the E51, MMUART1 on U54 hart 1); the expected console of the two profiles is the same.
+for spec in interrupt_stack_embedded_test:embedded:"peak overflow halt" interrupt_stack_tasking_test:light-tasking:"peak overflow halt tiny"; do
+  IFS=: read -r t prof imgs <<< "$spec"; p="${t#interrupt_stack_}"; p="${p%_test}"
+  grep -q '^BUILD_HARTS=e51 u54$' "$ROOT/examples/$t/example.conf" && grep -q "^PROFILE=$prof\$" "$ROOT/examples/$t/example.conf" \
+    && pass "$t is built for e51 and u54 with the $prof runtime" || fail "$t is built for e51 and u54 with the $prof runtime"
+  for img in $imgs; do
+    for hart in e51 u54; do
+      hs=0; [ "$hart" = u54 ] && hs=1
+      case "$img" in
+        peak|overflow) row="istack_${img}_${p}_test_${hart}${tab}examples/${t}${tab}0${tab}pass${tab}-${tab}-" ;;
+        *) row="istack_${img}_${p}_test_${hart}${tab}examples/${t}${tab}${hs}${tab}console${tab}^interrupt stack overflow${tab}" ;;
+      esac
+      grep -q "^${row}" "$list_c" && pass "tests.list: istack_${img}_${p}_test_$hart" || fail "tests.list: istack_${img}_${p}_test_$hart"
+    done
+  done
+  for img in peak overflow; do
+    [ -f "$ROOT/examples/$t/istack_${img}_${p}_test.expected" ] \
+      && pass "istack_${img}_${p}_test has its own .expected file" || fail "istack_${img}_${p}_test has its own .expected file"
+  done
+done
+for img in peak overflow; do
+  cmp -s "$ROOT/examples/interrupt_stack_embedded_test/istack_${img}_embedded_test.expected" \
+         "$ROOT/examples/interrupt_stack_tasking_test/istack_${img}_tasking_test.expected" \
+    && pass "istack_${img}: the two profiles have the same expected console" || fail "istack_${img}: the two profiles have the same expected console"
+done
+grep -q 'for Spec ("Test_Name") use "test_name_tasking.ads"' "$ROOT/examples/interrupt_stack_tasking_test/app.gpr" \
+  && pass "interrupt_stack_tasking_test has a Test_Name of its own" || fail "interrupt_stack_tasking_test has a Test_Name of its own"
 # No expected failure in the committed list: every cell of the test set is a test that passes on QEMU
 # (a row that documents a defect would hide that the cell is not green).
 if grep -v '^[[:space:]]*#' "$list_c" | awk -F'\t' '$4 == "xfail" { f = 1 } END { exit f ? 0 : 1 }'; then

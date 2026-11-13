@@ -39,6 +39,14 @@
 #  crash, silence), a missing line, or a timeout. If <dir>/console.in exists its
 #  bytes are fed to the serial port as the guest's input.
 #
+#  CONSOLE ROWS. A row whose `expect` is `console` is a program that ends in the last chance handler of the
+#  runtime (or anywhere else that has no Test_Report): it cannot print TEST ...: PASS, so the verdict is the
+#  console. It passes if the row's `observe` regexp (grep -E) matches the serial port of the row within the
+#  time limit, and nothing is written to another port; `why` says what the line proves. There is no START
+#  or PASS line and no .expected file. It is not an expected failure: the program does what it should, and
+#  a console without the line (a hang, a crash, another message) fails the run. Example: a stack that is
+#  too small ends with "interrupt stack overflow" and does not hang (issue #91).
+#
 #  EXPECTED FAILURES. A row whose `expect` is `xfail` documents a KNOWN defect.
 #  It is not a skip and not a pass; it must fail IN THE DOCUMENTED WAY:
 #      - the test must NOT print "TEST <name>: PASS" on its port (if it does, that
@@ -102,15 +110,15 @@ awk -F'\t' '
            print "BADHEADER" > "/dev/stderr"; bad = 1 }
          next }
   NF != 6 || $1 == "" || $2 == "" || $5 == "" || $6 == "" ||
-  $3 !~ /^[0-4]$/ || ($4 != "pass" && $4 != "xfail") ||
-  ($4 == "xfail" && ($5 == "-" || $6 == "-")) { printf "BADROW\t%s\n", $0; bad = 1; next }
+  $3 !~ /^[0-4]$/ || ($4 != "pass" && $4 != "xfail" && $4 != "console") ||
+  (($4 == "xfail" || $4 == "console") && ($5 == "-" || $6 == "-")) { printf "BADROW\t%s\n", $0; bad = 1; next }
   { print }
   END { exit bad ? 1 : 0 }
 ' "$TEST_LIST" > "$rows" 2> "$tmpd/awk.err"
 if [ $? -ne 0 ]; then
   cat "$tmpd/awk.err" >&2
   grep '^BADROW' "$rows" | while IFS= read -r l; do printf '  %s\n' "$l" >&2; done
-  fail "$TEST_LIST is malformed: the first non-comment line must be the 'name dir serial expect observe why' header (TAB-separated); every row needs all six fields, serial 0..4, expect pass|xfail, and an xfail row a real observe regexp and reason"
+  fail "$TEST_LIST is malformed: the first non-comment line must be the 'name dir serial expect observe why' header (TAB-separated); every row needs all six fields, serial 0..4, expect pass|xfail|console, and an xfail or console row a real observe regexp and reason"
 fi
 [ -s "$rows" ] || fail "$TEST_LIST lists no tests; an empty list would make this pass vacuously"
 
@@ -155,7 +163,7 @@ for name in $names; do
   esac
   expfile="$base/$(basename "$img" .elf).expected"
   [ -f "$expfile" ] || expfile="$base/console.expected"
-  printf '==> %s%s\n' "$name" "$([ "$expect" = xfail ] && echo ' (expected failure)')"
+  printf '==> %s%s\n' "$name" "$([ "$expect" = xfail ] && echo ' (expected failure)')$([ "$expect" = console ] && echo ' (console)')"
   if [ ! -f "$img" ]; then
     printf 'FAIL %s: image %s not found (run ./x test qemu, which builds it)\n' "$name" "$img" >&2
     failures=$((failures + 1)); continue
@@ -197,6 +205,9 @@ for name in $names; do
     end=$(( $(date +%s) + TEST_TIMEOUT ))
     while [ "$(date +%s)" -lt "$end" ]; do
       final_line "$name" "$verdict" && break
+      if [ "$expect" = console ]; then
+        grep -Eq -- "$observe" "$verdict" && break
+      fi
       if [ "$expect" = xfail ]; then
         grep -Eq -- "$observe" "$log" $consoles && break
       fi
@@ -233,6 +244,27 @@ for name in $names; do
     else
       printf 'XFAIL %s: failed as documented -- %s\n' "$name" "$why"
       xfailed=$((xfailed + 1))
+    fi
+    continue
+  fi
+
+  if [ "$expect" = console ]; then
+    if ! grep -Eq -- "$observe" "$verdict"; then
+      reason="nothing matched /$observe/ on serial $serial within ${TEST_TIMEOUT}s (QEMU exit status $qstatus; 137 = killed by the watchdog): $why"
+    else
+      stray=
+      for i in 0 1 2 3 4; do
+        [ "$i" = "$serial" ] && continue
+        [ -s "$conbase$i" ] && stray="$stray MMUART$i"
+      done
+      [ -z "$stray" ] || reason="output appeared on${stray}, but the row belongs to MMUART$serial and nothing may be written to another port"
+    fi
+    if [ -n "$reason" ]; then
+      printf 'FAIL %s: %s\n' "$name" "$reason" >&2
+      failures=$((failures + 1))
+    else
+      printf 'PASS %s: %s\n' "$name" "$why"
+      passed=$((passed + 1))
     fi
     continue
   fi

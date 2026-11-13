@@ -1,0 +1,2 @@
+  ok: the handler used a frame that reaches below the stack
+  ok: the program ends with the message "interrupt stack overflow"

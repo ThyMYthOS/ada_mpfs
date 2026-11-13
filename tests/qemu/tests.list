@@ -11,11 +11,18 @@
 #            The console of the runtime (System.Text_IO) is the MMUART of the image's hart (hart 1 of
 #            a U54 image: serial 1, hart 3: serial 3); most tests report through Bare_Console, which
 #            is MMUART0 on every hart, so their serial is 0.
-#   expect   pass | xfail
-#   observe  xfail only: a grep -E regexp that MUST match QEMU's
+#   expect   pass | xfail | console
+#   observe  xfail: a grep -E regexp that MUST match QEMU's
 #            `-d int,guest_errors` trace or a serial port -- the signature of the
-#            documented failure. "-" for a pass row.
-#   why      xfail only: the documented defect, one line. "-" for a pass row.
+#            documented failure. console: a grep -E regexp that MUST match the
+#            serial port of the row. "-" for a pass row.
+#   why      xfail: the documented defect, one line. console: what the line
+#            proves. "-" for a pass row.
+#
+#   A `console` row is a program that ends in the last chance handler of the runtime and so cannot
+#   report with Test_Report (see tests/qemu/run_tests.sh): it passes if the line is on its port (the
+#   console of the runtime is the MMUART of the hart: 0 on the E51, 1 on U54 hart 1) and the other
+#   ports are silent, and fails on a hang, a crash or another message.
 #
 # The committed list has no `xfail` row: a test that cannot pass is not listed, and the reason is written
 # down where the tests are documented, not in a row that hides it (tests/host/qemu_tests fails on an `xfail`
@@ -37,6 +44,20 @@ trap_tasking_test_e51	examples/trap_tasking_test	0	pass	-	-
 trap_tasking_test_u54	examples/trap_tasking_test	0	pass	-	-
 trap_embedded_test_e51	examples/trap_embedded_test	0	pass	-	-
 trap_embedded_test_u54	examples/trap_embedded_test	0	pass	-	-
+istack_peak_tasking_test_e51	examples/interrupt_stack_tasking_test	0	pass	-	-
+istack_peak_tasking_test_u54	examples/interrupt_stack_tasking_test	0	pass	-	-
+istack_overflow_tasking_test_e51	examples/interrupt_stack_tasking_test	0	pass	-	-
+istack_overflow_tasking_test_u54	examples/interrupt_stack_tasking_test	0	pass	-	-
+istack_peak_embedded_test_e51	examples/interrupt_stack_embedded_test	0	pass	-	-
+istack_peak_embedded_test_u54	examples/interrupt_stack_embedded_test	0	pass	-	-
+istack_overflow_embedded_test_e51	examples/interrupt_stack_embedded_test	0	pass	-	-
+istack_overflow_embedded_test_u54	examples/interrupt_stack_embedded_test	0	pass	-	-
+istack_halt_tasking_test_e51	examples/interrupt_stack_tasking_test	0	console	^interrupt stack overflow	the last chance handler of the runtime halts with the message when the guard word of the interrupt stack is overwritten
+istack_halt_tasking_test_u54	examples/interrupt_stack_tasking_test	1	console	^interrupt stack overflow	the last chance handler of the runtime halts with the message when the guard word of the interrupt stack is overwritten
+istack_halt_embedded_test_e51	examples/interrupt_stack_embedded_test	0	console	^interrupt stack overflow	the last chance handler of the runtime halts with the message when the guard word of the interrupt stack is overwritten
+istack_halt_embedded_test_u54	examples/interrupt_stack_embedded_test	1	console	^interrupt stack overflow	the last chance handler of the runtime halts with the message when the guard word of the interrupt stack is overwritten
+istack_tiny_tasking_test_e51	examples/interrupt_stack_tasking_test	0	console	^interrupt stack overflow	a stack of 512 bytes that the trap overruns ends in the message of the runtime's last chance handler, not in a hang
+istack_tiny_tasking_test_u54	examples/interrupt_stack_tasking_test	1	console	^interrupt stack overflow	a stack of 512 bytes that the trap overruns ends in the message of the runtime's last chance handler, not in a hang
 tasking_test_e51	examples/tasking_test	0	pass	-	-
 tasking_test_u54	examples/tasking_test	0	pass	-	-
 tasking_test_u54h3	examples/tasking_test	0	pass	-	-

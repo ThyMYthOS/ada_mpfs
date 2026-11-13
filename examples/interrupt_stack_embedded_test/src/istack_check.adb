@@ -23,6 +23,16 @@ package body Istack_Check is
       Istack.Paint;
    end Start;
 
+   ---------------
+   -- Ends_With --
+   ---------------
+
+   function Ends_With (Text, Tail : String) return Boolean is
+     (Text'Length >= Tail'Length
+      and then Text (Text'Last - Tail'Length + 1 .. Text'Last) = Tail);
+   --  The light-tasking profile prefixes the message of a raise with the
+   --  place of the raise ("System.BB.Interrupts.Stack_Overflow: ...")
+
    -----------------
    -- Last_Chance --
    -----------------
@@ -52,6 +62,15 @@ package body Istack_Check is
                   "the peak is at most two thirds of the stack "
                   & "(a margin of 50 %)");
             end;
+
+         when Overrun_In_Handler =>
+            Test_Report.Check
+              (Istack.Overran,
+               "the handler used a frame that reaches below the stack");
+            Test_Report.Check
+              (Ends_With (Message, "interrupt stack overflow"),
+               "the program ends with the message "
+               & """interrupt stack overflow""");
       end case;
       Test_Report.Finish;
    end Last_Chance;
