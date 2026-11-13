@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
-"""Check the relative links and the #anchors of the Markdown files. Driven by `./x docs`.
+"""Check the relative links and the #anchors of the Markdown files, and that no file outside
+docs/ points into the plan. Driven by `./x docs`.
 
 usage: tools/check_docs.py [ROOT]
 
@@ -18,13 +19,24 @@ definition, and every `href=`/`src=` of an HTML tag in a Markdown file below ROO
 
 Not looked at: fenced code blocks, inline code, HTML comments, and the directories
 `svd/` and `LICENSES/` of ROOT, every `generated/` directory (the generated PAC),
-`.git/` and build output (`build/`, `obj-*`, `bin-*`).
+`.git/`, `.claude/` and build output (`build/`, `obj-*`, `bin-*`).
 
-A broken link is printed as `file:line: link (reason)`. Fail-closed rules: a ROOT
+The plan lint: a text file below ROOT outside `docs/` must not contain the phrases
+`work package` and `master plan` (any case, singular or plural): a reader of the
+repository cannot follow a reference to the plan, so a file says what it means. Not
+looked at: `docs/` (where a document may name its history), the upstream and generated
+directories `svd/`, `LICENSES/` and `crates/bb-runtimes/` of ROOT, the directories listed
+above, files that are not UTF-8 text, and the files in PHRASE_EXEMPT, which name the
+phrases themselves (listed by name, no pattern). `P<n>` and `R<n>` are too ambiguous
+(registers, variables) to be checked.
+
+A broken link is printed as `file:line: link (reason)`, a phrase as
+`file:line: phrase (plan reference outside docs/)`. Fail-closed rules: a ROOT
 that holds no Markdown file is an error (a typo in the path must not pass), and so
 is a reference with no definition.
 
-Exit status: 0 all links resolve; 1 a broken link; 2 usage or no Markdown file.
+Exit status: 0 all links resolve and no phrase is found; 1 a broken link or a phrase;
+2 usage or no Markdown file.
 """
 
 import os
@@ -33,8 +45,16 @@ import sys
 import urllib.parse
 
 SKIP_TOP = {"svd", "LICENSES"}
-SKIP_ANY = {".git", "generated", "build", "node_modules", "__pycache__", ".venv", "alire"}
+SKIP_ANY = {".git", ".claude", "generated", "build", "node_modules", "__pycache__", ".venv", "alire"}
 SKIP_PREFIX = ("obj-", "bin-")
+
+# The plan lint. The phrases are matched case-insensitively, with a plural, on one line.
+PHRASES = ("work package", "master plan")
+PHRASE_RE = re.compile(r"\b(?:%s)s?\b" % "|".join(p.replace(" ", "[ \\t]+") for p in PHRASES), re.IGNORECASE)
+# Directories of ROOT that are not scanned for the phrases, by their path.
+PHRASE_SKIP_DIRS = ("docs", "svd", "LICENSES", "crates/bb-runtimes")
+# Files that are not scanned because they name the phrases (the lint, its description, its test).
+PHRASE_EXEMPT = ("tools/check_docs.py", "tools/README.md", "tests/host/docs/run.sh")
 
 SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
@@ -191,6 +211,36 @@ def markdown_files(root):
     return found
 
 
+def phrase_files(root):
+    """The files below ROOT that the plan lint reads: text files outside the skipped directories."""
+    for dirpath, dirnames, filenames in os.walk(root):
+        rel = os.path.relpath(dirpath, root)
+        prefix = "" if rel == "." else rel.replace(os.sep, "/") + "/"
+        dirnames[:] = sorted(d for d in dirnames
+                             if d not in SKIP_ANY and not d.startswith(SKIP_PREFIX)
+                             and prefix + d not in PHRASE_SKIP_DIRS)
+        for f in sorted(filenames):
+            if prefix + f not in PHRASE_EXEMPT:
+                yield os.path.join(dirpath, f), prefix + f
+
+
+def check_phrases(root):
+    """Return (files read, problems) of the plan lint, problems as (file, line, phrase)."""
+    nfiles = 0
+    problems = []
+    for path, rel in phrase_files(root):
+        try:
+            with open(path, encoding="utf-8") as fh:
+                lines = fh.read().split("\n")
+        except (UnicodeDecodeError, OSError):
+            continue                                  # not text
+        nfiles += 1
+        for n, line in enumerate(lines, 1):
+            for m in PHRASE_RE.finditer(line):
+                problems.append((rel, n, m.group(0)))
+    return nfiles, problems
+
+
 def check(root):
     """Check the tree; return (files, links, problems), problems as (file, line, link, reason)."""
     files = markdown_files(root)
@@ -253,8 +303,16 @@ def main(argv):
     if problems:
         print("check_docs: %d broken link(s) in %d file(s)" % (len(problems), len(files)),
               file=sys.stderr)
+    nfiles, phrases = check_phrases(root)
+    for rel, line, phrase in phrases:
+        print("%s:%d: %s (plan reference outside docs/)" % (rel, line, phrase), file=sys.stderr)
+    if phrases:
+        print("check_docs: %d plan phrase(s) outside docs/; say what is meant instead" % len(phrases),
+              file=sys.stderr)
+    if problems or phrases:
         return 1
-    print("check_docs: %d link(s) in %d file(s) resolve" % (nlinks, len(files)))
+    print("check_docs: %d link(s) in %d file(s) resolve; no plan phrase in %d file(s) outside docs/"
+          % (nlinks, len(files), nfiles))
     return 0
 
 

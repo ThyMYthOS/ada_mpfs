@@ -7,7 +7,10 @@
 # definition and a link in a directory that is not skipped fail and are reported with
 # file, line and link; links in code blocks, inline code and HTML comments, external
 # links and the skipped directories are ignored; a root without Markdown files, a
-# missing root and an unknown option fail; the committed documentation passes.
+# missing root and an unknown option fail; the plan lint (the phrases "work package" and
+# "master plan" outside docs/) fails with file and line, ignores docs/, the upstream
+# directories, the files it exempts by name and files that are not text; the committed
+# documentation passes.
 # Exits non-zero on any failure.
 
 set -u
@@ -165,6 +168,49 @@ expect_rc  "links in code are ignored" 0 run "$tmp/code"
 printf '# Code\n\n````\n```\n[x](nowhere.md)\n````\n' > "$tmp/code/README.md"
 expect_rc  "a longer fence is not closed by a shorter one" 0 run "$tmp/code"
 
+# The plan lint: the phrases work package and master plan outside docs/.
+plan () {   # plan <name> <file> <text>: a copy of the good tree with <text> in <file>
+  rm -rf "${tmp:?}/$1"; cp -r "$good" "$tmp/$1"
+  mkdir -p "$(dirname "$tmp/$1/$2")"
+  printf '%s\n' "$3" >> "$tmp/$1/$2"
+}
+plan p1 libs/a.adb '--  the work package says so'
+expect_rc  "the phrase work package in a source fails" 1 run "$tmp/p1"
+expect_out "it names file, line and phrase" "libs/a.adb:1: work package (plan reference outside docs/)" run "$tmp/p1"
+plan p2 README.md 'See the Master  Plan.'
+expect_out "the match ignores case and takes a run of blanks" "README.md:25: Master  Plan (plan reference" run "$tmp/p2"
+plan p3 tests/x.sh '# two work packages'
+expect_out "the plural is found" "work packages (plan reference" run "$tmp/p3"
+plan p4 docs/history.md 'The master plan and the work package of that time.'
+expect_rc  "docs/ may name the plan" 0 run "$tmp/p4"
+for d in svd LICENSES crates/bb-runtimes build; do
+  plan "p5" "$d/note.txt" 'a work package of the master plan'
+  expect_rc "$d is not read for the phrases" 0 run "$tmp/p5"
+done
+plan p6 tools/README.md 'the phrases work package and master plan'
+expect_rc  "tools/README.md is exempt by its name" 0 run "$tmp/p6"
+plan p7 other/README.md 'the phrases work package and master plan'
+expect_rc  "a README of another directory is not exempt (no pattern)" 1 run "$tmp/p7"
+plan p8 tools/check_docs.py 'work package'
+expect_rc  "tools/check_docs.py is exempt by its name" 0 run "$tmp/p8"
+plan p9 tests/host/docs/run.sh 'work package'
+expect_rc  "tests/host/docs/run.sh is exempt by its name" 0 run "$tmp/p9"
+rm -rf "$tmp/p10"; cp -r "$good" "$tmp/p10"
+printf 'work package \377\376\n' > "$tmp/p10/blob.bin"
+expect_rc  "a file that is not UTF-8 text is not read" 0 run "$tmp/p10"
+plan p11 notes.txt 'the word package and the plan alone, a masterplan, framework packaging'
+expect_rc  "similar words do not match" 0 run "$tmp/p11"
+plan p12 a.txt 'work package'
+printf 'master plan\n' >> "$tmp/p12/b.txt"
+out="$(run "$tmp/p12" 2>&1)"
+case "$out" in *"a.txt:1:"*"b.txt:1:"*"2 plan phrase(s)"*) pass "every phrase is reported with a count" ;; *) fail "every phrase is reported with a count ($out)" ;; esac
+grep -q '^PHRASES = ("work package", "master plan")$' "$CHECK" \
+  && pass "the phrases of the lint are the documented ones" || fail "the phrases of the lint are the documented ones"
+for p in 'work package' 'master plan'; do
+  grep -q "\`$p\`" "$ROOT/tools/README.md" \
+    && pass "tools/README.md lists the phrase $p" || fail "tools/README.md lists the phrase $p"
+done
+
 # Fail closed.
 mkdir -p "$tmp/empty/svd"
 printf '# S\n' > "$tmp/empty/svd/README.md"
@@ -174,7 +220,7 @@ expect_rc  "too many arguments fail" 2 run "$good" "$good"
 expect_rc  "--help is a usage error" 2 run --help
 
 # The documentation of the repository.
-expect_rc  "the committed documentation has no broken link" 0 run "$ROOT"
+expect_rc  "the committed documentation has no broken link and no plan phrase" 0 run "$ROOT"
 grep -q 'docs)  *delegate tools/check_docs.py' "$ROOT/x" \
   && pass "./x docs delegates to tools/check_docs.py" || fail "./x docs delegates to tools/check_docs.py"
 
