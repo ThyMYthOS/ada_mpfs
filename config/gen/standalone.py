@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# @req RTS-019
+# @req RTS-019, RTS-022
 """The partition data of one image that is built without the configuration generator (standalone).
 
   standalone.py --hart e51|u54 [--profile P] [--harts SET | --mask N] [--role primary|secondary|N]

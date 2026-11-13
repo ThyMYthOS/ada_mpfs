@@ -14,7 +14,7 @@
 --
 --  Reported with Test_Report as trap_embedded_test_e51 or _u54.
 --
---  @verifies RTS-005
+--  @verifies RTS-005, RTS-022
 
 with Bare_Console;
 with Test_Report;

@@ -40,7 +40,7 @@
  *                      application for code in the ITIM and data in the DTIM; the runtime checks the
  *                      memory and copies, with start_fast.S; empty by default)
  */
-/* @req RTS-004, RTS-017 */
+/* @req RTS-004, RTS-017, RTS-022 */
 
 ENTRY(_start)
 OUTPUT_ARCH("riscv")

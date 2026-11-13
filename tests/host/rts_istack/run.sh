@@ -17,6 +17,8 @@
 #     image that has none has no trace of it, so it does not grow.
 #
 # The builds are skipped when the pinned GNAT, zstd or GNU tar is missing. Exits non-zero on any failure.
+#
+# @verifies RTS-022, RTS-023
 
 set -u
 export LC_ALL=C

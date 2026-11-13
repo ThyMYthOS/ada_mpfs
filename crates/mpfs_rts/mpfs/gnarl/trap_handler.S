@@ -22,6 +22,7 @@
  * costs an image that has no interrupt stack. __interrupt_stack_start == __interrupt_stack_end
  * means "no stack": the arming does nothing.
  */
+/* @req RTS-023 */
 
 #include "riscv_def.h"
 

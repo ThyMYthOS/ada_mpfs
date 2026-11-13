@@ -14,6 +14,8 @@
 --  receives it.
 --
 --  Reported with Test_Report as <Test_Name.Overflow>_e51 or _u54.
+--
+--  @verifies RTS-023
 
 pragma Suppress (All_Checks);
 

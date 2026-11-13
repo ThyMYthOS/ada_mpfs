@@ -21,6 +21,8 @@
 --  chance handler of the runtime checks it, and Stack_Overflow below is what
 --  the trap handler calls when it is not intact. Initialize_Interrupts arms it.
 --  Nothing else of the unit changed.
+--
+--  @req RTS-022, RTS-023
 
 pragma Restrictions (No_Elaboration_Code);
 

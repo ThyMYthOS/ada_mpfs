@@ -183,3 +183,26 @@ requirements:
       runs its handler once and not before its time, and not at all when it is cancelled.
     tsf: false
     source: docs/assurance/rts.md
+  - id: RTS-022
+    text: >-
+      The interrupt stack of an image that links System.BB.Interrupts is exactly
+      __interrupt_stack_size bytes, and an image that does not has none; the default of the
+      partition data is 8192 bytes (light, light-tasking) and 12912 bytes (embedded: the peak of
+      the first unwind in a trap, 8608 bytes on the U54, plus 50 %, a multiple of 16), and
+      --interrupt-stack-size overrides it. The first exception of a program, raised in a trap
+      handler, ends in the last chance handler with the diagnosis of the trap on both hart
+      classes, with no exception raised before it, and the peak use of the stack in that case is
+      at most two thirds of the default stack.
+    tsf: false
+    source: crates/mpfs_rts/README.md
+  - id: RTS-023
+    text: >-
+      The lowest word of the interrupt stack holds its own address from before main, is checked at
+      the exit of every trap and by the last chance handler of the light-tasking and embedded
+      profiles, and if it has been overwritten the program halts with the message "interrupt stack
+      overflow" and is not restarted: an interrupt handler that overruns the stack, and a trap that
+      overruns a stack that is too small, end in that message and do not hang (light-tasking; in
+      embedded the overrun of an unwinder that destroys what the report needs first is not
+      covered). An image without an interrupt stack has no trace of the guard.
+    tsf: false
+    source: crates/mpfs_rts/README.md

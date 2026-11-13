@@ -265,8 +265,11 @@ the program after the runtime has installed its trap handler:
 | `embedded` | 8 256 B | 8 608 B | the same, and the first unwind: libgcc's `_Unwind_Find_FDE` sorts the frame descriptions (the registration of `crtbegin.o`), then the search and the unwind, then the handler and its print |
 
 Both `embedded` numbers are above the 8 KiB (8 192 bytes) of the upstream default: the first exception of a program, when
-it is raised in a trap handler, does not fit the default stack on either hart class (the issue observed the failure on the
-U54; `trap_embedded_test` passed on the E51 with its own handler and after the warm-up exception).
+it is raised in a trap handler, does not fit the default stack on either hart class, by 64 bytes on the E51 and 416 on the
+U54. What that does depends on what lies below the stack. In the layout of the issue it was libgcc's `dwarf_reg_size_table`,
+which the unwinder then asserts on, and the U54 image of `trap_embedded_test` hung; with the layout of `origin/main` (QEMU
+10.2.1) the same test, without its warm-up exception, passes on both hart classes, because the bytes land on data that is not
+used any more. So the test alone is not the evidence; the peak is.
 A later exception does not sort again: the exception that makes libgcc sort its frame descriptions is the first one; `trap_embedded_test` as it was written (one exception raised and
 handled before the trap) and as it is now (the trap is the first) were both measured the same way, in the `embedded`
 profile:
@@ -298,6 +301,15 @@ levels).
 `--interrupt-stack-size N` overrides each of them (a multiple of 16, checked by the partition data and the linker script);
 the cost of a larger stack is its size in RAM and the time that `start.S` takes to clear it.
 
+**Tests.** `examples/interrupt_stack_embedded_test` and `examples/interrupt_stack_tasking_test` (sources shared, see their
+READMEs): `istack_peak_*` is the measurement above as a test (the peak is at most two thirds of the default stack);
+`istack_overflow_*` has a timing event handler use a frame as large as the whole stack (2 048 bytes), overwrite the guard word
+and nothing else, and checks that the last chance handler of the test receives `interrupt stack overflow` from the exit of the
+trap; `istack_halt_*` overwrites the word and takes a trap, and the last chance handler of the runtime prints the message;
+`istack_tiny_tasking_test` has a stack of 512 bytes that the trap really overruns (`light-tasking` only, see the limits).
+The last two kinds end in the handler of the runtime and are `console` rows of `tests/qemu/tests.list`. `trap_embedded_test`
+has no warm-up exception any more. `tests/host/rts_istack` checks the sizes and the code of the guard on the images.
+
 **Overflow check (guard word).** The lowest 8 bytes of the stack, `__interrupt_stack_start`, hold their own address. A trap
 or an interrupt that used more stack than there is has written there (the stack grows down towards it), and the word then
 differs. The check is software: it finds an overrun after it has happened, not before, and what the overrun overwrote below
@@ -318,8 +330,10 @@ its failure path added.
 
 **Limits.** The guard word finds an overrun that reaches it; a frame that jumps over it (a large local array that is not
 written at its lower end) is not found, and an overrun of kilobytes can destroy what the report needs before anything checks
-(the unwinder of the `embedded` profile with a stack far below 8 KiB treads on the heap and on libgcc's tables: the message
-is not guaranteed there). With one hart there is one
+(the unwinder of the `embedded` profile with a stack below its peak treads on libgcc's tables and the heap: measured, a U54
+`embedded` image with a stack of 8 192 bytes, 416 bytes too small, still hangs: the unwinder stops in its assertion on the
+overwritten register size table and the faults that follow keep the hart in the trap entry, so no check is reached; the
+message is not guaranteed there, and the default of 12 912 bytes is what keeps it from happening). With one hart there is one
 stack and one guard; the SMP work will need one for each hart (`__interrupt_stack_start` + hart * size). A hardware guard
 (PMP) does not help an M-mode runtime on this core (unlocked entries do not apply to M mode, a locked one stays until the
 reset) and is for the partition model of the later phases.

@@ -12,6 +12,8 @@
 --  report says it.
 --
 --  Reported with Test_Report as <Test_Name.Peak>_e51 or _u54.
+--
+--  @verifies RTS-022
 
 with Ada.Real_Time;
 with Bare_Console;

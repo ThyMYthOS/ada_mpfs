@@ -26,6 +26,8 @@
 --  its own, which would not be the one of the runtime): tests/host/rts_istack
 --  runs the image under QEMU and reads the console, which says "interrupt
 --  stack overflow" and not "Unhandled".
+--
+--  @verifies RTS-023
 
 with Ada.Real_Time;
 

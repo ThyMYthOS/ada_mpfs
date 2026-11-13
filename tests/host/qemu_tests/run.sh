@@ -8,6 +8,8 @@
 # every way a test can pass or fail is reproduced without QEMU. Each negative
 # case must make the runner exit non-zero, and the positive cases show that the
 # fixtures are not what makes them fail. Exits non-zero on any failure.
+#
+# @verifies RTS-023
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"

@@ -77,7 +77,7 @@ every console. Requirement RTS-004.
 | `__mpfs_boot_role` | 1 primary (owns the boot flow, resets the MSS at exit), 0 secondary (halts at exit). | `start.S` |
 | `__mpfs_console_base`, `_init`, `_dlr`, `_dfr` | The MMUART of the console (0: none), whether the runtime programs it, the divisor and its fraction. | `System.Text_IO` |
 | `__mpfs_harts_mask` | Bit n set: hart n belongs to the partition. A hart outside the mask is parked in `wfi`. | `start.S`, `sections.ld` (debug constant) |
-| `__stack_size`, `__interrupt_stack_size` | The stack of the environment task and the interrupt stacks. | `sections.ld` |
+| `__stack_size`, `__interrupt_stack_size` | The stack of the environment task and the interrupt stack (the size, exactly: RTS-022). | `sections.ld` |
 | `MPFS_*_LENGTH`, `MPFS_LOCAL_ITIM_ORIGIN` | The lengths of the regions (the origins are literals). | `mpfs-memory.ld` |
 
 The rules: there are no defaults, so a missing symbol is a link error ("undefined reference" or
@@ -115,22 +115,27 @@ files are in `mpfs/gnat`, `mpfs/gnarl` and `overlays/`.
 |---|---|---|
 | `a-intnam.ads` | Generated from the SVD. | `a-intnam` of the pack |
 | `context_switch.S`, `riscv_def.h` | The FP restore from the incoming task; assembly-time checks of the frame against the float ABI. | the same files |
+| `light-tasking/gnat/a-elchha.adb`, `embedded/gnat/a-elchha.adb` | The last chance handler that checks the guard word first and ends with `interrupt stack overflow` (RTS-023). | `a-elchha.adb` of the pack |
 | `link-zcx.spec` | The embedded link spec, without `--eh-frame-hdr`. | `link-zcx.spec` of the pack |
 | `overlays/tlsf/embedded/gnat` | `tlsf_core`, `tlsf_math`, `heap_guard`, `mpfs_heap`, `mpfs_heap_lock`. | `s-memory` (bump allocator; `System.Memory` of the pack stays) |
 | `s-bbbopa.ads` | `Clock_Frequency` (1 MHz `mtime`); no hart and no console literals. | `s-bbbopa__polarfiresoc` |
 | `s-bbbosu.adb` | Board initialisation of the own PLIC context; `Power_Down` is `wfi`. | `s-bbbosu__riscv` |
 | `s-bbhart` | `System.BB.Hart.Id`, from `mhartid`. | hart literals in several units |
+| `s-bbinte.adb` | The interrupt stack is the space that `sections.ld` reserves (`__interrupt_stack_size`), not an array of the runtime; the guard word is armed here and `Stack_Overflow` ends the program (RTS-022, RTS-023). | `s-bbinte` of the pack |
 | `s-bbricl` | The CLINT: `Mtime`, `Mtimecmp (Hart)`, `MSIP (Hart)`. | the CLINT code of `s-bbsuti` |
 | `s-bbripl` | The PLIC of the own hart: context from `mhartid`, 32-bit accesses to PAC registers, the priority mapping. | `s-bbripl` of `polarfiresoc` |
 | `s-bbsuti.adb` | The tickless timer on `mtimecmp` of the own hart. | `s-bbsuti__riscv_clint` |
 | `s-textio.ad[sb]` | The polled MMUART console driven by link symbols. | `s-textio__ns16550` |
 | `start.S` | Entry of every image: `mtvec` first, hart gate, `.data`, `.bss` and stacks with 64-bit stores, `mstatus.FS`, constructor arrays, `main`, exit by role; the early trap stub and the trap record. | `start-ram.S` |
 | `start_fast.S` | `start.S` with the check and the copy of the application's ITIM and DTIM sections (section 5.5). | none |
+| `trap_handler.S` | The upstream trap entry with the guard word of the interrupt stack: the arming function (an entry of `.preinit_array`), the check at the exit of the trap, the failure path (RTS-023). | `trap_handler.S` of the pack |
 
 `s-bbpara.ads` (the interrupt range 1 to 186, one CPU) and the system packages of the profiles come
 from the fork `crates/bb-runtimes` (`s-bbpara__polarfiresoc.ads` and the `system-xi-riscv*` files
-of the pack); the fork is not changed by the work described here. `trap_handler.S` and the unit
-`s-bbcpsp` (`Context_Buffer`) are upstream and unchanged.
+of the pack); the fork is not changed by the work described here. The unit `s-bbcpsp`
+(`Context_Buffer`) is upstream and unchanged, and so is the context save and restore of
+`trap_handler.S` (the file has the guard word of the interrupt stack added, above). The constant
+`Interrupt_Stack_Size` of `s-bbpara.ads` is not used any more: the size is the partition data.
 
 ## 5. How the parts fit
 
@@ -198,6 +203,18 @@ before `main`, `.eh_frame` bracketed in the linker script (RTS-011). The decisio
 evidence are in [`docs/design/exceptions.md`](../design/exceptions.md); the mechanism is "Zero-cost
 exceptions" in the runtime README.
 
+### 5.7 Interrupt stack
+
+A trap and an interrupt run on the interrupt stack of the tasking profiles; the `light` profile has none. Its size is the
+partition data `__interrupt_stack_size` and nothing else: `sections.ld` reserves exactly that for an image that links
+`System.BB.Interrupts`, and nothing for an image that does not. The default depends on the profile (8 KiB, and 12 912 bytes
+for `embedded`, the measured peak of the first unwind in a trap plus 50 %); `./x build --interrupt-stack-size` overrides it
+(RTS-022). A guard word at the lower end of the stack, the address of its own location, is written before `main` and
+checked at the exit of every trap and by the last chance handler of the runtime; if it has been overwritten, the program halts
+with the message `interrupt stack overflow` (RTS-023). The check is software and finds an overrun after it has happened;
+a hardware guard (PMP) does not help in machine mode on this core and is for later. The peak measurement, the numbers, the
+limits and the cost in bytes are in "Interrupt stack" in the runtime README.
+
 ## 6. Deviations from upstream bb-runtimes
 
 Everything not listed is the upstream source, which `compare_toolchain.sh` proves against the
@@ -219,6 +236,8 @@ shipped runtimes (RTS-002).
 | `link-zcx.spec`, `unwind-dw2-fde-bb.c` removed | See section 5.6. |
 | TLSF heap for `embedded`, secondary stack defaults | The upstream defaults (1 MiB, 512 KiB) do not fit the 1920 KiB of the LIM. |
 | `s-textio.ads` with `No_Elaboration_Code` | The body names the PAC, which has the weaker restriction. |
+| The interrupt stack is sized by `__interrupt_stack_size` (`s-bbinte.adb`, `sections.ld`) | Upstream declares an array of `Interrupt_Stack_Size` (8 KiB); the partition value was only an upper bound, and the first unwind in a trap needs more in `embedded`. |
+| Guard word of the interrupt stack (`trap_handler.S`, `s-bbinte.adb`, `a-elchha.adb` of `light-tasking` and `embedded`) | An overrun of the stack ran into `.bss` unnoticed; now the program halts with `interrupt stack overflow`. |
 
 ## 7. Requirements and tests
 
@@ -253,6 +272,8 @@ profiles is one example per profile with shared sources (`textio_tasking_test`, 
 | RTS-019 | Standalone partition data, `MPFS_Partition` checks | `standalone` | |
 | RTS-020 | Profile restrictions | `rts_negative` | |
 | RTS-021 | Protected objects and timing events | | `protected_test` |
+| RTS-022 | Interrupt stack: size from the partition data, defaults by profile, the first exception in a trap fits it | `rts_istack`, `standalone` | `interrupt_stack_embedded_test`, `interrupt_stack_tasking_test`, `trap_embedded_test` |
+| RTS-023 | Guard word of the interrupt stack, `interrupt stack overflow` | `rts_istack`, `qemu_tests` | `interrupt_stack_embedded_test`, `interrupt_stack_tasking_test` |
 | SVD-002 | Interrupt names from the SVD | `rts_intnam` | `interrupt_test` |
 
 **No test yet:** RTS-016. The tests of the examples are written to run on the board as well, but the hardware
@@ -268,9 +289,11 @@ sizes of all images (`metrics.golden`, BLD-003) and the negative build of the AB
   at 1 MHz; the interrupt latency behind `Interrupt_Latency_Ticks`) are a report, not a check of this
   repository, so RTS-016 stays without a test. They are the runs of one board; the report lists what they
   do not cover.
-- **Interrupt stack of the embedded profile.** The first unwind inside a trap handler may overflow the 8 KiB
-  interrupt stack on the U54; `trap_embedded_test` works around it by raising one exception first
-  (issue #91). RTS-005 holds for that test as it is.
+- **Interrupt stack: limits of the guard.** The first unwind inside a trap handler overflowed the 8 KiB interrupt stack
+  (issue #91, closed): the stack of `embedded` is 12 912 bytes and `trap_embedded_test` has no warm-up exception any more.
+  What stays open is the guard itself: it is software, it finds an overrun after the fact (an overrun that destroys what
+  the report needs, in `embedded`, can still hang), it covers one stack (the SMP work needs one for each hart), and a
+  hardware guard through PMP belongs to the user-mode and partition work.
 - **ITIM and DTIM on the board.** QEMU cannot show that the real ITIM and DTIM work once the boot stage
   has enabled them (section 5.5); `itim_test_e51` passes on the board with `.fast_text` in the ITIM, and the
   report says what else is not covered.

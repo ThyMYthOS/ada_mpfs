@@ -9,6 +9,8 @@
 --  an interrupt overran the stack, ends with the message "interrupt stack
 --  overflow" and nothing else (issue #91, crates/mpfs_rts/README.md). The rest
 --  is the upstream handler.
+--
+--  @req RTS-023
 
 with Ada.Unchecked_Conversion;
 with System.Machine_Reset;
