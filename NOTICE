@@ -52,9 +52,14 @@ headers.
 Third-party components
 ----------------------------------------------------------------------
 
+- Microchip mpfsBootmodeProgrammer 3.7 (MIT, Copyright 2021 Microchip FPGA
+  Embedded Systems Solutions): hw/bootprog.py is a Python rewrite of its Java
+  source (the source zip in the SoftConsole installation). The copyright notice
+  is kept in the header of the file and the license text is in LICENSES/MIT.txt
+  (see PROVENANCE.md).
 - Microchip PolarFire SoC platform sources (MIT), once imported: copyright
   and license text are preserved in the importing files and in
-  LICENSES/MIT.txt (added with the first import).
+  LICENSES/MIT.txt.
 - GNAT runtime (crates/mpfs_rts, crates/bb-runtimes): crates/bb-runtimes is a
   trimmed fork of alire-project/bb-runtimes, tag v15.1.0-1 (commit 09e7cd6, see
   PROVENANCE.md), and crates/mpfs_rts/packs.sha256 records the runtime sources
