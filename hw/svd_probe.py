@@ -20,6 +20,9 @@ command line is read, with a note on stderr) through the OpenOCD telnet port (de
               the tool wrote with --enable-clocks, live pin levels ...) that only has its reset value after a
               reset-halt; the patterns are in hw/svd_probe.list, which can also name the live bits of a register
               (state-mask: a difference in the other bits is a mismatch); --compare-state reports them as mismatch
+  gated       the peripheral has no clock (SYSREG.SUBBLK_CLOCK_CR) or is held in reset (SOFT_RESET_CR) according to a "clock"
+              rule of hw/svd_probe.list: it answers with dummy values, so no register of it is compared, whatever it reads;
+              not a failure; --enable-clocks turns the clocks on, --compare-state reports the registers as read
   noref       nothing to compare: the SVD has no <resetValue>, or <resetMask> is 0
   unreadable  the access failed; the text OpenOCD replied is shown
   skipped     not read: a register with a readAction (reading it consumes data or clears status; --read-destructive
@@ -124,7 +127,7 @@ INTERRUPT_TIMEOUT = 2.0  # seconds the resume after Ctrl+C may take
 RESET_TIMEOUT = 30.0  # seconds "reset halt" may take
 EXIT_INTERRUPTED = 130  # 128 + SIGINT, as for any program that ends on Ctrl+C
 RULES = Path(__file__).resolve().with_suffix(".list")
-RULE_KINDS = ("skip", "state", "state-mask", "state-enable-clocks", "skip-enable-clocks", "skip-no-clocks", "block")
+RULE_KINDS = ("skip", "state", "state-mask", "state-enable-clocks", "skip-enable-clocks", "skip-no-clocks", "block", "clock")
 MD_SUFFIX = {8: "b", 16: "h", 32: "w", 64: "d"}
 # What OpenOCD replies, as plain text and not as an error of the command, when the debug module is stuck busy
 HANG_REPLY = re.compile(r"Timed out|waiting for busy|abstractcs|Failed to read priv register", re.IGNORECASE)
@@ -223,6 +226,7 @@ class Rule:
     reason: str
     mask: int = 0
     block: int = 0  # block rule: the registers per read command for the peripherals that match
+    field: str = ""  # clock rule: the field of SYSREG.SUBBLK_CLOCK_CR and SOFT_RESET_CR that gates the peripherals that match
 
     def matches(self, name: str) -> bool:
         """Whether <name> matches the pattern (* and ?, case does not matter)."""
@@ -246,14 +250,21 @@ def load_rules(path: Path) -> list[Rule]:
         line = line.strip()
         if not line or line.startswith("#"):
             continue
-        parts = line.split(None, 3 if line.startswith(("state-mask ", "block ")) else 2)
+        parts = line.split(None, 3 if line.startswith(("state-mask ", "block ", "clock ")) else 2)
         if len(parts) < 3 or parts[0] not in RULE_KINDS:
             raise ValueError(f"{path}:{n}: expected '<{'|'.join(RULE_KINDS)}> <pattern> <reason>' "
-                             f"('state-mask <pattern> <mask> <reason>', 'block <pattern> <N> <reason>'), got {line!r}")
+                             f"('state-mask <pattern> <mask> <reason>', 'block <pattern> <N> <reason>', "
+                             f"'clock <pattern> <field> <reason>'), got {line!r}")
         if parts[0] == "block":
             if len(parts) < 4 or not parts[2].isnumeric() or int(parts[2]) < 1:
                 raise ValueError(f"{path}:{n}: expected 'block <peripheral pattern> <N >= 1> <reason>', got {line!r}")
             rules.append(Rule(parts[0], parts[1], parts[3], block=int(parts[2])))
+            continue
+        if parts[0] == "clock":
+            if len(parts) < 4 or not re.fullmatch(r"[A-Za-z0-9_]+(:[A-Za-z0-9_]+:[A-Za-z0-9_]+)?", parts[2]):
+                raise ValueError(f"{path}:{n}: expected 'clock <peripheral pattern> <SYSREG field | REGISTER:CLOCKFIELD:RESETFIELD> "
+                                 f"<reason>', got {line!r}")
+            rules.append(Rule(parts[0], parts[1], parts[3], field=parts[2]))
             continue
         if parts[0] == "state-mask":
             try:
@@ -419,6 +430,7 @@ class Result:
     state: int = 0
     excluded: int = 0
     dlab: int = 0
+    gated: int = 0  # registers of peripherals whose clock is off or that are held in reset: the value read means nothing
     hung: int = 0  # registers not read because their peripheral hung the debug module and was recovered
     last: str = ""  # the register accessed last, "0x<address> <name>"
     done: collections.Counter[str] = dataclasses.field(default_factory=collections.Counter)  # per peripheral: registers with a line
@@ -530,7 +542,8 @@ def parse_blocks(specs: list[str], rules: list[Rule] | None = None) -> list[tupl
 
 def probe(regs: list[Reg], target: OpenOcd, blocks: list[tuple[str, int]], keep_going: bool = False,
           max_failures: int = 3, read_destructive: bool = False, state: list[Rule] | None = None,
-          result: Result | None = None, identical: int = 0, on_hang: Callable[["Hung"], bool] | None = None) -> Result:
+          result: Result | None = None, identical: int = 0, on_hang: Callable[["Hung"], bool] | None = None,
+          gated: dict[str, str] | None = None) -> Result:
     """Read and compare all <regs>; print one line each and return the counts.
 
     The counts go into <result> if one is given, so that the caller still has them when the run ends in an exception.
@@ -548,7 +561,11 @@ def probe(regs: list[Reg], target: OpenOcd, blocks: list[tuple[str, int]], keep_
     nonzero value that is not their reset value (0: no check), one note says that the block probably does not
     respond: a gated block can answer every read with the same word. If the debug module hangs (Hung with
     <stuck>) and <on_hang> returns True (it recovered the target), the peripheral is reported as "hung (recovered)",
-    its remaining registers are not read, and the probe goes on with the next peripheral.
+    its remaining registers are not read, and the probe goes on with the next peripheral. <gated> maps a peripheral
+    to why it is gated (its clock is off or it is in reset): every register of it is reported as "gated", whatever
+    the value, because a gated block answers with dummy values (zeros, or one word for every register) that can
+    coincide with the reset value as well as differ from it. <gated> is read while the probe runs, so a recovery
+    can change it.
     """
     result = result if result is not None else Result()
     hung_names: set[str] = set()
@@ -663,6 +680,10 @@ def probe(regs: list[Reg], target: OpenOcd, blocks: list[tuple[str, int]], keep_
                     continue
                 in_a_row = 0
                 w = r.size // 4  # hex digits of the register
+                if gated and name in gated:
+                    print(f"gated       0x{r.address:08X} {r.name} = 0x{value:0{w}X} ({gated[name]}: the value means nothing)")
+                    result.gated += 1
+                    continue
                 diff = 0 if r.reset is None else (value ^ r.reset) & r.mask
                 if value and r.reset is not None and r.mask and diff:  # a register without a reference has no "wrong" value
                     same.setdefault(name, collections.Counter())[value] += 1
@@ -771,6 +792,75 @@ def enable_clocks(root: ET.Element, target: OpenOcd) -> None:
               f"fields allow 0x{want:08X}: the clocks of the peripherals in bits 0x{want & ~got:08X} are not on", file=sys.stderr)
 
 
+def sysreg_fields(root: ET.Element, register: str) -> dict[str, int]:
+    """Field name -> bit mask of SYSREG.<register>; empty if the SVD has no such register."""
+    for periph in root.iter("peripheral"):
+        if periph.findtext("name") != "SYSREG":
+            continue
+        for r in periph.iterfind("registers/register"):
+            if r.findtext("name") == register:
+                return {f.findtext("name"): ((1 << int_of(f.findtext("bitWidth"), 1)) - 1) << int_of(f.findtext("bitOffset"))
+                        for f in r.iterfind("fields/field")}
+    return {}
+
+
+def gate_state(root: ET.Element, target: OpenOcd, rules: list[Rule], names: list[str]) -> dict[str, str]:
+    """Which of the peripherals <names> are gated now: the peripheral to why.
+
+    A "clock" rule of the rules file names the field of SYSREG.SUBBLK_CLOCK_CR (0: clock off) and SOFT_RESET_CR (1: held
+    in reset) that gates a peripheral. Both registers are read now, after --poke and --enable-clocks. A rule of the form
+    REGISTER:CLOCKFIELD:RESETFIELD names a SYSREG register that holds both (SYSREG.DFIAPB_CR for the MSS corner with
+    CFG_DDR_SGMII_PHY); it is read when a peripheral of the run matches such a rule, and a register that cannot be read
+    leaves only the peripherals of its rules ungated. A peripheral without a rule is never reported as gated; so is every
+    peripheral if SUBBLK_CLOCK_CR or SOFT_RESET_CR cannot be read.
+    """
+    sysreg = {r.name.split(".")[1]: r for r in peripheral_registers(root, "SYSREG")} if any(
+        p.findtext("name") == "SYSREG" for p in root.iter("peripheral")) else {}
+    state: dict[str, tuple[int, dict[str, int]]] = {}
+    for name in ("SUBBLK_CLOCK_CR", "SOFT_RESET_CR"):
+        fields = sysreg_fields(root, name)
+        if name not in sysreg or not fields:
+            return {}
+        value = read_run([sysreg[name]], target)[0]
+        if not isinstance(value, int):
+            print(f"svd_probe: WARNING: SYSREG.{name} is unreadable ({value}), gated blocks cannot be told", file=sys.stderr)
+            return {}
+        state[name] = (value, fields)
+    gated = {}
+    for name in names:
+        rule = next((x for x in rules if x.kind == "clock" and x.matches(name)), None)
+        if rule is None:
+            continue
+        why = []
+        if ":" in rule.field:
+            register, clock_field, reset_field = rule.field.split(":")
+            if register not in state:
+                fields = sysreg_fields(root, register)
+                value = read_run([sysreg[register]], target)[0] if register in sysreg and fields else None
+                if not isinstance(value, int):
+                    print(f"svd_probe: WARNING: SYSREG.{register} is unreadable ({value}), {name} cannot be told to be gated",
+                          file=sys.stderr)
+                    continue
+                state[register] = (value, fields)
+            value, fields = state[register]
+            if clock_field in fields and not value & fields[clock_field]:
+                why.append(f"clock off: {register}.{clock_field}=0")
+            if reset_field in fields and value & fields[reset_field]:
+                why.append(f"in reset: {register}.{reset_field}=1")
+            if why:
+                gated[name] = " and ".join(why)
+            continue
+        clock, clock_fields = state["SUBBLK_CLOCK_CR"]
+        reset, reset_fields = state["SOFT_RESET_CR"]
+        if rule.field in clock_fields and not clock & clock_fields[rule.field]:
+            why.append(f"clock off: SUBBLK_CLOCK_CR.{rule.field}=0")
+        if rule.field in reset_fields and reset & reset_fields[rule.field]:
+            why.append(f"in reset: SOFT_RESET_CR.{rule.field}=1")
+        if why:
+            gated[name] = " and ".join(why)
+    return gated
+
+
 def note_other_harts(halt_reply: str, selected: str) -> None:
     """Print one line if OpenOCD says that harts other than <selected> did not halt (reads go through <selected>)."""
     own = re.search(r"hart(\d+)", selected)
@@ -858,7 +948,7 @@ def partial_summary(regs: list[Reg], result: Result) -> list[str]:
     left = {name: n - result.done[name] for name, n in total.items() if n > result.done[name]}
     lines = [f"svd_probe: partial summary: {sum(result.done.values())} of {len(regs)} register(s) have a line, {result.failures} not ok, "
              f"{result.skipped} skipped, {result.read_action} readAction, {result.dlab} DLAB, {result.hung} hung, "
-             f"{result.noref} noref, {result.state} state, {result.excluded} excluded",
+             f"{result.noref} noref, {result.state} state, {result.gated} gated, {result.excluded} excluded",
              f"svd_probe: last register accessed: {result.last or 'none'}"]
     lines.append("svd_probe: not reached: " + (", ".join(f"{name} {n}" for name, n in left.items()) + f" ({sum(left.values())} register(s))"
                                                 if left else "nothing"))
@@ -1032,6 +1122,17 @@ def main(argv: list[str]) -> int:
             poke(target, address, value, name)
         if args.enable_clocks:
             enable_clocks(root, target)
+        gated: dict[str, str] = {}  # peripheral -> why it is gated; not told with --compare-state
+
+        def update_gated() -> None:
+            gated.clear()
+            if not args.compare_state:
+                gated.update(gate_state(root, target, rules, sorted({r.name.split(".")[0] for r in regs})))
+                if gated:
+                    print(f"svd_probe: gated: {', '.join(sorted(gated))}: values read there mean nothing (clock off or in reset; "
+                          "--enable-clocks turns the clocks on, --compare-state reports them as read)")
+
+        update_gated()
         target.reset_after_busy = args.recover
         recoveries = 0
         checks = [recover.Check(f"SYSREG.{r.name.split('.')[1]}", r.address, r.reset)
@@ -1059,10 +1160,11 @@ def main(argv: list[str]) -> int:
                 poke(target, address, value, name)
             if args.enable_clocks:
                 enable_clocks(root, target)
+            update_gated()
             return True
 
         probe(regs, target, blocks, args.keep_going, args.max_failures, args.read_destructive, state_rules, result,
-              args.identical_reads, on_hang)
+              args.identical_reads, on_hang, gated)
     except Hung as e:
         keep_halted = e.stuck
         abort = str(e) if e.stuck else (f"{e}; the bus is probably hung: run ./x hw reset (or reset halt in the OpenOCD console), "
@@ -1116,7 +1218,7 @@ def main(argv: list[str]) -> int:
         return 2
     print(f"svd_probe: {len(regs)} register(s), {result.failures} not ok, {result.skipped} skipped, "
           f"{result.read_action} readAction, {result.dlab} DLAB, {result.hung} hung, {result.noref} noref, {result.state} state, "
-          f"{result.excluded} excluded")
+          f"{result.gated} gated, {result.excluded} excluded")
     return 1 if result.failures or result.hung else 0
 
 

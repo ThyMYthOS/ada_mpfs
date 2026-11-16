@@ -25,6 +25,7 @@ import sys
 import tempfile
 import threading
 import time
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -32,6 +33,8 @@ TOOL = Path(os.environ.get("SVD_PROBE", ROOT / "hw" / "svd_probe.py"))
 REAL_SVD = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "build" / "svd" / "PolarfireSoC.svd"
 RESET, EOF, HANG = "reset", "eof", "hang"  # what a script can answer instead of text; HANG: no answer, the connection stays open
 failures = 0
+sys.path.insert(0, str(TOOL.parent))
+import svd_probe  # noqa: E402  (the tool itself, for the rules file and the SVD helpers)
 
 
 def check(name: str, ok: bool, detail: str = "") -> None:
@@ -609,7 +612,7 @@ def test_abort_output(tmp: Path) -> None:
     stub = Stub(script=lambda conn, cmd, n: "Error: bus error" if cmd.startswith("mdw 0x2000") else None)
     r = run(svd2, stub, "--skip-file", str(rules2), "--block", "1")
     check("abort output: rule-excluded, readAction and not-reached registers have their own counts",
-          "svd_probe: 6 register(s), 1 not ok, 2 skipped, 1 readAction, 0 DLAB, 0 hung, 0 noref, 0 state, 2 excluded" in r.stdout, r.stdout)
+          "svd_probe: 6 register(s), 1 not ok, 2 skipped, 1 readAction, 0 DLAB, 0 hung, 0 noref, 0 state, 0 gated, 2 excluded" in r.stdout, r.stdout)
     stub.close()
 
 
@@ -1339,12 +1342,147 @@ def test_skip(tmp: Path) -> None:
         check("skip: ./x svd probe ENVM reads the block without --include", shown == {"ENVM"} and "ENVM is on the default skip list" in r.stderr, f"{sorted(shown)[:4]} {r.stderr!r}")
 
 
+def test_gated(tmp: Path) -> None:
+    """A block without clock or in reset is reported as gated, not as ok or mismatch; the clock rules decide which."""
+    field = lambda n, off: f"<field><name>{n}</name><bitOffset>{off}</bitOffset><bitWidth>1</bitWidth></field>"
+    fields = "<fields>" + field("GPIO0", 20) + field("MAC0", 1) + field("ENVM", 0) + "</fields>"
+    sysreg = [reg("SUBBLK_CLOCK_CR", 0x84, reset=1, extra=fields), reg("SOFT_RESET_CR", 0x88, reset=0x3FFFFFFE, extra=fields)]
+    peripherals = {"SYSREG@0x2000": sysreg,
+                   "GPIOX@0x1000": [reg(f"R{i}", 4 * i, reset=0) for i in range(10)],
+                   "MACX@0x3000": [reg("R0", 0, reset=0), reg("R1", 4, reset=5)],
+                   "PLAIN@0x4000": [reg("R0", 0, reset=0)]}
+    svd = make_svd(tmp, peripherals)
+    rules = tmp / "gate.list"
+    rules.write_text("clock GPIOX GPIO0 gate of the test\nclock MACX MAC0 gate of the test\n")
+    gpio_on, mac_on = 1 << 20, 1 << 1
+    # power-on: only ENVM has a clock, every peripheral is in reset (the SVD reset values)
+    mem = {0x2084: 1, 0x2088: 0x3FFFFFFE, **{0x1000 + 4 * i: 0xA8148A for i in range(10)}, 0x3000: 0, 0x3004: 5, 0x4000: 9}
+    stub = Stub(mem=mem)
+    r = run(svd, stub, "--skip-file", str(rules))
+    gated = [line for line in r.stdout.splitlines() if line.startswith("gated ")]
+    check("gated: every register of a block with clock off and in reset is gated, whatever it reads (also a value that equals the reset value)",
+          len(gated) == 12 and sum("GPIOX" in x for x in gated) == 10 and "gated       0x00003000 MACX.R0 = 0x00000000" in r.stdout, r.stdout)
+    check("gated: the line says why", "(clock off: SUBBLK_CLOCK_CR.GPIO0=0 and in reset: SOFT_RESET_CR.GPIO0=1: the value means nothing)" in gated[0], gated[0])
+    check("gated: one header line names the blocks", "svd_probe: gated: GPIOX, MACX: " in r.stdout, r.stdout)
+    check("gated: no note about identical reads for a gated block", "identical reads" not in r.stdout, r.stdout)
+    check("gated: a block without a clock rule is compared as before",
+          "mismatch    0x00004000 PLAIN.R0 = 0x00000009, expected 0x00000000" in r.stdout, r.stdout)
+    check("gated: counted apart, only the mismatch fails",
+          r.returncode == 1 and "12 gated" in r.stdout.splitlines()[-1] and "SYSREG" not in "".join(gated), f"{r.returncode} {r.stdout[-300:]!r}")
+    stub.close()
+    # clock on, still in reset: gated, and the reason is the reset only
+    stub = Stub(mem={**mem, 0x2084: 1 | gpio_on | mac_on, 0x2088: 0x3FFFFFFE & ~mac_on})
+    r = run(svd, stub, "--skip-file", str(rules))
+    check("gated: a block in reset only is gated for that reason, the one with a clock and out of reset is compared",
+          "(in reset: SOFT_RESET_CR.GPIO0=1: the value" in r.stdout and "MACX.R1 = 0x00000005" in r.stdout
+          and "ok          0x00003004 MACX.R1" in r.stdout and "gated       0x00003000" not in r.stdout, r.stdout)
+    stub.close()
+    # clock on and out of reset: the identical reads are a mismatch again and the note comes back
+    stub = Stub(mem={**mem, 0x2084: 1 | gpio_on | mac_on, 0x2088: 0x3FFFFFFE & ~gpio_on & ~mac_on})
+    r = run(svd, stub, "--skip-file", str(rules))
+    check("gated: with clock and reset released the block is compared and the dummy values are mismatches",
+          "gated " not in r.stdout and r.stdout.count("mismatch    0x0000100") + r.stdout.count("mismatch    0x00001") >= 10
+          and "GPIOX: 10 registers read 0xA8148A, identical reads" in r.stdout, r.stdout)
+    stub.close()
+    # --compare-state reports what was read
+    stub = Stub(mem=mem)
+    r = run(svd, stub, "--skip-file", str(rules), "--compare-state")
+    check("gated: --compare-state does not tell gated blocks", not any(x.startswith(("gated ", "svd_probe: gated")) for x in r.stdout.splitlines())
+          and "mismatch    0x00001000 GPIOX.R0" in r.stdout, r.stdout)
+    stub.close()
+    # --enable-clocks writes the two registers; the gate state is read afterwards
+    stub = Stub(mem=mem, write_mask={0x2084: 0x3FFDFFFF})
+    r = run(svd, stub, "--skip-file", str(rules), "--enable-clocks")
+    check("gated: --enable-clocks lifts the gate (read after the writes)", not any(x.startswith(("gated ", "svd_probe: gated")) for x in r.stdout.splitlines())
+          and "mismatch    0x00001000 GPIOX.R0" in r.stdout, r.stdout)
+    stub.close()
+    # a SYSREG that cannot be read, and an SVD without SYSREG: nothing is called gated
+    stub = Stub(mem=mem, script=lambda conn, cmd, n: "Error: bus error" if cmd.startswith("mdw 0x2084") else None)
+    r = run(svd, stub, "--skip-file", str(rules), "--max-failures", "0")
+    check("gated: SUBBLK_CLOCK_CR unreadable: no block is called gated, with a warning",
+          "gated " not in r.stdout and "SYSREG.SUBBLK_CLOCK_CR is unreadable" in r.stderr, f"{r.stdout!r} {r.stderr!r}")
+    stub.close()
+    (tmp / "p1").mkdir()
+    svd2 = make_svd(tmp / "p1", {"GPIOX@0x1000": [reg("R0", 0)]})
+    stub = Stub(mem={0x1000: 3})
+    r = run(svd2, stub, "--skip-file", str(rules))
+    check("gated: without SYSREG in the SVD the registers are compared", "gated " not in r.stdout and "mismatch    0x00001000" in r.stdout, r.stdout)
+    stub.close()
+    # the rules file
+    for bad in ("clock GPIOX", "clock GPIOX GPIO0", "clock GPIOX GPIO-0 reason"):
+        (tmp / "bad.list").write_text(bad + "\n")
+        r = run(svd, None, "--list", "--skip-file", str(tmp / "bad.list"))
+        check(f"gated: '{bad}' is a malformed rule", r.returncode == 2 and "clock <pattern>" in r.stderr or "clock <peripheral pattern>" in r.stderr, f"{r.returncode} {r.stderr!r}")
+    if REAL_SVD.is_file():  # the rules of the repository name real peripherals and fields
+        root = ET.parse(REAL_SVD).getroot()
+        peripherals = {p.findtext("name") for p in root.iter("peripheral")}
+        clock = set(svd_probe.sysreg_fields(root, "SUBBLK_CLOCK_CR"))
+        reset = set(svd_probe.sysreg_fields(root, "SOFT_RESET_CR"))
+        clocks = [x for x in svd_probe.load_rules(ROOT / "hw" / "svd_probe.list") if x.kind == "clock"]
+
+        def real(x: svd_probe.Rule) -> bool:
+            """The rule names a real peripheral and real fields: one of both SYSREG registers, or of the register it names."""
+            if x.pattern not in peripherals:
+                return False
+            if ":" in x.field:
+                register, clock_field, reset_field = x.field.split(":")
+                names = set(svd_probe.sysreg_fields(root, register))
+                return {clock_field, reset_field} <= names
+            return x.field in clock and x.field in reset
+
+        check("gated: every clock rule of hw/svd_probe.list names a peripheral and its fields in the merged SVD",
+              clocks and all(real(x) for x in clocks), str([(x.pattern, x.field) for x in clocks if not real(x)]))
+        check("gated: CFG_DDR_SGMII_PHY is gated by SYSREG.DFIAPB_CR",
+              any(x.pattern == "CFG_DDR_SGMII_PHY" and x.field == "DFIAPB_CR:CLOCKON:RESET" for x in clocks), str([(x.pattern, x.field) for x in clocks]))
+
+
+def test_gated_register(tmp: Path) -> None:
+    """A clock rule REGISTER:CLOCKFIELD:RESETFIELD gates a peripheral by one SYSREG register that holds both bits."""
+    field = lambda n, off: f"<field><name>{n}</name><bitOffset>{off}</bitOffset><bitWidth>1</bitWidth></field>"
+    corner = "<fields>" + field("CLOCKON", 0) + field("RESET", 1) + "</fields>"
+    other = "<fields>" + field("ENVM", 0) + "</fields>"  # gate_state reads these two first and needs their fields
+    sysreg = [reg("SUBBLK_CLOCK_CR", 0x84, reset=1, extra=other), reg("SOFT_RESET_CR", 0x88, reset=0, extra=other),
+              reg("DFIAPB_CR", 0x98, reset=2, extra=corner)]
+    svd = make_svd(tmp, {"SYSREG@0x2000": sysreg, "PHYX@0x5000": [reg("R0", 0, reset=0), reg("R1", 4, reset=7)],
+                         "PLAIN@0x4000": [reg("R0", 0, reset=0)]})
+    rules = tmp / "corner.list"
+    rules.write_text("clock PHYX DFIAPB_CR:CLOCKON:RESET the corner of the test\n")
+    mem = {0x2084: 1, 0x2088: 0, 0x2098: 2, 0x5000: 0, 0x5004: 0, 0x4000: 9}
+    stub = Stub(mem=mem)
+    r = run(svd, stub, "--skip-file", str(rules))
+    gated = [line for line in r.stdout.splitlines() if line.startswith("gated ")]
+    check("gated register: DFIAPB_CR at its power-on value 2 (clock off, reset asserted) gates every register, also R1 that does not read its reset value",
+          len(gated) == 2 and "(clock off: DFIAPB_CR.CLOCKON=0 and in reset: DFIAPB_CR.RESET=1: the value means nothing)" in gated[0]
+          and "svd_probe: gated: PHYX: " in r.stdout, r.stdout)
+    check("gated register: a peripheral without a rule is compared", "mismatch    0x00004000 PLAIN.R0" in r.stdout, r.stdout)
+    stub.close()
+    for value, what in ((1, "clock on and reset released"), (3, "clock on, reset asserted"), (0, "clock off, reset released")):
+        stub = Stub(mem={**mem, 0x2098: value, 0x5004: 7})
+        r = run(svd, stub, "--skip-file", str(rules))
+        gated = [line for line in r.stdout.splitlines() if line.startswith("gated ")]
+        expected = {1: 0, 3: 2, 0: 2}[value]
+        check(f"gated register: DFIAPB_CR = {value} ({what}): {expected} registers gated", len(gated) == expected, r.stdout)
+        if value == 3:
+            check("gated register: only the reset bit is named when the clock is on",
+                  all(x.endswith("(in reset: DFIAPB_CR.RESET=1: the value means nothing)") for x in gated), r.stdout)
+        stub.close()
+    stub = Stub(mem=mem, script=lambda conn, cmd, n: "Error: bus error" if cmd.startswith("mdw 0x2098") else None)
+    r = run(svd, stub, "--skip-file", str(rules), "--max-failures", "0")
+    check("gated register: DFIAPB_CR unreadable: PHYX is not called gated, with a warning",
+          "gated " not in r.stdout and "SYSREG.DFIAPB_CR is unreadable" in r.stderr and "PHYX cannot be told to be gated" in r.stderr, f"{r.stdout!r} {r.stderr!r}")
+    stub.close()
+    for bad in ("clock PHYX DFIAPB_CR:CLOCKON reason", "clock PHYX DFIAPB_CR::RESET reason", "clock PHYX :CLOCKON:RESET reason"):
+        (tmp / "bad.list").write_text(bad + "\n")
+        r = run(svd, None, "--list", "--skip-file", str(tmp / "bad.list"))
+        check(f"gated register: '{bad}' is a malformed rule", r.returncode == 2 and "REGISTER:CLOCKFIELD:RESETFIELD" in r.stderr, f"{r.returncode} {r.stderr!r}")
+
+
 def main() -> int:
     """Run all cases."""
     if not TOOL.is_file():
         print(f"probe_test: {TOOL} not found", file=sys.stderr)
         return 2
-    for case in (test_dead_connection, test_hang, test_noise, test_halt, test_power_state, test_enable_clocks, test_reset_halt, test_poke, test_abort_output, test_recover, test_resume, test_interrupt, test_failures, test_block, test_read_action, test_dlab, test_write_only, test_identical, test_noref, test_state, test_skip):
+    for case in (test_dead_connection, test_hang, test_noise, test_halt, test_power_state, test_enable_clocks, test_reset_halt, test_poke, test_abort_output, test_recover, test_resume, test_interrupt, test_failures, test_block, test_read_action, test_dlab, test_write_only, test_identical, test_gated, test_gated_register, test_noref, test_state, test_skip):
         with tempfile.TemporaryDirectory() as d:
             case(Path(d))
     print(f"summary: {failures} failure(s)")

@@ -3,6 +3,7 @@
 #   <kind> <pattern> <reason>
 #   state-mask <pattern> <mask> <reason>
 #   block <peripheral pattern> <N> <reason>
+#   clock <peripheral pattern> <FIELD> <reason>
 #
 # kind     skip                 do not read the peripheral at all; --include PATTERN reads it
 #          state                a difference to the reset value is reported as "state", not as "mismatch":
@@ -16,6 +17,9 @@
 #          skip-enable-clocks   like skip, but only with --enable-clocks
 #          skip-no-clocks       like skip, but only without --enable-clocks (the block hangs the bus while its clock is off)
 #          state-enable-clocks  like state, but only with --enable-clocks (the registers hold what it wrote)
+#          clock                the SYSREG.SUBBLK_CLOCK_CR / SOFT_RESET_CR field <FIELD> gates the peripherals that match:
+#                               while its clock bit is 0 or its reset bit is 1 every register of them is reported as
+#                               "gated" (the value is a dummy), not as ok or mismatch; --compare-state switches this off
 # pattern  skip: peripheral name; the others: PERIPHERAL.REGISTER; * and ? match any text, case does not matter
 # mask     a number (0x...); the bits that are live
 # reason   the rest of the line, shown in the report
@@ -42,6 +46,22 @@ block GEM_*    16  never measured cleanly
 block USB      16  never measured cleanly
 block QSPIXIP  16  never measured cleanly
 block CRYPTO   16  never measured cleanly
+
+# The gates of the blocks that read dummy values without a clock. The field is the one of SUBBLK_CLOCK_CR (and of the
+# SOFT_RESET_CR bit of the same position); REGISTER:CLOCKFIELD:RESETFIELD names a SYSREG register that holds both bits
+# (DFIAPB_CR: CLOCKON is 0 and RESET is 1 at MSS reset, and CFG_DDR_SGMII_PHY reads all 0 until the corner is on). A block
+# that has no line here is never reported as gated; FRQMETER has no field of its own, the note of --identical-reads is its
+# only sign.
+clock GEM_A_LO       MAC0   gated MSS peripheral
+clock GEM_B_LO       MAC1   gated MSS peripheral
+clock GPIO_IOBANK0_LO GPIO0 gated MSS peripheral
+clock GPIO_IOBANK1_LO GPIO1 gated MSS peripheral
+clock GPIO_FAB_LO    GPIO2  gated MSS peripheral
+clock QSPIXIP        QSPI   gated MSS peripheral
+clock CAN_A_LO       CAN0   gated MSS peripheral
+clock CAN_B_LO       CAN1   gated MSS peripheral
+clock USB            USB    gated MSS peripheral
+clock CFG_DDR_SGMII_PHY DFIAPB_CR:CLOCKON:RESET the MSS corner (APB clock off and APB reset asserted at MSS reset)
 
 # CAN message RAM: undefined until a message is written.
 state CAN_*.TX_MSG*   CAN message RAM, undefined at reset
