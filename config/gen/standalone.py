@@ -39,8 +39,34 @@ import argparse
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
-from gen_ada import ada, cli, errors, spdx  # noqa: E402
+sys.path[:0] = [str(Path(__file__).resolve().parent), str(Path(__file__).resolve().parents[2] / "tools")]
+from gen_ada import ada, cli, errors, spdx
+
+# The facts of the chip and the defaults of the runtime, shared with the reader of system.yaml.
+from mpfs_gen.target import (
+    CONSOLE_CHOICES,
+    CONSOLE_MMUART,
+    CONSOLE_NONE,
+    CONSOLE_RAM_FIFO,
+    CONSOLES,
+    DEFAULT_STACK_SIZE,
+    DTIM_MAX,
+    ENVM_LENGTH,
+    HARTS,
+    INTERRUPT_STACK,
+    ITIM_MAX,
+    ITIM_ORIGIN,
+    ITIM_WINDOW,
+    MAX_LIM_WAYS,
+    MEMORY_PROFILES,
+    MEMORY_WAYS,
+    NUMBER_OF_HARTS,
+    PROFILES,
+    SECONDARY_STACK,
+    WAY_SIZE,
+    WAYS,
+    default_console,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUTPUT = ROOT / "build" / "partition" / "mpfs_partition.ads"
@@ -48,54 +74,7 @@ DEFSYMS_NAME = "mpfs_partition.defsyms"
 TOOL = "standalone"
 SCRIPT = "config/gen/standalone.py"
 
-HARTS = ("e51", "u54")
-PROFILES = ("light", "light-tasking", "embedded")
-MEMORY_PROFILES = ("lim", "scratchpad", "envm")
 ROLES = {"primary": 1, "secondary": 0}
-
-# The console: the LO base of the MMUART (MPFS_Registers.MMUARTn_LO_Base), the divisor and the
-# fraction of the 115200 baud rate at the ~40 MHz APB clock of an Icicle Kit at reset. MMUART4 (which
-# the board does not bring out) uses the fractional baud rate mode (21 and 45/64), so that it is
-# exercised; the other four use the integer divisor 22.
-CONSOLES = {
-    "mmuart0": (0x20000000, 22, 0),
-    "mmuart1": (0x20100000, 22, 0),
-    "mmuart2": (0x20102000, 22, 0),
-    "mmuart3": (0x20104000, 22, 0),
-    "mmuart4": (0x20106000, 21, 45),
-}
-CONSOLE_NONE, CONSOLE_MMUART, CONSOLE_RAM_FIFO = 0, 1, 2
-CONSOLE_CHOICES = (*CONSOLES, "none", "ram_fifo")
-
-# The secondary stack of the environment task, by profile (the defaults of System.BB.Parameters).
-SECONDARY_STACK = {"light": 16384, "light-tasking": 8192, "embedded": 16384}
-DEFAULT_STACK_SIZE = 16384
-# The interrupt stack, by profile. The embedded profile needs more than the others because the first
-# exception that is raised in a trap handler runs libgcc's unwinder on it: the peak measured with
-# examples/interrupt_stack_embedded_test is 8256 bytes (E51) and 8608 bytes (U54); the default is the
-# larger one plus 50 %, a multiple of 16. The other profiles measure 600 and 856 bytes and keep 8 KiB,
-# which also holds nested trap frames (crates/mpfs_rts/README.md, "Interrupt stack").
-INTERRUPT_STACK = {"light": 8192, "light-tasking": 8192, "embedded": 12912}
-
-# The L2 cache is 16 ways of 128 KB, shared out between cache, LIM and scratchpad. At reset the LIM
-# has 15 of them (1920 KB) and the cache one. The scratchpad profile takes two ways from the LIM.
-WAYS = 16
-WAY_SIZE = 0x20000
-MAX_LIM_WAYS = 15
-MEMORY_WAYS = {"lim": (1, 15, 0), "scratchpad": (1, 13, 2), "envm": (1, 15, 0)}
-
-# The local memories: ITIM per hart (the E51 has one of 8 KB, a U54 one of 28 KB, in windows of 32 KB
-# from 0x0180_0000), DTIM on the E51 only (8 KB).
-ITIM_ORIGIN = 0x01800000
-ITIM_WINDOW = 0x8000
-ITIM_MAX = (0x2000, 0x7000, 0x7000, 0x7000, 0x7000)
-DTIM_MAX = 0x2000
-ENVM_LENGTH = 0x1FF00
-NUMBER_OF_HARTS = 5
-
-# Nothing in the runtime uses more than one hart yet: a console that needs a second one (a FIFO in
-# RAM that the other hart drains) is refused until SMP exists.
-SMP_AVAILABLE = False
 
 # The RTC clock, which mtime counts: the 125 MHz reference clock divided by RTC_CLOCK_CR.PERIOD (125).
 # The runtime's Clock_Frequency (System.BB.Board_Parameters, Ada.Real_Time.Time_Unit = 1.0 / Clock_Frequency)
@@ -170,7 +149,7 @@ class Partition:
         else:
             self.mask = 1 if args.hart == "e51" else 2
         self.role = args.role
-        self.console_name = args.console or f"mmuart{self.local_hart}"
+        self.console_name = args.console or default_console(self.local_hart)
         self.console_init = args.console_init
         self.stack_size = args.stack_size
         self.interrupt_stack_size = (INTERRUPT_STACK[args.profile] if args.interrupt_stack_size is None
