@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E001
+# A flow list that is never closed.
+schema: 1
+board: icicle
+partitions: [

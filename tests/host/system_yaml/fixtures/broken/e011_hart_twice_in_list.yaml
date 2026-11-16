@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E011
+# A hart named twice in one partition.
+schema: 1
+board: icicle
+partitions:
+  - name: app
+    harts: [1, 2, 1]
+    profile: embedded
+    memory:
+      code: { region: lim, size: 256K }
+      data: { region: lim, size: 256K }

@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E008
+# There is no hart 5.
+schema: 1
+board: icicle
+partitions:
+  - name: app
+    harts: [5]
+    profile: embedded
+    memory:
+      code: { region: lim, size: 256K }
+      data: { region: lim, size: 256K }

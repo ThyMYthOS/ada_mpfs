@@ -1,0 +1,42 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# Reference system amp_b: tasking on the E51, a small control loop on U54 hart 1 and one SMP
+# application with tasking on harts 2 to 4, all in user mode.
+#
+# Example data. The window and channel sizes are chosen to fit together into the LIM of the Icicle Kit
+# at reset (15 ways of 128 KiB, 1920 KiB); they are not measured from images.
+schema: 1
+board: icicle
+partitions:
+  - name: supervisor
+    harts: [0]
+    profile: light-tasking
+    memory:
+      code: { region: lim, size: 128K }
+      data: { region: lim, size: 128K }
+    peripherals: [mmuart0, wdog0]
+    interrupts: [MMUART0, WDOG0_MVRP]
+    watchdog: { instance: wdog0, timeout_ms: 1000 }
+  - name: control
+    harts: [1]
+    profile: light
+    memory:
+      code: { region: lim, size: 64K }
+      data: { region: lim, size: 64K }
+    peripherals: [mmuart1, wdog1]
+    interrupts: [local:MMUART]
+    watchdog: { instance: wdog1, timeout_ms: 50 }
+  - name: app
+    harts: [2, 3, 4]
+    profile: light-tasking
+    memory:
+      code: { region: lim, size: 512K }
+      data: { region: lim, size: 512K }
+    peripherals: [mmuart2, wdog2]
+    interrupts: [MMUART2]
+    watchdog: { instance: wdog2, timeout_ms: 1000 }
+ipc:
+  - { name: supervisor_control, between: [supervisor, control], size: 8K, doorbell: true }
+  - { name: supervisor_app, between: [supervisor, app], size: 16K, doorbell: true }
+  - { name: control_app, between: [control, app], size: 8K }

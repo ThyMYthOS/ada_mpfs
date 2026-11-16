@@ -176,3 +176,172 @@ partition data.
 The names of the symbols and their order, the named numbers and the text of the checks. It adds what a system
 description knows: several partitions, the origins and lengths of their regions and the clock of the configuration
 for the divisors. The length of a region of a hart that the partition does not own is 0, not omitted.
+
+## System description
+
+A system description, `system.yaml`, says which partitions run on which harts of a board and what connects
+them. Its format is the JSON schema [`gen/schema/system.schema.json`](gen/schema/system.schema.json) (schema
+version 1), read by the package [`gen/mpfs_gen`](gen/mpfs_gen/__init__.py). The reader parses the file,
+validates it against the schema, applies the defaults, normalises the values and checks the rules that a
+schema cannot express; what it returns is the immutable model of `mpfs_gen/model.py`. Nothing derives
+partition data, linker scripts or boot tables from it yet: those are the next stages of the configuration
+generator. To check a description:
+
+```sh
+python3 config/gen/mpfs_gen check systems/amp_a/system.yaml
+```
+
+prints `FILE: ok`, or one line per violated rule, `FILE: GEN-Exxx PATH: message`, and exits with status 2.
+`PATH` names the field, such as `partitions[1].stacks.main`. Every mistake is reported once: a description
+that the schema refuses is not checked further.
+
+### Example
+
+```yaml
+schema: 1
+board: icicle
+partitions:
+  - name: monitor
+    harts: [0]
+    profile: light
+    priv: u
+    memory:
+      code: { region: lim, size: 64K }
+      data: { region: lim, size: 64K }
+    stacks: { main: 8K, interrupt: 4K }
+    peripherals: [mmuart0, wdog0]
+    interrupts: [MMUART0, WDOG0_MVRP]
+    watchdog: { instance: wdog0, timeout_ms: 1000 }
+  - name: rt
+    harts: [1]
+    profile: light-tasking
+    priv: m
+    memory:
+      code: { region: lim, size: 128K }
+      data: { region: lim, size: 128K }
+      fast_text: { region: itim, size: 16K }
+ipc:
+  - { name: monitor_rt, between: [monitor, rt], size: 16K, doorbell: true }
+```
+
+### The fields
+
+Every object refuses a field that it does not name (`additionalProperties: false`). A **size** is bytes: an
+integer, `0x` and hex digits, or decimal digits with `K` (KiB) or `M` (MiB), such as `4096`, `0x1000`, `64K`.
+A **name** (board, partition, channel, peripheral) is lower case letters, digits and single underscores,
+starting with a letter, at most 32 characters.
+
+| Field | Type and range | Default | Meaning |
+|---|---|---|---|
+| `schema` | 1 | required | the version of the schema |
+| `board` | name | required | the board: `config/boards/<board>/` must exist |
+| `xml` | `file` (path relative to `system.yaml`), `sha256` (64 hex digits) | the XML of the board | the MSS Configurator XML and its expected hash |
+| `security_profile` | `dev` or `prod` | `dev` | |
+| `l2.ways` | `cache` 1 to 16, `lim` 0 to 15, `scratchpad` 0 to 15, adding up to 16 | as the XML configures it | an override of the L2 of the XML; needs `l2.reason` |
+| `l2.reason` | text, 1 to 500 characters | | why the L2 differs from the XML |
+| `l2.cache_partitioning` | `e51`, `u54_1` to `u54_4`: a list of ways 0 to 15 | the way masks of the XML | the cache ways that each hart may allocate into |
+| `partitions` | list of 1 to 5 partitions (below) | required | |
+| `ipc[]` | `name`, `between` (two partitions), `size`, `doorbell` (boolean) | none; `doorbell` false | a channel between two partitions |
+| `boot.sources` | list of `envm`, `fram`, `ymodem`, each once | no `boot` section | where the boot loader looks for the images, in this order |
+| `fram` | `transport` (`spi0`, `spi1`, `qspi`), `sck_hz` (from 1), `cs` (name), `part` (name), `wp` (name) | `part` `auto`, `wp` `none` | the FRAM of the boot source `fram` |
+
+A partition:
+
+| Field | Type and range | Default | Meaning |
+|---|---|---|---|
+| `name` | name | required | |
+| `harts` | list of 1 to 4 harts 0 to 4, each once | required | 0 is the E51, 1 to 4 the U54 cores; more than one is SMP |
+| `profile` | `light`, `light-tasking`, `embedded` | required | the runtime profile |
+| `priv` | `u`, `m` | `u` | the privilege mode of the application |
+| `memory.code` | `region` (`envm`, `lim`, `scratchpad`), `size` | required; without `size` the whole region | the window of the code |
+| `memory.data` | `region` (`lim`, `scratchpad`), `size` | required; without `size` the whole region | the window of the data |
+| `memory.fast_text` | `region` (`itim`), `size` | none | code in the ITIM of each hart of the partition |
+| `stacks.main` | size | 16K | the stack of the environment task |
+| `stacks.interrupt` | size | by profile: 8192, 8192, 12912 | the interrupt stack of each hart |
+| `stacks.secondary` | size | by profile: 16384, 8192, 16384 | the secondary stack of the environment task |
+| `console` | `mmuart0` to `mmuart4`, `none`, `ram_fifo` | the MMUART of the lowest hart (hart n: MMUARTn) | |
+| `peripherals` | list of names, each once | none | the peripherals that the partition owns, instance names of the SVD in lower case |
+| `interrupts` | list of PLIC source names, or `local:<name>` for a hart-local interrupt, each once | none | the interrupts that the partition handles |
+| `watchdog` | `instance` (`wdog0` to `wdog4`), `timeout_ms` (from 1) | none | the watchdog that the partition services |
+
+The defaults of the stacks and of the console are those of the [standalone partition data](#defaults); both
+paths take them from `mpfs_gen/target.py`. The model has the lists whose order means nothing (harts,
+peripherals, interrupts, the two ends of a channel, the cache ways) sorted, and the sizes in bytes; the
+partitions, the channels and the boot sources keep their order.
+
+Not in schema version 1: `boot.slots` and `keys`, which a later version adds (`GEN-E005`). Whether a
+peripheral or interrupt name exists in the SVD, whether the windows fit their regions together and whether
+the description agrees with the XML are checked by the later stages that read the SVD and the XML.
+
+### The error codes
+
+Each rule has its own code. `GEN-E001` to `GEN-E013` are the rules of the schema (the reader maps each
+failure of the validator to the code of its keyword; a size that is not a size is `GEN-E010` whatever the
+keyword), `GEN-E020` on are the rules across fields. The table is `CODES` in `gen/mpfs_gen/checks.py`, and a
+test compares the two. `tests/host/system_yaml/fixtures/broken` has a description for each code that is
+rejected with exactly that code.
+
+| Code | Rule |
+|---|---|
+| `GEN-E001` | the file cannot be read or is not well-formed YAML (a key given twice included) |
+| `GEN-E002` | the schema version is missing or not 1 |
+| `GEN-E003` | a required field is missing |
+| `GEN-E004` | an unknown field |
+| `GEN-E005` | a field of a later schema version (keys, boot.slots) |
+| `GEN-E006` | a value has the wrong type |
+| `GEN-E007` | a value is not one of the allowed names |
+| `GEN-E008` | a number is out of its range |
+| `GEN-E009` | a name or text does not have its form or length |
+| `GEN-E010` | a size is not a size (a number, 0x and hex digits, or digits with K or M) |
+| `GEN-E011` | a list has an entry twice |
+| `GEN-E012` | a list has too few or too many entries |
+| `GEN-E013` | l2.ways overrides the XML without l2.reason |
+| `GEN-E020` | two partitions have the same name |
+| `GEN-E021` | a hart is in two partitions |
+| `GEN-E022` | a partition mixes the E51 and U54 harts |
+| `GEN-E023` | a stack size is 0 or not a multiple of 16 |
+| `GEN-E024` | the console ram_fifo needs SMP, which the runtime does not have yet |
+| `GEN-E025` | a peripheral is owned by two partitions |
+| `GEN-E026` | the console of a partition is a peripheral of another partition |
+| `GEN-E027` | the watchdog of a partition is not one of its peripherals |
+| `GEN-E028` | a channel names a partition that does not exist |
+| `GEN-E029` | two channels have the same name |
+| `GEN-E030` | fast_text is larger than the ITIM of a hart of the partition (E51 8 KiB, U54 28 KiB) |
+| `GEN-E031` | the L2 ways (cache, LIM, scratchpad) do not add up to 16 |
+| `GEN-E032` | a memory window without a size in a system of more than one partition |
+| `GEN-E033` | the boot source fram without a fram section |
+| `GEN-E034` | the board has no directory in config/boards |
+
+Several rules are also checks of the package `MPFS_Partition` (a mask that mixes E51 and U54, a stack size,
+`ram_fifo`, the L2 ways, the ITIM): the reader refuses a description early, and the package still refuses
+partition data that breaks them, whichever tool wrote it.
+
+### The reference systems
+
+[`systems/`](../systems/README.md) has four systems that the schema validates. Their window sizes are example
+data that fit together into the LIM; they are not measured.
+
+| System | E51 (hart 0) | U54 (harts 1 to 4) |
+|---|---|---|
+| `amp_a` | light, `u` (monitor, watchdog, log) | hart 1 light-tasking `m` (real-time core); harts 2 to 4 one SMP partition, embedded, `u` |
+| `amp_b` | light-tasking, `u` | hart 1 light `u`; harts 2 to 4 SMP light-tasking `u` |
+| `amp_c` | embedded, `u` | harts 1 to 4 each a partition of its own, `u`: light, light-tasking, embedded, embedded (ten domains) |
+| `amp_d` | none (the E51 stays with the boot loader) | harts 1 and 2 SMP embedded `u`; harts 3 and 4 SMP light `m`; an L2 override with cache partitioning |
+
+### Standalone presets
+
+Each of the 30 runtime variants (E51 with one CPU, U54 with one to four; three profiles; `m` and `u`) has a
+preset: the system description of the partition that `./x build` gives the variant without options.
+`mpfs_gen/presets.py` renders it (it is not committed):
+
+```sh
+python3 config/gen/mpfs_gen preset u54 2 embedded u
+```
+
+The preset names only the harts (hart 0 for the E51, harts 1 to n for a U54 variant of n CPUs), the profile,
+the privilege mode and the region `lim` for code and data, without a size; the reader applies the rest. For a
+description of one partition whose windows take whole regions, `python3 config/gen/mpfs_gen standalone-args
+FILE` prints the parameters of `standalone.py` that stand for it. The test `tests/host/system_yaml` checks
+for every variant that `standalone.py` with the parameters of its preset writes the same bytes as with the
+parameters of `./x build`, so that a build from a description and a build without one get the same partition
+data.

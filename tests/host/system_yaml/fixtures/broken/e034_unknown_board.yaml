@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E034
+# A board that has no directory.
+schema: 1
+board: icicle2
+partitions:
+  - name: monitor
+    harts: [0]
+    profile: light
+    memory:
+      code: { region: lim, size: 64K }
+      data: { region: lim, size: 64K }

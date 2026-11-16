@@ -1,0 +1,43 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# Reference system amp_d: the E51 stays with the boot loader and has no partition; an SMP application
+# on U54 harts 1 and 2 in user mode, and an SMP light partition on harts 3 and 4 in machine mode. It
+# also shows an override of the L2 of the XML and a cache partitioning per hart.
+#
+# Example data. The L2 split, the cache ways and the window and channel sizes are chosen to fit
+# together (12 ways of LIM, 1536 KiB); they are not measured from images.
+schema: 1
+board: icicle
+l2:
+  ways: { cache: 4, lim: 12, scratchpad: 0 }
+  reason: two cache ways for each of the two SMP partitions
+  cache_partitioning:
+    u54_1: [0, 1]
+    u54_2: [0, 1]
+    u54_3: [2, 3]
+    u54_4: [2, 3]
+partitions:
+  - name: app
+    harts: [1, 2]
+    profile: embedded
+    memory:
+      code: { region: lim, size: 640K }
+      data: { region: lim, size: 512K }
+    stacks: { main: 32K }
+    peripherals: [mmuart1, mmuart2, wdog1]
+    interrupts: [MMUART1, MMUART2]
+    watchdog: { instance: wdog1, timeout_ms: 1000 }
+  - name: rt
+    harts: [3, 4]
+    profile: light
+    priv: m
+    memory:
+      code: { region: lim, size: 128K }
+      data: { region: lim, size: 128K }
+      fast_text: { region: itim, size: 16K }
+    peripherals: [mmuart3, wdog3]
+    interrupts: [local:MMUART, local:WDOG_TOUT]
+    watchdog: { instance: wdog3, timeout_ms: 100 }
+ipc:
+  - { name: app_rt, between: [app, rt], size: 16K, doorbell: true }

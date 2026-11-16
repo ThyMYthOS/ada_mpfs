@@ -19,6 +19,9 @@ on:
       - "crates/mpfs_rts/mpfs/gnarl/a-intnam.ads"
       - "crates/bb-runtimes/src/s-bbpara__polarfiresoc.ads"
       - "libs/mpfs_pac/**"
+      - "config/gen/**"
+      - "config/boards/**"
+      - "systems/**"
       - "tools/**"
       - "tests/host/**"
       - "x"
@@ -33,6 +36,9 @@ on:
       - "crates/mpfs_rts/mpfs/gnarl/a-intnam.ads"
       - "crates/bb-runtimes/src/s-bbpara__polarfiresoc.ads"
       - "libs/mpfs_pac/**"
+      - "config/gen/**"
+      - "config/boards/**"
+      - "systems/**"
       - "tools/**"
       - "tests/host/**"
       - "x"
@@ -88,6 +94,11 @@ jobs:
 
       - name: Host tests of the generator library
         run: tests/host/gen_ada/run.sh
+
+      # The schema of system.yaml and its reader: the reference systems, the broken descriptions and
+      # the standalone presets (PyYAML and jsonschema, no toolchain).
+      - name: Host tests of the system description
+        run: tests/host/system_yaml/run.sh
 
       # The merged SVD, whose hash `./x svd check` has just verified: the pac job takes it
       # instead of merging again (svd.py ensure accepts a file with the recorded hash).

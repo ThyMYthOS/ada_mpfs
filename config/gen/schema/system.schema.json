@@ -1,0 +1,258 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "system.yaml, schema version 1",
+  "description": "A system description of PolarFire SoC: the board, the partitions and what connects them. Read by config/gen/mpfs_gen/yaml_reader.py, which applies the defaults and the rules that a schema cannot express (config/README.md, \"System description\"). Every object refuses a field it does not name.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "board", "partitions"],
+  "properties": {
+    "schema": {
+      "description": "The version of this schema.",
+      "const": 1
+    },
+    "board": {
+      "description": "The board: the directory config/boards/<board>/, which holds its XML and its profile.",
+      "$ref": "#/$defs/name"
+    },
+    "xml": {
+      "description": "The MSS Configurator XML, a path relative to the directory of system.yaml, and its expected SHA-256. Default: the XML of the board.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "sha256"],
+      "properties": {
+        "file": {"type": "string", "minLength": 1, "maxLength": 255},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "security_profile": {
+      "description": "dev or prod.",
+      "enum": ["dev", "prod"],
+      "default": "dev"
+    },
+    "l2": {
+      "description": "The L2 cache. Default: as the XML configures it.",
+      "type": "object",
+      "additionalProperties": false,
+      "dependentRequired": {"ways": ["reason"]},
+      "properties": {
+        "ways": {
+          "description": "The 16 ways shared out between cache, LIM and scratchpad; an override of the XML, so it needs a reason.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["cache", "lim", "scratchpad"],
+          "properties": {
+            "cache": {"type": "integer", "minimum": 1, "maximum": 16},
+            "lim": {"type": "integer", "minimum": 0, "maximum": 15},
+            "scratchpad": {"type": "integer", "minimum": 0, "maximum": 15}
+          }
+        },
+        "reason": {
+          "description": "Why the L2 differs from the XML.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "cache_partitioning": {
+          "description": "The cache ways (0 to 15) that each hart may allocate into. Default: the way masks of the XML.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "e51": {"$ref": "#/$defs/ways"},
+            "u54_1": {"$ref": "#/$defs/ways"},
+            "u54_2": {"$ref": "#/$defs/ways"},
+            "u54_3": {"$ref": "#/$defs/ways"},
+            "u54_4": {"$ref": "#/$defs/ways"}
+          }
+        }
+      }
+    },
+    "partitions": {
+      "description": "The partitions, at most one per hart.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "items": {"$ref": "#/$defs/partition"}
+    },
+    "ipc": {
+      "description": "The channels between two partitions. Default: none.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "between", "size"],
+        "properties": {
+          "name": {"$ref": "#/$defs/name"},
+          "between": {
+            "description": "The two partitions, by name.",
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "uniqueItems": true,
+            "items": {"$ref": "#/$defs/name"}
+          },
+          "size": {"$ref": "#/$defs/size"},
+          "doorbell": {
+            "description": "An interrupt from one side to the other.",
+            "type": "boolean",
+            "default": false
+          }
+        }
+      }
+    },
+    "boot": {
+      "description": "The boot loader. Default: none described.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sources"],
+      "properties": {
+        "sources": {
+          "description": "Where the boot loader looks for the images, in this order.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["envm", "fram", "ymodem"]}
+        }
+      }
+    },
+    "fram": {
+      "description": "The FRAM that holds the images (boot source fram).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transport", "sck_hz", "cs"],
+      "properties": {
+        "transport": {"enum": ["spi0", "spi1", "qspi"]},
+        "part": {
+          "description": "The part number, or auto to read its device ID.",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_]*$",
+          "maxLength": 32,
+          "default": "auto"
+        },
+        "sck_hz": {"description": "The SPI clock in Hz.", "type": "integer", "minimum": 1},
+        "cs": {"description": "The chip select line, e.g. gpio0_12.", "$ref": "#/$defs/name"},
+        "wp": {"description": "The write protect line, or none.", "$ref": "#/$defs/name", "default": "none"}
+      }
+    }
+  },
+  "$defs": {
+    "name": {
+      "description": "A name: lower case letters, digits and single underscores, starting with a letter.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$",
+      "maxLength": 32
+    },
+    "size": {
+      "description": "A size in bytes: an integer, 0x and hex digits, or decimal digits with K (KiB) or M (MiB).",
+      "type": ["integer", "string"],
+      "minimum": 0,
+      "pattern": "^((0|[1-9][0-9]*)[KM]?|0x[0-9a-fA-F]+)$"
+    },
+    "ways": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "integer", "minimum": 0, "maximum": 15}
+    },
+    "code_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["region"],
+      "properties": {
+        "region": {"enum": ["envm", "lim", "scratchpad"]},
+        "size": {
+          "description": "Default: the whole region, allowed only in a system of one partition.",
+          "$ref": "#/$defs/size"
+        }
+      }
+    },
+    "data_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["region"],
+      "properties": {
+        "region": {"enum": ["lim", "scratchpad"]},
+        "size": {
+          "description": "Default: the whole region, allowed only in a system of one partition.",
+          "$ref": "#/$defs/size"
+        }
+      }
+    },
+    "partition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "harts", "profile", "memory"],
+      "properties": {
+        "name": {"$ref": "#/$defs/name"},
+        "harts": {
+          "description": "The harts: 0 is the E51, 1 to 4 the U54 cores.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {"type": "integer", "minimum": 0, "maximum": 4}
+        },
+        "profile": {"enum": ["light", "light-tasking", "embedded"]},
+        "priv": {
+          "description": "The privilege mode of the application: u (user) or m (machine).",
+          "enum": ["u", "m"],
+          "default": "u"
+        },
+        "memory": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "data"],
+          "properties": {
+            "code": {"$ref": "#/$defs/code_window"},
+            "data": {"$ref": "#/$defs/data_window"},
+            "fast_text": {
+              "description": "Code in the ITIM of each hart of the partition.",
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["region", "size"],
+              "properties": {
+                "region": {"enum": ["itim"]},
+                "size": {"$ref": "#/$defs/size"}
+              }
+            }
+          }
+        },
+        "stacks": {
+          "description": "Sizes in bytes, non-zero multiples of 16.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "main": {"description": "The stack of the environment task.", "$ref": "#/$defs/size", "default": "16K"},
+            "interrupt": {"description": "The interrupt stack of each hart. Default: by profile, 8192 (light, light-tasking) or 12912 (embedded).", "$ref": "#/$defs/size"},
+            "secondary": {"description": "The secondary stack of the environment task. Default: by profile, 16384, 8192 or 16384.", "$ref": "#/$defs/size"}
+          }
+        },
+        "console": {
+          "description": "Default: the MMUART of the lowest hart (hart n: mmuartn).",
+          "enum": ["mmuart0", "mmuart1", "mmuart2", "mmuart3", "mmuart4", "none", "ram_fifo"]
+        },
+        "peripherals": {
+          "description": "The peripherals that the partition owns: instance names of the SVD in lower case. Default: none.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/name"}
+        },
+        "interrupts": {
+          "description": "The interrupts that the partition handles: PLIC source names, or local:<name> for a hart-local one. Default: none.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^(local:)?[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$", "maxLength": 48}
+        },
+        "watchdog": {
+          "description": "The watchdog that the partition services. Default: none.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["instance", "timeout_ms"],
+          "properties": {
+            "instance": {"enum": ["wdog0", "wdog1", "wdog2", "wdog3", "wdog4"]},
+            "timeout_ms": {"type": "integer", "minimum": 1}
+          }
+        }
+      }
+    }
+  }
+}

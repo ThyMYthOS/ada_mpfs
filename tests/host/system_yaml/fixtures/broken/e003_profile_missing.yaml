@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E003
+# A partition without a profile.
+schema: 1
+board: icicle
+partitions:
+  - name: monitor
+    harts: [0]
+    memory:
+      code: { region: lim, size: 64K }
+      data: { region: lim, size: 64K }

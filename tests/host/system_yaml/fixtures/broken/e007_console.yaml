@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E007
+# A console that does not exist.
+schema: 1
+board: icicle
+partitions:
+  - name: monitor
+    harts: [0]
+    profile: light
+    memory:
+      code: { region: lim, size: 64K }
+      data: { region: lim, size: 64K }
+  - name: app
+    harts: [1]
+    profile: embedded
+    memory:
+      code: { region: lim, size: 256K }
+      data: { region: lim, size: 256K }
+    console: mmuart5

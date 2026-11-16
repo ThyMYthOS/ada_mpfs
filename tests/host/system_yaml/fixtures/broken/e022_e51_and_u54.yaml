@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E022
+# One partition with the E51 and a U54.
+schema: 1
+board: icicle
+partitions:
+  - name: monitor
+    harts: [0, 1]
+    profile: light
+    memory:
+      code: { region: lim, size: 64K }
+      data: { region: lim, size: 64K }

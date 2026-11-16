@@ -168,3 +168,11 @@ path = ["**/*.png", "**/*.jpg", "**/*.svg", "**/*.pdf"]
 precedence = "closest"
 SPDX-FileCopyrightText = "2026 Manuel Stahl <thymythos@googlemail.com>"
 SPDX-License-Identifier = "CC-BY-4.0"
+
+# JSON has no comments: the schema of system.yaml, which the configuration generator reads, carries
+# the licence of the generator here.
+[[annotations]]
+path = ["config/gen/schema/*.json"]
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Manuel Stahl <thymythos@googlemail.com>"
+SPDX-License-Identifier = "Apache-2.0"

@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+#
+# Requirements on the configuration generator (config/gen). See README.md for the format.
+requirements:
+  - id: GEN-001
+    text: >-
+      A system description (system.yaml) is accepted only if it is well-formed YAML without a key
+      given twice, has schema version 1, conforms to config/gen/schema/system.schema.json, in which
+      every object refuses a field it does not name, and keeps the rules across fields of
+      config/README.md; every violated rule is reported with its own error code GEN-Exxx and the
+      path of the field, and the table of the codes in config/README.md is the one of the reader.
+    tsf: false
+    source: config/README.md
+  - id: GEN-002
+    text: >-
+      For each of the 30 runtime variants the standalone preset is a system description that the
+      reader accepts, and config/gen/standalone.py with the parameters that the preset stands for
+      writes the same package MPFS_Partition and list of link symbols as with the parameters that
+      ./x build passes for that variant without options.
+    tsf: false
+    source: config/README.md

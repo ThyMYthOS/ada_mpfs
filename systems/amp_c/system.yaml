@@ -1,0 +1,65 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# Reference system amp_c: one partition per hart, all in user mode, so that each of the five has a
+# kernel and an application domain (ten domains): the E51 and U54 harts 1 to 4 with the profiles
+# embedded, light, light-tasking, embedded and embedded.
+#
+# Example data. The window and channel sizes are chosen to fit together into the LIM of the Icicle Kit
+# at reset (15 ways of 128 KiB, 1920 KiB); they are not measured from images.
+schema: 1
+board: icicle
+security_profile: prod
+partitions:
+  - name: monitor
+    harts: [0]
+    profile: embedded
+    memory:
+      code: { region: lim, size: 192K }
+      data: { region: lim, size: 128K }
+    peripherals: [mmuart0, wdog0]
+    interrupts: [MMUART0, WDOG0_MVRP]
+    watchdog: { instance: wdog0, timeout_ms: 1000 }
+  - name: io
+    harts: [1]
+    profile: light
+    memory:
+      code: { region: lim, size: 64K }
+      data: { region: lim, size: 64K }
+    peripherals: [mmuart1, wdog1]
+    interrupts: [local:MMUART]
+    watchdog: { instance: wdog1, timeout_ms: 100 }
+  - name: control
+    harts: [2]
+    profile: light-tasking
+    memory:
+      code: { region: lim, size: 128K }
+      data: { region: lim, size: 128K }
+      fast_text: { region: itim, size: 24K }
+    peripherals: [mmuart2, wdog2]
+    interrupts: [local:MMUART, local:WDOG_TOUT]
+    watchdog: { instance: wdog2, timeout_ms: 100 }
+  - name: app_a
+    harts: [3]
+    profile: embedded
+    memory:
+      code: { region: lim, size: 192K }
+      data: { region: lim, size: 128K }
+    peripherals: [mmuart3, wdog3]
+    interrupts: [MMUART3]
+    watchdog: { instance: wdog3, timeout_ms: 1000 }
+  - name: app_b
+    harts: [4]
+    profile: embedded
+    memory:
+      code: { region: lim, size: 192K }
+      data: { region: lim, size: 128K }
+    console: none              # MMUART4 is not brought out on the Icicle Kit
+    peripherals: [wdog4]
+    watchdog: { instance: wdog4, timeout_ms: 1000 }
+ipc:
+  - { name: monitor_io, between: [monitor, io], size: 8K, doorbell: true }
+  - { name: monitor_control, between: [monitor, control], size: 8K, doorbell: true }
+  - { name: monitor_app_a, between: [monitor, app_a], size: 16K, doorbell: true }
+  - { name: monitor_app_b, between: [monitor, app_b], size: 16K, doorbell: true }
+  - { name: app_a_app_b, between: [app_a, app_b], size: 32K }

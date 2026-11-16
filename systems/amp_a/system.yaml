@@ -1,0 +1,53 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# Reference system amp_a: a monitor on the E51, a real-time core on U54 hart 1 in machine mode, and
+# one SMP application on harts 2 to 4.
+#
+# Example data. The window and channel sizes are chosen to fit together into the LIM of the Icicle Kit
+# at reset (15 ways of 128 KiB, 1920 KiB); they are not measured from images. The FRAM values are an
+# example of the section as well.
+schema: 1
+board: icicle
+security_profile: dev
+partitions:
+  - name: monitor              # supervision, the watchdogs, the log
+    harts: [0]
+    profile: light
+    priv: u
+    memory:
+      code: { region: lim, size: 64K }
+      data: { region: lim, size: 64K }
+    stacks: { main: 8K, interrupt: 4K }
+    console: mmuart0
+    peripherals: [mmuart0, wdog0]
+    interrupts: [MMUART0, WDOG0_MVRP]
+    watchdog: { instance: wdog0, timeout_ms: 1000 }
+  - name: rt                   # the real-time core
+    harts: [1]
+    profile: light-tasking
+    priv: m
+    memory:
+      code: { region: lim, size: 128K }
+      data: { region: lim, size: 128K }
+      fast_text: { region: itim, size: 16K }
+    peripherals: [mmuart1, wdog1]
+    interrupts: [local:MMUART, local:WDOG_TOUT]
+    watchdog: { instance: wdog1, timeout_ms: 100 }
+  - name: app
+    harts: [2, 3, 4]
+    profile: embedded
+    priv: u
+    memory:
+      code: { region: lim, size: 512K }
+      data: { region: lim, size: 512K }
+    stacks: { main: 32K }
+    peripherals: [mmuart2, mmuart3, wdog2]
+    interrupts: [MMUART2, MMUART3]
+    watchdog: { instance: wdog2, timeout_ms: 1000 }
+ipc:
+  - { name: monitor_rt, between: [monitor, rt], size: 16K, doorbell: true }
+  - { name: monitor_app, between: [monitor, app], size: 16K, doorbell: true }
+boot:
+  sources: [fram, ymodem]
+fram: { transport: spi1, part: auto, sck_hz: 40_000_000, cs: gpio0_12, wp: none }

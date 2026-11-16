@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E025
+# mmuart2 is owned by two partitions.
+schema: 1
+board: icicle
+partitions:
+  - name: monitor
+    harts: [0]
+    profile: light
+    memory:
+      code: { region: lim, size: 64K }
+      data: { region: lim, size: 64K }
+    peripherals: [mmuart0, mmuart2]
+  - name: app
+    harts: [1]
+    profile: embedded
+    memory:
+      code: { region: lim, size: 256K }
+      data: { region: lim, size: 256K }
+    peripherals: [mmuart2]

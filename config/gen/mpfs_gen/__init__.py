@@ -3,7 +3,12 @@
 """The configuration generator: from a system description (system.yaml) to the data of the partitions.
 
   target       the facts of the chip and the defaults of the runtime, shared with standalone.py
+  model        the immutable data classes of a system description
+  checks       the error codes GEN-Exxx and the rules that the JSON schema cannot express
+  yaml_reader  system.yaml: YAML, the schema config/gen/schema/system.schema.json, defaults, normalisation
+  presets      the system description of each runtime variant that ./x build builds without one
 
+`python3 config/gen/mpfs_gen check FILE...` validates system descriptions (config/README.md).
 The package uses the shared generator library tools/gen_ada, which it puts on the module path.
 """
 import sys
