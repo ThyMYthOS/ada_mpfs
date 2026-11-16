@@ -241,8 +241,8 @@ mpfs_toolchain_check () {
     _exact svdtools "$SVDTOOLS_VERSION" "$v" 0
     v=; command -v xmllint >/dev/null 2>&1 && v=ok
     if [ -n "$v" ]; then _mpfs_row xmllint ok "(svd merge, svd check)"; else _mpfs_row xmllint absent "(needed by svd merge; apt install libxml2-utils)"; fi
-    v=; "$MPFS_PYTHON" -c 'import yaml, bs4' >/dev/null 2>&1 && v=ok
-    if [ -n "$v" ]; then _mpfs_row python-libs ok "(PyYAML, beautifulsoup4)"; else _mpfs_row python-libs absent "(needed by svd merge and regmap2svd; ./x toolchain install)"; fi
+    v=; "$MPFS_PYTHON" -c 'import yaml, bs4, jsonschema' >/dev/null 2>&1 && v=ok
+    if [ -n "$v" ]; then _mpfs_row python-libs ok "(PyYAML, beautifulsoup4, jsonschema)"; else _mpfs_row python-libs absent "(needed by svd merge, regmap2svd and the reader of system.yaml; ./x toolchain install)"; fi
     v=; command -v gnatprove >/dev/null 2>&1 && v="$(mpfs_version_of gnatprove --version)"
     _exact gnatprove "$GNATPROVE_VERSION" "$v" 0
     v=; command -v adalang_analyzer >/dev/null 2>&1 && v="$(mpfs_version_of adalang_analyzer --version)"
