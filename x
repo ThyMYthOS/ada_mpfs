@@ -272,14 +272,20 @@ mpfs_install_alire_toolchains () {
 # An optional crate is installed, not selected, each version into its own prefix,
 # so there is no conflict with other versions and the call is repeatable. The
 # native GNAT must be on PATH: alr resolves the dependencies of the crate against it.
+# alr builds a source crate in a work directory alr-<pid>-<tag>.tmp/ in the current
+# directory and keeps it there if the install is interrupted, so it runs in a
+# directory of its own, not in the checkout.
 mpfs_install_crate () {
-  local crate="$1" ver="$2" pfx
+  local crate="$1" ver="$2" pfx work rc=0
   [ -n "$ver" ] || die "$crate is not pinned in tools/toolchain.env"
   pfx="$(mpfs_opt_prefix "$crate" "$ver")"
   if [ -d "$pfx/bin" ]; then echo "x: $crate $ver already installed in $pfx"
   else
     mpfs_toolchain_on_path || true
-    alr -n install --prefix="$pfx" "$crate=$ver" || die "installing $crate $ver failed"
+    work="$(mktemp -d)"
+    ( cd "$work" && alr -n install --prefix="$pfx" "$crate=$ver" ) || rc=$?
+    rm -rf "$work"
+    [ "$rc" -eq 0 ] || die "installing $crate $ver failed"
   fi
 }
 
