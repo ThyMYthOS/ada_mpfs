@@ -84,7 +84,10 @@ Reset in that case too.
 
 `reset halt` returns the platform to its power-on state. Everything that a program or a poke set up is gone:
 clocks enabled with `--enable-clocks`, `--poke` writes, a PLL or boot state that software had set up. The
-reset halt leaves the hart halted. In boot mode 0 that is the state in which the probes start anyway.
+reset halt leaves the hart halted. In boot mode 0 that is the state in which the probes start anyway. Not everything is gone:
+after a run with `--enable-clocks` and `./x hw reset`, `SCB_REGS.MSSIO_CONTROL_CR` read `0x00000780` where `0x000007A0` is the
+power-on value (`--enable-clocks` writes `0x3800` to it), and `FRQMETER` read 0 where it had read one word in every register
+(measured on 2026-11-16, `docs/lab/results/svd-probe.md`). A clean power-on run needs a power cycle.
 
 ## After Ctrl+C
 
@@ -121,9 +124,11 @@ board.
 Measured right after power-on with the hart halted by the tool (taken from `hw/README.md`, section "Platform
 state at power-on in boot mode 0" and the sections it refers to):
 
-- `SYSREG.DFIAPB_CR` reads `0x2` (corner clock on, reset released). `CFG_DDR_SGMII_PHY` reads all zero until
-  `SYSREG.DFIAPB_CR=0x1` is written; then `DDRPHY_MODE` reads `0x2`. The zeros come from the gated MSS
-  corner, not from the SVD.
+- `SYSREG.DFIAPB_CR` reads `0x2`: `RESET` (bit 1) is set and `CLOCKON` (bit 0) is clear, so the MSS corner has no clock
+  and is held in reset. `CFG_DDR_SGMII_PHY` reads all zero until `SYSREG.DFIAPB_CR=0x1` is written (clock on, reset
+  released); then `DDRPHY_MODE` reads `0x2`. The zeros come from the gated MSS corner, not from the SVD. Measured on
+  2026-11-16: 53 registers of the block do not match their reset value at power-on and none with the poke
+  (`docs/lab/results/svd-probe.md`).
 - `CAN_A_LO.INT_STATUS` reads 0, also after `SYSREG.DFIAPB_CR=1` and/or `SCB_REGS.MSSIO_CONTROL_CR=0x3800`
   (power-on value `0x7A0`). With `--enable-clocks` the first CAN access stalled the debug module; the cause
   is not known.
@@ -138,7 +143,8 @@ state at power-on in boot mode 0" and the sections it refers to):
 - A run after `reset halt` and a clean power-on run agreed on all `SYSREG` and `SCB_REGS` configuration
   registers; only the PLIC, the CLINT `MTIMECMP` registers and `MMUART0` `DLR` and `THR` differed.
 - A block without clock or reset can answer every read with the same word (`FRQMETER` read `0xA8148A` for
-  all 12 registers while it was gated).
+  all 12 registers while it was gated; `0x00A81402` and `0x00AC1402` on the runs of 2026-11-16: the word is the same in
+  every register of one run and differs between runs).
 
 ## Do not, in an unattended run
 
