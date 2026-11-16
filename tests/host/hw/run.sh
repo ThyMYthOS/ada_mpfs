@@ -4,7 +4,8 @@
 #
 # Tests for the scripts of hw/ and ./x hw without a board: a stand-in for the OpenOCD
 # telnet port (fake_ocd.py), files in place of the serial ports, a stand-in for
-# SoftConsole, and the pinned RISC-V compiler for the images and probes. Every
+# SoftConsole, a stand-in for fpgenprog (fake_fpgenprog.py), and the pinned RISC-V
+# toolchain for the images and probes. Every
 # --expect that does not match must exit 1, every set-up error 2, and the cases that
 # match show that the stand-ins are not what makes the others fail. What this cannot
 # show: that a real OpenOCD, FlashPro6 and CP2108 behave like the stand-ins. Exits
@@ -601,51 +602,69 @@ expect_rc  "x hw probe: --expect passes through" 0 "$X" hw probe probe_time.S 1 
 expect_rc  "x hw openocd: starts OpenOCD" 0 env LAB_CONF="$L" "$X" hw openocd
 
 # --- bootmode.py --------------------------------------------------------------------
-# A stand-in java records its arguments and the PATH it got, prints what STANDIN_OUT says (default: a line)
-# and ends with STANDIN_RC (default 0). The stand-in jar is an empty file. The real jar was not run.
-mkdir -p "$tmp/bm/sc/extras/mpfs" "$tmp/bm/bin" "$tmp/bm/libero"
-: > "$tmp/bm/sc/extras/mpfs/mpfsBootmodeProgrammer.jar"
-printf '#!/bin/sh\nprintf "%%s\\n" "$@" > "%s/bm/java.args"\necho "$PATH" > "%s/bm/java.path"\necho "$SC_INSTALL_DIR" > "%s/bm/java.sc"\necho "$FPGENPROG" > "%s/bm/java.fp"\n[ "${STANDIN_SILENT:-}" = 1 ] || echo "standin: programming"\nexit "${STANDIN_RC:-0}"\n' "$tmp" "$tmp" "$tmp" "$tmp" > "$tmp/bm/bin/java"
-printf '#!/bin/sh\nexit 0\n' > "$tmp/bm/libero/fpgenprog"
-chmod +x "$tmp/bm/bin/java" "$tmp/bm/libero/fpgenprog"
-printf 'SOFT_CONSOLE=%s/bm/sc\nJAVA=%s/bm/bin/java\nFPGENPROG=%s/bm/libero/fpgenprog\nOCD_PORT=1\n' "$tmp" "$tmp" "$tmp" > "$tmp/lab-bm.conf"
+# The programmer runs fpgenprog (a stand-in, fake_fpgenprog.py, that records its calls and makes the project folder
+# as fpgenprog does) and objcopy and readelf of the pinned toolchain (real) on boot programs that are assembled here.
+# What the images and the fpgenprog calls must be is tested against the Java tool in bootprog_test.py. The real
+# fpgenprog and a FlashPro were not used.
+mkdir -p "$tmp/bm"
+export FAKE_FP_LOG="$tmp/bm/fp.log"
+printf '#!/bin/sh\nexec "%s" "%s/tests/host/hw/fake_fpgenprog.py" "$@"\n' "$PY" "$ROOT" > "$tmp/bm/fpgenprog"
+chmod +x "$tmp/bm/fpgenprog"
+printf '\t.option norvc\n\t.globl _start\n_start:\n\tj _start\n\t.rept 75\n\t.word 0x00000013\n\t.endr\n' > "$tmp/bm/img.S"
+BME="$tmp/bm/envm/app.elf"; BML="$tmp/bm/lim/app.elf"   # boot programs for the eNVM (modes 1, 3) and for the LIM (mode 2)
+BMW="$tmp/bm/work"                                       # the working directory of the programmer
+mkdir -p "$tmp/bm/envm" "$tmp/bm/lim"
+for t in "envm 0x20220100 $BME" "lim 0x08000000 $BML"; do
+  set -- $t
+  "$tc/riscv64-elf-gcc" -march=rv64imac -mabi=lp64 -nostdlib -Wl,-N -Wl,-Ttext="$2" -o "$3" "$tmp/bm/img.S" 2>/dev/null \
+    || { echo "FAIL: cannot build the boot program for $1" >&2; exit 1; }
+done
+printf 'FPGENPROG=%s/bm/fpgenprog\nOCD_PORT=1\n' "$tmp" > "$tmp/lab-bm.conf"
 LB="$tmp/lab-bm.conf"
-BME="$tmp/bm/app.elf"; BMW="$tmp/bm/work"   # the boot program and the working directory of the programmer
-printf 'ELF stand-in\n' > "$BME"
-bootmode () {  # the boot mode, then the ELF and the working directory, then the rest
-  case "${1:-}" in -*|"") "$PY" "$HW/bootmode.py" "$@" ;; *) local n="$1"; shift; "$PY" "$HW/bootmode.py" "$n" "$BME" --workdir "$BMW" "$@" ;; esac
+bmelf () { case "$1" in 0) ;; 2) echo "$BML" ;; *) echo "$BME" ;; esac; }
+bootmode () {  # the boot mode, then its boot program and the working directory, then the rest
+  case "${1:-}" in -*|"") "$PY" "$HW/bootmode.py" "$@" ;; *) local n="$1"; shift; "$PY" "$HW/bootmode.py" "$n" $(bmelf "$n") --workdir "$BMW" "$@" ;; esac
 }
-rm -f "$tmp/bm/java.args"
-expect_rc  "bootmode: --yes runs the jar and exits 0" 0 bootmode 2 --yes --lab "$LB"
-args="$(tr '\n' ' ' < "$tmp/bm/java.args" 2>/dev/null)"
-[ "$args" = "-jar $tmp/bm/sc/extras/mpfs/mpfsBootmodeProgrammer.jar --workdir $BMW --bootmode 2 --die MPFS250T_ES --package FCVG484 app.elf " ] \
-  && pass "bootmode: passes -jar, the jar below SOFT_CONSOLE, --workdir, --bootmode, --die, --package and the ELF by name (the defaults)" \
-  || fail "bootmode: passes -jar, the jar below SOFT_CONSOLE, --workdir, --bootmode, --die, --package and the ELF by name (got: $args)"
-[ -f "$BMW/app.elf" ] && cmp -s "$BME" "$BMW/app.elf" && pass "bootmode: copies the ELF to the working directory" || fail "bootmode: copies the ELF to the working directory"
-grep -q "^$tmp/bm/libero:" "$tmp/bm/java.path" && pass "bootmode: puts the directory of fpgenprog on PATH for the jar" || fail "bootmode: puts the directory of fpgenprog on PATH for the jar"
-expect_out "bootmode: shows the output of the jar" "standin: programming" bootmode 0 --yes --lab "$LB"
+fpcalls () { cat "$FAKE_FP_LOG" 2>/dev/null; }
+fpreset () { rm -f "$FAKE_FP_LOG"; }
+fpgrep () { fpcalls | grep -q -- "$1"; }   # a call of fpgenprog with <regex>
+programmed () { fpgrep '^run_action .*--action PROGRAM'; }
+
+fpreset
+expect_rc  "bootmode: --yes prepares, programs and exits 0" 0 bootmode 2 --yes --lab "$LB"
+calls="$(fpcalls | cut -d' ' -f1 | tr '\n' ' ')"
+[ "$calls" = "new_project mss_boot_info snvm_client generate_bitstream run_action " ] \
+  && pass "bootmode: the fpgenprog calls are new_project, boot mode, client, bitstream, PROGRAM" \
+  || fail "bootmode: the fpgenprog calls are new_project, boot mode, client, bitstream, PROGRAM (got: $calls)"
+fpgrep "^new_project --location $BMW/bootmode2/fpgenprogProject --target_die MPFS250T_ES --target_package FCVG484\$" \
+  && pass "bootmode: the project is in <workdir>/bootmode<N>, die and package are the defaults of lab.conf.example" \
+  || fail "bootmode: the project is in <workdir>/bootmode<N>, die and package are the defaults of lab.conf.example (got: $(fpcalls | head -1))"
+[ -f "$BMW/bootmode2/app-bm2-p0-ap.hex" ] && pass "bootmode: the image of the boot mode is made from the ELF where the ELF is" || fail "bootmode: the image of the boot mode is made from the ELF where the ELF is"
+[ ! -e "$BMW/app.elf" ] && pass "bootmode: the ELF is not copied to the working directory" || fail "bootmode: the ELF is not copied to the working directory"
+expect_out "bootmode: shows the output of fpgenprog" "fake fpgenprog: PROGRAM" bootmode 0 --yes --lab "$LB"
 expect_out "bootmode: prints the duration" "the programmer took" bootmode 0 --yes --lab "$LB"
 expect_out "bootmode: says what to do next" "Power-cycle the board" bootmode 0 --yes --lab "$LB"
 expect_out "bootmode: names the PC to check" "0x2000312E" bootmode 0 --yes --lab "$LB"
-# die, package and the jar path from lab.conf
-printf 'BOOTMODE_DIE=MPFS250T\nBOOTMODE_PACKAGE=FCG1152\nBOOTMODE_JAR=%s/bm/other.jar\n' "$tmp" | cat "$LB" - > "$tmp/lab-bm2.conf"
-: > "$tmp/bm/other.jar"
-bootmode 3 --yes --lab "$tmp/lab-bm2.conf" >/dev/null 2>&1
-args="$(tr '\n' ' ' < "$tmp/bm/java.args")"
-[ "$args" = "-jar $tmp/bm/other.jar --workdir $BMW --bootmode 3 --die MPFS250T --package FCG1152 app.elf " ] \
-  && pass "bootmode: die, package and jar come from lab.conf" || fail "bootmode: die, package and jar come from lab.conf (got: $args)"
-printf 'SOFT_CONSOLE=%s/bm/nosc\nJAVA=%s/bm/bin/java\nFPGENPROG=%s/bm/libero/fpgenprog\n' "$tmp" "$tmp" "$tmp" > "$tmp/lab-bm-nojar.conf"
+expect_out "bootmode: reports the FlashPro that fpgenprog used" "FlashPro used: STANDIN1" bootmode 0 --yes --lab "$LB"
+# die and package from lab.conf, and from the options
+printf 'BOOTMODE_DIE=MPFS250T\nBOOTMODE_PACKAGE=FCG1152\n' | cat "$LB" - > "$tmp/lab-bm2.conf"
+fpreset; bootmode 3 --yes --lab "$tmp/lab-bm2.conf" >/dev/null 2>&1
+fpgrep "target_die MPFS250T --target_package FCG1152\$" && pass "bootmode: die and package come from lab.conf" || fail "bootmode: die and package come from lab.conf (got: $(fpcalls | head -1))"
+fpreset; bootmode 3 --yes --die mpfs095t_es --package fcsg536 --lab "$tmp/lab-bm2.conf" >/dev/null 2>&1
+fpgrep "target_die MPFS095T_ES --target_package FCSG536\$" && pass "bootmode: --die and --package win over lab.conf (in any case)" || fail "bootmode: --die and --package win over lab.conf (got: $(fpcalls | head -1))"
+expect_rc  "bootmode: a die that does not exist exits 2" 2 bootmode 1 --yes --die MPFS999T --lab "$LB"
+expect_out "bootmode: a die that does not exist is named, with the help text" "Invalid die" bootmode 1 --yes --die MPFS999T --lab "$LB"
 # --dry-run
-rm -f "$tmp/bm/java.args"
+fpreset; rm -rf "$BMW"
 expect_rc  "bootmode: --dry-run exits 0" 0 bootmode 1 --dry-run --lab "$LB"
-expect_out "bootmode: --dry-run prints the command" "--bootmode 1 --die MPFS250T_ES --package FCVG484 app.elf" bootmode 1 --dry-run --lab "$LB"
-[ ! -e "$tmp/bm/java.args" ] && pass "bootmode: --dry-run does not run java" || fail "bootmode: --dry-run does not run java"
-expect_rc  "bootmode: --dry-run with a missing jar still exits 2" 2 bootmode 1 --dry-run --lab "$tmp/lab-bm-nojar.conf"
+expect_out "bootmode: --dry-run says what it would do" "boot mode 1 - non-secure boot from eNVM, die MPFS250T_ES, package FCVG484" bootmode 1 --dry-run --lab "$LB"
+expect_out "bootmode: --dry-run prints the programming command" "run_action --location $BMW/bootmode1/fpgenprogProject --action PROGRAM" bootmode 1 --dry-run --lab "$LB"
+[ ! -e "$FAKE_FP_LOG" ] && [ ! -e "$BMW" ] && pass "bootmode: --dry-run runs nothing and writes nothing" || fail "bootmode: --dry-run runs nothing and writes nothing"
 # refusal without --yes (no terminal here)
 expect_rc  "bootmode: without --yes and without a terminal exits 2" 2 bootmode 1 --lab "$LB" </dev/null
 expect_out "bootmode: the refusal says nothing was done" "nothing was done" bootmode 1 --lab "$LB" </dev/null
-[ ! -e "$tmp/bm/java.args" ] && pass "bootmode: the refusal does not run java" || fail "bootmode: the refusal does not run java"
-# the prompt, on a pseudo terminal: "yes" writes, anything else does not
+[ ! -e "$FAKE_FP_LOG" ] && [ ! -e "$BMW" ] && pass "bootmode: the refusal runs nothing and writes nothing" || fail "bootmode: the refusal runs nothing and writes nothing"
+# the prompt, on a pseudo terminal: "yes" programs, anything else does not
 ptyrun () {  # ptyrun <answer> <args...>: bootmode with a terminal on stdin that types <answer>
   local answer="$1"; shift
   "$PY" -I -c 'import os, pty, sys, time
@@ -653,7 +672,7 @@ answer, argv = sys.argv[1], sys.argv[2:]
 pid, fd = pty.fork()
 if pid == 0:
     os.execvp(argv[0], argv)
-time.sleep(1)
+time.sleep(4)
 os.write(fd, (answer + "\n").encode())
 while True:
     try:
@@ -662,67 +681,124 @@ while True:
 _, st = os.waitpid(pid, 0)
 sys.exit(os.waitstatus_to_exitcode(st))' "$answer" "$PY" "$HW/bootmode.py" "$@"
 }
-rm -f "$tmp/bm/java.args"
-expect_rc  "bootmode: the answer 'no' exits 1" 1 ptyrun no 2 "$BME" --workdir "$BMW" --lab "$LB"
-[ ! -e "$tmp/bm/java.args" ] && pass "bootmode: the answer 'no' does not run java" || fail "bootmode: the answer 'no' does not run java"
-expect_rc  "bootmode: the answer 'yes' runs the jar and exits 0" 0 ptyrun yes 2 "$BME" --workdir "$BMW" --lab "$LB"
-[ -e "$tmp/bm/java.args" ] && pass "bootmode: the answer 'yes' ran java" || fail "bootmode: the answer 'yes' ran java"
+fpreset
+expect_rc  "bootmode: the answer 'no' exits 1" 1 ptyrun no 2 "$BML" --workdir "$BMW" --lab "$LB"
+{ fpgrep '^generate_bitstream' && ! programmed; } && pass "bootmode: the answer 'no' leaves the image and the bitstream made, and does not program" || fail "bootmode: the answer 'no' leaves the image and the bitstream made, and does not program"
+fpreset
+expect_rc  "bootmode: the answer 'yes' programs and exits 0" 0 ptyrun yes 2 "$BML" --workdir "$BMW" --lab "$LB"
+programmed && pass "bootmode: the answer 'yes' programmed" || fail "bootmode: the answer 'yes' programmed"
+# --prepare-only: everything but the programming, no prompt, no OpenOCD check
+fpreset
+expect_rc  "bootmode: --prepare-only exits 0 without --yes and without a terminal" 0 bootmode 1 --prepare-only --lab "$LB" </dev/null
+{ fpgrep '^generate_bitstream' && ! programmed; } && pass "bootmode: --prepare-only makes the bitstream and does not program" || fail "bootmode: --prepare-only makes the bitstream and does not program"
+# OpenOCD holds the FlashPro
+serve bmocd
+printf 'FPGENPROG=%s/bm/fpgenprog\n' "$tmp" | cat "$tmp/lab-bmocd.conf" - > "$tmp/lab-bmocd2.conf"
+fpreset
+expect_rc  "bootmode: a running OpenOCD exits 2" 2 bootmode 1 --yes --lab "$tmp/lab-bmocd2.conf"
+expect_out "bootmode: a running OpenOCD is named, nothing was done" "OpenOCD is running" bootmode 1 --yes --lab "$tmp/lab-bmocd2.conf"
+[ ! -e "$FAKE_FP_LOG" ] && pass "bootmode: a running OpenOCD stops it before anything runs" || fail "bootmode: a running OpenOCD stops it before anything runs"
+expect_rc  "bootmode: --prepare-only does not mind a running OpenOCD" 0 bootmode 1 --prepare-only --lab "$tmp/lab-bmocd2.conf"
+expect_rc  "bootmode: --dry-run does not mind a running OpenOCD" 0 bootmode 1 --dry-run --lab "$tmp/lab-bmocd2.conf"
 # failures
 expect_rc  "bootmode: boot mode 4 exits 2" 2 bootmode 4 --yes --lab "$LB"
 expect_rc  "bootmode: boot mode -1 exits 2" 2 bootmode -1 --yes --lab "$LB"
 expect_rc  "bootmode: boot mode 'x' exits 2" 2 bootmode x --yes --lab "$LB"
 expect_rc  "bootmode: no boot mode exits 2" 2 bootmode --yes --lab "$LB"
-printf 'SOFT_CONSOLE=%s/bm/sc\nJAVA=%s/bm/bin/none\nFPGENPROG=%s/bm/libero/fpgenprog\n' "$tmp" "$tmp" "$tmp" > "$tmp/lab-bm-nojava.conf"
-expect_rc  "bootmode: a missing java exits 2" 2 bootmode 0 --yes --lab "$tmp/lab-bm-nojava.conf"
-expect_out "bootmode: a missing java says what to do" "install a JRE or set JAVA" bootmode 0 --yes --lab "$tmp/lab-bm-nojava.conf"
-expect_rc  "bootmode: a missing jar exits 2" 2 bootmode 0 --yes --lab "$tmp/lab-bm-nojar.conf"
-expect_out "bootmode: a missing jar says what to do" "set SOFT_CONSOLE or BOOTMODE_JAR" bootmode 0 --yes --lab "$tmp/lab-bm-nojar.conf"
-printf 'SOFT_CONSOLE=%s/bm/sc\nJAVA=%s/bm/bin/java\nFPGENPROG=%s/bm/libero/none\n' "$tmp" "$tmp" "$tmp" > "$tmp/lab-bm-nofp.conf"
+printf 'FPGENPROG=%s/bm/none\n' "$tmp" > "$tmp/lab-bm-nofp.conf"
 expect_rc  "bootmode: a missing fpgenprog exits 2" 2 bootmode 0 --yes --lab "$tmp/lab-bm-nofp.conf"
 expect_out "bootmode: a missing fpgenprog says what to do" "set FPGENPROG" bootmode 0 --yes --lab "$tmp/lab-bm-nofp.conf"
-rm -f "$tmp/bm/java.args"
-expect_rc  "bootmode: a jar that fails exits 1" 1 env STANDIN_RC=3 "$PY" "$HW/bootmode.py" 0 "$BME" --workdir "$BMW" --yes --lab "$LB"
-expect_out "bootmode: a failed jar is named with its status" "ended with status 3" env STANDIN_RC=3 "$PY" "$HW/bootmode.py" 0 "$BME" --workdir "$BMW" --yes --lab "$LB"
-if STANDIN_RC=3 "$PY" "$HW/bootmode.py" 0 "$BME" --workdir "$BMW" --yes --lab "$LB" 2>&1 | grep -q "Power-cycle the board"; then fail "bootmode: a failed jar does not say 'power-cycle'"; else pass "bootmode: a failed jar does not say 'power-cycle'"; fi
-expect_rc  "bootmode: a jar without any output exits 1" 1 env STANDIN_SILENT=1 "$PY" "$HW/bootmode.py" 0 "$BME" --workdir "$BMW" --yes --lab "$LB"
-expect_out "bootmode: no output is named" "printed nothing" env STANDIN_SILENT=1 "$PY" "$HW/bootmode.py" 0 "$BME" --workdir "$BMW" --yes --lab "$LB"
 expect_rc  "bootmode: a lab.conf that does not exist exits 2" 2 bootmode 0 --yes --lab "$tmp/none.conf"
+printf 'FPGENPROG=fpgenprog\n' > "$tmp/lab-bm-fpname.conf"
+expect_rc  "bootmode: a bare fpgenprog name exits 2 even when it is on PATH" 2 env PATH="$tmp/bm:$PATH" "$PY" "$HW/bootmode.py" 0 --yes --lab "$tmp/lab-bm-fpname.conf"
+expect_out "bootmode: a bare fpgenprog name says it needs the full path" "full path of the fpgenprog executable" env PATH="$tmp/bm:$PATH" "$PY" "$HW/bootmode.py" 0 --yes --lab "$tmp/lab-bm-fpname.conf"
+printf 'FPGENPROG=%s/bm\n' "$tmp" > "$tmp/lab-bm-fpdir.conf"
+expect_rc  "bootmode: a directory as FPGENPROG exits 2" 2 "$PY" "$HW/bootmode.py" 0 --yes --lab "$tmp/lab-bm-fpdir.conf"
+expect_rc  "bootmode: an fpgenprog step that fails exits 1" 1 env FAKE_FP_FAIL=mss_boot_info "$PY" "$HW/bootmode.py" 1 "$BME" --workdir "$BMW" --yes --lab "$LB"
+expect_out "bootmode: a failed step is named" "Unable to select the boot mode" env FAKE_FP_FAIL=mss_boot_info "$PY" "$HW/bootmode.py" 1 "$BME" --workdir "$BMW" --yes --lab "$LB"
+fpreset
+expect_rc  "bootmode: a failing PROGRAM exits 1" 1 env FAKE_FP_FAIL=run_action:3 "$PY" "$HW/bootmode.py" 0 --workdir "$BMW" --yes --lab "$LB"
+expect_out "bootmode: a failing PROGRAM is named" "PROGRAM action failed" env FAKE_FP_FAIL=run_action:3 "$PY" "$HW/bootmode.py" 0 --workdir "$BMW" --yes --lab "$LB"
+if FAKE_FP_FAIL=run_action:3 "$PY" "$HW/bootmode.py" 0 --workdir "$BMW" --yes --lab "$LB" 2>&1 | grep -q "Power-cycle the board"; then fail "bootmode: a failed PROGRAM does not say 'power-cycle'"; else pass "bootmode: a failed PROGRAM does not say 'power-cycle'"; fi
+expect_rc  "bootmode: fpgenprog without any output exits 1" 1 env FAKE_FP_SILENT=1 "$PY" "$HW/bootmode.py" 0 --workdir "$BMW" --yes --lab "$LB"
+expect_out "bootmode: no output is named" "printed nothing" env FAKE_FP_SILENT=1 "$PY" "$HW/bootmode.py" 0 --workdir "$BMW" --yes --lab "$LB"
+expect_rc  "bootmode: a boot program of another boot mode's address exits 1 and says so" 1 "$PY" "$HW/bootmode.py" 1 "$BML" --workdir "$BMW" --yes --lab "$LB"
+expect_out "bootmode: ... the boot vector of the eNVM is named" "boot vector for the eNVM" "$PY" "$HW/bootmode.py" 1 "$BML" --workdir "$BMW" --yes --lab "$LB"
 # every set-up error comes with the help text and its description of the boot modes
 expect_out "bootmode: a bad boot mode prints the error and the help text" "non-secure boot from eNVM" bootmode 4 --yes --lab "$LB"
 expect_out "bootmode: a bad boot mode names the error" "is not a boot mode" bootmode 4 --yes --lab "$LB"
 expect_out "bootmode: no arguments print the error and the help text" "user secure boot from sNVM" "$PY" "$HW/bootmode.py"
-expect_out "bootmode: a missing jar prints the help text too" "factory secure boot from eNVM" bootmode 0 --yes --lab "$tmp/lab-bm-nojar.conf"
-expect_out "bootmode: a missing java prints the help text too" "idle boot" bootmode 0 --yes --lab "$tmp/lab-bm-nojava.conf"
+expect_out "bootmode: a missing fpgenprog prints the help text too" "factory secure boot from eNVM" bootmode 0 --yes --lab "$tmp/lab-bm-nofp.conf"
 expect_out "bootmode: the refusal without --yes prints the help text too" "idle boot" bootmode 1 --lab "$LB" </dev/null
 expect_rc  "bootmode: --help exits 0" 0 "$PY" "$HW/bootmode.py" --help
 expect_out "bootmode: --help says PERMANENT" "PERMANENT" "$PY" "$HW/bootmode.py" --help
+# the options of the boot modes 2 and 3
+fpreset
+bootmode 2 --yes --snvm-page 5 --usk 0xAABBCCDDEEFF001122334455 --encrypt --lab "$LB" >/dev/null 2>&1
+fpgrep "snvm_client .*--start_page 5 --client_name bootmode2 --usk_key AABBCCDDEEFF001122334455 --encrypted_authenticated" \
+  && pass "bootmode: --snvm-page, --usk (without its 0x) and --encrypt reach the sNVM client" || fail "bootmode: --snvm-page, --usk and --encrypt reach the sNVM client (got: $(fpcalls | grep snvm_client))"
+fpgrep "mss_boot_info .*--u_mss_bootcfg 00000000AABBCCDDEEFF00112233445500000005\$" && pass "bootmode: the boot configuration holds the USK and the page" || fail "bootmode: the boot configuration holds the USK and the page (got: $(fpcalls | grep mss_boot_info))"
+fpreset; bootmode 2 --yes --snvm_page 6 --usk 0 --lab "$LB" >/dev/null 2>&1
+fpgrep "snvm_client .*--start_page 6 " && pass "bootmode: --snvm_page is an alias of --snvm-page" || fail "bootmode: --snvm_page is an alias of --snvm-page"
+expect_out "bootmode: a generated USK is announced" "randomly generated USK" bootmode 2 --yes --usk 0 --lab "$LB"
+[ -f "$BMW/bootmode2/app-bm2-usk.txt" ] && pass "bootmode: the generated USK is saved next to the image" || fail "bootmode: the generated USK is saved next to the image"
+expect_rc  "bootmode: --usk outside boot mode 2 exits 2" 2 bootmode 1 --yes --usk 0 --lab "$LB"
+expect_out "bootmode: --usk outside boot mode 2 says so" "only valid for boot mode 2" bootmode 1 --yes --usk 0 --lab "$LB"
+expect_rc  "bootmode: an sNVM page out of range exits 2" 2 bootmode 2 --yes --snvm-page 221 --lab "$LB"
+"$PY" -I -c '
+import sys
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
+k = ec.generate_private_key(ec.SECP384R1())
+open(sys.argv[1] + "/key.pem", "wb").write(k.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()))
+open(sys.argv[1] + "/pub.pem", "wb").write(k.public_key().public_bytes(serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo))' "$tmp/bm" \
+  || { echo "FAIL: cannot make a test key pair (python package cryptography: ./x toolchain install)" >&2; exit 1; }
+fpreset
+expect_rc  "bootmode: boot mode 3 with --keys programs and exits 0" 0 bootmode 3 --yes --keys "$tmp/bm/key.pem" "$tmp/bm/pub.pem" --lab "$LB"
+fpgrep "mss_boot_info .*--ucskx " && programmed && pass "bootmode: the public key reaches the boot mode" || fail "bootmode: the public key reaches the boot mode"
+fpgrep -e "--action VERIFY" && fail "bootmode: --keys does not turn on --verify (the Java tool does, by a missing break)" || pass "bootmode: --keys does not turn on --verify (the Java tool does, by a missing break)"
+expect_out "bootmode: without --keys the private key is reported as not saved" "private key is not saved" bootmode 3 --yes --lab "$LB"
+expect_rc  "bootmode: --keys outside boot mode 3 exits 2" 2 bootmode 1 --yes --keys "$tmp/bm/key.pem" "$tmp/bm/pub.pem" --lab "$LB"
+expect_rc  "bootmode: --keys with a missing file exits 2" 2 bootmode 3 --yes --keys "$tmp/bm/none.pem" "$tmp/bm/pub.pem" --lab "$LB"
+fpreset; bootmode 1 --yes --verify --lab "$LB" >/dev/null 2>&1
+[ "$(fpcalls | grep '^run_action' | sed 's/.*--action //' | tr '\n' ' ')" = "PROGRAM VERIFY " ] && pass "bootmode: --verify verifies after programming" || fail "bootmode: --verify verifies after programming"
+# the FlashPro
+fpreset
+expect_rc  "bootmode: a FlashPro that fpgenprog does not honour exits 1" 1 bootmode 1 --yes --flashpro SN4242 --lab "$LB"
+expect_out "bootmode: ... and says which FlashPro it used instead" "instead of SN4242" bootmode 1 --yes --flashpro SN4242 --lab "$LB"
+fpreset; bootmode 1 --yes --flashpro SN4242 --lab "$LB" >/dev/null 2>&1
+programmed && fail "bootmode: a FlashPro that was not honoured is not programmed through" || pass "bootmode: a FlashPro that was not honoured is not programmed through"
+fpreset
+expect_rc  "bootmode: a FlashPro that fpgenprog honours programs and exits 0" 0 env FAKE_FP_HONOUR=1 "$PY" "$HW/bootmode.py" 1 "$BME" --workdir "$BMW" --yes --flashpro SN4242 --lab "$LB"
+expect_out "bootmode: ... and reports it" "FlashPro used: SN4242" env FAKE_FP_HONOUR=1 "$PY" "$HW/bootmode.py" 1 "$BME" --workdir "$BMW" --yes --flashpro SN4242 --lab "$LB"
+printf 'FLASHPRO_SERIAL=LABSN7\n' | cat "$LB" - > "$tmp/lab-bm-fp.conf"
+expect_out "bootmode: FLASHPRO_SERIAL of lab.conf names the FlashPro" "FlashPro used: LABSN7" env FAKE_FP_HONOUR=1 "$PY" "$HW/bootmode.py" 1 "$BME" --workdir "$BMW" --yes --lab "$tmp/lab-bm-fp.conf"
+expect_out "bootmode: --flashpro wins over FLASHPRO_SERIAL" "FlashPro used: SN9" env FAKE_FP_HONOUR=1 "$PY" "$HW/bootmode.py" 1 "$BME" --workdir "$BMW" --yes --flashpro SN9 --lab "$tmp/lab-bm-fp.conf"
+expect_rc  "bootmode: a FlashPro serial with a space exits 2" 2 bootmode 1 --yes --flashpro "a b" --lab "$LB"
 # the boot program
-expect_rc  "bootmode: a missing ELF exits 2" 2 "$PY" "$HW/bootmode.py" 0 "$tmp/none.elf" --yes --lab "$LB"
-expect_out "bootmode: a missing ELF names it and prints the help text" "none.elf' does not exist" "$PY" "$HW/bootmode.py" 0 "$tmp/none.elf" --yes --lab "$LB"
+expect_rc  "bootmode: a missing ELF exits 2" 2 "$PY" "$HW/bootmode.py" 1 "$tmp/none.elf" --yes --lab "$LB"
+expect_out "bootmode: a missing ELF names it and prints the help text" "none.elf' does not exist" "$PY" "$HW/bootmode.py" 1 "$tmp/none.elf" --yes --lab "$LB"
 expect_out "bootmode: --dry-run without an ELF names bare_hello" "bare_hello.elf" "$PY" "$HW/bootmode.py" 1 --dry-run --lab "$LB"
+expect_out "bootmode: mode 0 ignores an ELF and says so" "ignoring" "$PY" "$HW/bootmode.py" 0 "$BME" --workdir "$BMW" --yes --lab "$LB"
 # without an ELF the example bare_hello is built (./x build bare_hello --hart e51): a tree with a stand-in x
-mkdir -p "$tmp/bmroot/hw" "$tmp/bmroot/examples/bare_hello/bin-e51"
-cp "$HW/bootmode.py" "$HW/lab.py" "$HW/lab.conf.example" "$tmp/bmroot/hw/"
+mkdir -p "$tmp/bmroot/hw" "$tmp/bmroot/tools" "$tmp/bmroot/examples/bare_hello/bin-e51"
+cp "$HW/bootmode.py" "$HW/bootprog.py" "$HW/lab.py" "$HW/lab.conf.example" "$tmp/bmroot/hw/"
+cp "$ROOT/tools/toolchain.env" "$tmp/bmroot/tools/"
 printf '#!/bin/sh\necho "$@" > "%s/bmroot/x.args"\n' "$tmp" > "$tmp/bmroot/x"; chmod +x "$tmp/bmroot/x"
-printf 'bare_hello ELF\n' > "$tmp/bmroot/examples/bare_hello/bin-e51/bare_hello.elf"
-rm -f "$tmp/bm/java.args"
+cp "$BME" "$tmp/bmroot/examples/bare_hello/bin-e51/bare_hello.elf"
+fpreset
 "$PY" "$tmp/bmroot/hw/bootmode.py" 1 --yes --lab "$LB" >/dev/null 2>&1
 [ "$(cat "$tmp/bmroot/x.args" 2>/dev/null)" = "build bare_hello --hart e51" ] && pass "bootmode: without an ELF it builds bare_hello for the E51" || fail "bootmode: without an ELF it builds bare_hello for the E51"
-args="$(tr '\n' ' ' < "$tmp/bm/java.args" 2>/dev/null)"
-case "$args" in *"--workdir $tmp/bmroot/build/bootmode --bootmode 1 "*" bare_hello.elf ") pass "bootmode: the default working directory is build/bootmode and the ELF is bare_hello.elf" ;; *) fail "bootmode: the default working directory is build/bootmode and the ELF is bare_hello.elf (got: $args)" ;; esac
-[ -f "$tmp/bmroot/build/bootmode/bare_hello.elf" ] && pass "bootmode: bare_hello.elf is copied to the working directory" || fail "bootmode: bare_hello.elf is copied to the working directory"
+fpgrep "envm_client .*$tmp/bmroot/build/bootmode/bootmode1/bare_hello-bm1-p0.hex" && programmed \
+  && pass "bootmode: the default working directory is build/bootmode, the image is made from bare_hello.elf, and it is programmed" \
+  || fail "bootmode: the default working directory is build/bootmode, the image is made from bare_hello.elf, and it is programmed (got: $(fpcalls | grep envm_client))"
 printf '#!/bin/sh\nexit 3\n' > "$tmp/bmroot/x"
 expect_rc  "bootmode: a failing build of bare_hello exits 2" 2 "$PY" "$tmp/bmroot/hw/bootmode.py" 1 --yes --lab "$LB"
-# boot mode 0 needs no boot program: none is built, none is passed
+# boot mode 0 needs no boot program: none is built, none is used
 printf '#!/bin/sh\necho "$@" > "%s/bmroot/x.args"\n' "$tmp" > "$tmp/bmroot/x"
-rm -f "$tmp/bm/java.args" "$tmp/bmroot/x.args"
+rm -f "$tmp/bmroot/x.args"; fpreset
 "$PY" "$tmp/bmroot/hw/bootmode.py" 0 --yes --lab "$LB" >/dev/null 2>&1
-args="$(tr '\n' ' ' < "$tmp/bm/java.args" 2>/dev/null)"
-case "$args" in *"--bootmode 0 --die MPFS250T_ES --package FCVG484 ") pass "bootmode: mode 0 without an ELF passes none" ;; *) fail "bootmode: mode 0 without an ELF passes none (got: $args)" ;; esac
-[ ! -e "$tmp/bmroot/x.args" ] && pass "bootmode: mode 0 without an ELF builds nothing" || fail "bootmode: mode 0 without an ELF builds nothing"
-# the jar finds SoftConsole and fpgenprog by environment variables
-[ "$(cat "$tmp/bm/java.sc")" = "$tmp/bm/sc" ] && pass "bootmode: sets SC_INSTALL_DIR to SOFT_CONSOLE for the jar" || fail "bootmode: sets SC_INSTALL_DIR to SOFT_CONSOLE for the jar (got: $(cat "$tmp/bm/java.sc"))"
-[ "$(cat "$tmp/bm/java.fp")" = "$tmp/bm/libero/fpgenprog" ] && pass "bootmode: sets FPGENPROG to the full path for the jar" || fail "bootmode: sets FPGENPROG to the full path for the jar (got: $(cat "$tmp/bm/java.fp"))"
+[ ! -e "$tmp/bmroot/x.args" ] && fpgrep "envm_client .*--number_of_bytes 1 " && pass "bootmode: mode 0 without an ELF builds nothing and makes the one byte client" || fail "bootmode: mode 0 without an ELF builds nothing and makes the one byte client"
 # without --lab, LAB_CONF and hw/lab.conf, hw/lab.conf.example is copied to hw/lab.conf
 rm -f "$tmp/bmroot/hw/lab.conf"
 env -u LAB_CONF "$PY" "$tmp/bmroot/hw/bootmode.py" 0 --dry-run >"$tmp/bmroot/copy.out" 2>&1
@@ -736,14 +812,7 @@ rm -f "$tmp/bmroot/hw/lab.conf"
 [ ! -e "$tmp/bmroot/hw/lab.conf" ] && pass "bootmode: --lab does not create lab.conf" || fail "bootmode: --lab does not create lab.conf"
 LAB_CONF="$LB" "$PY" "$tmp/bmroot/hw/bootmode.py" 0 --dry-run >/dev/null 2>&1
 [ ! -e "$tmp/bmroot/hw/lab.conf" ] && pass "bootmode: LAB_CONF does not create lab.conf" || fail "bootmode: LAB_CONF does not create lab.conf"
-# FPGENPROG is the full path of the executable, a name on PATH is not enough
-printf 'SOFT_CONSOLE=%s/bm/sc\nJAVA=%s/bm/bin/java\nFPGENPROG=fpgenprog\n' "$tmp" "$tmp" > "$tmp/lab-bm-fpname.conf"
-expect_rc  "bootmode: a bare fpgenprog name exits 2 even when it is on PATH" 2 env PATH="$tmp/bm/libero:$PATH" "$PY" "$HW/bootmode.py" 0 --yes --lab "$tmp/lab-bm-fpname.conf"
-expect_out "bootmode: a bare fpgenprog name says it needs the full path" "full path of the fpgenprog executable" env PATH="$tmp/bm/libero:$PATH" "$PY" "$HW/bootmode.py" 0 --yes --lab "$tmp/lab-bm-fpname.conf"
-printf 'SOFT_CONSOLE=%s/bm/sc\nJAVA=%s/bm/bin/java\nFPGENPROG=%s/bm/libero\n' "$tmp" "$tmp" "$tmp" > "$tmp/lab-bm-fpdir.conf"
-expect_rc  "bootmode: a directory as FPGENPROG exits 2" 2 "$PY" "$HW/bootmode.py" 0 --yes --lab "$tmp/lab-bm-fpdir.conf"
 # the copy of lab.conf.example has no header lines; the keys and their notes stay
-cp "$HW/bootmode.py" "$HW/lab.py" "$HW/lab.conf.example" "$tmp/bmroot/hw/"
 rm -f "$tmp/bmroot/hw/lab.conf"
 env -u LAB_CONF "$PY" "$tmp/bmroot/hw/bootmode.py" 0 --dry-run >/dev/null 2>&1
 if [ -f "$tmp/bmroot/hw/lab.conf" ] && ! grep -q 'lab.conf.example --' "$tmp/bmroot/hw/lab.conf" && ! grep -q 'Copy it to' "$tmp/bmroot/hw/lab.conf" \
@@ -758,25 +827,10 @@ out="$(FORCE_COLOR=1 "$PY" "$HW/bootmode.py" 0 --dry-run --lab "$LB" 2>&1)"
 case "$out" in *$'\033['*) pass "bootmode: FORCE_COLOR colours the messages" ;; *) fail "bootmode: FORCE_COLOR colours the messages" ;; esac
 out="$(NO_COLOR=1 FORCE_COLOR=1 "$PY" "$HW/bootmode.py" 0 --dry-run --lab "$LB" 2>&1)"
 case "$out" in *$'\033'*) fail "bootmode: NO_COLOR wins over FORCE_COLOR" ;; *) pass "bootmode: NO_COLOR wins over FORCE_COLOR" ;; esac
-out="$(FORCE_COLOR=1 "$PY" "$HW/bootmode.py" 4 --yes --lab "$LB" 2>&1)"
-case "$out" in *$'\033[1;31m'*) pass "bootmode: an error is red" ;; *) fail "bootmode: an error is red" ;; esac
-# OpenOCD must not run while the boot mode changes
-"$PY" -c 'import socket,sys,time; s=socket.socket(); s.bind(("127.0.0.1",0)); s.listen(5); print(s.getsockname()[1], flush=True); time.sleep(30)' > "$tmp/ocdport" &
-ocdpid=$!
-for _ in 1 2 3 4 5 6 7 8 9 10; do [ -s "$tmp/ocdport" ] && break; sleep 0.2; done
-printf 'OCD_HOST=127.0.0.1\nOCD_PORT=%s\n' "$(cat "$tmp/ocdport")" | cat "$LB" - > "$tmp/lab-bm-ocd.conf"
-rm -f "$tmp/bm/java.args"
-expect_rc  "bootmode: refuses while OpenOCD answers on its port" 2 bootmode 0 --yes --lab "$tmp/lab-bm-ocd.conf"
-expect_out "bootmode: says OpenOCD has to be stopped first" "stop it first" bootmode 0 --yes --lab "$tmp/lab-bm-ocd.conf"
-[ ! -e "$tmp/bm/java.args" ] && pass "bootmode: does not run the programmer while OpenOCD runs" || fail "bootmode: does not run the programmer while OpenOCD runs"
-expect_rc  "bootmode: --dry-run is allowed while OpenOCD runs" 0 bootmode 0 --dry-run --lab "$tmp/lab-bm-ocd.conf"
-kill "$ocdpid" 2>/dev/null; wait "$ocdpid" 2>/dev/null
-printf 'OCD_HOST=127.0.0.1\nOCD_PORT=1\n' | cat "$LB" - > "$tmp/lab-bm-noocd.conf"
-expect_rc  "bootmode: runs when nothing answers on the OpenOCD port" 0 bootmode 0 --yes --lab "$tmp/lab-bm-noocd.conf"
-expect_rc  "x hw bootmode: --dry-run passes through" 0 "$X" hw bootmode 0 --dry-run --lab "$LB"
-expect_rc  "x hw bootmode: a bad boot mode exits 2" 2 "$X" hw bootmode 9 --yes --lab "$LB"
-grep -q '^BOOTMODE_DIE=MPFS250T_ES$' "$HW/lab.conf.example" && grep -q '^BOOTMODE_PACKAGE=FCVG484$' "$HW/lab.conf.example" \
-  && pass "lab.conf.example: the die and the package of the bootmode programmer" || fail "lab.conf.example: the die and the package of the bootmode programmer"
+# the payloads and the fpgenprog calls against what the Java tool made (hw/bootprog.py, tests/host/hw/bootprog_test.py)
+out="$("$PY" -I "$ROOT/tests/host/hw/bootprog_test.py" "$tc" "$tmp/bp" 2>&1)"; rc=$?
+echo "$out" | grep -v '^ok:' | sed 's/^/  bootprog_test: /'
+[ $rc -eq 0 ] && pass "bootprog: $(echo "$out" | grep -c '^ok:') checks of the images, the certificate, the options and the FlashPro" || fail "bootprog: the checks of bootprog_test.py failed (see above)"
 
 # --- Ctrl+C -------------------------------------------------------------------------
 # run_signal <signal> <delay> <limit> <out> <command...>: start the command (default signal dispositions) in a session of its own, send

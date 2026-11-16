@@ -36,10 +36,9 @@ jumper or a switch.
 
 | Tool | What for | Version here |
 |---|---|---|
-| Microchip SoftConsole | Its OpenOCD fork has the `microsemi-flashpro` interface that the distribution's OpenOCD lacks and talks to the FlashPro6 on the board (`./x hw openocd`). Its `extras/mpfs/mpfsBootmodeProgrammer.jar` switches the boot mode. The lab setup of the project was developed with v2022.2 (`SOFT_CONSOLE` in `hw/lab.conf`) | **FILL IN** |
-| FlashPro Express, or Libero SoC | Programs a `.job` file (the factory design) into the FPGA part. Libero also provides `fpgenprog`, which the boot mode programmer needs (`FPGENPROG` in `hw/lab.conf`) | **FILL IN** |
+| Microchip SoftConsole | Needed only for its OpenOCD fork, which has the `microsemi-flashpro` interface that the distribution's OpenOCD lacks and talks to the FlashPro6 on the board (`./x hw openocd` and every verb that uses OpenOCD). `./x hw bootmode` does not need it: it runs `fpgenprog` and does what the `mpfsBootmodeProgrammer.jar` of SoftConsole does, in Python (`hw/bootprog.py`; no Java). The lab setup of the project was developed with v2022.2 (`SOFT_CONSOLE` in `hw/lab.conf`) | **FILL IN** |
+| FlashPro Express, or Libero SoC | Programs a `.job` file (the factory design) into the FPGA part. Libero also provides `fpgenprog`, which `./x hw bootmode` runs (`FPGENPROG` in `hw/lab.conf`) | **FILL IN** |
 | Program_Debug | Microchip's tool for programming and debugging through the board's FlashPro6 | **FILL IN** (to verify on the board whether you need it) |
-| Java | Runs the boot mode programmer (`JAVA` in `hw/lab.conf`) | **FILL IN** |
 | udev rules | Access to the FlashPro6 and to the CP2108 ports without root. Install the rules that come with SoftConsole or Libero (the files and their names: to verify on your installation), reload udev and re-plug the USB cable | **FILL IN**: where the rules file is |
 | OpenOCD | See `docs/lab/openocd.md` | the one of SoftConsole |
 | RISC-V compiler | Pinned in `tools/toolchain.env` (`./x toolchain install`) | see the file |
@@ -107,7 +106,7 @@ depend on your version. The project owner restored the factory state on a board 
    documentation).
 3. Program the `.job` file with FlashPro Express (choose the programmer, load the job, *Run*, action
    *PROGRAM*).
-4. Restore the boot mode that you recorded: `./x hw bootmode N --dry-run` shows the command, `./x hw bootmode
+4. Restore the boot mode that you recorded: `./x hw bootmode N --dry-run` says what it would do, `./x hw bootmode
    N` asks before it writes. The boot mode change is permanent and itself reprograms the FPGA part, so do
    it after the design is in place, or check afterwards that the design is still what you programmed.
 5. Power-cycle the board.
@@ -120,7 +119,7 @@ depend on your version. The project owner restored the factory state on a board 
 
 | Statement | Source |
 |---|---|
-| `MPFS250T_ES`, `FCVG484`, engineering samples, the jar, `fpgenprog`, permanent change | `hw/lab.conf.example`, `hw/bootmode.py`, `hw/README.md` section "Boot mode" (the facts about the jar were stated by the project owner; not run on a board by the author of this change) |
+| `MPFS250T_ES`, `FCVG484`, engineering samples, `fpgenprog`, permanent change | `hw/lab.conf.example`, `hw/bootmode.py`, `hw/README.md` section "Boot mode" (the facts about the programmer were stated by the project owner; the Python port makes what the jar makes, see the section, but boot modes 1 to 3 and the FlashPro choice were not run on a board) |
 | IDCODE `0x0F81A1CF` read from a board | stated by the project owner; not recorded in another file of the repository |
 | CP2108 interfaces `if00`..`if03` as MMUART0..3 | `hw/lab.conf` (`UART_PATTERN` and its comment); MMUART0..3 on `if00`..`if03` checked on a board by the project owner |
 | SoftConsole v2022.2, OpenOCD of SoftConsole, FlashPro6 | `hw/lab.conf`, `hw/start_openocd.sh` |

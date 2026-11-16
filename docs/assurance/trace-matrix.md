@@ -11,7 +11,7 @@ sources. Do not edit; `./x trace --check` fails when this file is out of date.
 
 | ID | TSF | Requirement | Source | Specified or implemented in | Verified by |
 |---|---|---|---|---|---|
-| BLD-001 | no | The versions of the tools that the build, the analysis and the board scripts use are pinned in tools/toolchain.env, and a script that finds another version refuses to run. | tools/toolchain.env | `tools/toolchain.env:11` | `tests/host/analyze/run.sh:14`<br>`tests/host/hw/run.sh:12`<br>`tests/host/prove/run.sh:13` |
+| BLD-001 | no | The versions of the tools that the build, the analysis and the board scripts use are pinned in tools/toolchain.env, and a script that finds another version refuses to run. | tools/toolchain.env | `tools/toolchain.env:11` | `tests/host/analyze/run.sh:14`<br>`tests/host/hw/run.sh:13`<br>`tests/host/prove/run.sh:13` |
 | BLD-002 | no | Objects built for different floating-point ABIs (E51 lp64, U54 lp64d) are not linked into one image: the link fails. | tests/negative/README.md | `tests/negative/run_negative.sh:35` | `tests/host/negative/run.sh:10`<br>`tests/host/rts_negative/run.sh:30`<br>`tests/negative/cases.list:20` |
 | BLD-003 | no | The sizes of the example images are recorded per image and compiler in metrics.golden, and ./x metrics verify fails on a deviation or on an image without a row. | tools/metrics.sh | `tools/metrics.sh:47` | `tests/host/bare/run.sh:10` |
 | HW-001 | no | svd_probe reads no register that the SVD marks write-only, and none that has a readAction unless it is asked to. | hw/README.md | `hw/svd_probe.py:4` | `tests/host/svd/probe_test.py:4` |
