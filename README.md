@@ -108,8 +108,9 @@ x, export.sh        the dispatcher and the environment
 - Python 3.13 or later, `xmllint` (`libxml2-utils`) and QEMU 10.1 or later (`qemu-system-riscv64`) for the host
   suites and the QEMU tests.
 - For the board: a PolarFire SoC Icicle Kit on USB (FlashPro6 JTAG and four serial ports) and Microchip
-  SoftConsole. Its OpenOCD, its udev rules and `mpfsBootmodeProgrammer.jar` are used as installed; the repository
-  carries none of them. `hw/lab.conf` (from `hw/lab.conf.example`) names the paths.
+  SoftConsole, for its OpenOCD (the one with the `microsemi-flashpro` interface) and, if you use them, its udev rules;
+  both are used as installed, the repository carries neither. The boot mode programmer needs no SoftConsole: it is
+  `hw/bootprog.py`, a Python port of the Java `mpfsBootmodeProgrammer` of Microchip, and needs only `fpgenprog`. `hw/lab.conf` (from `hw/lab.conf.example`) names the paths.
 
 The examples run in M mode with PMP open and no MMU; there is no operating system and no vendor HAL.
 

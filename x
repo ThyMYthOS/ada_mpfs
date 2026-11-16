@@ -67,7 +67,7 @@
 #    ./x trace [--check]               requirement trace matrix
 #    ./x prove                         SPARK proofs
 #    ./x hw bootmode|flashpros|openocd|run|probe|monitor|reset|initialize  the Icicle Kit: list FlashPro serials (flashpros), switch the boot mode (bootmode N [ELF]
-#                                      [--yes] [--dry-run]: PERMANENT, reprograms the FPGA part; stop OpenOCD
+#                                      [--yes] [--dry-run] [--prepare-only] [--flashpro SERIAL]: PERMANENT, reprograms the FPGA part; stop OpenOCD
 #                                      first), start OpenOCD, run an image (--expect RE sets the exit status),
 #                                      run a probe, show the serial ports, reset the board to its power-on state
 #                                      (also after a hung debug module), do what the first-stage boot software

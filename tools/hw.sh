@@ -4,11 +4,12 @@
 #
 # hw.sh -- the Icicle Kit from the command line; a shell around hw/*.py. Driven by `./x hw`.
 #
-#   hw.sh bootmode N [ELF] [--yes] [--dry-run] [--workdir DIR] [--lab F]
-#                              switch the boot mode (0..3) with the programmer of SoftConsole (hw/bootmode.py). ELF is the boot program
-#                              (default: the example bare_hello, built). Errors come with the help text, which
+#   hw.sh bootmode N [ELF] [--yes] [--dry-run] [--prepare-only] [--workdir DIR] [--flashpro SERIAL] [--lab F]
+#                              switch the boot mode (0..3) with fpgenprog (hw/bootmode.py, a Python port of the programmer of
+#                              Microchip; --help lists the options of the boot modes 2 and 3). ELF is the boot program
+#                              (default: the example bare_hello, built). --flashpro chooses one of several FlashPros. Errors come with the help text, which
 #                              describes the boot modes. PERMANENT: it reprograms the FPGA part; nothing is written without --yes or a
-#                              typed "yes". --dry-run prints the command only. Stop OpenOCD first: it and the
+#                              typed "yes". --dry-run says what it would do; --prepare-only stops before the programming. Stop OpenOCD first: it and the
 #                              programmer both use the FlashPro, and the script refuses while OpenOCD answers
 #                              on the port of lab.conf.
 #   hw.sh openocd [args]       start the SoftConsole OpenOCD (hw/start_openocd.sh)

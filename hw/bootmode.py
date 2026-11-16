@@ -1,36 +1,48 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
-"""Switch the boot mode (0..3) of the Icicle Kit with the programmer that ships with SoftConsole.
+"""Switch the boot mode (0..3) of the Icicle Kit with fpgenprog, through the FlashPro.
 
-    bootmode.py N [ELF] [--yes] [--dry-run] [--workdir DIR] [--lab FILE]
+    bootmode.py N [ELF] [--yes] [--dry-run] [--prepare-only] [--workdir DIR] [--lab FILE]
+                [--die DIE] [--package PKG] [--flashpro SERIAL] [--verify]
+                [--snvm-page PAGE] [--usk KEY] [--encrypt] [--keys PRIVATE.pem PUBLIC.pem]
 
-Runs  java -jar <SoftConsole>/extras/mpfs/mpfsBootmodeProgrammer.jar --workdir DIR --bootmode N --die DIE
---package PKG ELF  (the paths of java, the jar and fpgenprog (full path, file name included), the die and the package come from hw/lab.conf,
-whose defaults are in hw/lab.conf.example). The jar needs a boot program ELF, relative to its working
-directory: ELF is copied to DIR (default build/bootmode) and handed over by name; without ELF the example
-bare_hello is built (./x build bare_hello) and used. Boot mode 0 (idle boot) needs no boot program and gets
-none unless ELF is given. The jar finds SoftConsole and fpgenprog through the environment variables
-SC_INSTALL_DIR and FPGENPROG, which are set from SOFT_CONSOLE and FPGENPROG of lab.conf (FPGENPROG is the full path of the executable, file name included). Without --lab, LAB_CONF and
-hw/lab.conf, hw/lab.conf.example is copied to hw/lab.conf first, without its header lines. The jar builds a differential bitstream with fpgenprog
-(Libero) and programs it through FlashPro. The change is PERMANENT: it survives power cycles, it is undone only
-by switching again or by programming another design, and it rewrites the configuration of the FPGA part. So
-nothing is written unless --yes is given or the word "yes" is typed at the prompt; without --yes and without a
-terminal the script refuses (exit status 2). --dry-run prints the command and does nothing else.
+A Python port of the Java mpfsBootmodeProgrammer of Microchip (hw/bootprog.py; no Java): it makes the image of the
+boot mode from the boot program ELF (a header or a certificate in front for the boot modes 1 to 3), builds an
+fpgenprog project with it, lets fpgenprog generate the differential bitstream (Libero) and programs it through
+FlashPro. The paths of fpgenprog (full path, file name included), the die, the package and the FlashPro come
+from hw/lab.conf, whose defaults are in hw/lab.conf.example; objcopy and readelf come from the pinned GNAT cross
+toolchain. The boot program ELF is a file of any directory; without ELF the example bare_hello is built (./x build
+bare_hello) and used. Boot mode 0 (idle boot) needs no boot program. Without --lab, LAB_CONF and hw/lab.conf,
+hw/lab.conf.example is copied to hw/lab.conf first, without its header lines.
 
-The output of the jar is shown as it comes and not interpreted: only its exit status counts, and an exit status
-of 0 without any output is treated as a failure. Boot mode 0 was verified on an Icicle Kit by the project owner; the boot modes 1 to 3 have not been run.
+The programming is PERMANENT: it survives power cycles, it is undone only by switching again or by programming
+another design, and it rewrites the configuration of the FPGA part. So nothing is written to the board unless
+--yes is given or the word "yes" is typed at the prompt; without --yes and without a terminal the script refuses
+(exit status 2). The image and the bitstream are made first, in <workdir>/bootmode<N>/, and the prompt comes after
+that. --dry-run does nothing and only says what it would do; --prepare-only makes the image, the project and the
+bitstream and stops before the programming (no prompt, no FlashPro needed).
+
+With more than one FlashPro connected, --flashpro SERIAL (or FLASHPRO_SERIAL in lab.conf) names the one to use. It is
+written into the fpgenprog project, which is not proven to select it: before it programs, the script runs a verify
+(it writes nothing) and refuses to go on unless fpgenprog used that FlashPro. After every run the FlashPro that
+fpgenprog used is printed, so its serial number is known.
+
+The boot mode 2 options (--snvm-page, --usk, --encrypt) and the boot mode 3 option (--keys) are those of the
+Java tool; a USK of zero or none is replaced by a generated one that is saved next to the image. Boot mode
+3 without --keys generates a key pair whose private key is NOT saved. Boot mode 0 was verified on an Icicle Kit by
+the project owner; the boot modes 1 to 3 have not been run on a board (their images and fpgenprog calls are
+identical to those of the Java tool, see tests/host/hw).
 
 Every set-up error is printed together with the help text, which describes the boot modes.
 
-Exit status: 0 the jar ended with status 0 (or --dry-run), 1 the prompt was not answered with "yes", or the jar
-failed, 2 a set-up error (bad N, missing java, jar, fpgenprog or ELF, no --yes without a terminal), 130 after
-Ctrl+C.
+Exit status: 0 programmed (or --dry-run, --prepare-only), 1 the prompt was not answered with "yes", or a step
+failed, 2 a set-up error (bad N or option, missing fpgenprog, toolchain or ELF, no --yes without a terminal,
+OpenOCD running), 130 after Ctrl+C.
 """
 import argparse
 import os
 import shlex
-import shutil
 import socket
 import subprocess
 import sys
@@ -38,22 +50,24 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import bootprog  # noqa: E402
 import lab  # noqa: E402
 
 BARE_HELLO = "bare_hello"
 
 MODES_HELP = """\
-boot modes (as mpfsBootmodeProgrammer.jar describes them):
+boot modes (as mpfsBootmodeProgrammer describes them):
   0  idle boot
   1  non-secure boot from eNVM
   2  user secure boot from sNVM
   3  factory secure boot from eNVM
 
-ELF is the boot program for boot modes 1 to 3 (mode 0 needs none), a file of any directory; the programmer wants it relative to
-its working directory, so it is copied to --workdir. Without ELF the example bare_hello is built and used
-(it is linked into the L2 LIM, not for the linkage of a boot mode: a stand-in until a real image is given).
+ELF is the boot program for boot modes 1 to 3 (mode 0 needs none), a file of any directory. Mode 1 and 3 programs
+are linked for eNVM page 1 or higher (0x20220100 ...: the page in front of the image takes the header or the
+certificate), mode 2 programs for the LIM (0x08000000 ...). Without ELF the example bare_hello is built and used (it
+is linked into the L2 LIM, not for the linkage of a boot mode: a stand-in until a real image is given).
 Stop OpenOCD before you run this (./x hw openocd): it and the programmer both use the FlashPro.
-The programmer is permanent: see above. Defaults of java, the jar, fpgenprog, die and package: hw/lab.conf.example."""
+The programming is permanent: see above. Defaults of die, package, fpgenprog and FlashPro: hw/lab.conf.example."""
 
 
 class Parser(argparse.ArgumentParser):
@@ -61,6 +75,7 @@ class Parser(argparse.ArgumentParser):
 
     def error(self, message):
         self.exit(2, f"{paint('error', 'bootmode: ' + message)}\n\n{self.format_help()}")
+
 
 NEXT_STEPS = """\
 bootmode: the programmer ended with status 0. What to do now:
@@ -105,25 +120,32 @@ def say(kind: str, text: str, stream=None, **kwargs) -> None:
     print(paint(kind, text, stream), file=stream, **kwargs)
 
 
+def emit(kind: str, text: str) -> None:
+    """The messages of bootprog: the lines of the tools as they are, warnings and errors coloured on stderr."""
+    if kind == "info":
+        print(text, flush=True)
+    else:
+        say(kind, text, sys.stderr, flush=True)
+
+
 def fail(message: str):
     """A set-up error: the message and the help text, exit status 2."""
     raise SystemExit(f"{paint('error', 'bootmode: ' + message)}\n\n{PARSER.format_help()}")
 
 
-def tools(lab_conf: dict[str, str]) -> tuple[str, Path, str]:
-    """java, the jar and fpgenprog, resolved; a missing one is an error that says what to do."""
-    java = shutil.which(lab_conf["JAVA"])
-    if java is None:
-        fail(f"java '{lab_conf['JAVA']}' not found: install a JRE or set JAVA in hw/lab.conf")
-    jar = Path(lab_conf["BOOTMODE_JAR"] or Path(lab_conf["SOFT_CONSOLE"]) / "extras" / "mpfs" / "mpfsBootmodeProgrammer.jar")
-    if not jar.is_file():
-        fail(f"{jar} not found: is SoftConsole installed in {lab_conf['SOFT_CONSOLE']}? set SOFT_CONSOLE or BOOTMODE_JAR in hw/lab.conf")
+def resolve_tools(lab_conf: dict[str, str]) -> tuple[Path, Path]:
+    """fpgenprog and the bin directory of the cross toolchain, resolved; a missing one is an error that says what
+    to do."""
     fpgenprog = lab_conf["FPGENPROG"]
     if not os.path.isabs(fpgenprog) or not os.path.isfile(fpgenprog) or not os.access(fpgenprog, os.X_OK):
         fail(f"FPGENPROG '{fpgenprog}' is not the full path of the fpgenprog executable, file name included "
              "(a name on PATH is not enough): it comes with Libero SoC or the Program Debug Tool; "
              "set FPGENPROG in hw/lab.conf")
-    return java, jar, fpgenprog
+    try:
+        bin_dir = lab.toolchain_bin()
+    except SystemExit as e:
+        fail(str(e.code))
+    return Path(fpgenprog), bin_dir
 
 
 def openocd_running(lab_conf: dict[str, str]) -> bool:
@@ -135,30 +157,28 @@ def openocd_running(lab_conf: dict[str, str]) -> bool:
         return False
 
 
-def boot_elf(elf: str | None, mode_number: int, workdir: Path, dry_run: bool) -> tuple[str | None, Path | None]:
-    """The boot program: (name relative to <workdir>, source file). A given ELF is copied to <workdir>; without
-    one, bare_hello is built (not in a dry run, which names it only) and its ELF copied. Boot mode 0 (idle
-    boot) needs no boot program: without a given ELF there is none, nothing is built and none is passed."""
-    if elf is None and mode_number == 0:
-        return None, None
+def boot_elf(elf: str | None, mode_number: int, dry_run: bool) -> Path | None:
+    """The boot program. A given ELF is used where it is (a missing one is a set-up error); without one,
+    bare_hello is built (not in a dry run, which names it only). Boot mode 0 (idle boot) takes none: an ELF
+    that is given is ignored, as the Java tool does."""
+    if mode_number == 0:
+        if elf is not None:
+            say("warn", f"bootmode: boot mode 0 needs no boot program: ignoring {elf}", sys.stderr)
+        return None
     if elf is not None:
         source = Path(elf)
         if not source.is_file():
             fail(f"ELF '{elf}' does not exist")
-    elif dry_run:
-        return f"{BARE_HELLO}.elf", None
-    else:
-        built = subprocess.run([str(lab.ROOT / "x"), "build", BARE_HELLO, "--hart", "e51"]).returncode
-        if built != 0:
-            fail(f"building {BARE_HELLO} for the boot program failed (status {built}): give an ELF or fix the build")
-        found = sorted((lab.ROOT / "examples" / BARE_HELLO / "bin-e51").glob("*.elf"))
-        if not found:
-            fail(f"building {BARE_HELLO} produced no bin-e51/*.elf: give an ELF")
-        source = found[0]
-    if not dry_run:
-        workdir.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(source, workdir / source.name)
-    return source.name, source
+        return source
+    if dry_run:
+        return Path(f"{BARE_HELLO}.elf")
+    built = subprocess.run([str(lab.ROOT / "x"), "build", BARE_HELLO, "--hart", "e51"]).returncode
+    if built != 0:
+        fail(f"building {BARE_HELLO} for the boot program failed (status {built}): give an ELF or fix the build")
+    found = sorted((lab.ROOT / "examples" / BARE_HELLO / "bin-e51").glob("*.elf"))
+    if not found:
+        fail(f"building {BARE_HELLO} produced no bin-e51/*.elf: give an ELF")
+    return found[0]
 
 
 def confirm(mode_number: int, command: list[str]) -> bool:
@@ -171,30 +191,6 @@ def confirm(mode_number: int, command: list[str]) -> bool:
     print(f"Command: {shlex.join(command)}")
     answer = input(f"Switch the boot mode to {mode_number}? Type 'yes' to go on: ")
     return answer.strip() == "yes"
-
-
-def run_jar(command: list[str], env: dict[str, str]) -> tuple[int, int]:
-    """Run the jar, show its output as it comes, return (exit status, bytes of output)."""
-    try:
-        proc = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
-    except OSError as e:
-        raise SystemExit(paint("error", f"bootmode: cannot run {command[0]}: {e}"))
-    seen = 0
-    try:
-        assert proc.stdout is not None
-        for chunk in iter(lambda: proc.stdout.read1(4096), b""):  # type: ignore[union-attr]
-            seen += len(chunk)
-            sys.stdout.buffer.write(chunk)
-            sys.stdout.buffer.flush()
-        return proc.wait(), seen
-    except KeyboardInterrupt:
-        # The terminal sent Ctrl+C to the programmer as well; give it time to end, never leave it behind.
-        try:
-            proc.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-            proc.wait()
-        raise
 
 
 def ensure_lab_conf(named: str | None) -> None:
@@ -213,8 +209,8 @@ def ensure_lab_conf(named: str | None) -> None:
         say("warn", f"bootmode: cannot create {target} from {lab.EXAMPLE.name}: {e}; the defaults of the example are used",
             sys.stderr)
         return
-    say("warn", f"bootmode: {target} did not exist: created it from {lab.EXAMPLE.name}. Edit it if your SoftConsole, "
-        "Libero or java are installed elsewhere.", sys.stderr)
+    say("warn", f"bootmode: {target} did not exist: created it from {lab.EXAMPLE.name}. Edit it if your Libero is installed "
+        "elsewhere.", sys.stderr)
 
 
 def make_parser() -> argparse.ArgumentParser:
@@ -225,59 +221,113 @@ def make_parser() -> argparse.ArgumentParser:
     ap.add_argument("mode", type=mode, metavar="N", help="boot mode 0..3 (see below)")
     ap.add_argument("elf", nargs="?", metavar="ELF", help="boot program for modes 1 to 3 (default: the example bare_hello, built; none for mode 0)")
     ap.add_argument("--yes", action="store_true", help="do not ask: write the boot mode (PERMANENT, see above)")
-    ap.add_argument("--dry-run", action="store_true", help="print the command and do nothing")
+    ap.add_argument("--dry-run", action="store_true", help="say what would be done and do nothing")
+    ap.add_argument("--prepare-only", action="store_true",
+                    help="make the image, the project and the bitstream, but do not program (the --dryrun of the Java tool)")
     ap.add_argument("--workdir", metavar="DIR", default=str(lab.ROOT / "build" / "bootmode"),
-                    help="working directory of the programmer, where it writes bootmode<N>/ (default: build/bootmode)")
+                    help="where bootmode<N>/ is written: the image, the project, debugLog.txt (default: build/bootmode)")
     ap.add_argument("--lab", metavar="FILE", help="lab settings (default: hw/lab.conf, on top of hw/lab.conf.example)")
+    ap.add_argument("--die", metavar="DIE", help=f"target die (default: BOOTMODE_DIE of lab.conf); one of {', '.join(bootprog.DIES)}")
+    ap.add_argument("--package", metavar="PKG", help=f"target package (default: BOOTMODE_PACKAGE of lab.conf); one of {', '.join(bootprog.PACKAGES)}")
+    ap.add_argument("--flashpro", metavar="SERIAL",
+                    help="serial number of the FlashPro to use when several are connected (default: FLASHPRO_SERIAL of lab.conf, else the one fpgenprog picks)")
+    ap.add_argument("--verify", action="store_true", help="verify the target after programming")
+    ap.add_argument("--snvm-page", "--snvm_page", dest="snvm_page", metavar="PAGE", type=int, default=0,
+                    help=f"boot mode 2 only: the sNVM page the image is stored from (0 to {bootprog.SNVM_PAGES - 1}, default 0)")
+    ap.add_argument("--usk", metavar="KEY",
+                    help="boot mode 2 only: the User sNVM Key, 12 bytes as 24 hex digits (0x in front is allowed); 0 or none: a random one, saved next to the image")
+    ap.add_argument("--encrypt", action="store_true", help="boot mode 2 only: store the image as authenticated ciphertext instead of authenticated plaintext")
+    ap.add_argument("--keys", nargs=2, metavar=("PRIVATE", "PUBLIC"),
+                    help="boot mode 3 only: the ECDSA P-384 key pair of the certificate, PEM files (private: PKCS#8 without password; public: X.509); default: a generated pair whose private key is not saved")
     return ap
 
 
 PARSER = make_parser()
 
 
+def describe(opt: bootprog.Options) -> str:
+    """One line on what is to be done."""
+    parts = [f"boot mode {opt.mode}", f"die {opt.die}", f"package {opt.package}",
+             f"boot program {opt.elf if opt.elf else '(none)'}", f"output {opt.out_dir}",
+             f"fpgenprog {opt.fpgenprog}", f"FlashPro {opt.flashpro or 'the one fpgenprog picks'}"]
+    return ", ".join(parts)
+
+
+def summary(done: bootprog.Prepared) -> None:
+    """What prepare() made, for the person who answers the prompt."""
+    opt = done.opt
+    say("info", f"bootmode: prepared in {opt.out_dir}")
+    if done.boot_vector is not None:
+        say("info", f"bootmode: boot vector 0x{done.boot_vector:08X}, image {done.size} bytes")
+    if done.usk_file is not None:
+        say("info", f"bootmode: USK {opt.usk} (saved in {done.usk_file}: keep it)")
+    if done.public_key_file is not None:
+        say("info", f"bootmode: public key in {done.public_key_file}")
+    if not done.private_key_saved:
+        say("warn", "bootmode: the private key of the certificate was generated and is not saved", sys.stderr)
+
+
 def main(argv=None):
     a = PARSER.parse_args(argv)
     ensure_lab_conf(a.lab)
     lab_conf = lab.load(a.lab)
-    java, jar, fpgenprog = tools(lab_conf)
-    if not a.dry_run and openocd_running(lab_conf):
+    fpgenprog, bin_dir = resolve_tools(lab_conf)
+    programming = not a.dry_run and not a.prepare_only
+    if programming and openocd_running(lab_conf):
         fail(f"OpenOCD is running ({lab_conf['OCD_HOST']}:{lab_conf['OCD_PORT']} answers): stop it first, it and the "
              "programmer both use the FlashPro (nothing was done)")
+    if programming and not a.yes and not sys.stdin.isatty():
+        fail("refusing to write without --yes: this changes the FPGA configuration for good "
+             "and there is no terminal to ask (nothing was done)")
     workdir = Path(a.workdir).resolve()
-    elf_name, _ = boot_elf(a.elf, a.mode, workdir, a.dry_run)
-    command = [java, "-jar", str(jar), "--workdir", str(workdir), "--bootmode", str(a.mode), "--die",
-               lab_conf["BOOTMODE_DIE"], "--package", lab_conf["BOOTMODE_PACKAGE"]]
-    if elf_name is not None:
-        command.append(elf_name)
+    elf = boot_elf(a.elf, a.mode, a.dry_run)
+    usk = bootprog.normalize_usk(a.usk)
+    opt = bootprog.Options(
+        workdir=workdir, mode=bootprog.BootMode(a.mode), fpgenprog=fpgenprog, bin_dir=bin_dir,
+        die=(a.die or lab_conf["BOOTMODE_DIE"]).upper(), package=(a.package or lab_conf["BOOTMODE_PACKAGE"]).upper(),
+        elf=elf, usk=usk, snvm_page=a.snvm_page, encrypt=a.encrypt,
+        private_key=Path(a.keys[0]) if a.keys else None, public_key=Path(a.keys[1]) if a.keys else None,
+        verify=a.verify, prepare_only=a.prepare_only,
+        flashpro=a.flashpro or lab_conf.get("FLASHPRO_SERIAL") or None)
+    log = bootprog.Log(emit)
+    try:
+        # a dry run names the stand-in boot program without building it, so the ELF may not exist yet
+        bootprog.validate(opt, log, check_elf=not (a.dry_run and a.elf is None))
+    except bootprog.SetupError as e:
+        fail(str(e))
     if a.dry_run:
-        say("info", f"bootmode: dry run, nothing is done. Command: {shlex.join(command)}")
-        say("info", f"bootmode: environment of the jar: SC_INSTALL_DIR={lab_conf['SOFT_CONSOLE']}, FPGENPROG={fpgenprog}")
+        say("info", f"bootmode: dry run, nothing is done. Would make the image and the fpgenprog project and generate the "
+            f"bitstream, then program: {describe(opt)}")
+        say("info", f"bootmode: programming command: {shlex.join(bootprog.fp_run_action(opt, 'PROGRAM'))}")
         return 0
-    if not a.yes and not confirm(a.mode, command):
-        say("warn", "bootmode: not confirmed, nothing was done", sys.stderr)
-        return 1
-    env = dict(os.environ)
-    env["PATH"] = os.path.dirname(fpgenprog) + os.pathsep + env.get("PATH", "")
-    env["SC_INSTALL_DIR"] = lab_conf["SOFT_CONSOLE"]   # the jar looks for the SoftConsole installation and fpgenprog by these
-    env["FPGENPROG"] = fpgenprog
-    say("info", f"bootmode: {shlex.join(command)}", flush=True)
     start = time.monotonic()
     try:
-        status, seen = run_jar(command, env)
-    except KeyboardInterrupt:
-        say("error", f"bootmode: interrupted after {time.monotonic() - start:.1f} s; the FPGA configuration may be half "
-              "written: run the command again before you trust the board", stream=sys.stderr)
-        return 130
-    took = time.monotonic() - start
-    say("info", f"bootmode: the programmer took {took:.1f} s")
-    if status != 0:
-        say("error", f"bootmode: the programmer ended with status {status}: the boot mode was not changed or the board is in an "
-              "unknown state; check the output above, the FlashPro connection and fpgenprog, then run it again",
-              stream=sys.stderr)
+        try:
+            done = bootprog.prepare(opt, log)
+        except bootprog.SetupError as e:
+            fail(str(e))
+        summary(done)
+        if a.prepare_only:
+            say("ok", f"bootmode: prepared; not programmed (--prepare-only). The project is {opt.project_dir}")
+            return 0
+        if not a.yes and not confirm(a.mode, bootprog.fp_run_action(opt, "PROGRAM")):
+            say("warn", "bootmode: not confirmed, nothing was written to the board", sys.stderr)
+            return 1
+        seen = bootprog.flash(done, log)
+    except bootprog.BootError as e:
+        say("error", f"bootmode: {e}", stream=sys.stderr)
+        if log.path is not None:
+            say("error", f"bootmode: details in {log.path}; the boot mode was not changed or the board is in an unknown "
+                "state: check the output above, the FlashPro connection and fpgenprog, then run it again", stream=sys.stderr)
         return 1
+    except KeyboardInterrupt:
+        say("error", f"bootmode: interrupted after {time.monotonic() - start:.1f} s; if it was programming, the FPGA "
+              "configuration may be half written: run the command again before you trust the board", stream=sys.stderr)
+        return 130
+    say("info", f"bootmode: the programmer took {time.monotonic() - start:.1f} s")
     if seen == 0:
-        say("error", "bootmode: the programmer ended with status 0 but printed nothing: not trusted; check java, the jar "
-              f"({jar}) and fpgenprog, then run it again", stream=sys.stderr)
+        say("error", f"bootmode: fpgenprog ended with status 0 but printed nothing: not trusted; check fpgenprog "
+              f"({fpgenprog}), then run it again", stream=sys.stderr)
         return 1
     first, _, rest = NEXT_STEPS.partition("\n")
     say("ok", first)
