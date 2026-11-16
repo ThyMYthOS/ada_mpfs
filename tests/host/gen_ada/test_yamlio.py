@@ -61,6 +61,28 @@ def _():
         raises(Mine, lambda: yamlio.load(Path(t) / "none.yaml", error=Mine, name="n.yaml"), "n.yaml: cannot read (")
 
 
+@case("parse: a text gives the data of load; its name is in the messages")
+def _():
+    assert yamlio.parse("a: 1\nb: [x]\n", "inline") == {"a": 1, "b": ["x"]}
+    assert yamlio.parse("", "inline") is None
+    raises(Mine, lambda: yamlio.parse("a: [\n", "preset u54", error=Mine), "preset u54: not valid YAML: ")
+
+
+@case("unique_keys: a key given twice in one mapping is not valid YAML, with the key and its line; "
+      "without it the last value wins as in yaml.safe_load")
+def _():
+    text = "a: 1\nb:\n  c: 2\n  c: 3\n"
+    assert yamlio.parse(text, "t") == {"a": 1, "b": {"c": 3}}
+    err = raises(Mine, lambda: yamlio.parse(text, "t", error=Mine, unique_keys=True), "t: not valid YAML: ")
+    assert "the key 'c' is given twice" in str(err) and "line 4" in str(err), str(err)
+    with tempfile.TemporaryDirectory() as t:
+        raises(errors.InputError, lambda: yamlio.load(write(t, "a: 1\na: 1\n"), unique_keys=True), "given twice")
+        assert yamlio.load(write(t, "a: 1\nb: {a: 2}\nc: [{a: 1}, {a: 2}]\n"), unique_keys=True) == \
+            {"a": 1, "b": {"a": 2}, "c": [{"a": 1}, {"a": 2}]}
+        merged = "base: &b {x: 1, y: 2}\nuse:\n  <<: *b\n  y: 3\n"
+        assert yamlio.load(write(t, merged), unique_keys=True)["use"] == {"x": 1, "y": 3}
+
+
 @case("load: without PyYAML the message says so, and the file is not read")
 def _():
     saved = sys.modules.get("yaml")
