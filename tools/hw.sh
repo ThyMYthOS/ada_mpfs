@@ -55,8 +55,8 @@ die () { echo "hw: $*" >&2; exit 2; }
 verb="${1:-}"; shift || true
 case "$verb" in
   openocd) exec sh "$root/hw/start_openocd.sh" "$@" ;;
-  bootmode|run|probe|monitor|reset|initialize) ;;
-  *) die "usage: ./x hw bootmode|openocd|run|probe|monitor|reset|initialize" ;;
+  bootmode|flashpros|run|probe|monitor|reset|initialize) ;;
+  *) die "usage: ./x hw bootmode|flashpros|openocd|run|probe|monitor|reset|initialize" ;;
 esac
 
 # shellcheck source=tools/mpfs-env.sh
@@ -69,6 +69,7 @@ case "$verb" in
   reset)   exec "$MPFS_PYTHON" "$root/hw/reset.py" "$@" ;;
   initialize) exec "$MPFS_PYTHON" "$root/hw/initialize.py" "$@" ;;
   bootmode) exec "$MPFS_PYTHON" "$root/hw/bootmode.py" "$@" ;;
+  flashpros) exec "$MPFS_PYTHON" "$root/hw/flashpros.py" "$@" ;;
 esac
 
 # run
