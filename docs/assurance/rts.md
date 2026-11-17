@@ -155,7 +155,10 @@ the runtime README; the SPARK proofs of `Tlsf_Math` and `Heap_Guard` run with `.
 
 `System.Text_IO` replaces the upstream driver for all three profiles: polled, one MMUART, chosen and
 (optionally) initialised through the four `__mpfs_console_*` symbols, console `none` possible. The
-runtime never releases the clock or the reset of the MMUART; that is the boot stage's task (RTS-014).
+runtime clocks and releases the MMUART of its console itself on a primary image with `__mpfs_console_init` = 1
+(`SYSREG.SUBBLK_CLOCK_CR` and `SOFT_RESET_CR`, before any register of the port, RTS-026) and never accesses `SYSREG` on a secondary
+image, with the console `none` or with init 0. A primary image is one that sets the MSS up itself, however it is loaded
+(eNVM, sNVM in boot mode 2, JTAG in the lab; `mpfs_boot` is one); a secondary image expects an MSS that is set up (RTS-014).
 The console of the runtime follows the hart: the partition data default it to the MMUART of the lowest
 hart of the mask (MMUART0 for hart 0, MMUARTn for U54 hart n). `Bare_Console`, through which most
 examples write their `Test_Report` lines, stays on MMUART0 on every hart; only the console of the
@@ -282,6 +285,7 @@ profiles is one example per profile with shared sources (`textio_tasking_test`, 
 | RTS-023 | Guard word of the interrupt stack, `interrupt stack overflow` | `rts_istack`, `qemu_tests` | `interrupt_stack_embedded_test`, `interrupt_stack_tasking_test` |
 | RTS-024 | Frame descriptions sorted before `main` (embedded) | `rts_zcx` | `interrupt_stack_embedded_test` |
 | RTS-025 | `Clocks.Rtc_Toggle_Hz` of the partition data and the check against `Clock_Frequency` | `rts_negative`, `standalone` | |
+| RTS-026 | Bring-up of the console of a primary image: clock and reset of the MMUART before the first register, no `SYSREG` access on a secondary image | `rts_console_bringup` | `textio_test`, `console_none_test` |
 | SVD-002 | Interrupt names from the SVD | `rts_intnam` | `interrupt_test` |
 
 **No test yet:** RTS-016. The tests of the examples are written to run on the board as well, but the hardware
@@ -296,7 +300,8 @@ sizes of all images (`metrics.golden`, BLD-003) and the negative build of the AB
 - **Hardware.** The runs on the Icicle Kit (`docs/lab/results/p1.md`: 72 cells pass, 3 are skipped; `mtime`
   at 1 MHz; the interrupt latency behind `Interrupt_Latency_Ticks`) are a report, not a check of this
   repository, so RTS-016 stays without a test. They are the runs of one board; the report lists what they
-  do not cover.
+  do not cover. That a primary image prints on the board without `--uart-clocks` and `--uart-standin` (RTS-026) has not been
+  run on a board yet: the order and the values of the `SYSREG` writes are checked under QEMU only.
 - **Interrupt stack: limits of the guard.** The first unwind inside a trap handler overflowed the 8 KiB interrupt stack
   (issue #91, closed): the stack of `embedded` is 12 912 bytes and `trap_embedded_test` has no warm-up exception any more.
   What stays open is the guard itself: it is software, it finds an overrun after the fact (an overrun that destroys what

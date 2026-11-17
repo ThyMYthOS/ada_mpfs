@@ -55,7 +55,8 @@ hart class.
 
 In the list but not in the table above, because they close a gap of the same
 tests: `report_test` (the protocol itself), `console_noinit_test` and `console_none_test` (the console variants of the
-partition), `itim_test` and `itim_reject_test` (the E51 fast path: the copy step, and the rejection where the ITIM is
+partition; `tests/host/rts_console_bringup` builds them and `textio_test` and `trap_test` with `--role secondary` and checks the
+`SYSREG` accesses of every role), `itim_test` and `itim_reject_test` (the E51 fast path: the copy step, and the rejection where the ITIM is
 not enabled), `unhandled_test` and `unhandled_task_test` (an exception nobody handles, in the environment task and in a
 task).
 
@@ -103,6 +104,9 @@ These are checks that only make sense on the board, or that QEMU cannot do. None
 - the absolute rate of `mtime` and `Interrupt_Latency_Ticks` on all harts (the placeholder is 30 ticks);
 - `delay_accuracy_test` with the hardware bounds and the flat `minstret` over 100 ms;
 - `interrupt_test` with the loopback instead of `console.in`;
+- the bring-up of the console of a primary image: that the MMUART prints on the board with no `--uart-clocks` and no `--uart-standin`
+  (the runtime for its console, `Bare_Console` for MMUART0); `tests/host/rts_console_bringup` shows the order and the values of the
+  `SYSREG` writes in a QEMU register trace (QEMU clocks no UART), and `tests/hw/run_matrix.sh` runs every cell without a flag first;
 - whether the heap and `.noinit` need clearing of the ECC memory (`heap_test`, `exceptions_test` on the board);
 - the hart cells that QEMU runs only with `-smp 5`: the images of U54 harts 2 to 4;
 - `trap_embedded_test` on the board: `mepc` and `mtval` as the core delivers them (QEMU delivers the instruction in
