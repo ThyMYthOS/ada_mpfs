@@ -4,8 +4,9 @@
 # The bare-metal images (bare_hello, pmp_probe, report_test) for the E51 and the U54, built once:
 # job `build` builds them, checks metrics.golden, runs the negative cases and the host tests of
 # the harnesses, and hands the images to the emulator jobs as the artifact `images`; the jobs
-# `qemu` (smoke test, Test_Report applications) and `renode` (smoke test) run them without a
-# toolchain. The job `repro` builds every image twice in two directories; the SHA-256 of the
+# `qemu` (smoke test, Test_Report applications, the register trace of rts_console_bringup) and
+# `renode` (smoke test) run them without a toolchain; the three secondary images that
+# rts_console_bringup builds go to the job `qemu` as the artifact `console-bringup-images`. The job `repro` builds every image twice in two directories; the SHA-256 of the
 # ELFs must be equal. The images, the measured metrics and the logs of the QEMU and Renode
 # tests are uploaded as artifacts. Job `build` also checks that the runtime packs equal the
 # regenerated ones and match the runtimes of the toolchain. The runtime variants are built with
@@ -133,12 +134,29 @@ jobs:
       # The suites that need no svdtools: the svd, pac and x suites run in the registers
       # workflow, and the prove suite runs with gnatprove in the quality workflow (here its
       # stand-in cases only).
+      #
+      # rts_console_bringup: its link and role checks run here; its QEMU cases (the register trace
+      # of the images) run in the job qemu, on these images. QEMU is switched off here, so that the
+      # job does not run them if the runner has one. The secondary images that the suite builds (./x
+      # test examples builds primary images only) are kept in build/console-bringup for that job.
       - name: Host tests
+        env:
+          MPFS_CONSOLE_BRINGUP_QEMU: "0"
+          MPFS_CONSOLE_BRINGUP_IMAGES: ${{ github.workspace }}/build/console-bringup
         run: |
           for suite in bare report negative qemu_tests stack hw analyze prove repro rts_packs rts_variants rts_boot rts_console_bringup rts_plic rts_context rts_tick rts_zcx rts_heap rts_intnam rts_itim standalone rts_negative rts_istack; do
             echo "== host suite $suite"
             bash "tests/host/$suite/run.sh"
           done
+
+      - name: Keep the secondary console images
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: console-bringup-images
+          path: build/console-bringup
+          if-no-files-found: error
+          retention-days: 14
 
   qemu:
     needs: build
@@ -159,6 +177,13 @@ jobs:
         with:
           name: images
 
+      # The secondary images of rts_console_bringup (built by the suite in the job build).
+      - name: Take the secondary console images
+        uses: actions/download-artifact@v8.0.2
+        with:
+          name: console-bringup-images
+          path: build/console-bringup
+
       # Boots the images of the build job under QEMU and checks what they print.
       # The output is kept as the log (pipefail: the exit status is that of ./x).
       - name: QEMU smoke test
@@ -170,12 +195,22 @@ jobs:
           mkdir -p build/logs
           ./x test qemu 2>&1 | tee build/logs/qemu.log
 
+      # The register trace of the console bring-up (tests/host/rts_console_bringup): boots primary
+      # images of the build job, and the secondary images it built, with QEMU's memory trace. Builds
+      # nothing and needs no toolchain (MPFS_PREBUILT_IMAGES=1).
+      - name: Console bring-up under QEMU
+        shell: bash
+        env:
+          MPFS_PREBUILT_IMAGES: "1"
+        run: |
+          bash tests/host/rts_console_bringup/run.sh 2>&1 | tee build/logs/console_bringup.log
+
       - name: Keep the QEMU log
         if: always()
         uses: actions/upload-artifact@v7.0.2
         with:
           name: qemu-log
-          path: build/logs/qemu.log
+          path: build/logs/*.log
           retention-days: 14
 
   renode:

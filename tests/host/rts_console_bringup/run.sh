@@ -19,8 +19,20 @@
 #         still print their verdict (QEMU does not fault on the accesses of the others either: the
 #         primary images pass).
 #
-# The QEMU part is skipped when QEMU 10.1 or newer is missing (QEMU_MIN of tools/toolchain.env), the builds
-# when the pinned GNAT, zstd or GNU tar is missing. Exits non-zero on any failure.
+# Three ways to run it:
+#   - alone (no switch): builds the images, checks the links and the roles, and runs the QEMU cases if QEMU 10.1
+#     or newer is installed (QEMU_MIN of tools/toolchain.env); the builds are skipped when the pinned GNAT, zstd or
+#     GNU tar is missing;
+#   - MPFS_CONSOLE_BRINGUP_QEMU=0: no QEMU cases even if QEMU is installed (CI job `build`, which has no
+#     QEMU; the cases run in job `qemu`);
+#   - MPFS_PREBUILT_IMAGES=1: builds nothing and needs neither the toolchain nor zstd and tar: only the QEMU cases,
+#     on the images of an earlier build (as for ./x test qemu: CI job `qemu`). The primary images are the ones
+#     of ./x test examples (examples/<example>/bin-<hart>/); the secondary images, which ./x test examples does
+#     not build, come from MPFS_CONSOLE_BRINGUP_IMAGES (default build/console-bringup). A missing image or a missing
+#     QEMU fails, it is not skipped.
+#   MPFS_CONSOLE_BRINGUP_IMAGES=<dir> in a run that builds copies the secondary images it built there (textio_test_e51,
+#   trap_test_u54h2 and console_none_test_e51, all .elf), which is how they get to the prebuilt run.
+# Exits non-zero on any failure.
 #
 # @verifies RTS-026
 
@@ -38,13 +50,17 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
 . "$ROOT/tools/mpfs-env.sh"
-if ! mpfs_toolchain_on_path >/dev/null 2>&1; then
-  skip "everything: the pinned toolchain is not installed (./x toolchain install gnat)"
-  echo "all ok"; exit 0
-fi
-if ! command -v zstd >/dev/null 2>&1 || ! tar --version 2>&1 | grep -q 'GNU tar'; then
-  skip "everything: zstd or GNU tar is not installed"
-  echo "all ok"; exit 0
+prebuilt=0; [ "${MPFS_PREBUILT_IMAGES:-}" = 1 ] && prebuilt=1
+keep="${MPFS_CONSOLE_BRINGUP_IMAGES:-$ROOT/build/console-bringup}"
+if [ "$prebuilt" = 0 ]; then
+  if ! mpfs_toolchain_on_path >/dev/null 2>&1; then
+    skip "everything: the pinned toolchain is not installed (./x toolchain install gnat)"
+    echo "all ok"; exit 0
+  fi
+  if ! command -v zstd >/dev/null 2>&1 || ! tar --version 2>&1 | grep -q 'GNU tar'; then
+    skip "everything: zstd or GNU tar is not installed"
+    echo "all ok"; exit 0
+  fi
 fi
 mpfs_find_python
 PY="$MPFS_PYTHON"
@@ -61,7 +77,12 @@ if command -v "$QEMU" >/dev/null 2>&1; then
     qemu_ok=1
   fi
 fi
-[ "$qemu_ok" = 1 ] || skip "the QEMU cases: QEMU $qemu_min or newer is not installed"
+if [ "${MPFS_CONSOLE_BRINGUP_QEMU:-1}" = 0 ]; then
+  qemu_ok=0; skip "the QEMU cases: MPFS_CONSOLE_BRINGUP_QEMU=0"
+elif [ "$qemu_ok" = 1 ]; then :
+elif [ "$prebuilt" = 1 ]; then fail "QEMU $qemu_min or newer is not installed (MPFS_PREBUILT_IMAGES=1 runs only the QEMU cases)"
+else skip "the QEMU cases: QEMU $qemu_min or newer is not installed"
+fi
 
 sym () {   # sym <elf> <name>: the value of a symbol, as nm prints it
   riscv64-elf-nm "$1" | awk -v n="$2" '$3 == n { print $1 }'
@@ -69,12 +90,28 @@ sym () {   # sym <elf> <name>: the value of a symbol, as nm prints it
 role_of () {   # role_of <elf>: __mpfs_boot_role as a number
   local v; v="$(sym "$1" __mpfs_boot_role)"; [ -n "$v" ] && echo $((16#$v)) || echo missing
 }
+# check_role <elf> <value> <what>: the role of the image (not in a prebuilt run: no toolchain, no nm)
+check_role () {
+  [ "$prebuilt" = 1 ] && return 0
+  [ "$(role_of "$1")" = "$2" ] && pass "$3" || fail "$3"
+}
 
 # xbuild <log> <example> <hart> [./x build option ...]; the images stay in examples/<example>/bin-<hart>
 xbuild () {
   local log="$1" exname="$2" hart="$3"; shift 3
+  [ "$prebuilt" = 1 ] && return 0   # the images are there: a missing one fails in its case
   rm -rf "$ROOT/examples/$exname/obj-$hart" "$ROOT/examples/$exname/bin-$hart"
   "$ROOT/x" build "$exname" --hart "$hart" "$@" >"$log" 2>&1
+}
+
+# keep_image <elf> <name>: a secondary image built here goes to $keep/<name>.elf for the prebuilt run; its name in
+# a prebuilt run (which builds nothing). Prints the path to use.
+keep_image () {
+  if [ "$prebuilt" = 1 ]; then echo "$keep/$2.elf"; return; fi
+  if [ -n "${MPFS_CONSOLE_BRINGUP_IMAGES:-}" ]; then
+    mkdir -p "$keep" && cp "$1" "$keep/$2.elf"
+  fi
+  echo "$1"
 }
 
 # qrun <name> <elf> <regexp>: boots the image with the register trace; the serial ports are $work/<name>.s0 to
@@ -100,6 +137,7 @@ qrun () {
 # case_bringup <name> <elf> <MMUART n> <pairs> <verdict regexp> <what>
 case_bringup () {
   local name="$1" elf="$2" n="$3" pairs="$4" re="$5" what="$6" msg
+  [ -f "$elf" ] || { fail "$what: image $elf is missing"; return; }
   if ! qrun "$name" "$elf" "$re"; then fail "$what: no verdict /$re/ under QEMU"; return; fi
   if msg="$("$PY" -I "$HERE/check_trace.py" "$work/$name.trace" bringup "$n" "$pairs" 2>&1)"; then
     pass "$what: $msg"
@@ -111,6 +149,7 @@ case_bringup () {
 # case_none <name> <elf> <verdict regexp> <what>
 case_none () {
   local name="$1" elf="$2" re="$3" what="$4" msg
+  [ -f "$elf" ] || { fail "$what: image $elf is missing"; return; }
   if ! qrun "$name" "$elf" "$re"; then fail "$what: no verdict /$re/ under QEMU"; return; fi
   if msg="$("$PY" -I "$HERE/check_trace.py" "$work/$name.trace" none 2>&1)"; then
     pass "$what: $msg"
@@ -122,7 +161,8 @@ case_none () {
 tx="$ROOT/examples/textio_test"
 
 # -- the link: the runtime reads the role ------------------------------------------------------------------
-if bash "$ROOT/crates/mpfs_rts/gen_runtime.sh" light e51 1 m >"$work/gen.out" 2>&1; then
+if [ "$prebuilt" = 1 ]; then :
+elif bash "$ROOT/crates/mpfs_rts/gen_runtime.sh" light e51 1 m >"$work/gen.out" 2>&1; then
   rts="$ROOT/build/rts/light-e51-cpus1-m"
   mkdir -p "$work/textio-o"
   ( cd "$work/textio-o" && riscv64-elf-ar x "$rts/adalib/libgnat.a" s-textio.o )
@@ -141,8 +181,7 @@ fi
 if xbuild "$work/tx.log" textio_test e51; then
   mkdir -p "$work/img"
   cp "$tx"/bin-e51/*.elf "$work/img/"
-  [ "$(role_of "$work/img/textio_test.elf")" = 1 ] && pass "textio_test: __mpfs_boot_role is 1 (primary, the default)" \
-    || fail "textio_test: __mpfs_boot_role is 1 (primary, the default)"
+  check_role "$work/img/textio_test.elf" 1 "textio_test: __mpfs_boot_role is 1 (primary, the default)"
   if [ "$qemu_ok" = 1 ]; then
     case_bringup tx_e51 "$work/img/textio_test.elf" 0 2 'TEST textio_test_e51: PASS' \
       "textio_test E51, primary, init 1: MMUART0, a second Initialize repeats the pair"
@@ -167,10 +206,9 @@ else
 fi
 
 # Bare_Console of the examples: bare_hello is a bare image, which is a primary image
-if "$ROOT/x" build bare_hello --hart e51 >"$work/bh.log" 2>&1; then
+if xbuild "$work/bh.log" bare_hello e51; then
   elf="$ROOT/examples/bare_hello/bin-e51/bare_hello.elf"
-  [ "$(role_of "$elf")" = 1 ] && pass "bare_hello: __mpfs_boot_role is 1 (a bare image is a primary image)" \
-    || fail "bare_hello: __mpfs_boot_role is 1 (a bare image is a primary image)"
+  check_role "$elf" 1 "bare_hello: __mpfs_boot_role is 1 (a bare image is a primary image)"
   [ "$qemu_ok" = 1 ] && case_bringup bare "$elf" 0 1 'bare hello E51' "bare_hello E51 (Bare_Console), primary: MMUART0"
 else
   fail "bare_hello builds ($(tail -5 "$work/bh.log"))"
@@ -187,9 +225,8 @@ fi
 
 # -- secondary images and consoles that are none ------------------------------------------------------------
 if xbuild "$work/tx_s.log" textio_test e51 --role secondary; then
-  elf="$tx/bin-e51/textio_test.elf"
-  [ "$(role_of "$elf")" = 0 ] && pass "textio_test --role secondary: __mpfs_boot_role is 0" \
-    || fail "textio_test --role secondary: __mpfs_boot_role is 0"
+  elf="$(keep_image "$tx/bin-e51/textio_test.elf" textio_test_e51)"
+  check_role "$elf" 0 "textio_test --role secondary: __mpfs_boot_role is 0"
   [ "$qemu_ok" = 1 ] && case_none tx_sec "$elf" 'TEST textio_test_e51: PASS' \
     "textio_test E51, secondary, init 1: the port is programmed, SYSREG is not touched"
 else
@@ -199,8 +236,8 @@ fi
 if xbuild "$work/trap_s.log" trap_test u54 --harts 2 --role secondary; then
   elf="$ex/bin-u54-h2/trap_test.elf"
   [ -f "$elf" ] || elf="$ex/bin-u54/trap_test.elf"
-  [ "$(role_of "$elf")" = 0 ] && pass "trap_test --role secondary: __mpfs_boot_role is 0" \
-    || fail "trap_test --role secondary: __mpfs_boot_role is 0"
+  elf="$(keep_image "$elf" trap_test_u54h2)"
+  check_role "$elf" 0 "trap_test --role secondary: __mpfs_boot_role is 0"
   [ "$qemu_ok" = 1 ] && case_none trap_sec "$elf" 'TEST trap_test_[a-z0-9]+: PASS' \
     "trap_test U54 hart 2 (Bare_Console), secondary: SYSREG is not touched"
 else
@@ -208,7 +245,8 @@ else
 fi
 
 if xbuild "$work/none.log" console_none_test e51 --role secondary; then
-  [ "$qemu_ok" = 1 ] && case_none none_sec "$ROOT/examples/console_none_test/bin-e51/console_none_test.elf" \
+  elf="$(keep_image "$ROOT/examples/console_none_test/bin-e51/console_none_test.elf" console_none_test_e51)"
+  [ "$qemu_ok" = 1 ] && case_none none_sec "$elf" \
     'TEST console_none_test_e51: PASS' "console_none_test E51, console none, init 1, secondary: SYSREG is not touched"
 else
   fail "console_none_test --role secondary builds ($(tail -5 "$work/none.log"))"
@@ -231,7 +269,7 @@ if [ "$qemu_ok" = 1 ] && [ -f "$work/tx_e51.trace" ] && [ -f "$work/tx_sec.trace
     || pass "control: two bring-ups are not one"
 fi
 
-rm -rf "$tx/obj-e51" "$tx/bin-e51" "$tx/obj-u54" "$tx/bin-u54" "$ROOT/examples/bare_hello/obj-e51" "$ROOT/examples/bare_hello/bin-e51" \
+[ "$prebuilt" = 1 ] || rm -rf "$tx/obj-e51" "$tx/bin-e51" "$tx/obj-u54" "$tx/bin-u54" "$ROOT/examples/bare_hello/obj-e51" "$ROOT/examples/bare_hello/bin-e51" \
   "$ex/obj-e51" "$ex/bin-e51" "$ex"/obj-u54* "$ex"/bin-u54* "$ROOT/examples/console_none_test/obj-e51" "$ROOT/examples/console_none_test/bin-e51"
 
 [ $fails -eq 0 ] || { echo "$fails failure(s)" >&2; exit 1; }
