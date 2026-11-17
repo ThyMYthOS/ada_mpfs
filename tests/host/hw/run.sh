@@ -1009,5 +1009,29 @@ out="$(MX_TEST=console_noinit_test_e51 MX_GARBAGE=1 matrix --uart-standin)"
 case "$out" in *"console_noinit_test_e51"*"PASS"*"(standin, hart 0, port 0)"*"pass 1, fail 0"*) pass "run_matrix: console_noinit_test passes with --uart-standin" ;; *) fail "run_matrix: console_noinit_test passes with --uart-standin ($out)" ;; esac
 [ "$(tr '\n' ' ' < "$tmp/mx.flags")" = "--uart-standin " ] && pass "run_matrix: console_noinit_test is run once, with --uart-standin only" || fail "run_matrix: console_noinit_test is run once, with --uart-standin only ($(cat "$tmp/mx.flags"))"
 
+# flashpros: a fake sysfs with two FlashPro (vendor 1514), a CP2108 and a hub without serial number
+fs="$tmp/sysfs"; mkdir -p "$fs"
+mkusb () { mkdir -p "$fs/$1"; echo "$2" > "$fs/$1/idVendor"; echo "$3" > "$fs/$1/idProduct"; [ -z "$4" ] || echo "$4" > "$fs/$1/product"; [ -z "$5" ] || echo "$5" > "$fs/$1/serial"; }
+mkusb 1-1 1514 200b "Embedded FP6b" FP6A0001
+mkusb 1-2 1514 2008 "FlashPro5" FP5A0002
+mkusb 1-4 1514 2009 "FlashPro6" FP6A0003
+mkusb 1-5 1514 200a "Other" OTHER0004
+mkusb 1-3 10c4 ea71 "CP2108" CPSERIAL
+mkusb usb1 1d6b 0002 "Host Controller" ""
+FPL () { "$PY" "$HW/flashpros.py" --sysfs "$fs" "$@"; }
+expect_out "flashpros: lists the serial of the first FlashPro, with its model" "FP6A0001  1514:200b  Embedded FP6b  efp6" FPL
+expect_out "flashpros: lists the serial of the second FlashPro, with its model" "FP5A0002  1514:2008  FlashPro5  fp5" FPL
+expect_out "flashpros: product ID 2009 is a FlashPro6" "FP6A0003  1514:2009  FlashPro6  fp6" FPL
+expect_out "flashpros: a product ID that is not known is unknown" "OTHER0004  1514:200a  Other  unknown" FPL
+expect_out "flashpros: --model prints the models" "efp6" FPL --model
+expect_out "flashpros: --model --serial prints the model of that FlashPro" "fp5" FPL --model --serial FP5A0002
+case "$(FPL --model --serial FP5A0002 2>&1)" in *efp6*) fail "flashpros: --model --serial prints only that model" ;; *) pass "flashpros: --model --serial prints only that model" ;; esac
+expect_rc  "flashpros: --model for a serial number that is not there exits 1" 1 FPL --model --serial NOSUCH
+expect_rc  "flashpros: two adapters found exits 0" 0 FPL
+case "$(FPL 2>&1)" in *CPSERIAL*) fail "flashpros: a CP2108 is not a FlashPro" ;; *) pass "flashpros: a CP2108 is not listed" ;; esac
+expect_out "flashpros: --all lists the CP2108 too" "CPSERIAL" FPL --all
+expect_rc  "flashpros: no adapter of the vendor exits 1" 1 FPL --vendor dead
+expect_rc  "flashpros: no sysfs exits 2" 2 "$PY" "$HW/flashpros.py" --sysfs "$tmp/no-such-sysfs"
+
 echo "summary: $fails failure(s)"
 [ $fails -eq 0 ]

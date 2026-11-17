@@ -33,7 +33,7 @@ for verb in help list toolchain build clean new qemu mem test metrics analyze st
   case "$help" in *"./x $verb"*) pass "help lists $verb" ;; *) fail "help lists $verb" ;; esac
 done
 
-case "$help" in *"./x hw bootmode|openocd|run|probe|monitor|reset"*) pass "help lists hw bootmode" ;; *) fail "help lists hw bootmode" ;; esac
+case "$help" in *"./x hw bootmode|flashpros|openocd|run|probe|monitor|reset"*) pass "help lists hw bootmode" ;; *) fail "help lists hw bootmode" ;; esac
 
 # MPFS_PREBUILT_IMAGES=1 builds nothing: without the images of an earlier build the QEMU and
 # Renode tests fail and say which image is missing (in a tree that has none).
