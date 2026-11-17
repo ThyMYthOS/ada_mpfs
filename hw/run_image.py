@@ -25,15 +25,21 @@ come from lab.conf.
                    Without --expect the exit status is 0 when the run completed. 2: set-up error
                    (OpenOCD, serial ports, toolchain, lab.conf, arguments); 130: Ctrl+C. What --expect
                    matches is the text of the port as it is, whatever the view and the colours.
+A primary image (__mpfs_boot_role = 1, the default: it sets the MSS up itself, however it is loaded) brings the
+UART of its console up itself, clock and reset included (the runtime for its console, Bare_Console of the examples for
+MMUART0), so it is run with neither flag. The flags stand in for an MSS that is set up, for a secondary image
+(__mpfs_boot_role = 0, which never touches SYSREG) and for an image that does not bring its UART up:
+
 --uart-clocks      stand in for the part of the boot stage that every console needs: clock and release
                    MMUART0..4 (SYSREG.SUBBLK_CLOCK_CR and SOFT_RESET_CR), nothing else. For an image whose
-                   console driver programs the divisor and the format itself (the runtime with
-                   __mpfs_console_init = 1). Off by default.
---uart-standin     stand in for the whole boot stage that sets the UARTs up (an image whose console driver
-                   assumes it exists): --uart-clocks, and program divisor D (22 gives 115200 at the
-                   ~40 MHz APB clock of an unconfigured MSS, measured), the 8N1 format and the FIFOs.
-                   Off by default: an image or a bootloader that sets the UARTs up itself must not be run
-                   on top of this.
+                   console driver programs the divisor and the format itself but does not clock the port.
+                   Off by default.
+--uart-standin     stand in for the whole boot stage that sets the UARTs up (a secondary image, or an image
+                   whose console driver assumes that a boot stage exists): --uart-clocks, and program divisor
+                   D (22 gives 115200 at the ~40 MHz APB clock of an unconfigured MSS, measured), the 8N1
+                   format and the FIFOs. Off by default: an image or a bootloader that sets the UARTs up
+                   itself does not need it (it is harmless for a primary image: its bring-up writes the same
+                   values again).
 
 Every run starts with the enables of the PLIC cleared (they survive a reset; see the code).
 The trap recorder (trap.S) lives at 0x08100000, above any image here, and logs the first trap.
@@ -192,8 +198,9 @@ def main(argv=None):
         if not any(s.data.values()):
             print("no serial output on any port")
             if not (a.uart_standin or a.uart_clocks):
-                print("hint: in boot mode 0 nothing sets the UARTs up (clock, reset, divisor); an image that expects "
-                      "that needs --uart-standin, one that programs the divisor itself --uart-clocks")
+                print("hint: a primary image brings its console UART up itself; in boot mode 0 nothing else sets the "
+                      "UARTs up (clock, reset, divisor), so a secondary image or one that expects that needs "
+                      "--uart-standin, one that programs the divisor itself but does not clock the port --uart-clocks")
         if regex is None:
             return 0
         ok, text = check_expect(regex, s.data, a.expect_port)

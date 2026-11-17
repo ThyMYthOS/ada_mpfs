@@ -31,6 +31,9 @@ conventions (project layout, scenario variables, `example.conf`) are in `STYLE.m
 | `trap_test` | E51, U54 | An early trap is reported correctly (`mtvec` is set before the first trap): an illegal instruction during elaboration goes through the trap stub of the runtime's `start.S`, and the test checks the recorded `mcause`, `mepc`, `mtval` and hart and reports with `Test_Report`. Linked with the `light` runtime variant (`RUNTIME=mpfs_rts`); `--memory` and `--role` of `./x build` select the boot scenario. | `./x test qemu` (`tests/qemu/tests.list`, `console.expected`), `tests/host/rts_boot`, `./x repro`, `metrics.golden` |
 
 Run an example under QEMU with `./x qemu <name> [--hart N]`, or on the Icicle Kit with
-`./x hw run <name> --uart-standin --expect REGEX` (`--uart-standin` because nothing sets the UARTs up in
-boot mode 0; `--uart-clocks` is enough for an image whose runtime programs the console itself, as the images of `textio_test` do; see `hw/README.md`). The bare images are linked into the L2 LIM and are loaded by
+`./x hw run <name> --expect REGEX`. The examples are primary images (the default role: they set the MSS up themselves, with
+no bootloader before them), so they bring their console UART up themselves: the runtime for its console (`__mpfs_console_init`
+= 1), `Bare_Console` (`bare_hello/src/bare_console.adb`, MMUART0, through which most examples report) for MMUART0 (clock,
+reset, divisor 22, 8N1, FIFOs). A secondary image (`./x build --role secondary`) expects an MSS that is set up and needs the
+stand-ins: `--uart-clocks` (clock and reset of the MMUARTs) or `--uart-standin` (also divisor, format and FIFOs); see `hw/README.md`. The bare images are linked into the L2 LIM and are loaded by
 OpenOCD; none of them is placed in the eNVM yet.

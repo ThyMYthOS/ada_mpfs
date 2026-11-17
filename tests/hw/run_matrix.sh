@@ -12,9 +12,12 @@
 # (MMUART4: console_mmuart4_test) and itim_reject_test (QEMU has no ITIM, the board has) are listed as "skip". The images of delay_accuracy_test
 # are built with DELAY_ACCURACY=hardware, those of interrupt_test with RX_SOURCE=loopback. The log of each cell is DIR/NAME.log (default build/hw-results).
 #
-# A cell passes if "TEST <name>: PASS" is on the port of the list and no "FAIL" line is. The console is first
-# set up by --uart-standin (images with Bare_Console); if nothing at all is printed, the cell is run again with
-# --uart-clocks (images whose console driver sets the MMUART up itself).
+# A cell passes if "TEST <name>: PASS" is on the port of the list and no "FAIL" line is. The images are primary
+# images (the default role): they set the MSS up themselves, so the cell is run without any flag first. Only if
+# nothing at all is printed it is run again with --uart-clocks (clock and release of the MMUARTs, for an image
+# that programs the divisor itself but does not clock the port), and last with --uart-standin (divisor, format
+# and FIFOs as well, for an image that expects a boot stage to have done it). The line of the cell names the
+# first set-up that passed ("no flag", "clocks" or "standin"); a cell that needs a flag is a finding.
 #
 # Exit status: 0 if every cell that ran passed, 1 if one failed, 2 on a set-up error.
 set -uo pipefail
@@ -72,7 +75,7 @@ while IFS=$'\t' read -r name dir serial expect _; do
     printf '%-40s ERROR  (build failed or no %s, see %s)\n' "$name" "${elf#"$root"/}" "$log"
     fail=$((fail + 1)); continue
   fi
-  for mode in --uart-standin --uart-clocks; do
+  for mode in "" --uart-clocks --uart-standin; do
     # every cell starts from the power-on state: a test can leave the board in a state (a hart that
     # kept running, a pending interrupt) in which the next image does not start
     # (a primary image resets the MSS when it ends, which also undoes the set-up of the scratchpad)
@@ -81,7 +84,7 @@ while IFS=$'\t' read -r name dir serial expect _; do
       printf '%-40s ERROR  (reset or initialize failed, see %s)\n' "$name" "$log"
       fail=$((fail + 1)); continue 2
     fi
-    "$root/x" hw run "$elf" --hart "$hart" "$mode" --secs "$secs" --view blocks \
+    "$root/x" hw run "$elf" --hart "$hart" ${mode:+"$mode"} --secs "$secs" --view blocks \
       --expect 'TEST [A-Za-z0-9_]+: PASS' --expect-port "$serial" >"$log" 2>&1
     rc=$?
     if [ "$rc" -eq 0 ] && ! grep -q 'FAIL' "$log"; then verdict=PASS; break; fi
@@ -89,7 +92,8 @@ while IFS=$'\t' read -r name dir serial expect _; do
     grep -q 'no serial output' "$log" || break   # a console that printed something is not set up wrongly
   done
   [ "$rc" -eq 2 ] && verdict=ERROR
-  printf '%-40s %s   (%s, hart %s, port %s)\n' "$name" "$verdict" "${mode#--uart-}" "$hart" "$serial"
+  setup="${mode#--uart-}"; [ -n "$setup" ] || setup="no flag"
+  printf '%-40s %s   (%s, hart %s, port %s)\n' "$name" "$verdict" "$setup" "$hart" "$serial"
   case "$verdict" in PASS) pass=$((pass + 1)) ;; *) fail=$((fail + 1)) ;; esac
 done <"$root/tests/qemu/tests.list"
 

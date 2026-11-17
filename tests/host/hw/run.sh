@@ -958,5 +958,46 @@ except m.MssInitError as e:
     assert "never" in str(e)
 PYEOF
 
+# tests/hw/run_matrix.sh: a cell runs without a console flag first (the examples are primary images: they bring their UART
+# up themselves), then with --uart-clocks, then with --uart-standin, and the line of the cell says which one passed. A copy
+# of the script in a tree with a stand-in ./x that passes only with the flag in $MX_NEED.
+mx="$tmp/mx"
+mkdir -p "$mx/tests/hw" "$mx/tests/qemu" "$mx/examples/foo/bin-e51"
+cp "$ROOT/tests/hw/run_matrix.sh" "$mx/tests/hw/"
+: > "$mx/examples/foo/bin-e51/foo_test.elf"
+printf 'name\tdir\tserial\texpect\tobserve\twhy\nfoo_test_e51\texamples/foo\t0\tpass\t-\t-\n' > "$mx/tests/qemu/tests.list"
+cat > "$mx/x" <<'XEOF'
+#!/usr/bin/env bash
+case "$1" in
+  build) exit 0 ;;
+  hw) shift
+      case "$1" in
+        reset|initialize) exit 0 ;;
+        run) flag=none
+             for a in "$@"; do case "$a" in --uart-clocks|--uart-standin) flag="$a" ;; esac; done
+             echo "$flag" >> "$MX_LOG"
+             if [ "$flag" = "$MX_NEED" ]; then echo "TEST foo_test_e51: PASS"; exit 0; fi
+             echo "no serial output on any port"; exit 1 ;;
+      esac ;;
+esac
+exit 2
+XEOF
+chmod +x "$mx/x"
+matrix () {   # matrix <flag that makes the stand-in pass>: output of the script; the flags it tried are in $tmp/mx.flags
+  : > "$tmp/mx.flags"
+  MX_NEED="$1" MX_LOG="$tmp/mx.flags" bash "$mx/tests/hw/run_matrix.sh" -o "$tmp/mx.out" 2>&1
+}
+out="$(matrix none)"
+case "$out" in *"foo_test_e51"*"PASS"*"(no flag, hart 0, port 0)"*) pass "run_matrix: a cell that passes without a flag says so" ;; *) fail "run_matrix: a cell that passes without a flag says so ($out)" ;; esac
+[ "$(tr '\n' ' ' < "$tmp/mx.flags")" = "none " ] && pass "run_matrix: that cell is run once, without a flag" || fail "run_matrix: that cell is run once, without a flag ($(cat "$tmp/mx.flags"))"
+out="$(matrix --uart-clocks)"
+case "$out" in *"PASS"*"(clocks, hart 0, port 0)"*) pass "run_matrix: a silent cell is run again with --uart-clocks" ;; *) fail "run_matrix: a silent cell is run again with --uart-clocks ($out)" ;; esac
+[ "$(tr '\n' ' ' < "$tmp/mx.flags")" = "none --uart-clocks " ] && pass "run_matrix: no flag first, then --uart-clocks" || fail "run_matrix: no flag first, then --uart-clocks ($(cat "$tmp/mx.flags"))"
+out="$(matrix --uart-standin)"
+case "$out" in *"PASS"*"(standin, hart 0, port 0)"*) pass "run_matrix: and last with --uart-standin" ;; *) fail "run_matrix: and last with --uart-standin ($out)" ;; esac
+[ "$(tr '\n' ' ' < "$tmp/mx.flags")" = "none --uart-clocks --uart-standin " ] && pass "run_matrix: the order is no flag, --uart-clocks, --uart-standin" || fail "run_matrix: the order is no flag, --uart-clocks, --uart-standin ($(cat "$tmp/mx.flags"))"
+out="$(matrix impossible)"
+case "$out" in *"FAIL"*"pass 0, fail 1"*) pass "run_matrix: a cell that passes with no set-up fails" ;; *) fail "run_matrix: a cell that passes with no set-up fails ($out)" ;; esac
+
 echo "summary: $fails failure(s)"
 [ $fails -eq 0 ]

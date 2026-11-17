@@ -75,6 +75,16 @@ writes 1 to 5 and counts after write 6. Write 6 alone does nothing, and neither 
 (probably because the PHY block is not reachable until then; not measured). `MTIME` runs at 1 MHz: 997,252 ticks per second against the host clock over 20 s
 (the OpenOCD round trip is within 0.3 %), so the 125 MHz reference clock and `PERIOD` 125 of `initialize` are right.
 
+The MMUARTs are another part of that state: after a reset they are not clocked and are held in reset (`SYSREG.SUBBLK_CLOCK_CR`
+bit 5 + n clear, `SOFT_RESET_CR` bit 5 + n set). A **primary** image (it sets the MSS up itself, however it is loaded: the lab loads it
+by JTAG, the system controller copies it from the sNVM in boot mode 2, `mpfs_boot` is one) clocks and releases the MMUART of its
+console itself and programs divisor, format and FIFOs: the runtime for its console, `Bare_Console` of the examples for MMUART0, so
+`./x hw run` needs no flag for it. A **secondary** image (it expects an MSS that is set up) never touches `SYSREG`; in the lab it runs
+with the stand-ins of `./x hw`: `initialize` (which also starts `mtime`, the one thing no image does yet), `--uart-clocks`
+(clock and reset of the five MMUARTs) and `--uart-standin` (also divisor 22, 8N1 and FIFOs). Both flags are also for an image that does
+not bring its UART up. The bring-up is idempotent, so a primary image loaded after `initialize` or after a flag finds the port clocked.
+No board run has confirmed the flag-less case yet (`tests/hw/run_matrix.sh` runs it first).
+
 State that a `reset halt` does **not** clear, found by the hardware runs: the PLIC enables of every context (the enable words of
 the S mode contexts were random), `fcsr` of the U54 and the `mtimecmp` registers (one of them read 32 after a reset). A context of
 another hart that still has a source enabled takes the interrupt from the hart that runs, and an invalid `frm` in `fcsr` makes the
