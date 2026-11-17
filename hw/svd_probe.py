@@ -271,8 +271,8 @@ def load_rules(path: Path) -> list[Rule]:
 class OpenOcd:
     """Minimal client of the OpenOCD telnet port.
 
-    The telnet port is used instead of the Tcl RPC port: the OpenOCD that ships
-    with Microchip SoftConsole has no read_memory command, and the output of
+    The telnet port is used instead of the Tcl RPC port: the OpenOCD
+    of Microchip has no read_memory command, and the output of
     md[bhwd] does not come back through the RPC port.
     """
 

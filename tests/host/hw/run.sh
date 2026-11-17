@@ -4,7 +4,7 @@
 #
 # Tests for the scripts of hw/ and ./x hw without a board: a stand-in for the OpenOCD
 # telnet port (fake_ocd.py), files in place of the serial ports, a stand-in for
-# SoftConsole, a stand-in for fpgenprog (fake_fpgenprog.py), and the pinned RISC-V
+# OpenOCD installation, a stand-in for fpgenprog (fake_fpgenprog.py), and the pinned RISC-V
 # toolchain for the images and probes. Every
 # --expect that does not match must exit 1, every set-up error 2, and the cases that
 # match show that the stand-ins are not what makes the others fail. What this cannot
@@ -50,7 +50,7 @@ tmp="$(mktemp -d)"
 pids=()
 cleanup () { for p in "${pids[@]}"; do kill "$p" 2>/dev/null; done; rm -r "$tmp"; }
 trap cleanup EXIT
-mkdir -p "$tmp/uart" "$tmp/sc"
+mkdir -p "$tmp/uart" "$tmp/ocd"
 
 # a sysfs with FlashPros (FLASHPRO_SYSFS) for the tests that derive the name of a FlashPro5 from its serial number
 mkusb () { mkdir -p "$1/$2"; echo "$3" > "$1/$2/idVendor"; echo "$4" > "$1/$2/idProduct"; echo "$5" > "$1/$2/product"; echo "$6" > "$1/$2/serial"; }
@@ -74,7 +74,7 @@ serve () {
   local i
   for i in $(seq 1 50); do [ -s "$tmp/$name.port" ] && break; sleep 0.1; done
   [ -s "$tmp/$name.port" ] || { echo "FAIL: the stand-in OpenOCD did not start" >&2; exit 1; }
-  printf 'SOFT_CONSOLE=%s\nOCD_PORT=%s\nUART_PATTERN=%s\nUART_COUNT=4\n' "$tmp/sc" "$(cat "$tmp/$name.port")" "$tmp/uart/$name/mmuart{n}.log" > "$tmp/lab-$name.conf"
+  printf 'OPENOCD=%s\nOCD_PORT=%s\nUART_PATTERN=%s\nUART_COUNT=4\n' "$tmp/ocd" "$(cat "$tmp/$name.port")" "$tmp/uart/$name/mmuart{n}.log" > "$tmp/lab-$name.conf"
 }
 
 run_image () { "$PY" "$HW/run_image.py" "$@"; }
@@ -179,7 +179,7 @@ done
 mkdir -p "$tmp/uart/mon"
 for n in 0 1 2 3; do : > "$tmp/uart/mon/mmuart$n.log"; done
 printf 'hello from MMUART1\r\n' > "$tmp/uart/mon/mmuart1.log"
-printf 'SOFT_CONSOLE=%s\nOCD_PORT=1\nUART_PATTERN=%s\nUART_COUNT=4\n' "$tmp/sc" "$tmp/uart/mon/mmuart{n}.log" > "$tmp/lab-mon.conf"
+printf 'OPENOCD=%s\nOCD_PORT=1\nUART_PATTERN=%s\nUART_COUNT=4\n' "$tmp/ocd" "$tmp/uart/mon/mmuart{n}.log" > "$tmp/lab-mon.conf"
 monitor () { "$PY" "$HW/monitor.py" "$@"; }
 expect_rc  "monitor: shows the ports and exits 0 without --expect" 0 monitor --secs 0.3 --lab "$tmp/lab-mon.conf"
 expect_out "monitor: names the port that printed" "MMUART1:" monitor --secs 0.3 --lab "$tmp/lab-mon.conf"
@@ -201,7 +201,7 @@ tcp_serve () {
   [ -s "$tmp/$name.tport" ] || { echo "FAIL: the stand-in UART did not start" >&2; exit 1; }
 }
 # tconf <file> <lines...>: a lab.conf with the stand-in OpenOCD of "hello" and the given lines
-tconf () { local f="$1"; shift; { printf 'SOFT_CONSOLE=%s\nOCD_PORT=%s\n' "$tmp/sc" "$(cat "$tmp/hello.port")"; printf '%s\n' "$@"; } > "$f"; }
+tconf () { local f="$1"; shift; { printf 'OPENOCD=%s\nOCD_PORT=%s\n' "$tmp/ocd" "$(cat "$tmp/hello.port")"; printf '%s\n' "$@"; } > "$f"; }
 # has_all <text> <needle>...: every needle is a line of the text, whatever the order
 has_all () { local t="$1" n; shift; for n in "$@"; do printf '%s\n' "$t" | grep -qxF -- "$n" || return 1; done; }
 # errlines <command...>: the standard error of the command: the text in $err, its number of lines in $nerr
@@ -323,7 +323,7 @@ PYEOF
 # one port whose "UART" is a file that holds the bytes (printf format, \ooo octal escapes); vmon <name> <args...>: monitor on it.
 ESC=$'\033'
 mkdir -p "$tmp/uart/v"
-vconf () { printf -- "$2" > "$tmp/uart/v/$1.log"; printf 'SOFT_CONSOLE=%s\nOCD_PORT=1\nUART_COUNT=1\nUART0=%s\n' "$tmp/sc" "$tmp/uart/v/$1.log" > "$tmp/lab-v-$1.conf"; }
+vconf () { printf -- "$2" > "$tmp/uart/v/$1.log"; printf 'OPENOCD=%s\nOCD_PORT=1\nUART_COUNT=1\nUART0=%s\n' "$tmp/ocd" "$tmp/uart/v/$1.log" > "$tmp/lab-v-$1.conf"; }
 vmon () { local n="$1"; shift; monitor --secs 0.3 --lab "$tmp/lab-v-$n.conf" "$@" 2>&1; }
 same () { [ "$1" = "$2" ]; }   # same <got> <want>
 
@@ -579,19 +579,33 @@ out="$(pty --rows 50 --cols 80 -- "$PY" "$HW/run_image.py" "$tmp/loop.elf" 0 --s
 sane "$out" 1 && pass "run_image: --expect that does not match exits 1 after a live view" || fail "run_image: --expect that does not match exits 1 after a live view ($out)"
 
 # --- start_openocd.sh ---------------------------------------------------------------
-mkdir -p "$tmp/sc/openocd/bin"
-printf '#!/bin/sh\nprintf "%%s\\n" "$@" > "%s/openocd.args"\necho "$LD_LIBRARY_PATH" > "%s/openocd.ld"\n' "$tmp" "$tmp" > "$tmp/sc/openocd/bin/openocd"
-chmod +x "$tmp/sc/openocd/bin/openocd"
-expect_rc  "start_openocd: starts the SoftConsole OpenOCD of lab.conf" 0 env LAB_CONF="$L" sh "$HW/start_openocd.sh" -c "extra"
-grep -qx -- "$tmp/sc/openocd/share/openocd/scripts" "$tmp/openocd.args" && grep -qx 'board/microsemi-riscv.cfg' "$tmp/openocd.args" \
+mkdir -p "$tmp/ocd/bin"
+printf '#!/bin/sh\nprintf "%%s\\n" "$@" > "%s/openocd.args"\n' "$tmp" > "$tmp/ocd/bin/openocd"
+chmod +x "$tmp/ocd/bin/openocd"
+expect_rc  "start_openocd: starts the OpenOCD of lab.conf" 0 env LAB_CONF="$L" sh "$HW/start_openocd.sh" -c "extra"
+grep -qx -- "$tmp/ocd/openocd/scripts" "$tmp/openocd.args" && grep -qx 'interface/embedded_flashpro6.cfg' "$tmp/openocd.args" \
+  && grep -qx 'target/microchip_riscv.cfg' "$tmp/openocd.args" \
   && grep -qx 'set DEVICE MPFS' "$tmp/openocd.args" && grep -qx 'extra' "$tmp/openocd.args" \
-  && pass "start_openocd: passes the script path, the board file, the device and further arguments" \
-  || fail "start_openocd: passes the script path, the board file, the device and further arguments"
-grep -qx "$tmp/sc/openocd/bin" "$tmp/openocd.ld" && pass "start_openocd: sets LD_LIBRARY_PATH to the OpenOCD bin" || fail "start_openocd: sets LD_LIBRARY_PATH to the OpenOCD bin"
-printf 'SOFT_CONSOLE=%s\n' "$tmp/nosoftconsole" > "$tmp/lab-nosc.conf"
-expect_rc  "start_openocd: a missing SoftConsole exits 2" 2 env LAB_CONF="$tmp/lab-nosc.conf" sh "$HW/start_openocd.sh"
-expect_out "start_openocd: names the path it tried" "$tmp/nosoftconsole/openocd/bin/openocd" env LAB_CONF="$tmp/lab-nosc.conf" sh "$HW/start_openocd.sh"
-expect_rc  "start_openocd: SOFT_CONSOLE in the environment overrides lab.conf" 0 env LAB_CONF="$tmp/lab-nosc.conf" SOFT_CONSOLE="$tmp/sc" sh "$HW/start_openocd.sh"
+  && pass "start_openocd: passes the script path, the interface and target files, the device and further arguments" \
+  || fail "start_openocd: passes the script path, the interface and target files, the device and further arguments"
+ocdline () { grep -n -x -- "$1" "$tmp/openocd.args" | head -1 | cut -d: -f1; }   # the number of the line of an argument
+[ "$(ocdline interface/embedded_flashpro6.cfg)" -lt "$(ocdline extra)" ] && [ "$(ocdline extra)" -lt "$(ocdline target/microchip_riscv.cfg)" ] \
+  && pass "start_openocd: the arguments of the caller come between the interface file and the target file (which runs init)" \
+  || fail "start_openocd: the arguments of the caller come between the interface file and the target file (which runs init)"
+printf 'OPENOCD=%s\n' "$tmp/noopenocd" > "$tmp/lab-noocd.conf"
+expect_rc  "start_openocd: a missing OpenOCD exits 2" 2 env LAB_CONF="$tmp/lab-noocd.conf" sh "$HW/start_openocd.sh"
+expect_out "start_openocd: names the path it tried" "$tmp/noopenocd/bin/openocd" env LAB_CONF="$tmp/lab-noocd.conf" sh "$HW/start_openocd.sh"
+expect_rc  "start_openocd: OPENOCD in the environment overrides lab.conf" 0 env LAB_CONF="$tmp/lab-noocd.conf" OPENOCD="$tmp/ocd" sh "$HW/start_openocd.sh"
+# an empty OPENOCD is the pinned release in its prefix (./x toolchain install openocd)
+ocdver="$(sed -n 's/^OPENOCD_VERSION=//p' "$ROOT/tools/toolchain.env")"
+mkdir -p "$tmp/tools/openocd-$ocdver/bin"
+cp "$tmp/ocd/bin/openocd" "$tmp/tools/openocd-$ocdver/bin/openocd"
+printf 'OPENOCD=\n' > "$tmp/lab-pinned.conf"
+expect_rc  "start_openocd: an empty OPENOCD starts the pinned release from MPFS_TOOLS_PREFIX" 0 env LAB_CONF="$tmp/lab-pinned.conf" MPFS_TOOLS_PREFIX="$tmp/tools" sh "$HW/start_openocd.sh"
+grep -qx -- "$tmp/tools/openocd-$ocdver/openocd/scripts" "$tmp/openocd.args" \
+  && pass "start_openocd: the pinned release brings its own scripts" || fail "start_openocd: the pinned release brings its own scripts"
+expect_rc  "start_openocd: an empty OPENOCD without the pinned release exits 2" 2 env LAB_CONF="$tmp/lab-pinned.conf" MPFS_TOOLS_PREFIX="$tmp/no-tools" sh "$HW/start_openocd.sh"
+expect_out "start_openocd: and says how to install it" "./x toolchain install openocd" env LAB_CONF="$tmp/lab-pinned.conf" MPFS_TOOLS_PREFIX="$tmp/no-tools" sh "$HW/start_openocd.sh"
 expect_rc  "start_openocd: a missing lab.conf exits 2" 2 env LAB_CONF="$tmp/none.conf" sh "$HW/start_openocd.sh"
 
 # --- ./x hw -----------------------------------------------------------------------
@@ -833,7 +847,7 @@ LAB_CONF="$LB" "$PY" "$tmp/bmroot/hw/bootmode.py" 0 --dry-run >/dev/null 2>&1
 rm -f "$tmp/bmroot/hw/lab.conf"
 env -u LAB_CONF "$PY" "$tmp/bmroot/hw/bootmode.py" 0 --dry-run >/dev/null 2>&1
 if [ -f "$tmp/bmroot/hw/lab.conf" ] && ! grep -q 'lab.conf.example --' "$tmp/bmroot/hw/lab.conf" && ! grep -q 'Copy it to' "$tmp/bmroot/hw/lab.conf" \
-   && grep -q '^SOFT_CONSOLE=' "$tmp/bmroot/hw/lab.conf" && grep -q '^#   FPGENPROG ' "$tmp/bmroot/hw/lab.conf"; then
+   && grep -q '^OPENOCD=' "$tmp/bmroot/hw/lab.conf" && grep -q '^#   FPGENPROG ' "$tmp/bmroot/hw/lab.conf"; then
   pass "bootmode: the new lab.conf has no header lines, but the keys and the notes on them"
 else fail "bootmode: the new lab.conf has no header lines, but the keys and the notes on them"; fi
 rm -f "$tmp/bmroot/hw/lab.conf"
@@ -904,10 +918,10 @@ run_signal INT 1 6 "$tmp/sig.out" "$PY" "$HW/monitor.py" --secs 30 --lab "$tmp/l
 
 # start_openocd.sh runs OpenOCD as a child and ends it after Ctrl+C. Stand-ins for openocd write their pid
 # to a file: "stubborn" ignores SIGINT, SIGTERM and SIGHUP (OpenOCD stuck in a timeout loop), "polite" ends on them.
-standin () {   # standin <name> <script body>: a SoftConsole directory $tmp/sc-<name> whose openocd writes its pid to $tmp/<name>.pid
-  mkdir -p "$tmp/sc-$1/openocd/bin"
-  printf '#!/bin/sh\necho $$ > "%s/%s.pid"\n%s\n' "$tmp" "$1" "$2" > "$tmp/sc-$1/openocd/bin/openocd"
-  chmod +x "$tmp/sc-$1/openocd/bin/openocd"
+standin () {   # standin <name> <script body>: an OpenOCD directory $tmp/ocd-<name> whose openocd writes its pid to $tmp/<name>.pid
+  mkdir -p "$tmp/ocd-$1/bin"
+  printf '#!/bin/sh\necho $$ > "%s/%s.pid"\n%s\n' "$tmp" "$1" "$2" > "$tmp/ocd-$1/bin/openocd"
+  chmod +x "$tmp/ocd-$1/bin/openocd"
 }
 standin stubborn "trap '' INT TERM HUP
 while :; do sleep 0.1; done"
@@ -918,7 +932,7 @@ exit 7"
 # supervise <signal> <stand-in> <grace> [second signal delay]: start_openocd.sh over the stand-in and signal it once it runs
 supervise () {
   rm -f "$tmp/$2.pid"
-  ready="$tmp/$2.pid" again="${4:-}" START_OPENOCD_GRACE="$3" SOFT_CONSOLE="$tmp/sc-$2" LAB_CONF="$tmp/none.conf" \
+  ready="$tmp/$2.pid" again="${4:-}" START_OPENOCD_GRACE="$3" OPENOCD="$tmp/ocd-$2" LAB_CONF="$tmp/none.conf" \
     run_signal "$1" 0.3 20 "$tmp/sup.out" sh "$HW/start_openocd.sh"
   ready="" again=""
 }
@@ -941,25 +955,25 @@ supervise INT stubborn 10 0.5
 [ $rc -eq 130 ] && [ $ms -lt 2000 ] && gone "$tmp/stubborn.pid" && pass "start_openocd: a second Ctrl+C kills OpenOCD at once" \
   || fail "start_openocd: a second Ctrl+C kills OpenOCD at once (rc $rc, $ms ms)"
 rm -f "$tmp/quits.pid"
-START_OPENOCD_GRACE=1 SOFT_CONSOLE="$tmp/sc-quits" LAB_CONF="$tmp/none.conf" sh "$HW/start_openocd.sh" >/dev/null 2>&1; rc=$?
+START_OPENOCD_GRACE=1 OPENOCD="$tmp/ocd-quits" LAB_CONF="$tmp/none.conf" sh "$HW/start_openocd.sh" >/dev/null 2>&1; rc=$?
 [ $rc -eq 7 ] && pass "start_openocd: the exit status of OpenOCD is passed on" || fail "start_openocd: the exit status of OpenOCD is passed on (exit $rc)"
-expect_rc  "start_openocd: a bad grace period exits 2" 2 env START_OPENOCD_GRACE=soon SOFT_CONSOLE="$tmp/sc-quits" LAB_CONF="$tmp/none.conf" sh "$HW/start_openocd.sh"
+expect_rc  "start_openocd: a bad grace period exits 2" 2 env START_OPENOCD_GRACE=soon OPENOCD="$tmp/ocd-quits" LAB_CONF="$tmp/none.conf" sh "$HW/start_openocd.sh"
 
 # ./x hw openocd: the signal goes to x, hw.sh, the supervisor and OpenOCD alike, and none of them may hold it up
 rm -f "$tmp/stubborn.pid"
-ready="$tmp/stubborn.pid" START_OPENOCD_GRACE=1 SOFT_CONSOLE="$tmp/sc-stubborn" LAB_CONF="$tmp/none.conf" run_signal INT 0.3 20 "$tmp/sup.out" "$X" hw openocd
+ready="$tmp/stubborn.pid" START_OPENOCD_GRACE=1 OPENOCD="$tmp/ocd-stubborn" LAB_CONF="$tmp/none.conf" run_signal INT 0.3 20 "$tmp/sup.out" "$X" hw openocd
 ready=""
 [ $rc -eq 130 ] && [ $ms -lt 3000 ] && gone "$tmp/stubborn.pid" && pass "x hw openocd: Ctrl+C ends OpenOCD, exit 130, nothing left behind" \
   || fail "x hw openocd: Ctrl+C ends OpenOCD, exit 130, nothing left behind (rc $rc, $ms ms: $(cat "$tmp/sup.out"))"
 
 # --- lab.conf ---------------------------------------------------------------------
-grep -Eq '^SOFT_CONSOLE=/opt/Microchip_SoftConsole' "$HW/lab.conf.example" && grep -q '^UART_PATTERN=.*{n}' "$HW/lab.conf.example" \
+grep -Eq '^OPENOCD=$' "$HW/lab.conf.example" && grep -q '^UART_PATTERN=.*{n}' "$HW/lab.conf.example" \
   && grep -q '^OCD_PORT=4444$' "$HW/lab.conf.example" \
-  && pass "lab.conf.example: the SoftConsole path, the OpenOCD port and the serial pattern" \
-  || fail "lab.conf.example: the SoftConsole path, the OpenOCD port and the serial pattern"
+  && pass "lab.conf.example: the OpenOCD directory, the OpenOCD port and the serial pattern" \
+  || fail "lab.conf.example: the OpenOCD directory, the OpenOCD port and the serial pattern"
 git -C "$HW" check-ignore -q lab.conf 2>/dev/null && pass "lab.conf is ignored by git" || fail "lab.conf is ignored by git"
 printf 'OCD_PORT=5555\n' > "$tmp/lab-onlyport.conf"
-[ "$("$PY" -c 'import sys; sys.path.insert(0, sys.argv[1]); import lab; v = lab.load(sys.argv[2]); print(v["OCD_PORT"], v["SOFT_CONSOLE"], v["BOOTMODE_DIE"])' "$HW" "$tmp/lab-onlyport.conf")" = "5555 /opt/Microchip_SoftConsole-v2022.2 MPFS250T_ES" ] \
+[ "$("$PY" -c 'import sys; sys.path.insert(0, sys.argv[1]); import lab; v = lab.load(sys.argv[2]); print(v["OCD_PORT"], repr(v["OPENOCD"]), v["BOOTMODE_DIE"])' "$HW" "$tmp/lab-onlyport.conf")" = "5555 '' MPFS250T_ES" ] \
   && pass "lab.py: a key that the conf does not set takes its default from lab.conf.example" \
   || fail "lab.py: a key that the conf does not set takes its default from lab.conf.example"
 
@@ -991,7 +1005,7 @@ case "$full" in *IOMUX0_CR*) pass "initialize: the IO set-up is part of the full
 # the stand-in reads every word as 0: the first poll runs out of time, which is exit status 2 and a message
 expect_out "initialize: a poll that never succeeds is an error that names it" "PVT_STAT.IOEN" init --lab "$LI"
 expect_rc  "initialize: a poll that never succeeds exits 2" 2 init --lab "$LI"
-printf 'OCD_PORT=1\nSOFT_CONSOLE=%s\nUART_PATTERN=x{n}\nUART_COUNT=4\n' "$tmp/sc" > "$tmp/lab-nothing.conf"
+printf 'OCD_PORT=1\nOPENOCD=%s\nUART_PATTERN=x{n}\nUART_COUNT=4\n' "$tmp/ocd" > "$tmp/lab-nothing.conf"
 expect_rc  "initialize: no OpenOCD is exit status 2" 2 init --minimal --lab "$tmp/lab-nothing.conf"
 expect_rc  "l2_scratchpad: no OpenOCD is exit status 2" 2 "$PY" "$HW/l2_scratchpad.py" --lab "$tmp/lab-nothing.conf"
 expect_rc  "l2_scratchpad: no cache way is exit status 2" 2 "$PY" "$HW/l2_scratchpad.py" --cache-ways 0 --lab "$tmp/lab-nothing.conf"

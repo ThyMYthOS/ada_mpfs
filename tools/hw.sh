@@ -12,7 +12,7 @@
 #                              typed "yes". --dry-run says what it would do; --prepare-only stops before the programming. Stop OpenOCD first: it and the
 #                              programmer both use the FlashPro, and the script refuses while OpenOCD answers
 #                              on the port of lab.conf.
-#   hw.sh openocd [args]       start the SoftConsole OpenOCD (hw/start_openocd.sh)
+#   hw.sh openocd [args]       start Microchip's OpenOCD (hw/start_openocd.sh)
 #   hw.sh run <ex|file.elf> [--hart N] [--secs S] [--expect RE] [--expect-port N] [--uart-clocks|--uart-standin]
 #                           [--view MODE] [--color WHEN] [--lab F]
 #                              build the example (or take the ELF), load it onto hart N
@@ -50,7 +50,7 @@
 #                              lists the programmers and the devices of their JTAG chains. The TCK frequency is --tck or
 #                              OCD_TCK_MHZ of lab.conf. --dry-run prints the scripts. Stop OpenOCD first (the FlashPro is shared).
 #
-# Ports, SoftConsole path and the serial ports (devices, or TCP ports that socat tunnels from another machine:
+# Ports, OpenOCD directory and the serial ports (devices, or TCP ports that socat tunnels from another machine:
 # tcp://HOST:PORT) come from hw/lab.conf (a copy of hw/lab.conf.example; --lab FILE or
 # LAB_CONF names another one). Exit status: 0 success, 1 the expectation was not met,
 # 2 set-up error (no OpenOCD, no serial port, bad arguments), 130 ended with Ctrl+C.

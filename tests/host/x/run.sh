@@ -86,6 +86,28 @@ fi
   esac
   rm -rf "$rp"
 )
+# toolchain check reports Microchip's OpenOCD: absent without it, ok with a working one in its prefix,
+# an error with one that does not run
+(
+  . "$ROOT/tools/toolchain.env"
+  rp="$(mktemp -d)"
+  case "$(MPFS_TOOLS_PREFIX="$rp" "$X" toolchain check 2>&1)" in
+    *"openocd              absent"*) pass "toolchain check reports a missing OpenOCD as absent" ;;
+    *) fail "toolchain check reports a missing OpenOCD as absent" ;;
+  esac
+  mkdir -p "$rp/openocd-$OPENOCD_VERSION/bin"
+  printf '#!/bin/sh\necho "xPack Open On-Chip Debugger 0.12.0"\n' > "$rp/openocd-$OPENOCD_VERSION/bin/openocd"; chmod +x "$rp/openocd-$OPENOCD_VERSION/bin/openocd"
+  case "$(MPFS_TOOLS_PREFIX="$rp" "$X" toolchain check 2>&1)" in
+    *"openocd              ok"*) pass "toolchain check finds the OpenOCD of the prefix" ;;
+    *) fail "toolchain check finds the OpenOCD of the prefix" ;;
+  esac
+  printf '#!/bin/sh\nexit 1\n' > "$rp/openocd-$OPENOCD_VERSION/bin/openocd"
+  case "$(MPFS_TOOLS_PREFIX="$rp" "$X" toolchain check 2>&1)" in
+    *"openocd              ERROR"*) pass "toolchain check reports an OpenOCD that does not run" ;;
+    *) fail "toolchain check reports an OpenOCD that does not run" ;;
+  esac
+  rm -rf "$rp"
+)
 expect_rc "help exits 0"            0       "$X" help
 expect_rc "list exits 0"            0       "$X" list
 expect_rc "list --json exits 0"     0       "$X" list --json

@@ -8,7 +8,7 @@
 #  Usage:
 #    ./x help                          this text
 #    ./x list [--json]                 list examples (name, default hart, dir)
-#    ./x toolchain install [svdtools|svd2ada|pac|alire|gnat|gnatprove|adalang_analyzer|renode]|check
+#    ./x toolchain install [svdtools|svd2ada|pac|alire|gnat|gnatprove|adalang_analyzer|renode|openocd]|check
 #                                      install the toolchains pinned in
 #                                      tools/toolchain.env (only svdtools or
 #                                      svd2ada if named; pac: only what
@@ -17,7 +17,8 @@
 #                                      alr release, checksum verified; gnat: only the compilers
 #                                      and gprbuild; gnatprove, adalang_analyzer: the
 #                                      compilers and that one crate; renode: the pinned Renode
-#                                      release, checksum verified) / report deviations
+#                                      release, checksum verified; openocd: Microchip's OpenOCD for the
+#                                      board, checksum verified) / report deviations
 #    ./x build <ex> [-P PROFILE] [--hart e51|u54] [--harts 1-4] [--priv m|u]
 #                                      build an example (PROFILE: light|
 #                                      light-tasking|embedded|auto). --harts is
@@ -212,6 +213,31 @@ mpfs_install_renode () {
   echo "x: installed renode $RENODE_VERSION in $pfx"
 }
 
+# Microchip's OpenOCD (xPack build of the pinned release) into its per-version prefix, checked
+# against the SHA-256 in tools/toolchain.env before it is unpacked: bin/openocd, libexec/ and
+# openocd/scripts/. Only Linux x86_64 has a pinned checksum; elsewhere set OPENOCD in hw/lab.conf.
+mpfs_install_openocd () {
+  local pfx file url tmp
+  pfx="$(mpfs_opt_prefix openocd "$OPENOCD_VERSION")"
+  if [ -x "$pfx/bin/openocd" ]; then
+    echo "x: openocd $OPENOCD_VERSION already installed in $pfx"; return 0
+  fi
+  [ "$(uname -sm)" = "Linux x86_64" ] || die "no pinned OpenOCD release for $(uname -sm); install Microchip's OpenOCD and set OPENOCD in hw/lab.conf"
+  [ -n "${OPENOCD_SHA256_X86_64_LINUX:-}" ] || die "the OpenOCD checksum is not pinned in tools/toolchain.env"
+  file="xpack-openocd-$OPENOCD_XPACK-linux-x64.tar.gz"
+  url="https://github.com/microchip-fpga/openocd/releases/download/v$OPENOCD_VERSION/$file"
+  tmp="$(mktemp)" || return 1
+  if ! { curl -fsSL -o "$tmp" "$url" && [ "$(openssl dgst -sha256 "$tmp" | sed 's/.* //')" = "$OPENOCD_SHA256_X86_64_LINUX" ]; }; then
+    rm -f "$tmp"; die "downloading or verifying $url failed"
+  fi
+  rm -rf "$pfx.tmp"; mkdir -p "$pfx.tmp" || { rm -f "$tmp"; return 1; }
+  tar -xzf "$tmp" -C "$pfx.tmp" --strip-components=1 && [ -x "$pfx.tmp/bin/openocd" ] \
+    || { rm -rf "$pfx.tmp" "$tmp"; die "unpacking OpenOCD failed (no bin/openocd in $file)"; }
+  rm -rf "$pfx" && mv "$pfx.tmp" "$pfx" || { rm -rf "$pfx.tmp" "$tmp"; die "installing OpenOCD failed"; }
+  rm -f "$tmp"
+  echo "x: installed openocd $OPENOCD_VERSION in $pfx"
+}
+
 # The pinned Alire release (bin/alr) into its per-version prefix, whatever alr is on PATH:
 # that is the one the other installs use when none is on PATH.
 mpfs_install_alire () {
@@ -310,6 +336,7 @@ cmd_toolchain () {
           return ;;
         alire)  mpfs_install_alire; return ;;       # only the pinned alr, nothing else
         renode) mpfs_install_renode; return ;;      # only the pinned release, no Alire
+        openocd) mpfs_install_openocd; return ;;    # only the pinned release, no Alire
         gnatprove|adalang_analyzer)                 # the toolchains and that one crate
           mpfs_install_alire_toolchains
           case "$1" in
@@ -326,7 +353,7 @@ cmd_toolchain () {
           mpfs_toolchain_on_path || true
           mpfs_toolchain_check
           return ;;
-        *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|alire|gnat|gnatprove|adalang_analyzer|renode]" ;;
+        *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|alire|gnat|gnatprove|adalang_analyzer|renode|openocd]" ;;
       esac
       mpfs_install_alire_toolchains
       mpfs_venv_install || die "creating the python environment failed"
@@ -344,7 +371,7 @@ cmd_toolchain () {
       mpfs_toolchain_on_path || true
       mpfs_toolchain_check
       ;;
-    *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|alire|gnat|gnatprove|adalang_analyzer|renode]|check" ;;
+    *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|alire|gnat|gnatprove|adalang_analyzer|renode|openocd]|check" ;;
   esac
 }
 

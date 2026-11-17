@@ -4,7 +4,7 @@ SPDX-License-Identifier: CC-BY-4.0
 -->
 # Access to the board through OpenOCD
 
-Everything the host tools do with the board goes through the OpenOCD of Microchip SoftConsole. This page
+Everything the host tools do with the board goes through Microchip's OpenOCD. This page
 says how to talk to it by hand, what a hung access looks like and how to get out of it. The scripts
 (`hw/*.py`) do the same; `hw/README.md` holds the measurements this page rests on. The sources of every
 statement are listed at the end.
@@ -15,8 +15,9 @@ statement are listed at the end.
 ./x hw openocd
 ```
 
-This runs `hw/start_openocd.sh`, which starts the OpenOCD of the SoftConsole directory named by `SOFT_CONSOLE` in
-`hw/lab.conf` (the distribution's OpenOCD has no `microsemi-flashpro` interface). The telnet port is 4444,
+This runs `hw/start_openocd.sh`, which starts the OpenOCD of the directory named by `OPENOCD` in
+`hw/lab.conf`, by default the release pinned in `tools/toolchain.env` (`./x toolchain install openocd`; the
+distribution's OpenOCD lacks the driver for the embedded FlashPro6). The telnet port is 4444,
 the gdb port 3333. OpenOCD runs as a child of the script.
 
 Stop it with Ctrl+C in the terminal that runs it. OpenOCD looks at SIGINT only between two passes of its
@@ -30,7 +31,7 @@ exit status is 130 after Ctrl+C. Only a SIGKILL of the script itself leaves Open
 telnet localhost 4444
 ```
 
-Host and port are `OCD_HOST` and `OCD_PORT` of `hw/lab.conf`. The Tcl RPC port is not used: the SoftConsole
+Host and port are `OCD_HOST` and `OCD_PORT` of `hw/lab.conf`. The Tcl RPC port is not used: Microchip's
 OpenOCD has no `read_memory`, and the output of `md[bhwd]` (`mdw`) does not come back through it.
 
 - Numbers without `0x` are decimal (the OpenOCD convention, as stated by the project owner). The scripts
@@ -149,7 +150,7 @@ read or write `THR` of an MMUART (`hw/README.md`).
 
 | Statement | Source |
 |---|---|
-| Port 4444 and 3333, SoftConsole OpenOCD, no read_memory, `mdw` not through the Tcl port | `hw/lab.conf`, `hw/start_openocd.sh`, `hw/README.md` |
+| Port 4444 and 3333, Microchip's OpenOCD, no read_memory, `mdw` not through the Tcl port | `hw/lab.conf`, `hw/start_openocd.sh`, `hw/README.md` |
 | Ctrl+C, grace period, exit statuses | `hw/start_openocd.sh`, `hw/README.md` section "Ctrl+C", `tests/host/hw/run.sh` |
 | `targets mpfs.hart0_e51`, `mpfs.hartN_u54_N`, `riscv set_prefer_sba off` | `hw/reset.py`, `hw/run_image.py`, `tests/host/hw/run.sh` |
 | Decimal numbers without `0x` | stated by the project owner (OpenOCD convention); not in the repository |

@@ -46,7 +46,7 @@ _mpfs_x () {
     toolchain)
             if [ "$COMP_CWORD" -eq 2 ]; then COMPREPLY=($(compgen -W "install check" -- "$cur"))
             elif [ "$sub" = install ]; then
-              COMPREPLY=($(compgen -W "svdtools svd2ada pac alire gnat gnatprove adalang_analyzer renode" -- "$cur"))
+              COMPREPLY=($(compgen -W "svdtools svd2ada pac alire gnat gnatprove adalang_analyzer renode openocd" -- "$cur"))
             fi ;;
     test)   if [ "$COMP_CWORD" -eq 2 ]; then
               COMPREPLY=($(compgen -W "host lib examples qemu renode negative metrics" -- "$cur"))

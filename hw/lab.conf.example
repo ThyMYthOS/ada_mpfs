@@ -5,12 +5,12 @@
 # lines, no quoting. Another file is named with --lab FILE or the environment variable
 # LAB_CONF. The values below are the setup the project was developed on.
 #
-#   SOFT_CONSOLE  install directory of Microchip SoftConsole. Its OpenOCD has the
-#                 microsemi-flashpro interface that the distribution's OpenOCD lacks,
-#                 and talks to the embedded FlashPro6 of the Icicle Kit.
-#   OCD_HOST      host of the OpenOCD telnet port (the Tcl RPC port is not used: the
-#   OCD_PORT      SoftConsole OpenOCD has no read_memory, and md[bhwd] output does
-#                 not come back through it)
+#   OPENOCD       install directory of Microchip's OpenOCD (bin/openocd, openocd/scripts), which has the
+#                 driver for the embedded FlashPro6 of the Icicle Kit that the distribution's OpenOCD
+#                 lacks. Empty: the release pinned in tools/toolchain.env, which
+#                 ./x toolchain install openocd puts into its prefix.
+#   OCD_HOST      host of the OpenOCD telnet port (the Tcl RPC port is not used: md[bhwd]
+#   OCD_PORT      output does not come back through it)
 #   OCD_ROOT      empty if OpenOCD runs on this machine. Else the path of this repository as
 #                 OpenOCD sees it (hw/README.md, "OpenOCD on another machine")
 #   UART_PATTERN  where the serial port of MMUART <n> is; {n} is the number. Either a device
@@ -72,7 +72,7 @@
 #
 # socat listeners do not authenticate; keep them on a trusted network or reach them through an ssh
 # tunnel (ssh -L 5000:localhost:5000 lab-pc, then tcp:localhost:5000), see hw/README.md.
-SOFT_CONSOLE=/opt/Microchip_SoftConsole-v2022.2
+OPENOCD=
 OCD_HOST=localhost
 OCD_PORT=4444
 OCD_ROOT=

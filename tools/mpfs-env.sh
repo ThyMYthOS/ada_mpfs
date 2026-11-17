@@ -249,6 +249,17 @@ mpfs_toolchain_check () {
     _exact adalang_analyzer "$ADALANG_ANALYZER_VERSION" "$v" 0
     v=; command -v renode >/dev/null 2>&1 && v="$(mpfs_version_of renode --version | cut -d. -f1-3)"   # Renode adds a build number: 1.17.0.<build>
     _exact renode "$RENODE_VERSION" "$v" 0
+    # Microchip's OpenOCD is not put on PATH (it would shadow the distribution's); hw/start_openocd.sh uses it from its prefix
+    b="$(mpfs_opt_prefix openocd "$OPENOCD_VERSION")"
+    if [ -x "$b/bin/openocd" ]; then
+        v="$("$b/bin/openocd" --version 2>&1 | head -1 || true)"
+        case "$v" in
+            *"Open On-Chip Debugger"*) _mpfs_row openocd ok "$OPENOCD_VERSION ($b)" ;;
+            *) _mpfs_row openocd ERROR "$b/bin/openocd does not run (./x toolchain install openocd)"; rc=1 ;;
+        esac
+    else
+        _mpfs_row openocd absent "(pin $OPENOCD_VERSION; needed by ./x hw openocd; ./x toolchain install openocd)"
+    fi
     # svd2ada is built from source, into a prefix named after the pinned commit
     b="$(mpfs_opt_prefix svd2ada "$SVD2ADA_COMMIT")/bin"
     if [ -x "$b/svd2ada" ] && [ "$(command -v svd2ada 2>/dev/null)" = "$b/svd2ada" ]; then

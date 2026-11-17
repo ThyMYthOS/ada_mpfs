@@ -2,14 +2,16 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# Start the OpenOCD that ships with Microchip SoftConsole against the embedded FlashPro6 of an
-# Icicle Kit. The distribution's own OpenOCD (0.12) has no microsemi-flashpro interface.
+# Start Microchip's OpenOCD against the embedded FlashPro6 of an Icicle Kit. The distribution's own
+# OpenOCD (0.12) lacks the driver for it.
 #
 #   start_openocd.sh [openocd arguments]
 #
-# The SoftConsole directory is SOFT_CONSOLE of hw/lab.conf (hw/lab.conf.example if there is none, or the file named by LAB_CONF); the environment
-# variable SOFT_CONSOLE overrides both. Telnet is on :4444, gdb on :3333. A missing SoftConsole or OpenOCD is an
-# error with the path that was tried.
+# The install directory of that OpenOCD (bin/openocd, openocd/scripts) is OPENOCD of hw/lab.conf
+# (hw/lab.conf.example if there is none, or the file named by LAB_CONF); the environment variable OPENOCD
+# overrides both. If it is empty, the release pinned in tools/toolchain.env is used, from its prefix
+# ($MPFS_TOOLS_PREFIX/openocd-<version>) where ./x toolchain install openocd puts it. Telnet is on :4444,
+# gdb on :3333. A missing OpenOCD is an error with the path that was tried.
 #
 # OpenOCD runs as a child of this script, which makes sure that Ctrl+C ends it: OpenOCD only looks at
 # SIGINT between two passes of its event loop, so while it is stuck in a JTAG or abstract-command
@@ -22,15 +24,25 @@
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 conf=${LAB_CONF:-$here/lab.conf}
-if [ -z "${SOFT_CONSOLE:-}" ]; then
+if [ -z "${OPENOCD:-}" ]; then
   if [ ! -f "$conf" ] && [ -z "${LAB_CONF:-}" ]; then conf=$here/lab.conf.example; fi   # no hw/lab.conf: the defaults
   [ -f "$conf" ] || { echo "start_openocd: lab.conf '$conf' does not exist" >&2; exit 2; }
-  SOFT_CONSOLE=$(sed -n 's/^SOFT_CONSOLE=//p' "$conf" | tail -n 1)
-  [ -n "$SOFT_CONSOLE" ] || { echo "start_openocd: SOFT_CONSOLE is not set in $conf" >&2; exit 2; }
+  OPENOCD=$(sed -n 's/^OPENOCD=//p' "$conf" | tail -n 1)
 fi
-bin=$SOFT_CONSOLE/openocd/bin/openocd
-[ -x "$bin" ] || { echo "start_openocd: $bin not found or not executable (is SoftConsole installed in $SOFT_CONSOLE? set SOFT_CONSOLE in $conf)" >&2; exit 2; }
-export LD_LIBRARY_PATH=$SOFT_CONSOLE/openocd/bin
+if [ -z "$OPENOCD" ]; then   # the pinned release; its prefix is the one of tools/mpfs-env.sh
+  version=$(sed -n 's/^OPENOCD_VERSION=//p' "$here/../tools/toolchain.env")
+  prefix=${MPFS_TOOLS_PREFIX:-}
+  if [ -z "$prefix" ]; then
+    if [ -n "${ADA_MPFS_SDK:-}" ] && [ -d "$ADA_MPFS_SDK/tools-prefix" ]; then prefix=$ADA_MPFS_SDK/tools-prefix
+    else prefix=$HOME/.local/share/ada_mpfs/tools; fi
+  fi
+  OPENOCD=$prefix/openocd-$version
+  hint="run ./x toolchain install openocd, or set OPENOCD in $conf"
+else
+  hint="check OPENOCD in $conf"
+fi
+bin=$OPENOCD/bin/openocd
+[ -x "$bin" ] || { echo "start_openocd: $bin not found or not executable ($hint)" >&2; exit 2; }
 grace=${START_OPENOCD_GRACE:-3}
 case $grace in ''|*[!0-9]*) echo "start_openocd: START_OPENOCD_GRACE must be a number of seconds, got '$grace'" >&2; exit 2 ;; esac
 
@@ -41,8 +53,11 @@ trap 'if [ -n "$stopping" ]; then again=1; fi; signalled=130' INT
 trap 'if [ -n "$stopping" ]; then again=1; fi; signalled=143' TERM
 trap 'if [ -n "$stopping" ]; then again=1; fi; signalled=129' HUP
 
-"$bin" -s "$SOFT_CONSOLE/openocd/share/openocd/scripts" \
-       --command "set DEVICE MPFS" --file board/microsemi-riscv.cfg "$@" &
+# The board file of OpenOCD is this interface file and the target file, and the target script runs init (to read
+# the IDCODE): what has to come before init (the arguments of the caller) goes between the two.
+"$bin" -s "$OPENOCD/openocd/scripts" \
+       --command "set DEVICE MPFS" --file interface/embedded_flashpro6.cfg "$@" \
+       --file target/microchip_riscv.cfg &
 child=$!
 
 status=0

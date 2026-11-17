@@ -36,11 +36,10 @@ jumper or a switch.
 
 | Tool | What for | Version here |
 |---|---|---|
-| Microchip SoftConsole | Needed only for its OpenOCD fork, which has the `microsemi-flashpro` interface that the distribution's OpenOCD lacks and talks to the FlashPro6 on the board (`./x hw openocd` and every verb that uses OpenOCD). `./x hw bootmode` does not need it: it runs `fpgenprog` and does what the `mpfsBootmodeProgrammer.jar` of SoftConsole does, in Python (`hw/bootprog.py`; no Java). The lab setup of the project was developed with v2022.2 (`SOFT_CONSOLE` in `hw/lab.conf`) | **FILL IN** |
 | FlashPro Express, or Libero SoC | Programs a `.job` file (the factory design) into the FPGA part. Libero also provides `fpgenprog`, which `./x hw bootmode` runs (`FPGENPROG` in `hw/lab.conf`) | **FILL IN** |
 | Program_Debug | Microchip's tool for programming and debugging through the board's FlashPro6 | **FILL IN** (to verify on the board whether you need it) |
-| udev rules | Access to the FlashPro6 and to the CP2108 ports without root. Install the rules that come with SoftConsole or Libero (the files and their names: to verify on your installation), reload udev and re-plug the USB cable | **FILL IN**: where the rules file is |
-| OpenOCD | See `docs/lab/openocd.md` | the one of SoftConsole |
+| udev rules | Access to the FlashPro6 and to the CP2108 ports without root. Install the rules that come with Libero or the Program Debug Tool (the files and their names: to verify on your installation), reload udev and re-plug the USB cable | **FILL IN**: where the rules file is |
+| OpenOCD | Microchip's, with the driver for the FlashPro6 on the board that the distribution's OpenOCD lacks (`./x hw openocd` and every verb that uses OpenOCD). `./x toolchain install openocd`; see `docs/lab/openocd.md` | the release pinned in `tools/toolchain.env` (`OPENOCD` in `hw/lab.conf` names another) |
 | RISC-V compiler | Pinned in `tools/toolchain.env` (`./x toolchain install`) | see the file |
 
 ## What boot mode 0 leaves undone
@@ -122,7 +121,7 @@ depend on your version. The project owner restored the factory state on a board 
 | `MPFS250T_ES`, `FCVG484`, engineering samples, `fpgenprog`, permanent change | `hw/lab.conf.example`, `hw/bootmode.py`, `hw/README.md` section "Boot mode" (the facts about the programmer were stated by the project owner; the Python port makes what the jar makes, see the section, but boot modes 1 to 3 and the FlashPro choice were not run on a board) |
 | IDCODE `0x0F81A1CF` read from a board | stated by the project owner; not recorded in another file of the repository |
 | CP2108 interfaces `if00`..`if03` as MMUART0..3 | `hw/lab.conf` (`UART_PATTERN` and its comment); MMUART0..3 on `if00`..`if03` checked on a board by the project owner |
-| SoftConsole v2022.2, OpenOCD of SoftConsole, FlashPro6 | `hw/lab.conf`, `hw/start_openocd.sh` |
+| Microchip's OpenOCD, FlashPro6 | `tools/toolchain.env`, `hw/lab.conf`, `hw/start_openocd.sh` |
 | Boot mode 0 for the measurements; `./x hw reset` | `hw/README.md` |
 | E51 PC between `0x20003120` and `0x2000312E` in boot mode 0 | stated by the project owner (`0x2000312E` seen on a board; the PC can be anywhere in that range). The stub itself is decoded from the reset values of `SCB_REGS.BOOT_ROM0..7` in `svd/base/scb_regs.yaml`, see `docs/lab/openocd.md` |
 | FlashPro Express, Libero, Program_Debug, udev rules | general knowledge of the tools, not from the repository; to verify on the board |

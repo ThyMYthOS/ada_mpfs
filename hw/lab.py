@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The lab setup and the pinned toolchain, shared by the scripts of hw/.
 
-lab.conf holds what differs between machines (the SoftConsole path, for its OpenOCD, the OpenOCD
+lab.conf holds what differs between machines (the OpenOCD install directory, the OpenOCD
 port, the serial ports: devices, or TCP ports that socat tunnels from another machine). It is not in the repository: lab.conf.example is, and gives
 the default of every key. The RISC-V cross compiler comes from the version pinned
 in tools/toolchain.env, never from "the last directory that matches a glob".

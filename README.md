@@ -107,9 +107,10 @@ x, export.sh        the dispatcher and the environment
   adalang_analyzer, svdtools in a virtual environment, svd2ada built from source and Renode.
 - Python 3.13 or later, `xmllint` (`libxml2-utils`) and QEMU 10.1 or later (`qemu-system-riscv64`) for the host
   suites and the QEMU tests.
-- For the board: a PolarFire SoC Icicle Kit on USB (FlashPro6 JTAG and four serial ports) and Microchip
-  SoftConsole, for its OpenOCD (the one with the `microsemi-flashpro` interface) and, if you use them, its udev rules;
-  both are used as installed, the repository carries neither. The boot mode programmer needs no SoftConsole: it is
+- For the board: a PolarFire SoC Icicle Kit on USB (FlashPro6 JTAG and four serial ports) and Microchip's OpenOCD
+  (the one with the embedded FlashPro6 driver): `./x toolchain install openocd` installs the pinned release
+  (checksum verified, Linux x86_64), or `OPENOCD` in `hw/lab.conf` names another installation. udev rules for the
+  FlashPro6 come with Libero SoC or the Program Debug Tool; the repository carries none. The boot mode programmer is
   `hw/bootprog.py`, a Python port of the Java `mpfsBootmodeProgrammer` of Microchip, and needs only `fpgenprog`. `hw/lab.conf` (from `hw/lab.conf.example`) names the paths.
 
 The examples run in M mode with PMP open and no MMU; there is no operating system and no vendor HAL.
