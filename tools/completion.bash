@@ -64,7 +64,7 @@ _mpfs_x () {
             elif [ "$sub" = bootmode ]; then
               COMPREPLY=($(compgen -W "0 1 2 3 --yes --dry-run --workdir --lab" -- "$cur"))
               [ -z "$cur" ] || COMPREPLY+=($(compgen -f -- "$cur"))
-            elif [ "$sub" = flashpros ]; then COMPREPLY=($(compgen -W "--vendor --all --help" -- "$cur"))
+            elif [ "$sub" = flashpros ]; then COMPREPLY=($(compgen -W "--vendor --all --model --serials --adapters --serial --location --help" -- "$cur"))
             elif [ "$sub" = program ]; then
               COMPREPLY=($(compgen -W "--scan --device --programmer --action --tck --workdir --yes --dry-run --lab" -- "$cur"))
               [ -z "$cur" ] || COMPREPLY+=($(compgen -f -- "$cur"))

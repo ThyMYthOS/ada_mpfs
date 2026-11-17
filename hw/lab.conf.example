@@ -10,7 +10,8 @@
 #                 lacks. Empty: the release pinned in tools/toolchain.env, which
 #                 ./x toolchain install openocd puts into its prefix.
 #   OCD_HOST      host of the OpenOCD telnet port (the Tcl RPC port is not used: md[bhwd]
-#   OCD_PORT      output does not come back through it)
+#   OCD_PORT      output does not come back through it). hw/start_openocd.sh starts OpenOCD with OCD_PORT as its
+#                 telnet port (another port for each board when several are connected)
 #   OCD_ROOT      empty if OpenOCD runs on this machine. Else the path of this repository as
 #                 OpenOCD sees it (hw/README.md, "OpenOCD on another machine")
 #   UART_PATTERN  where the serial port of MMUART <n> is; {n} is the number. Either a device
@@ -85,5 +86,6 @@ OCD_TCK_MHZ=
 TCK_MHZ=
 FLASHPRO_TYPE=
 FLASHPRO_SERIAL=
+FLASHPRO_USB_LOCATION=
 BOOTMODE_DIE=MPFS250T_ES
 BOOTMODE_PACKAGE=FCVG484

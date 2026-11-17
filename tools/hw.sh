@@ -12,7 +12,8 @@
 #                              typed "yes". --dry-run says what it would do; --prepare-only stops before the programming. Stop OpenOCD first: it and the
 #                              programmer both use the FlashPro, and the script refuses while OpenOCD answers
 #                              on the port of lab.conf.
-#   hw.sh openocd [args]       start Microchip's OpenOCD (hw/start_openocd.sh)
+#   hw.sh openocd [--lab F] [args]
+#                              start Microchip's OpenOCD (hw/start_openocd.sh); args go to OpenOCD, --lab F names the lab.conf
 #   hw.sh run <ex|file.elf> [--hart N] [--secs S] [--expect RE] [--expect-port N] [--uart-clocks|--uart-standin]
 #                           [--view MODE] [--color WHEN] [--lab F]
 #                              build the example (or take the ELF), load it onto hart N

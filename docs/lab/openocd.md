@@ -17,13 +17,68 @@ statement are listed at the end.
 
 This runs `hw/start_openocd.sh`, which starts the OpenOCD of the directory named by `OPENOCD` in
 `hw/lab.conf`, by default the release pinned in `tools/toolchain.env` (`./x toolchain install openocd`; the
-distribution's OpenOCD lacks the driver for the embedded FlashPro6). The telnet port is 4444,
-the gdb port 3333. OpenOCD runs as a child of the script.
+distribution's OpenOCD lacks the driver for the embedded FlashPro6). The telnet port is `OCD_PORT` of `hw/lab.conf` (4444
+by default), the gdb port 3333. OpenOCD runs as a child of the script.
 
 Stop it with Ctrl+C in the terminal that runs it. OpenOCD looks at SIGINT only between two passes of its
 event loop, so while it is stuck in a JTAG or abstract-command timeout it ignores Ctrl+C. The script then
 sends SIGTERM, waits 3 s (`START_OPENOCD_GRACE`) and kills OpenOCD; a second Ctrl+C kills it at once. The
 exit status is 130 after Ctrl+C. Only a SIGKILL of the script itself leaves OpenOCD running.
+
+## Several boards
+
+`./x hw openocd` passes `OCD_PORT` of `hw/lab.conf` as `telnet_port` and `FLASHPRO_SERIAL` (`hw/lab.conf` or the
+environment variable) as the serial number of the FlashPro. With several boards connected each one gets its own
+`lab.conf` (`--lab FILE`) with its own `OCD_PORT` and `FLASHPRO_SERIAL`, and its OpenOCD needs its own gdb and Tcl
+ports, which the script leaves alone (`./x hw openocd -c "gdb_port 3334" -c "tcl_port 6667"`). `./x hw flashpros`
+lists the serial numbers; the one it printed for the board in use is the one OpenOCD prints when it finds the adapter.
+`./x hw openocd` says first which FlashPro it will use: `start_openocd: FlashPro model efp6 (told from the USB product ID), serial <SERIAL>`,
+with the source of the model (`FLASHPRO_TYPE`, the USB product ID, or assumed when no adapter is seen), the serial number from
+`FLASHPRO_SERIAL`, or else the only adapter of that model that is connected, or that none or several are and that OpenOCD takes the
+first it finds. A serial number that is not among the connected adapters of the model is said so; OpenOCD then reports its own
+error when it cannot open the adapter.
+
+A FlashPro whose USB descriptor has no serial number (iSerial not set) cannot be chosen by `FLASHPRO_SERIAL`: `./x hw flashpros`
+lists it with `-` as its serial number and its USB location, and `FLASHPRO_USB_LOCATION` (`lab.conf` or the environment) gives
+that location to OpenOCD as `adapter usb location`. The location is the name of the adapter's directory in
+`/sys/bus/usb/devices` (`1-2.3`: bus, then the ports of the hubs in between) and changes with the USB port. With one adapter of
+the model connected neither is needed: OpenOCD takes the one it finds, and the model is told from the USB product ID as it is
+for an adapter with a serial number. With several of one model, `start_openocd.sh` says so and asks for `FLASHPRO_SERIAL` or
+`FLASHPRO_USB_LOCATION`; with adapters of several models (say a FlashPro6 and a FlashPro5), `FLASHPRO_TYPE`, or the serial
+number or location of the one that is meant, says which model. Whether the `microchip-fp6` driver honours `adapter usb
+location` was not tried on a board (OpenOCD's help lists the command): a FlashPro6 without a serial number was selected by
+`FLASHPRO_TYPE=fp6` alone, with one FlashPro6 and one FlashPro5 connected.
+
+The model of the FlashPro decides the interface file and the command that takes the serial number. `FLASHPRO_TYPE` of
+`lab.conf` names it; empty, `hw/flashpros.py --model` tells it from the USB product ID of the adapter:
+
+| Model | `FLASHPRO_TYPE` | USB ID | Interface file | Serial number |
+|---|---|---|---|---|
+| Embedded FlashPro5 | `efp5` | `1514:2008`, product name other than `FlashPro5` | `embedded_flashpro5.cfg` | `adapter serial` |
+| Embedded FlashPro6 | `efp6` | `1514:200b` | `embedded_flashpro6.cfg` | `mchp_efp6 serial` |
+| FlashPro5 | `fp5` | `1514:2008`, product name `FlashPro5` | `flashpro5.cfg` | `adapter serial` |
+| FlashPro6 | `fp6` | `1514:2009` | `flashpro6.cfg` | `mchp_fp6 serial` |
+
+`2008` is the ID that `interface/flashpro5.cfg` and `interface/embedded_flashpro5.cfg` of the OpenOCD both name, and the
+product name `FlashPro5` is what the first one asks for; `200b` is what the Icicle Kit's adapter reports (`Embedded
+FP6b`), `2009` is the FlashPro6, as the project owner stated. The udev rules in the OpenOCD package also name `200a`
+(the PIC64GX interface), which is left as unknown. With no adapter connected (OpenOCD may run on another machine) the
+embedded FlashPro6 is assumed; with adapters of several models, or one of an unknown ID, the script stops and asks for `FLASHPRO_TYPE`.
+The interface files are the ones of `interface/` in the OpenOCD package; with the target file they make its board file
+(`board/microchip_riscv_efp6.cfg` and so on), but the target script runs `init`, so the serial number, the telnet port
+and any arguments of the caller (`-c "gdb_port 3334"`) have to come between the two, and `start_openocd.sh` puts them
+there. Only the embedded FlashPro6 was run on a board: for the other models OpenOCD was shown the interface file with
+its command for the serial number and the ports, and accepted them, and the tests give the script a sysfs of invented
+adapters.
+
+The JTAG clock is `OCD_TCK_MHZ` of `lab.conf` (or the environment variable of that name), in whole MHz. The interface files
+set `adapter speed 6000` (kHz); `start_openocd.sh` adds `adapter speed <OCD_TCK_MHZ times 1000>` after the interface file, so
+the later command wins, and says `start_openocd: JTAG clock 10 MHz (adapter speed 10000 kHz, OCD_TCK_MHZ)`. Empty, the 6 MHz of
+the interface file stay. The argument was checked against a stand-in for OpenOCD; which speeds the embedded FlashPro6 takes
+was not tried on a board (FlashPro Express took 1 to 20 MHz in steps of 1 MHz from it, see `hw/README.md`).
+
+This OpenOCD talks to the embedded FlashPro6 itself, no separate server is started: `./x hw run bare_hello` loaded and
+ran an image on an Icicle Kit that way. Not run: opening the adapter by its serial number, and two boards at once.
 
 ## The telnet port
 

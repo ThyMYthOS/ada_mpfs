@@ -579,6 +579,7 @@ out="$(pty --rows 50 --cols 80 -- "$PY" "$HW/run_image.py" "$tmp/loop.elf" 0 --s
 sane "$out" 1 && pass "run_image: --expect that does not match exits 1 after a live view" || fail "run_image: --expect that does not match exits 1 after a live view ($out)"
 
 # --- start_openocd.sh ---------------------------------------------------------------
+mkdir -p "$tmp/usb-none"; export FLASHPRO_SYSFS="$tmp/usb-none"   # no FlashPro, unless a test names a sysfs
 mkdir -p "$tmp/ocd/bin"
 printf '#!/bin/sh\nprintf "%%s\\n" "$@" > "%s/openocd.args"\n' "$tmp" > "$tmp/ocd/bin/openocd"
 chmod +x "$tmp/ocd/bin/openocd"
@@ -589,9 +590,149 @@ grep -qx -- "$tmp/ocd/openocd/scripts" "$tmp/openocd.args" && grep -qx 'interfac
   && pass "start_openocd: passes the script path, the interface and target files, the device and further arguments" \
   || fail "start_openocd: passes the script path, the interface and target files, the device and further arguments"
 ocdline () { grep -n -x -- "$1" "$tmp/openocd.args" | head -1 | cut -d: -f1; }   # the number of the line of an argument
+ocd_args () { env LAB_CONF="$L" "$@" sh "$HW/start_openocd.sh" >/dev/null 2>&1; }   # start_openocd.sh with lab.conf and the given variables
 [ "$(ocdline interface/embedded_flashpro6.cfg)" -lt "$(ocdline extra)" ] && [ "$(ocdline extra)" -lt "$(ocdline target/microchip_riscv.cfg)" ] \
   && pass "start_openocd: the arguments of the caller come between the interface file and the target file (which runs init)" \
   || fail "start_openocd: the arguments of the caller come between the interface file and the target file (which runs init)"
+# the telnet port is OCD_PORT of lab.conf; the FlashPro is chosen with FLASHPRO_SERIAL (lab.conf or environment)
+ocdport="$(sed -n 's/^OCD_PORT=//p' "$L")"
+grep -qx "telnet_port $ocdport" "$tmp/openocd.args" \
+  && pass "start_openocd: OCD_PORT of lab.conf is the telnet port" || fail "start_openocd: OCD_PORT of lab.conf is the telnet port"
+grep -q '^mchp_efp6' "$tmp/openocd.args" \
+  && fail "start_openocd: without FLASHPRO_SERIAL OpenOCD is not told which FlashPro" || pass "start_openocd: without FLASHPRO_SERIAL OpenOCD is not told which FlashPro"
+{ cat "$L"; printf 'FLASHPRO_SERIAL=FP6A0002\n'; } > "$tmp/lab-serial.conf"
+expect_rc  "start_openocd: FLASHPRO_SERIAL of lab.conf starts OpenOCD" 0 env LAB_CONF="$tmp/lab-serial.conf" sh "$HW/start_openocd.sh" -c "extra"
+grep -qx 'mchp_efp6 serial FP6A0002' "$tmp/openocd.args" \
+  && pass "start_openocd: FLASHPRO_SERIAL of lab.conf selects the FlashPro" || fail "start_openocd: FLASHPRO_SERIAL of lab.conf selects the FlashPro"
+expect_rc  "start_openocd: FLASHPRO_SERIAL in the environment starts OpenOCD" 0 env LAB_CONF="$tmp/lab-serial.conf" FLASHPRO_SERIAL=FP6A0009 sh "$HW/start_openocd.sh"
+grep -qx 'mchp_efp6 serial FP6A0009' "$tmp/openocd.args" && ! grep -q 'FP6A0002' "$tmp/openocd.args" \
+  && pass "start_openocd: FLASHPRO_SERIAL of the environment wins over lab.conf" || fail "start_openocd: FLASHPRO_SERIAL of the environment wins over lab.conf"
+[ "$(grep -n 'FP6A0009\|^extra$' "$tmp/openocd.args" | head -1 | cut -d: -f2)" = "mchp_efp6 serial FP6A0009" ] \
+  && pass "start_openocd: the serial comes before the arguments of the caller" || fail "start_openocd: the serial comes before the arguments of the caller"
+expect_rc  "start_openocd: a FLASHPRO_SERIAL with a space exits 2" 2 env LAB_CONF="$L" FLASHPRO_SERIAL="FP6 A" sh "$HW/start_openocd.sh"
+# OCD_TCK_MHZ: the JTAG clock in whole MHz, given to OpenOCD as adapter speed in kHz, after the interface file (which sets 6000)
+# and before the target file (which runs init); the environment wins over lab.conf
+ocd_args FLASHPRO_SYSFS="$tmp/usb-none"
+grep -q '^adapter speed' "$tmp/openocd.args" && fail "start_openocd: without OCD_TCK_MHZ OpenOCD keeps the speed of the interface file" || pass "start_openocd: without OCD_TCK_MHZ OpenOCD keeps the speed of the interface file"
+{ cat "$L"; printf 'OCD_TCK_MHZ=10\n'; } > "$tmp/lab-tck.conf"
+expect_rc  "start_openocd: OCD_TCK_MHZ of lab.conf starts OpenOCD" 0 env LAB_CONF="$tmp/lab-tck.conf" FLASHPRO_SYSFS="$tmp/usb-none" sh "$HW/start_openocd.sh" -c "extra"
+grep -qx 'adapter speed 10000' "$tmp/openocd.args" && pass "start_openocd: OCD_TCK_MHZ=10 is adapter speed 10000 (kHz)" || fail "start_openocd: OCD_TCK_MHZ=10 is adapter speed 10000 (kHz)"
+[ "$(ocdline interface/embedded_flashpro6.cfg)" -lt "$(ocdline adapter\ speed\ 10000)" ] && [ "$(ocdline adapter\ speed\ 10000)" -lt "$(ocdline extra)" ] && [ "$(ocdline extra)" -lt "$(ocdline target/microchip_riscv.cfg)" ] \
+  && pass "start_openocd: the speed comes after the interface file (which sets 6000), before the arguments of the caller and the target file" \
+  || fail "start_openocd: the speed comes after the interface file, before the arguments of the caller and the target file"
+expect_rc  "start_openocd: OCD_TCK_MHZ in the environment starts OpenOCD" 0 env LAB_CONF="$tmp/lab-tck.conf" FLASHPRO_SYSFS="$tmp/usb-none" OCD_TCK_MHZ=2 sh "$HW/start_openocd.sh"
+grep -qx 'adapter speed 2000' "$tmp/openocd.args" && ! grep -q 'adapter speed 10000' "$tmp/openocd.args" \
+  && pass "start_openocd: OCD_TCK_MHZ of the environment wins over lab.conf" || fail "start_openocd: OCD_TCK_MHZ of the environment wins over lab.conf"
+for bad in abc 0 2.5 -3; do
+  expect_rc  "start_openocd: OCD_TCK_MHZ=$bad exits 2" 2 env LAB_CONF="$L" FLASHPRO_SYSFS="$tmp/usb-none" OCD_TCK_MHZ="$bad" sh "$HW/start_openocd.sh"
+done
+# --lab FILE (also --lab=FILE): the lab.conf to use, as with the other tools; it wins over LAB_CONF, must exist, is not handed to OpenOCD,
+# and the other arguments keep their order
+expect_rc  "start_openocd: --lab FILE names the lab.conf" 0 env -u LAB_CONF FLASHPRO_SYSFS="$tmp/usb-none" sh "$HW/start_openocd.sh" --lab "$tmp/lab-tck.conf" -c "extra"
+grep -qx 'adapter speed 10000' "$tmp/openocd.args" && grep -qx 'extra' "$tmp/openocd.args" && ! grep -q -e '--lab' "$tmp/openocd.args" && ! grep -q 'lab-tck.conf' "$tmp/openocd.args" \
+  && pass "start_openocd: --lab FILE is read and not handed to OpenOCD" || fail "start_openocd: --lab FILE is read and not handed to OpenOCD"
+env -u LAB_CONF FLASHPRO_SYSFS="$tmp/usb-none" sh "$HW/start_openocd.sh" "--lab=$tmp/lab-tck.conf" >/dev/null 2>&1
+grep -qx 'adapter speed 10000' "$tmp/openocd.args" && pass "start_openocd: --lab=FILE works too" || fail "start_openocd: --lab=FILE works too"
+env LAB_CONF="$L" FLASHPRO_SYSFS="$tmp/usb-none" sh "$HW/start_openocd.sh" --lab "$tmp/lab-tck.conf" >/dev/null 2>&1
+grep -qx 'adapter speed 10000' "$tmp/openocd.args" && pass "start_openocd: --lab wins over LAB_CONF" || fail "start_openocd: --lab wins over LAB_CONF"
+env -u LAB_CONF FLASHPRO_SYSFS="$tmp/usb-none" sh "$HW/start_openocd.sh" -c argA -c argB --lab "$tmp/lab-tck.conf" -c argC >/dev/null 2>&1
+[ "$(ocdline argA)" -lt "$(ocdline argB)" ] && [ "$(ocdline argB)" -lt "$(ocdline argC)" ] \
+  && pass "start_openocd: the arguments around --lab keep their order" || fail "start_openocd: the arguments around --lab keep their order"
+expect_rc  "start_openocd: --lab with a file that does not exist exits 2" 2 env -u LAB_CONF sh "$HW/start_openocd.sh" --lab "$tmp/no-such-lab.conf"
+expect_out "start_openocd: ... and names the file" "lab.conf '$tmp/no-such-lab.conf' does not exist" env -u LAB_CONF sh "$HW/start_openocd.sh" --lab "$tmp/no-such-lab.conf"
+expect_rc  "start_openocd: --lab without a file exits 2" 2 env -u LAB_CONF sh "$HW/start_openocd.sh" --lab
+printf 'OPENOCD=%s\nOCD_PORT=x\n' "$tmp/ocd" > "$tmp/lab-badport.conf"
+expect_rc  "start_openocd: an OCD_PORT that is no number exits 2" 2 env LAB_CONF="$tmp/lab-badport.conf" sh "$HW/start_openocd.sh"
+printf 'OPENOCD=%s\n' "$tmp/ocd" > "$tmp/lab-defport.conf"
+expect_rc  "start_openocd: a lab.conf without OCD_PORT starts OpenOCD" 0 env LAB_CONF="$tmp/lab-defport.conf" sh "$HW/start_openocd.sh"
+grep -qx 'telnet_port 4444' "$tmp/openocd.args" \
+  && pass "start_openocd: the telnet port defaults to the OCD_PORT of lab.conf.example" || fail "start_openocd: the telnet port defaults to the OCD_PORT of lab.conf.example"
+# the interface file and the command for the serial number follow the model of the FlashPro: FLASHPRO_TYPE, else the USB product ID
+mkusb "$tmp/usb-efp5" 1-1 1514 2008 "Embedded FlashPro5" EFP5A1
+mkusb "$tmp/usb-two" 1-1 1514 200b "Embedded FP6b" EFP6A1
+mkusb "$tmp/usb-two" 1-2 1514 2008 "FlashPro5" FP5A1
+mkusb "$tmp/usb-fp6" 1-1 1514 2009 "FlashPro6" FP6A1
+mkusb "$tmp/usb-unknown" 1-1 1514 200a "Something" UNK1
+ocd_args FLASHPRO_SYSFS="$tmp/usb-none"
+grep -qx 'interface/embedded_flashpro6.cfg' "$tmp/openocd.args" \
+  && pass "start_openocd: without a FlashPro connected the interface file is the one of the embedded FlashPro6" || fail "start_openocd: without a FlashPro connected the interface file is the one of the embedded FlashPro6"
+ocd_args FLASHPRO_SYSFS="$tmp/usb-efp6" FLASHPRO_SERIAL=EFP6A1
+grep -qx 'interface/embedded_flashpro6.cfg' "$tmp/openocd.args" && grep -qx 'mchp_efp6 serial EFP6A1' "$tmp/openocd.args" \
+  && pass "start_openocd: product ID 200b is an embedded FlashPro6 (efp6 interface file, mchp_efp6 serial)" || fail "start_openocd: product ID 200b is an embedded FlashPro6"
+[ "$(ocdline telnet_port\ $ocdport)" -lt "$(ocdline target/microchip_riscv.cfg)" ] && [ "$(ocdline mchp_efp6\ serial\ EFP6A1)" -lt "$(ocdline target/microchip_riscv.cfg)" ] \
+  && [ "$(ocdline interface/embedded_flashpro6.cfg)" -lt "$(ocdline mchp_efp6\ serial\ EFP6A1)" ] \
+  && pass "start_openocd: the serial number and the telnet port come after the interface file and before the target file (init)" \
+  || fail "start_openocd: the serial number and the telnet port come after the interface file and before the target file (init)"
+# it says which FlashPro it uses
+mkusb "$tmp/usb-efp6x2" 1-1 1514 200b "Embedded FP6b" EFP6A1
+mkusb "$tmp/usb-efp6x2" 1-2 1514 200b "Embedded FP6b" EFP6A2
+ocd_say () { local sysfs="$1"; shift; env LAB_CONF="$L" FLASHPRO_SYSFS="$sysfs" "$@" sh "$HW/start_openocd.sh" 2>&1; }
+expect_out "start_openocd: says the model, how it knows it and the serial number" "FlashPro model efp6 (told from the USB product ID), serial EFP6A1" ocd_say "$tmp/usb-efp6" FLASHPRO_SERIAL=EFP6A1
+expect_out "start_openocd: without a serial number it names the only adapter connected" "serial EFP6A1 (the only one connected)" ocd_say "$tmp/usb-efp6"
+expect_out "start_openocd: without a serial number and a FlashPro it says that OpenOCD takes the one it finds" "FlashPro model efp6 (assumed: none seen in the USB sysfs), no serial number set, none seen" ocd_say "$tmp/usb-none"
+expect_out "start_openocd: with two adapters of the model it names them and asks for FLASHPRO_SERIAL" "2 connected (EFP6A1, EFP6A2): OpenOCD takes the first it finds (set FLASHPRO_SERIAL or FLASHPRO_USB_LOCATION)" ocd_say "$tmp/usb-efp6x2"
+expect_out "start_openocd: a serial number that is not among the connected ones is said so" "serial NOSUCH (not among the connected efp6: EFP6A1)" ocd_say "$tmp/usb-efp6" FLASHPRO_SERIAL=NOSUCH
+expect_out "start_openocd: FLASHPRO_TYPE is named as the source of the model" "FlashPro model fp6 (FLASHPRO_TYPE)" ocd_say "$tmp/usb-efp6" FLASHPRO_TYPE=fp6
+ocd_args FLASHPRO_SYSFS="$tmp/usb-fp5" FLASHPRO_SERIAL=FP5A1
+grep -qx 'interface/flashpro5.cfg' "$tmp/openocd.args" && grep -qx 'adapter serial FP5A1' "$tmp/openocd.args" \
+  && pass "start_openocd: product ID 2008 named FlashPro5 is a FlashPro5 (fp5 interface file, adapter serial)" || fail "start_openocd: product ID 2008 named FlashPro5 is a FlashPro5"
+ocd_args FLASHPRO_SYSFS="$tmp/usb-efp5" FLASHPRO_SERIAL=EFP5A1
+grep -qx 'interface/embedded_flashpro5.cfg' "$tmp/openocd.args" && grep -qx 'adapter serial EFP5A1' "$tmp/openocd.args" \
+  && pass "start_openocd: product ID 2008 with another name is an embedded FlashPro5" || fail "start_openocd: product ID 2008 with another name is an embedded FlashPro5"
+ocd_args FLASHPRO_SYSFS="$tmp/usb-fp6" FLASHPRO_SERIAL=FP6A1
+grep -qx 'interface/flashpro6.cfg' "$tmp/openocd.args" && grep -qx 'mchp_fp6 serial FP6A1' "$tmp/openocd.args" \
+  && pass "start_openocd: product ID 2009 is a FlashPro6 (fp6 interface file, mchp_fp6 serial)" || fail "start_openocd: product ID 2009 is a FlashPro6"
+expect_rc  "start_openocd: two models connected and no serial number exits 2" 2 env LAB_CONF="$L" FLASHPRO_SYSFS="$tmp/usb-two" sh "$HW/start_openocd.sh"
+expect_out "start_openocd: and says to set FLASHPRO_SERIAL, FLASHPRO_USB_LOCATION or FLASHPRO_TYPE" "set FLASHPRO_SERIAL, FLASHPRO_USB_LOCATION or FLASHPRO_TYPE" env LAB_CONF="$L" FLASHPRO_SYSFS="$tmp/usb-two" sh "$HW/start_openocd.sh"
+ocd_args FLASHPRO_SYSFS="$tmp/usb-two" FLASHPRO_SERIAL=FP5A1
+grep -qx 'interface/flashpro5.cfg' "$tmp/openocd.args" \
+  && pass "start_openocd: with two models connected the serial number says which" || fail "start_openocd: with two models connected the serial number says which"
+expect_rc  "start_openocd: a product ID that is not known exits 2" 2 env LAB_CONF="$L" FLASHPRO_SYSFS="$tmp/usb-unknown" sh "$HW/start_openocd.sh"
+expect_out "start_openocd: and says to set FLASHPRO_TYPE" "set FLASHPRO_TYPE" env LAB_CONF="$L" FLASHPRO_SYSFS="$tmp/usb-unknown" sh "$HW/start_openocd.sh"
+ocd_args FLASHPRO_SYSFS="$tmp/usb-unknown" FLASHPRO_TYPE=fp6 FLASHPRO_SERIAL=UNK1
+grep -qx 'interface/flashpro6.cfg' "$tmp/openocd.args" && grep -qx 'mchp_fp6 serial UNK1' "$tmp/openocd.args" \
+  && pass "start_openocd: FLASHPRO_TYPE fp6 is the external FlashPro6 (fp6 interface file, mchp_fp6 serial)" || fail "start_openocd: FLASHPRO_TYPE fp6 is the external FlashPro6"
+{ cat "$L"; printf 'FLASHPRO_TYPE=fp5\n'; } > "$tmp/lab-type.conf"
+env LAB_CONF="$tmp/lab-type.conf" FLASHPRO_SYSFS="$tmp/usb-efp6" sh "$HW/start_openocd.sh" >/dev/null 2>&1
+grep -qx 'interface/flashpro5.cfg' "$tmp/openocd.args" \
+  && pass "start_openocd: FLASHPRO_TYPE of lab.conf wins over the product ID" || fail "start_openocd: FLASHPRO_TYPE of lab.conf wins over the product ID"
+expect_rc  "start_openocd: a FLASHPRO_TYPE that is none of the models exits 2" 2 env LAB_CONF="$L" FLASHPRO_TYPE=fp7 sh "$HW/start_openocd.sh"
+# a FlashPro without a serial number in its USB descriptor: it is listed, the model is told from the product ID, and FLASHPRO_USB_LOCATION
+# (the name of its sysfs directory, such as 1-2.3) picks it out, as "adapter usb location" after the interface file
+mkusb "$tmp/usb-fp6-noserial" 1-1 1514 2009 "FlashPro6" ""
+mkusb "$tmp/usb-fp6x2-noserial" 1-1 1514 2009 "FlashPro6" ""
+mkusb "$tmp/usb-fp6x2-noserial" 1-2.3 1514 2009 "FlashPro6" ""
+mkusb "$tmp/usb-two-noserial" 1-1 1514 2009 "FlashPro6" ""
+mkusb "$tmp/usb-two-noserial" 1-2 1514 2008 "FlashPro5" ""
+expect_out "start_openocd: an adapter without a serial number is told from the product ID and named by its location" "FlashPro model fp6 (told from the USB product ID), no serial number in its USB descriptor, USB location 1-1 (the only one connected)" ocd_say "$tmp/usb-fp6-noserial"
+ocd_args FLASHPRO_SYSFS="$tmp/usb-fp6-noserial"
+grep -qx 'interface/flashpro6.cfg' "$tmp/openocd.args" && ! grep -q '^mchp_fp6 serial' "$tmp/openocd.args" && ! grep -q '^adapter usb location' "$tmp/openocd.args" \
+  && pass "start_openocd: an adapter without a serial number gets the fp6 interface file and no serial or location command" || fail "start_openocd: an adapter without a serial number gets the fp6 interface file and no serial or location command"
+expect_out "start_openocd: two adapters without a serial number are named by their locations, and FLASHPRO_USB_LOCATION is asked for" "2 connected (1-1 (no serial number), 1-2.3 (no serial number)): OpenOCD takes the first it finds (set FLASHPRO_SERIAL or FLASHPRO_USB_LOCATION)" ocd_say "$tmp/usb-fp6x2-noserial"
+ocd_args FLASHPRO_SYSFS="$tmp/usb-fp6x2-noserial" FLASHPRO_USB_LOCATION=1-2.3
+grep -qx 'adapter usb location 1-2.3' "$tmp/openocd.args" \
+  && pass "start_openocd: FLASHPRO_USB_LOCATION is given to OpenOCD as adapter usb location" || fail "start_openocd: FLASHPRO_USB_LOCATION is given to OpenOCD as adapter usb location"
+[ "$(ocdline interface/flashpro6.cfg)" -lt "$(ocdline adapter\ usb\ location\ 1-2.3)" ] && [ "$(ocdline adapter\ usb\ location\ 1-2.3)" -lt "$(ocdline target/microchip_riscv.cfg)" ] \
+  && pass "start_openocd: the USB location comes after the interface file and before the target file (init)" || fail "start_openocd: the USB location comes after the interface file and before the target file (init)"
+expect_out "start_openocd: says the USB location it was given" "USB location 1-2.3" ocd_say "$tmp/usb-fp6x2-noserial" FLASHPRO_USB_LOCATION=1-2.3
+expect_out "start_openocd: a USB location that is not among the connected ones is said so, with the locations" "USB location 1-9 (not among the connected fp6 at 1-1, 1-2.3)" ocd_say "$tmp/usb-fp6x2-noserial" FLASHPRO_USB_LOCATION=1-9
+# what was asked for is not there: the model is still that of what is (not "assumed efp6")
+expect_out "start_openocd: a serial number that is not there still gets the model of the adapter that is" "FlashPro model fp5 (told from the USB product ID), serial NOSUCH (not among the connected fp5: FP5A1)" ocd_say "$tmp/usb-fp5" FLASHPRO_SERIAL=NOSUCH
+ocd_args FLASHPRO_SYSFS="$tmp/usb-fp6x2-noserial" FLASHPRO_SERIAL=SN1 FLASHPRO_USB_LOCATION=1-1
+grep -qx 'mchp_fp6 serial SN1' "$tmp/openocd.args" && grep -qx 'adapter usb location 1-1' "$tmp/openocd.args" \
+  && pass "start_openocd: a serial number and a USB location are both given to OpenOCD" || fail "start_openocd: a serial number and a USB location are both given to OpenOCD"
+expect_rc  "start_openocd: two models connected: the USB location says which, so it starts" 0 env LAB_CONF="$L" FLASHPRO_SYSFS="$tmp/usb-two-noserial" FLASHPRO_USB_LOCATION=1-2 sh "$HW/start_openocd.sh"
+grep -qx 'interface/flashpro5.cfg' "$tmp/openocd.args" && pass "start_openocd: with two models connected the USB location says which" || fail "start_openocd: with two models connected the USB location says which"
+expect_rc  "start_openocd: two models connected and nothing that says which exits 2" 2 env LAB_CONF="$L" FLASHPRO_SYSFS="$tmp/usb-two-noserial" sh "$HW/start_openocd.sh"
+{ cat "$L"; printf 'FLASHPRO_USB_LOCATION=1-1\n'; } > "$tmp/lab-loc.conf"
+env LAB_CONF="$tmp/lab-loc.conf" FLASHPRO_SYSFS="$tmp/usb-fp6x2-noserial" sh "$HW/start_openocd.sh" >/dev/null 2>&1
+grep -qx 'adapter usb location 1-1' "$tmp/openocd.args" && pass "start_openocd: FLASHPRO_USB_LOCATION of lab.conf selects the adapter" || fail "start_openocd: FLASHPRO_USB_LOCATION of lab.conf selects the adapter"
+env LAB_CONF="$tmp/lab-loc.conf" FLASHPRO_SYSFS="$tmp/usb-fp6x2-noserial" FLASHPRO_USB_LOCATION=1-2.3 sh "$HW/start_openocd.sh" >/dev/null 2>&1
+grep -qx 'adapter usb location 1-2.3' "$tmp/openocd.args" && ! grep -q 'location 1-1$' "$tmp/openocd.args" \
+  && pass "start_openocd: FLASHPRO_USB_LOCATION of the environment wins over lab.conf" || fail "start_openocd: FLASHPRO_USB_LOCATION of the environment wins over lab.conf"
+for bad in abc 1 1- 1-2. a-b 1-2.x '1-2 3'; do
+  expect_rc  "start_openocd: FLASHPRO_USB_LOCATION '$bad' exits 2" 2 env LAB_CONF="$L" FLASHPRO_SYSFS="$tmp/usb-none" FLASHPRO_USB_LOCATION="$bad" sh "$HW/start_openocd.sh"
+done
 printf 'OPENOCD=%s\n' "$tmp/noopenocd" > "$tmp/lab-noocd.conf"
 expect_rc  "start_openocd: a missing OpenOCD exits 2" 2 env LAB_CONF="$tmp/lab-noocd.conf" sh "$HW/start_openocd.sh"
 expect_out "start_openocd: names the path it tried" "$tmp/noopenocd/bin/openocd" env LAB_CONF="$tmp/lab-noocd.conf" sh "$HW/start_openocd.sh"
@@ -1103,12 +1244,18 @@ mkusb 1-4 1514 2009 "FlashPro6" FP6A0003
 mkusb 1-5 1514 200a "Other" OTHER0004
 mkusb 1-3 10c4 ea71 "CP2108" CPSERIAL
 mkusb usb1 1d6b 0002 "Host Controller" ""
+mkusb 1-6 1514 2009 "FlashPro6" ""   # no serial number in the descriptor
+mkdir -p "$fs/1-6:1.0"   # an interface of that device: no vendor ID, not a device
 FPL () { "$PY" "$HW/flashpros.py" --sysfs "$fs" "$@"; }
 expect_out "flashpros: lists the serial of the first FlashPro, with its model" "FP6A0001  1514:200b  Embedded FP6b  efp6" FPL
 expect_out "flashpros: lists the serial of the second FlashPro, with its model" "FP5A0002  1514:2008  FlashPro5  fp5" FPL
 expect_out "flashpros: product ID 2009 is a FlashPro6" "FP6A0003  1514:2009  FlashPro6  fp6" FPL
 expect_out "flashpros: a product ID that is not known is unknown" "OTHER0004  1514:200a  Other  unknown" FPL
 expect_out "flashpros: --model prints the models" "efp6" FPL --model
+expect_out "flashpros: --serials prints the serial numbers of a model" "FP5A0002" FPL --serials fp5
+case "$(FPL --serials fp5 2>&1)" in *FP6A0001*) fail "flashpros: --serials prints only that model" ;; *) pass "flashpros: --serials prints only that model" ;; esac
+expect_rc  "flashpros: --serials of a model that is not there exits 1" 1 FPL --serials efp5
+expect_rc  "flashpros: --serials of a model that does not exist exits 2" 2 FPL --serials fp7
 expect_out "flashpros: --model --serial prints the model of that FlashPro" "fp5" FPL --model --serial FP5A0002
 case "$(FPL --model --serial FP5A0002 2>&1)" in *efp6*) fail "flashpros: --model --serial prints only that model" ;; *) pass "flashpros: --model --serial prints only that model" ;; esac
 expect_rc  "flashpros: --model for a serial number that is not there exits 1" 1 FPL --model --serial NOSUCH
@@ -1117,6 +1264,18 @@ case "$(FPL 2>&1)" in *CPSERIAL*) fail "flashpros: a CP2108 is not a FlashPro" ;
 expect_out "flashpros: --all lists the CP2108 too" "CPSERIAL" FPL --all
 expect_rc  "flashpros: no adapter of the vendor exits 1" 1 FPL --vendor dead
 expect_rc  "flashpros: no sysfs exits 2" 2 "$PY" "$HW/flashpros.py" --sysfs "$tmp/no-such-sysfs"
+# a FlashPro whose USB descriptor has no serial number is listed with "-" and its USB location; the interface entries of sysfs
+# (1-6:1.0, which have no vendor ID) are not devices
+expect_out "flashpros: lists a FlashPro without a serial number, with - and its USB location" "-  1514:2009  FlashPro6  fp6  1-6" FPL
+expect_out "flashpros: lists the USB location of a FlashPro with a serial number" "FP6A0001  1514:200b  Embedded FP6b  efp6  1-1" FPL
+case "$(FPL 2>&1)" in *1-6:1.0*) fail "flashpros: an interface entry of sysfs is not a device" ;; *) pass "flashpros: an interface entry of sysfs is not a device" ;; esac
+[ "$(FPL --serials fp6 2>&1)" = "FP6A0003" ] && pass "flashpros: --serials prints no line for an adapter without a serial number" || fail "flashpros: --serials prints no line for an adapter without a serial number (got: $(FPL --serials fp6 2>&1))"
+[ "$(FPL --adapters fp6 2>&1)" = $'FP6A0003 1-4\n- 1-6' ] && pass "flashpros: --adapters prints SERIAL LOCATION, with - for no serial number" || fail "flashpros: --adapters prints SERIAL LOCATION, with - for no serial number (got: $(FPL --adapters fp6 2>&1))"
+expect_rc  "flashpros: --adapters of a model that is not there exits 1" 1 FPL --adapters efp5
+expect_rc  "flashpros: --adapters of a model that does not exist exits 2" 2 FPL --adapters fp7
+[ "$(FPL --model --location 1-6 2>&1)" = "fp6" ] && pass "flashpros: --model --location prints the model of the adapter at that location" || fail "flashpros: --model --location prints the model of the adapter at that location"
+expect_rc  "flashpros: --model for a location with no FlashPro exits 1" 1 FPL --model --location 9-9
+expect_out "flashpros: --all lists a device without a serial number (the hub) with -" "-  1d6b:0002  Host Controller  unknown  usb1" FPL --all
 
 # --- program.py ---------------------------------------------------------------------
 # FPExpress is a stand-in (fake_fpexpress.py) that records the Tcl scripts it is given and prints the lines the
