@@ -15,19 +15,32 @@
 --                          MMUART4_LO_Base of the PAC), or 0: no console.
 --                          Put does nothing, Is_Tx_Ready is always true,
 --                          Is_Rx_Ready never.
---    __mpfs_console_init   1: Initialize programs the port (divisor,
---                          fractional divisor, line format, FIFOs); 0: the
---                          boot stage has done it, Initialize only records
---                          that the service is ready and no register is
---                          written but those of Put, Get and the status
---                          reads.
+--    __mpfs_console_init   1: Initialize brings the port up: on a primary
+--                          image it clocks and releases the MMUART first
+--                          (SYSREG), then it programs the divisor, the
+--                          fractional divisor, the line format and the
+--                          FIFOs; 0: whoever set the MSS up has done all of
+--                          it, Initialize only records that the service is
+--                          ready and no register is written but those of Put,
+--                          Get and the status reads (SYSREG never).
 --    __mpfs_console_dlr    the integer baud rate divisor (16 bits)
 --    __mpfs_console_dfr    the fractional divisor in 1/64 (0 .. 63); the
 --                          fractional baud rate mode is on for a value other
 --                          than 0
 --
---  The clock and the reset of the MMUART are not touched here: releasing
---  them is the work of the boot stage, whatever __mpfs_console_init says.
+--  __mpfs_boot_role (start.S reads it too) decides who owns SYSREG: a
+--  primary image (1) sets the MSS up itself, so with __mpfs_console_init = 1
+--  Initialize sets the clock bit and clears the reset bit of the MMUART of
+--  the console (SUBBLK_CLOCK_CR and SOFT_RESET_CR, one 32-bit read-modify-write
+--  each, before any other register of the port is written). The image runs on
+--  one hart and the others are parked, so the read-modify-write is not shared.
+--  It does not matter whether the MMUART is clocked already (a primary image
+--  loaded by JTAG after ./x hw initialize), and Initialize may run twice. A
+--  secondary image (0) expects an MSS that is set up (by mpfs_boot or, in the
+--  lab, by the stand-ins of ./x hw) and never touches SYSREG; neither does an
+--  image without a console or with __mpfs_console_init = 0.
+--
+--  @req RTS-026
 --
 --  The registers are the types of the PAC (MPFS_Registers.MMUART). Where the
 --  16550 layout and the alias addresses of the MMUART differ (the data port,
@@ -40,12 +53,14 @@ with System.Machine_Code;
 with System.Storage_Elements;
 
 with MPFS_Registers.MMUART;
+with MPFS_Registers.SYSREG;
 
 package body System.Text_IO is
 
    package SSE renames System.Storage_Elements;
    use SSE;
    package MMUART renames MPFS_Registers.MMUART;
+   package SYSREG renames MPFS_Registers.SYSREG;
 
    type Word is mod 2 ** 64;
 
@@ -58,6 +73,7 @@ package body System.Text_IO is
    function Link_Init return Word with Inline_Always;
    function Link_DLR  return Word with Inline_Always;
    function Link_DFR  return Word with Inline_Always;
+   function Link_Role return Word with Inline_Always;
 
    function Link_Base return Word is
       Value : Word;
@@ -103,6 +119,17 @@ package body System.Text_IO is
       return Value;
    end Link_DFR;
 
+   function Link_Role return Word is
+      Value : Word;
+   begin
+      System.Machine_Code.Asm
+        ("lui  %0, %%hi(__mpfs_boot_role)" & ASCII.LF & ASCII.HT &
+         "addi %0, %0, %%lo(__mpfs_boot_role)",
+         Outputs  => Word'Asm_Output ("=r", Value),
+         Volatile => True);
+      return Value;
+   end Link_Role;
+
    function Base_Address return System.Address is
      (SSE.To_Address (SSE.Integer_Address (Link_Base)))
    with Inline_Always;
@@ -128,6 +155,52 @@ package body System.Text_IO is
       end;
    end Get;
 
+   ------------------
+   -- Release_Port --
+   ------------------
+
+   procedure Release_Port (Base : Word);
+
+   --  Clock and reset of the MMUART at Base (MMUART0 at 0x2000_0000, then
+   --  MMUART1 .. MMUART4 at 0x2010_0000 + 0x2000 * (n - 1); bit n of the
+   --  MMUART field of both registers). A base that is none of them is left
+   --  alone. The clock goes first: a peripheral without clock must not be
+   --  released from its reset.
+
+   procedure Release_Port (Base : Word) is
+      First : constant Word :=
+        Word (SSE.To_Integer (MPFS_Registers.MMUART1_LO_Base));
+      Step  : constant Word :=
+        Word (SSE.To_Integer (MPFS_Registers.MMUART2_LO_Base)) - First;
+      Index : Natural;
+   begin
+      if Base = Word (SSE.To_Integer (MPFS_Registers.MMUART0_LO_Base)) then
+         Index := 0;
+      elsif Base >= First and then (Base - First) mod Step = 0
+        and then (Base - First) / Step <= 3
+      then
+         Index := Natural ((Base - First) / Step) + 1;
+      else
+         return;
+      end if;
+
+      declare
+         Clock : SYSREG.SUBBLK_CLOCK_CR_Register :=
+           SYSREG.SYSREG_Periph.SUBBLK_CLOCK_CR;
+      begin
+         Clock.MMUART.Arr (Index) := True;
+         SYSREG.SYSREG_Periph.SUBBLK_CLOCK_CR := Clock;
+      end;
+
+      declare
+         Reset : SYSREG.SOFT_RESET_CR_Register :=
+           SYSREG.SYSREG_Periph.SOFT_RESET_CR;
+      begin
+         Reset.MMUART.Arr (Index) := False;
+         SYSREG.SYSREG_Periph.SOFT_RESET_CR := Reset;
+      end;
+   end Release_Port;
+
    ----------------
    -- Initialize --
    ----------------
@@ -135,6 +208,10 @@ package body System.Text_IO is
    procedure Initialize is
    begin
       if Present and then Link_Init = 1 then
+         if Link_Role = 1 then
+            Release_Port (Link_Base);
+         end if;
+
          declare
             Base : constant System.Address := Base_Address;
             Port : MMUART.MMUART_Peripheral with Import, Address => Base;

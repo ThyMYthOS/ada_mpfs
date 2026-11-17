@@ -8,7 +8,10 @@ linker script, the hart gate and the ABI of both hart classes before anything bi
   clears `.bss` and calls `main`.
 - `src/bare_hello.adb` is `main`, written with `pragma Restrictions (No_Elaboration_Code)`. It reads
   `mhartid` and writes `bare hello E51 hart 0` or `bare hello U54 hart 1` to the transmit register of
-  MMUART0 (`0x2000_0000`, polled). QEMU ignores the baud divisor, so the port is not initialised.
+  MMUART0 (`0x2000_0000`, polled). A bare image has no boot stage before it, so it is a primary image
+  (`bare_build.sh` links `__mpfs_boot_role` = 1) and `Bare_Console` brings MMUART0 up with the first output: the clock bit and the
+  reset bit of `SYSREG`, divisor 22, 8N1, FIFOs (the same steps as the console of the runtime, `crates/mpfs_rts/README.md`), so
+  `./x hw run bare_hello` needs no `--uart-standin`. QEMU ignores the divisor and clocks nothing; it takes the writes.
 - `build.sh` (see `../common/bare_build.sh`): `gprbuild -c` compiles `start.S` and the Ada sources,
   `riscv64-elf-gcc -nostdlib` links them with `../common/ld/place-lim.ld` (everything in the L2 LIM). The
   light-polarfiresoc runtime is selected only for its `system.ads`; none of its units is bound or linked.

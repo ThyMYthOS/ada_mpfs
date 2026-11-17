@@ -115,8 +115,8 @@ requirements:
   - id: RTS-014
     text: >-
       System.Text_IO is a polled console on the MMUART that the link symbols name (MMUART0 to
-      MMUART4); it programs the divisor and the format only if __mpfs_console_init is 1, never
-      touches the clock and the reset of the MMUART, and with __mpfs_console_base = 0 it does
+      MMUART4); it programs the divisor and the format only if __mpfs_console_init is 1 (the
+      clock and the reset of the MMUART are RTS-026), and with __mpfs_console_base = 0 it does
       nothing and touches no register.
     tsf: false
     source: docs/assurance/rts.md
@@ -223,5 +223,18 @@ requirements:
       frequency: a partition with another frequency, or a runtime with another Clock_Frequency,
       does not compile in any of the three profiles, and no application states the check itself.
       The configured rate is compared, not a measured one.
+    tsf: false
+    source: crates/mpfs_rts/README.md
+  - id: RTS-026
+    text: >-
+      A primary image (__mpfs_boot_role = 1: it sets the MSS up itself) whose console is an MMUART
+      and whose __mpfs_console_init is 1 clocks and releases that MMUART by itself: its first
+      bring-up sets the bit of the MMUART in SYSREG.SUBBLK_CLOCK_CR and clears it in
+      SYSREG.SOFT_RESET_CR (no other peripheral), before any register of the port is written, and
+      a second bring-up is harmless. A secondary image (__mpfs_boot_role = 0), an image without a
+      console and an image with __mpfs_console_init = 0 never access SYSREG. Bare_Console of the
+      examples brings MMUART0 up the same way on a primary image. The board is not needed to
+      check the order and the values of the accesses (a register trace of QEMU); that the port
+      then prints is a result of the board.
     tsf: false
     source: crates/mpfs_rts/README.md

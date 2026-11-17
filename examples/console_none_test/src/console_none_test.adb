@@ -6,7 +6,9 @@
 --
 --    - Initialize does not touch a register, not even those of MMUART0 (the
 --      test leaves a value in its DFR and finds it again), although
---      __mpfs_console_init is 1;
+--      __mpfs_console_init is 1. The value is left after the first output:
+--      Bare_Console brings MMUART0 up with that output on a primary image
+--      (DFR is written), and only the console of the runtime is tested here;
 --    - Is_Tx_Ready is true, Is_Rx_Ready is false and Get returns NUL;
 --    - Put of a text that looks like a failure of this test writes nothing:
 --      the report goes out on MMUART0 (Bare_Console), and tests/qemu/
@@ -43,13 +45,13 @@ procedure Console_None_Test is
      "  FAIL: System.Text_IO.Put wrote to a console that is none" &
      Character'Val (13) & Character'Val (10);
 begin
-   Port.DFR := (DFR => Sentinel, others => <>);
-
    if Bare_Console.Hart_Id = 0 then
       Test_Report.Start ("console_none_test_e51");
    else
       Test_Report.Start ("console_none_test_u54");
    end if;
+
+   Port.DFR := (DFR => Sentinel, others => <>);
 
    System.Text_IO.Initialize;
    Test_Report.Check

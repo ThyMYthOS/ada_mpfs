@@ -85,7 +85,7 @@ ld_dir="$HERE/ld"
 pac_dir=""
 spec_file="$HERE/link-zcx.spec"
 # The register packages of the PAC that the port units of the runtime use (s-bbripl, s-bbsuti, s-textio).
-pac_files="mpfs_registers.ads mpfs_registers-plic.ads mpfs_registers-clint.ads mpfs_registers-mmuart.ads"
+pac_files="mpfs_registers.ads mpfs_registers-plic.ads mpfs_registers-clint.ads mpfs_registers-mmuart.ads mpfs_registers-sysreg.ads"
 check=0
 force=0
 args=()

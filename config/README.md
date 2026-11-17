@@ -60,16 +60,27 @@ runtime is 1 MHz (`System.BB.Parameters.Clock_Frequency`; it is not partition da
 of LIM (1920 KB), no scratchpad, one way of cache. The scratchpad profile takes two ways from the LIM (13 and 2, that
 is 1664 KB and 256 KB); `envm` has the LIM of `lim`.
 
+### The role of an image
+
+`--role` (`__mpfs_boot_role`) says who owns the MSS; it is independent of the way the image is loaded and of the security
+profile, and any application can be built in either role. The default of the tool is `primary`.
+
+- **primary** (1): the image sets the MSS up itself. It starts straight from the eNVM, is copied from the sNVM by the system
+  controller (boot mode 2) or is loaded by JTAG in the lab; no bootloader runs before it. `mpfs_boot`, the later
+  bootloader, is such an image too. Its console clocks and releases its MMUART itself when `--console-init` is 1.
+- **secondary** (0): the image expects an MSS that is already set up, by `mpfs_boot` or, for an image loaded by JTAG in the lab,
+  by the stand-ins of `./x hw` (`initialize`, `--uart-clocks`, `--uart-standin`). A secondary image never touches `SYSREG`.
+
 ### The link symbols
 
 | Symbol | Meaning | Set by |
 |---|---|---|
 | `__data_load`, `__data_start`, `__data_end`, `__bss_start`, `__bss_end`, `__heap_start`, `__heap_end`, `__stack_end`, `__interrupt_stack_start`, `__interrupt_stack_end`, `__global_pointer$` | the layout | the placement script (`ld/sections.ld`) |
 | `__eh_frame_start`, `__eh_frame_end` | the range of `.eh_frame` that the zero-cost exceptions of the `embedded` profile register | the placement script |
-| `__mpfs_boot_role` | 1 primary, 0 secondary | the list |
+| `__mpfs_boot_role` | 1 primary, 0 secondary (see "The role of an image" below) | the list |
 | `__mpfs_console_base` | base of the console MMUART (LO), 0 for none | the list |
 | `__mpfs_console_dlr`, `__mpfs_console_dfr` | divisor and fraction of the baud rate | the list |
-| `__mpfs_console_init` | 1 the runtime sets divisor and format, 0 the boot stage has | the list |
+| `__mpfs_console_init` | 1 the runtime brings the console MMUART up (divisor, format, FIFOs, and on a primary image its clock and reset in `SYSREG`), 0 whoever set the MSS up has done all of it and no register but the data port is written | the list |
 | `__mpfs_harts_mask` | mask of the partition, bit n is hart n | the list |
 | `__stack_size`, `__interrupt_stack_size` | stack sizes in bytes: the stack of the environment task and the interrupt stack (the size, not a limit: `ld/sections.ld` reserves exactly this for an image that links `System.BB.Interrupts`, none for another) | the list |
 | `MPFS_ENVM_LENGTH`, `MPFS_DTIM_LENGTH`, `MPFS_E51_ITIM_LENGTH`, `MPFS_U54_1_ITIM_LENGTH` to `MPFS_U54_4_ITIM_LENGTH`, `MPFS_LIM_LENGTH`, `MPFS_SCRATCHPAD_LENGTH`, `MPFS_DDR_CACHED_LENGTH`, `MPFS_DDR_NC_LENGTH`, `MPFS_DDR_WCB_LENGTH` | the lengths of the regions of `ld/mpfs-memory.ld` (the origins are literals there) | the list |

@@ -131,7 +131,7 @@ TX="$tmp/tree/x"
 
 expect_rc  "x stack: an example is built with the analysis and reported" 0 bash "$TX" stack report_test
 expect_out "x stack: the frames of Test_Report are in the report" "test_report.adb" bash "$TX" stack report_test
-expect_out "x stack: the chain through Info is summed (48 + 48)" "96 B              Main" bash "$TX" stack report_test --hart u54
+expect_out "x stack: the chain through Info and Put_Dec is summed (48 + 48 + 48)" "144 B              Main" bash "$TX" stack report_test --hart u54
 expect_out "x stack: --hart selects the image" "Per-frame stack usage" bash "$TX" stack report_test --hart u54 --top 2
 if find "$tmp/tree/examples/report_test" -name '*.su' | grep -q .; then
   fail "x stack: leaves no analysis objects behind"

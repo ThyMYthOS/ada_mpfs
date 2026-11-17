@@ -5,11 +5,18 @@
  * start.S -- entry point of every image linked with the runtime mpfs_rts. It replaces the
  * start-ram.S of the upstream runtime (which sends every hart but hart 1 into a loop and only
  * clears .bss) and is written for the partition model: which harts run the
- * image, and whether the image is the primary one (it owns the boot flow) or a secondary one,
+ * image, and whether the image is the primary one or a secondary one,
  * is decided at link time by two absolute symbols that the partition data sets with --defsym:
  *
  *   __mpfs_harts_mask   bit n = hart n belongs to the partition (E51 = 0, U54 = 1 .. 4)
  *   __mpfs_boot_role    1 = primary, 0 = secondary
+ *
+ * A primary image sets the MSS up itself, however it is loaded (from the eNVM, copied from the sNVM
+ * by the system controller, or by JTAG in the lab): no bootloader runs before it (mpfs_boot is a
+ * primary image too). A secondary image expects an MSS that is set up (by mpfs_boot, or in the lab
+ * by the stand-ins of ./x hw) and never touches SYSREG. The role does not depend on the load path
+ * or the security profile. The console (s-textio.adb) reads the role too: a primary image clocks
+ * and releases the MMUART of its console.
  *
  * Both are mandatory: an image linked without one fails with "undefined reference". The
  * layout symbols (__global_pointer$, __stack_end, __data_*, __bss_*, __mpfs_trap_record)

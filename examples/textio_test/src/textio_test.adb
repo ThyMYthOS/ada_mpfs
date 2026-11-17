@@ -10,6 +10,9 @@
 --    - the first output initialised the service (Initialized);
 --    - the registers of that MMUART are those of the link symbols: 8N1, the
 --      divisor, DFR and the fractional mode, the FIFOs (Console_Checks);
+--    - a second Initialize (the bring-up of a primary image repeats the clock
+--      and the reset of the MMUART and programs the port again) leaves it
+--      programmed and working;
 --    - GNAT.IO (Put, Put_Line, New_Line) reaches the same port;
 --    - the receiving side: with MCR.LOOP every byte put comes back through
 --      Is_Rx_Ready and Get (no console.in needed, so the same image runs on
@@ -17,7 +20,7 @@
 --
 --  Reported as textio_test_e51 or textio_test_u54.
 --
---  @verifies RTS-014
+--  @verifies RTS-014, RTS-026
 
 pragma Warnings (Off, "*is an internal GNAT unit");
 pragma Warnings (Off, "use of this unit is non-portable*");
@@ -38,6 +41,12 @@ begin
    Test_Report.Check
      (System.Text_IO.Initialized,
       "the first output initialised the console");
+   Console_Checks.Programmed (Console_Checks.Hart_Base);
+
+   System.Text_IO.Initialize;
+   Test_Report.Check
+     (System.Text_IO.Initialized,
+      "a second Initialize leaves the console initialised");
    Console_Checks.Programmed (Console_Checks.Hart_Base);
 
    GNAT.IO.Put ("  ok: GNAT.IO.Put");

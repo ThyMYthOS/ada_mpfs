@@ -310,7 +310,8 @@ def render_package(part: Partition) -> str:
     out += ada.banner("Harts")
     out += [""]
     out += constant("Harts_Mask", hexa(part.mask), "Bit n is hart n: bit 0 is the E51, bits 1 to 4 are the U54 cores.")
-    out += constant("Boot_Role", str(part.role), "1 primary, 0 secondary (__mpfs_boot_role).")
+    out += constant("Boot_Role", str(part.role),
+                    "1 primary (the image sets the MSS up), 0 secondary (it is set up) (__mpfs_boot_role).")
     out += constant("Hart_E51", "16#01#", "The E51 in a mask.")
     out += constant("Hart_U54", "16#1E#", "The U54 cores in a mask.")
     out += [""]
@@ -324,7 +325,7 @@ def render_package(part: Partition) -> str:
     base, dlr, dfr = part.console_values
     out += constant("Console_Base", hexa(base), "The LO base of the MMUART; 0 without one.")
     out += constant("Console_Init", str(part.console_init),
-                    "1 the runtime sets divisor and format; 0 the boot stage has done it.")
+                    "1 the runtime brings the port up (clock and reset too on a primary image); 0 it is done.")
     out += constant("Console_Divisor", str(dlr), "The integer divisor of the baud rate.")
     out += constant("Console_Fraction", str(dfr), "The fraction in 64ths of the divisor.")
     out += [""]
@@ -418,11 +419,16 @@ def parser() -> argparse.ArgumentParser:
     sel.add_argument("--harts", type=hart_set, help="the harts 0-4 of the partition (default: hart 0 for the E51, "
                      "hart 1 for the U54)")
     sel.add_argument("--mask", type=number, help="the mask itself (a test seam for masks the set cannot say)")
-    p.add_argument("--role", type=role, default=1, help="primary, secondary or the number of __mpfs_boot_role")
+    p.add_argument("--role", type=role, default=1,
+                   help="primary (the default; 1): the image sets the MSS up itself, however it is loaded, and a "
+                        "console with init 1 clocks and releases its MMUART; secondary (0): the MSS is set up "
+                        "already (by mpfs_boot, or in the lab by the stand-ins of ./x hw) and SYSREG is never "
+                        "touched; or the number of __mpfs_boot_role")
     p.add_argument("--memory", choices=MEMORY_PROFILES, default="lim", help="memory profile (placement script)")
     p.add_argument("--console", choices=CONSOLE_CHOICES, help="default: the MMUART of the lowest hart of the mask (hart n: mmuartn)")
     p.add_argument("--console-init", type=int, choices=(0, 1), default=1,
-                   help="1 the runtime programs the MMUART, 0 the boot stage has")
+                   help="1 the runtime brings the MMUART up (divisor, format, FIFOs, and on a primary image the clock "
+                        "and the reset), 0 whoever set the MSS up has done all of it")
     p.add_argument("--stack-size", type=number, default=DEFAULT_STACK_SIZE)
     p.add_argument("--interrupt-stack-size", type=number, help="default: that of the profile")
     p.add_argument("--secondary-stack-size", type=number, help="default: that of the profile")

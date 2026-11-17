@@ -36,7 +36,8 @@ package MPFS_Partition is
    Harts_Mask               : constant := 16#1#;
    --  Bit n is hart n: bit 0 is the E51, bits 1 to 4 are the U54 cores.
    Boot_Role                : constant := 1;
-   --  1 primary, 0 secondary (__mpfs_boot_role).
+   --  1 primary (the image sets the MSS up), 0 secondary (it is set up)
+   --  (__mpfs_boot_role).
    Hart_E51                 : constant := 16#01#;
    --  The E51 in a mask.
    Hart_U54                 : constant := 16#1E#;
@@ -54,7 +55,8 @@ package MPFS_Partition is
    Console_Base             : constant := 16#2010_6000#;
    --  The LO base of the MMUART; 0 without one.
    Console_Init             : constant := 0;
-   --  1 the runtime sets divisor and format; 0 the boot stage has done it.
+   --  1 the runtime brings the port up (clock and reset too on a primary
+   --  image); 0 it is done.
    Console_Divisor          : constant := 21;
    --  The integer divisor of the baud rate.
    Console_Fraction         : constant := 45;

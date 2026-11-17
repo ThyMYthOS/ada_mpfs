@@ -17,6 +17,9 @@
 #   Harts mask   bit n set = hart n runs the image (E51 = hart 0, U54 = 1 .. 4);
 #                start.S parks every other hart. It reaches start.S as the
 #                absolute symbol __mpfs_harts_mask (--defsym).
+#   Boot role    a bare image starts straight from reset, with no boot stage before it:
+#                it is a primary image (__mpfs_boot_role = 1), and Bare_Console sets up
+#                MMUART0 itself.
 
 bare_build () {
   local image="$1"; shift
@@ -52,6 +55,7 @@ bare_link () {
   "${BARE_CC:-riscv64-elf-gcc}" -nostdlib -static -L "$ld" -T "$ld/place-lim.ld" \
     -Wl,--gc-sections -Wl,--no-warn-rwx-segments -Wl,-Map,"$base.map" \
     -Wl,--defsym=__mpfs_harts_mask="$mask" \
+    -Wl,--defsym=__mpfs_boot_role=1 \
     -Wl,--defsym=__stack_size=16384 \
     -Wl,--defsym=MPFS_ENVM_LENGTH=0x1ff00 \
     -Wl,--defsym=MPFS_DTIM_LENGTH=0 \

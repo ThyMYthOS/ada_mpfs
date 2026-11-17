@@ -392,6 +392,20 @@ There is no periodic tick. `System.BB.Time` (common GNARL code) computes the nex
       (System.BB.Board_Parameters.Clock_Frequency /= Clocks.Rtc_Toggle_Hz, "...");
 
 `Clock_Frequency` is the constant of which `Time_Unit` is the reciprocal, so this is `Time_Unit * Rtc_Toggle_Hz = 1.0` for a whole number of hertz. It is read from `System.BB.Board_Parameters` rather than through `Ada.Real_Time` because that unit is not pure (it would take `pragma Pure` from the package, which the checks need: they are flat static constants) and is not in the `light` profile; `Board_Parameters` is pure and in every variant. `./x build` compiles the package against the variant before the link, so no application states the check itself. The check compares the configured, nominal rate, not the measured one (997,252 ticks per second on the Icicle Kit). `tests/host/rts_negative` compiles the package against the `light`, `light-tasking` and `embedded` variants with 1 MHz (compiles) and with 2 MHz, 999 999 Hz, 100 MHz and 32 768 Hz (rejected with the message), and against a copy of a variant whose `Clock_Frequency` is 2 MHz (rejected). What only the hardware can show is that `mtime` really runs at that rate (the GDB init sets `RTC_CLOCK_CR`; the runs on the Icicle Kit compared `mtime` with `mcycle` and the CFM, see `docs/lab/results/p1.md`) and the accuracy of `delay until` (at most 2 ticks plus the interrupt latency; `DELAY_ACCURACY=hardware ./x build delay_accuracy_test`). A link-time form of the check (an `ASSERT` on a `--defsym` of the partition data in `ld/`) would be a new mandatory link symbol and is not part of the link-time interface (`config/README.md`); the compile-time check needs none.
+## Roles of an image
+
+The role is a property of the image, independent of the way it is loaded and of the security profile
+(`__mpfs_boot_role`: 1 primary, 0 secondary; the default of `config/gen/standalone.py` is primary). Any application can be
+built in either role.
+
+- **Primary.** The image sets the MSS up itself. It starts straight from the eNVM, is copied from the sNVM by the system
+  controller (boot mode 2) or is loaded by JTAG in the lab; no bootloader runs before it. `mpfs_boot`, the later
+  bootloader, is such an image too. The console of a primary image brings its MMUART up itself (clock, reset, divisor,
+  format, FIFOs: see "Console"), and a primary image resets the MSS when it ends.
+- **Secondary.** The image expects an MSS that is set up already: by `mpfs_boot`, or, for an image loaded by JTAG in
+  the lab, by the stand-ins of `./x hw` (`initialize`, `--uart-clocks`, `--uart-standin`). A secondary image never
+  touches `SYSREG`, and it halts when it ends.
+
 ## Console
 
 `System.Text_IO` (`mpfs/gnat/s-textio.adb`, replacing `s-textio__ns16550.adb`) is the console of all three profiles
@@ -404,19 +418,28 @@ are not in the library, so one runtime serves every console:
 | `__mpfs_console_base` | Base address of the MMUART (`MMUART0_LO_Base` to `MMUART4_LO_Base` of the PAC), or 0 for no console |
 | `__mpfs_console_dfr` | The fractional divisor in 1/64 (0 to 63); the fractional baud rate mode (`MM0.EFBR`) is on for a value other than 0 |
 | `__mpfs_console_dlr` | The integer baud rate divisor (16 bits: `DLR`, the low byte, and `DMR`, the high byte, of the divisor latch) |
-| `__mpfs_console_init` | 1: `Initialize` programs the port; 0: the boot stage has done it and `Initialize` only records that the service is ready |
+| `__mpfs_console_init` | 1: `Initialize` brings the port up (on a primary image with the clock and the reset of the MMUART first); 0: whoever set the MSS up has done all of it and `Initialize` only records that the service is ready |
 
-- **Init 1.** `Initialize` (called by the first output of `GNAT.IO`) writes, in this order: `LCR` with `DLAB` set and 8 data
+- **Init 1.** `Initialize` (called by the first output of `GNAT.IO`) writes, in this order: on a primary image
+  `SYSREG.SUBBLK_CLOCK_CR` and `SOFT_RESET_CR` (next bullet), then `LCR` with `DLAB` set and 8 data
   bits, the divisor latches, `DFR` and `MM0.EFBR` (the other multi-mode bits stay as they are), `LCR` 8N1 with `DLAB` clear,
-  `FCR` (both FIFOs on and emptied, receive trigger one byte). It leaves `IER`, `MCR` and the clock and the reset alone.
-- **Init 0.** Nothing is written but the data port; `Get`, `Is_Rx_Ready` and `Is_Tx_Ready` read it and `LSR`.
+  `FCR` (both FIFOs on and emptied, receive trigger one byte). It leaves `IER` and `MCR` alone. A second `Initialize`
+  programs the port again with the same values and is harmless.
+- **Init 0.** Nothing is written but the data port; `Get`, `Is_Rx_Ready` and `Is_Tx_Ready` read it and `LSR`. No
+  `SYSREG` register is touched.
 - **Console none** (`__mpfs_console_base` = 0). `Put` does nothing, `Is_Tx_Ready` is always true, `Is_Rx_Ready` always
   false, `Get` returns NUL; no register is touched, `__mpfs_console_init` or not. The RAM FIFO console is not
   there: it comes with the SMP work.
-- **Clock and reset of the MMUART are not the runtime's.** Whatever `__mpfs_console_init` says, the runtime does not
-  touch `SYSREG.SUBBLK_CLOCK_CR` or `SOFT_RESET_CR`: releasing the MMUART is the boot stage's task (the GDB script
-  in the hardware lab, the init stub, the boot code). An image on a board nobody has released the MMUART for prints
-  nothing; `./x hw run --uart-clocks` stands in for that part, `--uart-standin` for the divisor and format as well.
+- **Clock and reset of the MMUART belong to the primary image.** A primary image sets the MSS up itself (see "Roles"
+  below), so with `__mpfs_console_init` = 1 `Initialize` sets the bit of the console's MMUART in
+  `SYSREG.SUBBLK_CLOCK_CR` (bit 5 + n for MMUART n, field `MMUART`) and then clears the same bit in
+  `SYSREG.SOFT_RESET_CR`, each a 32-bit read-modify-write, before it writes any register of the port. A primary
+  image runs on one hart and the other harts are parked, so the read-modify-write is not shared. Only the console's
+  MMUART is clocked and released, no other peripheral. The step is idempotent: a primary image loaded by JTAG after
+  `./x hw initialize`, or after a bootloader, finds the MMUART clocked and released already. A secondary image
+  (`__mpfs_boot_role` = 0), an image without a console and one with `__mpfs_console_init` = 0 write no `SYSREG`
+  register. The role is read like the console symbols (`lui`, `addi`). `./x hw run --uart-clocks` and
+  `--uart-standin` stay for a secondary image and for an image that does not bring the UART up itself.
 - **How the symbols are read.** The values are read by two instructions each (`lui`, `addi`, as `start.S` reads the
   mask), not through the address of an imported object: the compiler knows that such an address is not null and
   would fold the test for "no console". A missing symbol is an undefined reference in an image that links
@@ -435,13 +458,18 @@ The console of an image is partition data: `./x build --console` (`mmuart0` to `
 `--console` or the `example.conf` says otherwise) and `--console-init` (`1`, `0`) go to `config/gen/standalone.py`, which writes the four
 `__mpfs_console_*` symbols, and an example with images of different consoles names one per main
 (`IMAGE_<main>=` in its `example.conf`, `examples/textio_test`). The divisor is 22 (115200 baud at the ~40 MHz APB
-clock of an Icicle Kit at reset, as measured for `--uart-standin`), 21 and 45/64 for MMUART4, which the board does not
+clock of an Icicle Kit at reset, as measured for `--uart-standin`; the runtime does not start `mtime`, that is the MSS
+set-up of a later phase and `./x hw initialize` does it in the lab), 21 and 45/64 for MMUART4, which the board does not
 bring out and which exercises the fractional mode under QEMU. The configuration generator will write these values from
 the clock of the configuration.
 
 Tests: `examples/textio_test` (the console of the runtime: registers against the link symbols, `GNAT.IO`, loopback, all
-five MMUARTs, init 0), `examples/console_none_test`, and `tests/host/rts_boot` (the symbols in the images, a missing symbol
-fails the link).
+five MMUARTs, init 0), `examples/console_none_test`, `tests/host/rts_boot` (the symbols in the images, a missing symbol
+fails the link) and `tests/host/rts_console_bringup` (the `SYSREG` writes of the images in a QEMU register trace: a
+primary image with init 1 clocks and releases its MMUART before the first register of the port, a second `Initialize`
+repeats the same writes, and a secondary image, an image without a console and one with init 0 do not access
+`SYSREG`). What only the board can show is that the MMUART then prints without `--uart-clocks` or `--uart-standin`
+(`tests/hw/run_matrix.sh` runs a primary image without a flag first).
 
 ## Zero-cost exceptions
 

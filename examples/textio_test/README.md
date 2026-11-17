@@ -12,14 +12,14 @@ shows that the console works.
 |---|---|---|---|
 | `console_mmuart1_test` to `console_mmuart3_test` | MMUART1 to MMUART3 | 1 | The report is on that port and on no other (the runner of `tests/qemu` fails a test that writes to another port); the registers of that MMUART are those of the link symbols |
 | `console_mmuart4_test` | MMUART4 | 1 | The same on a port the board does not bring out, with the divisor 21 and the fraction 45/64: DFR and `MM0.EFBR` (fractional baud rate mode) are set |
-| `console_noinit_test` | MMUART of the hart | 0 | `Initialize` writes no setup register (a value left in DFR, and LCR, are found again): the boot stage has set the port up and the runtime only writes and reads |
-| `textio_test` | MMUART of the hart (hart 0: MMUART0, U54 hart 1: MMUART1) | 1 | The first output initialised the service; the registers of that MMUART are those of the link symbols (8N1, divisor 22, DFR 0, FIFOs on); `GNAT.IO` reaches the same port; with `MCR.LOOP` every byte put comes back through `Is_Rx_Ready` and `Get` and the receiver is empty afterwards |
+| `console_noinit_test` | MMUART of the hart | 0 | `Initialize` writes no setup register (a value left in DFR, and LCR, are found again) and no `SYSREG` register: whoever set the MSS up has set the port up and the runtime only writes and reads |
+| `textio_test` | MMUART of the hart (hart 0: MMUART0, U54 hart 1: MMUART1) | 1 | The first output initialised the service (on a primary image with the clock and the reset of the MMUART in `SYSREG`) and a second `Initialize` leaves it working; the registers of that MMUART are those of the link symbols (8N1, divisor 22, DFR 0, FIFOs on); `GNAT.IO` reaches the same port; with `MCR.LOOP` every byte put comes back through `Is_Rx_Ready` and `Get` and the receiver is empty afterwards |
 
 `examples/console_none_test` has the console `none`. The images report as `<image>_e51` and `<image>_u54`.
 
     ./x build textio_test --hart e51          # all six images
     ./x test qemu tests textio_test_e51 console_mmuart1_test_e51 console_noinit_test_u54
-    ./x hw run examples/textio_test/bin-e51/textio_test.elf --hart 0 --uart-clocks \
+    ./x hw run examples/textio_test/bin-e51/textio_test.elf --hart 0 \
         --expect 'TEST textio_test_e51: PASS' --expect-port 0   # U54 hart 1: textio_test_u54, port 1
 
 (`./x hw run <example>` would take the first image of the directory, so the images are named by their file.)
@@ -28,9 +28,11 @@ shows that the console works.
 the image. Under QEMU the registers behind `+0x20` of an MMUART are plain memory and the serial model ignores the
 divisor, so the divisor and the fraction are checked as register contents, not as a baud rate; the runtime uses the
 16550 offsets (data port at `+0`, the divisor latches at `+0` and `+4` with `LCR.DLAB`, `FCR` at `+8`) that both the
-board and QEMU have. The board needs the clock and the reset of the MMUARTs released by something before the image
-runs (`--uart-clocks`, later the boot stage); `console_noinit_test` needs the divisor and the format as well
-(`--uart-standin`).
+board and QEMU have. These images are primary images, so with `__mpfs_console_init` = 1 the runtime clocks and releases the
+MMUART of its console itself (`SYSREG.SUBBLK_CLOCK_CR` and `SOFT_RESET_CR`, before any register of the port; QEMU takes the
+writes and clocks nothing) and no `--uart-clocks` is needed. `console_noinit_test` expects an MSS that is set up, with the
+port programmed: on the board it needs `--uart-standin` (clock, reset, divisor, format, FIFOs), and so does any image built with
+`--role secondary`.
 
 Each image has its own partition: `./x build` writes the console of each main from the `IMAGE_<main>=` lines of
 `example.conf` (`--console mmuart1` and so on, `--console-init 0`) and `textio_test` takes `--console` of the build
