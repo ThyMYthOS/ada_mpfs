@@ -18,6 +18,8 @@
 # that programs the divisor itself but does not clock the port), and last with --uart-standin (divisor, format
 # and FIFOs as well, for an image that expects a boot stage to have done it). The line of the cell names the
 # first set-up that passed ("no flag", "clocks" or "standin"); a cell that needs a flag is a finding.
+# One exception, listed in the script (standin_only): console_noinit_test does not set the divisor by design
+# (Initialize must not write DFR or LCR), so it is run once, with --uart-standin, and the label says "standin".
 #
 # Exit status: 0 if every cell that ran passed, 1 if one failed, 2 on a set-up error.
 set -uo pipefail
@@ -75,7 +77,11 @@ while IFS=$'\t' read -r name dir serial expect _; do
     printf '%-40s ERROR  (build failed or no %s, see %s)\n' "$name" "${elf#"$root"/}" "$log"
     fail=$((fail + 1)); continue
   fi
-  for mode in "" --uart-clocks --uart-standin; do
+  modes=("" --uart-clocks --uart-standin)
+  case "$name" in
+    console_noinit_test_*) modes=(--uart-standin) ;;   # standin_only: assumes a boot stage set up divisor and format
+  esac
+  for mode in "${modes[@]}"; do
     # every cell starts from the power-on state: a test can leave the board in a state (a hart that
     # kept running, a pending interrupt) in which the next image does not start
     # (a primary image resets the MSS when it ends, which also undoes the set-up of the scratchpad)

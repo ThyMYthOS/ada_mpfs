@@ -976,7 +976,8 @@ case "$1" in
         run) flag=none
              for a in "$@"; do case "$a" in --uart-clocks|--uart-standin) flag="$a" ;; esac; done
              echo "$flag" >> "$MX_LOG"
-             if [ "$flag" = "$MX_NEED" ]; then echo "TEST foo_test_e51: PASS"; exit 0; fi
+             if [ "$flag" = "$MX_NEED" ]; then echo "TEST ${MX_TEST:-foo_test_e51}: PASS"; exit 0; fi
+             if [ -n "${MX_GARBAGE:-}" ]; then echo "garbage"; exit 1; fi
              echo "no serial output on any port"; exit 1 ;;
       esac ;;
 esac
@@ -998,6 +999,15 @@ case "$out" in *"PASS"*"(standin, hart 0, port 0)"*) pass "run_matrix: and last 
 [ "$(tr '\n' ' ' < "$tmp/mx.flags")" = "none --uart-clocks --uart-standin " ] && pass "run_matrix: the order is no flag, --uart-clocks, --uart-standin" || fail "run_matrix: the order is no flag, --uart-clocks, --uart-standin ($(cat "$tmp/mx.flags"))"
 out="$(matrix impossible)"
 case "$out" in *"FAIL"*"pass 0, fail 1"*) pass "run_matrix: a cell that passes with no set-up fails" ;; *) fail "run_matrix: a cell that passes with no set-up fails ($out)" ;; esac
+
+# console_noinit_test does not set the divisor by design: it is run once, with --uart-standin, and counted as passed.
+# The stand-in ./x prints garbage without a flag and with --uart-clocks (a console that printed something).
+mkdir -p "$mx/examples/foo/bin-e51"
+: > "$mx/examples/foo/bin-e51/console_noinit_test.elf"
+printf 'name\tdir\tserial\texpect\tobserve\twhy\nconsole_noinit_test_e51\texamples/foo\t0\tpass\t-\t-\n' > "$mx/tests/qemu/tests.list"
+out="$(MX_TEST=console_noinit_test_e51 MX_GARBAGE=1 matrix --uart-standin)"
+case "$out" in *"console_noinit_test_e51"*"PASS"*"(standin, hart 0, port 0)"*"pass 1, fail 0"*) pass "run_matrix: console_noinit_test passes with --uart-standin" ;; *) fail "run_matrix: console_noinit_test passes with --uart-standin ($out)" ;; esac
+[ "$(tr '\n' ' ' < "$tmp/mx.flags")" = "--uart-standin " ] && pass "run_matrix: console_noinit_test is run once, with --uart-standin only" || fail "run_matrix: console_noinit_test is run once, with --uart-standin only ($(cat "$tmp/mx.flags"))"
 
 echo "summary: $fails failure(s)"
 [ $fails -eq 0 ]
