@@ -468,8 +468,9 @@ five MMUARTs, init 0), `examples/console_none_test`, `tests/host/rts_boot` (the 
 fails the link) and `tests/host/rts_console_bringup` (the `SYSREG` writes of the images in a QEMU register trace: a
 primary image with init 1 clocks and releases its MMUART before the first register of the port, a second `Initialize`
 repeats the same writes, and a secondary image, an image without a console and one with init 0 do not access
-`SYSREG`). What only the board can show is that the MMUART then prints without `--uart-clocks` or `--uart-standin`
-(`tests/hw/run_matrix.sh` runs a primary image without a flag first).
+`SYSREG`). On the Icicle Kit (boot mode 0, JTAG, run of 2026-11-17, `docs/lab/results/p1.md`) 78 of the 80 cells that ran printed with no
+`--uart-clocks` or `--uart-standin` (`tests/hw/run_matrix.sh` runs a primary image without a flag first); `console_noinit_test` needs
+`--uart-standin` by design. Not verified on the board: a read-back of the `SYSREG` registers, and the scratchpad placement.
 
 ## Zero-cost exceptions
 

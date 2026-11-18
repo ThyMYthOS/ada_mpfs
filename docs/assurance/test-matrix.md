@@ -104,9 +104,11 @@ These are checks that only make sense on the board, or that QEMU cannot do. None
 - the absolute rate of `mtime` and `Interrupt_Latency_Ticks` on all harts (the placeholder is 30 ticks);
 - `delay_accuracy_test` with the hardware bounds and the flat `minstret` over 100 ms;
 - `interrupt_test` with the loopback instead of `console.in`;
-- the bring-up of the console of a primary image: that the MMUART prints on the board with no `--uart-clocks` and no `--uart-standin`
-  (the runtime for its console, `Bare_Console` for MMUART0); `tests/host/rts_console_bringup` shows the order and the values of the
-  `SYSREG` writes in a QEMU register trace (QEMU clocks no UART), and `tests/hw/run_matrix.sh` runs every cell without a flag first;
+- the bring-up of the console of a primary image (the runtime for its console, `Bare_Console` for MMUART0): on the Icicle Kit
+  (boot mode 0, JTAG, run of 2026-11-17 in `docs/lab/results/p1.md`) 78 of the 80 cells that ran printed with no `--uart-clocks` and
+  no `--uart-standin`; `console_noinit_test` needs `--uart-standin` by design. Not verified on the board: a read-back of the `SYSREG`
+  registers and the scratchpad placement. `tests/host/rts_console_bringup` shows the order and the values of the `SYSREG` writes in
+  a QEMU register trace (QEMU clocks no UART), and `tests/hw/run_matrix.sh` runs every cell without a flag first;
 - whether the heap and `.noinit` need clearing of the ECC memory (`heap_test`, `exceptions_test` on the board);
 - the hart cells that QEMU runs only with `-smp 5`: the images of U54 harts 2 to 4;
 - `trap_embedded_test` on the board: `mepc` and `mtval` as the core delivers them (QEMU delivers the instruction in
