@@ -83,7 +83,9 @@ console itself and programs divisor, format and FIFOs: the runtime for its conso
 with the stand-ins of `./x hw`: `initialize` (which also starts `mtime`, the one thing no image does yet), `--uart-clocks`
 (clock and reset of the five MMUARTs) and `--uart-standin` (also divisor 22, 8N1 and FIFOs). Both flags are also for an image that does
 not bring its UART up. The bring-up is idempotent, so a primary image loaded after `initialize` or after a flag finds the port clocked.
-No board run has confirmed the flag-less case yet (`tests/hw/run_matrix.sh` runs it first).
+The run of 2026-11-17 (`tests/hw/run_matrix.sh`, which runs every cell without a flag first) confirmed the flag-less case: 78 of the
+80 cells that ran printed with no flag ([`results/p1.md`](results/p1.md)). `console_noinit_test` does not set the divisor by design and
+needs `--uart-standin`.
 
 State that a `reset halt` does **not** clear, found by the hardware runs: the PLIC enables of every context (the enable words of
 the S mode contexts were random), `fcsr` of the U54 and the `mtimecmp` registers (one of them read 32 after a reset). A context of

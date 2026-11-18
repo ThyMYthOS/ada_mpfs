@@ -32,7 +32,8 @@ Nothing here replaces a test on your own board. What was exercised, and how:
 **On an Icicle Kit** (boot mode 0, by the project owner; the other boot modes are not run yet):
 the JTAG IDCODE and the harts through OpenOCD, `bare_hello` on the E51 (run with `--uart-standin`, because
 nothing in that mode sets the UARTs up and the image did not bring up its own yet; a primary image now clocks, releases
-and programs the UART of its console itself, which no board run has confirmed yet), `probe_time.S` (`mtime` does not tick, `mcycle` counts),
+and programs the UART of its console itself: in the run of 2026-11-17 78 of the 80 cells that ran printed with no flag, see
+`docs/lab/results/p1.md`), `probe_time.S` (`mtime` does not tick, `mcycle` counts),
 MMUART0 to MMUART3, the factory restore, and the register measurements that fed the SVD
 (`./x svd probe`, `./x hw`). Each file in `svd/patches/` and `svd/additions/` carries its own `# status:` header (`grep '^# status' svd/*/*.yaml`): five of the 13 (`MMUART0_LO`, `SPI_A_LO`, `SYSREG`, `plic`, `clint`) are verified on the MPFS250T, the others stay `unverified` until the board confirms every claim in them.
 
