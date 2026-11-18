@@ -31,6 +31,65 @@ no serial port, no toolchain, bad arguments); 130 after Ctrl+C. `./x hw bootmode
 `./x hw` (or `./x hw help`) prints every command with its options and the keys of `lab.conf`; `./x hw COMMAND --help` the options of one command. `tests/host/hw/run.sh` tests the scripts against a stand-in for the OpenOCD telnet port, and files and a stand-in for socat's TCP ports (`fake_uart.py`) in place of the serial ports; the live view runs on a pseudo-terminal whose screen a small emulator (`ptyrun.py`) reproduces; the
 hardware itself is not part of any automatic test.
 
+## How the tools reach the FlashPro
+
+Every tool that programs or debugs the board goes through its FlashPro, and each one has its own way to the adapter.
+That decides what a machine or a container has to provide, which tools exclude each other, and how one of several
+adapters is chosen. The sources of every statement are at the end.
+
+### The ways
+
+| Tool | What it does with the FlashPro | How it reaches it | What it needs of the system | Choosing one of several |
+|---|---|---|---|---|
+| `fpgenprog` (Program Debug Tool or Libero SoC; `./x hw bootmode`) | Programs and verifies the FPGA part (`PROGRAM`, `VERIFY`) | `libfpcomm` of the tool, with `libusb` and `libcyusb` from its `lib64/` | The USB bus, `/dev/bus/usb` (inferred, see below) | The `<programmer>` element of `proj_fp.pro` (`--flashpro`, `FLASHPRO_SERIAL`); that `fpgenprog` honours it is not proven |
+| `hw/*.py` (`run_image`, `run_probe`, `reset`, `initialize`, `svd_probe`, `l2_scratchpad`) | JTAG accesses to the harts and the MSS | Through OpenOCD, its telnet port (`OCD_HOST`, `OCD_PORT`); they do not open the adapter | A running OpenOCD | The OpenOCD that answers on that port |
+| `hw/flashpros.py` (`./x hw flashpros`) | Lists the adapters and tells their model | The USB descriptors that the kernel has cached, in `/sys/bus/usb/devices`; no device is opened | Only that sysfs | Prints serial number (`-` if there is none), ID, name, model and USB location; the model comes from the USB product ID |
+| OpenOCD, embedded FlashPro6 (`microchip-efp6`; the Icicle Kit) | JTAG, debugging, loading images | HID through `hidapi-hidraw` | `/dev/hidrawN`, readable by the user | `mchp_efp6 serial <SERIAL>` (`FLASHPRO_SERIAL`) |
+| OpenOCD, FlashPro6 (`microchip-fp6`) | The same | The driver `mchp_fp6.c`; its access path was not read | Not known | `mchp_fp6 serial <SERIAL>` |
+| OpenOCD, FlashPro5 and embedded FlashPro5 (`ftdi`) | The same | `libftdi1` over `libusb` | The USB bus, `/dev/bus/usb` (inferred) | `adapter serial <SERIAL>` |
+
+The models and their USB product IDs are in `docs/lab/openocd.md`, "Several boards". Which interface file and which command for the
+serial number `./x hw openocd` uses follows from the model (`FLASHPRO_TYPE` in `hw/lab.conf`, or the product ID).
+
+The serial console is not on this path: MMUART0 to MMUART3 are the four interfaces of the CP2108 (`/dev/ttyUSB0`..`3` or
+`/dev/serial/by-id/`), `hw/monitor.py` and the console of `hw/run_image.py` read them directly.
+
+### One user of the adapter at a time
+
+OpenOCD and `fpgenprog` cannot both have the FlashPro: `./x hw bootmode` refuses to program while something answers on
+the telnet port of `lab.conf`, and a programming run needs OpenOCD stopped (`hw/bootmode.py --help`). After programming,
+power-cycle the board before OpenOCD is started again. Two OpenOCD for two boards need two serial numbers, two telnet ports
+and their own gdb and Tcl ports.
+
+### What a container has to pass through
+
+Measured on the lab machine's container on 2026-11-18, with one embedded FlashPro6 connected:
+
+- `/dev/hidraw6` was there, `/dev/bus/usb` was not. OpenOCD with `microchip-efp6` found the adapter, examined the five harts
+  and ran images; `./x hw flashpros` listed the adapter from sysfs.
+- `./x hw bootmode 1 ... --yes` made the image and the bitstream, then `fpgenprog ... run_action --action PROGRAM` ended after 4.0 s
+  with `Segmentation fault (core dumped)` (status 1). The boot mode was not changed: the harts were still in the boot stub
+  of boot mode 0 and the hart that had been running an image in the L2 LIM had not been reset.
+- That `fpgenprog` needs `/dev/bus/usb` is inferred from the libraries it ships (`libusb`, `libcyusb`) and from this crash, not shown;
+  the same libraries come with Microchip's fpServer. Passing `/dev/bus/usb` through and running a
+  `VERIFY` (which writes nothing) is the test.
+
+So a machine on which all tools should work needs `/dev/hidrawN` (OpenOCD, embedded FlashPro6) and the USB bus
+(`fpgenprog`, the FTDI based FlashPro5), and permission for the user to use both. The OpenOCD package has udev rules
+(`contrib/60-openocd.rules`) that name the Microchip IDs `1514:2008`, `2009`, `200a` and `200b` with mode 666, group `plugdev`.
+
+To see what a machine has: `ls /dev/hidraw* /dev/bus/usb` and `./x hw flashpros`.
+
+### Sources
+
+| Statement | Source |
+|---|---|
+| `fpgenprog` libraries, the crash, no `/dev/bus/usb` | `ldd` and `ls` of the Program Debug Tool installation and `build/bootmode/bootmode1/debugLog.txt` of the run (not in the repository); `hw/bootmode.py --help` |
+| `hw/*.py` through the telnet port | `hw/ocd.py`, `hw/lab.py`, `hw/README.md` |
+| OpenOCD drivers, commands and libraries | `./x toolchain install openocd`: `openocd adapter list`, `help` after `adapter driver ...`, `ldd bin/openocd`, `interface/*.cfg` and `contrib/60-openocd.rules` of the package; the HID access of `microchip-efp6` from the messages of its driver (`hid_set_nonblocking`) |
+| Sysfs for `hw/flashpros.py` | `hw/flashpros.py` |
+| `/dev/hidraw6` present, OpenOCD ran an image | `./x hw run` on the Icicle Kit, 2026-11-18 |
+
 ## OpenOCD on another machine
 
 `run_image.py` and `run_probe.py` give OpenOCD their images as files (`load_image FILE ADDRESS bin`), so OpenOCD must see the file.
