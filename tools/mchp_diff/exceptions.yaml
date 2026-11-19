@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# The differences between the reader of the MSS Configurator XML and Microchip's generator that
+# tools/mchp_diff/mchp_diff.py admits. An entry is
+#
+#   - define: LIBERO_SETTING_<NAME>        the define of Microchip's generator
+#     xml: config/boards/<board>/<file>.xml
+#     defect: ours | microchip             whose defect the difference is
+#     reason: <what is wrong, with the evidence (the SVD, Microchip's HAL, the XML)>
+#
+# A defect of ours is fixed, not listed; a defect of Microchip's generator is explained here, not
+# copied into the reader. An entry that admits nothing is refused. The goal is an empty list.
+exceptions: []

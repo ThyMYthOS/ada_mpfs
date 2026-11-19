@@ -44,3 +44,17 @@ requirements:
       XML in config/boards is read.
     tsf: false
     source: config/README.md
+  - id: GEN-005
+    text: >-
+      For every reference XML in config/boards, every LIBERO_SETTING_* value that Microchip's
+      configuration generator (mpfs_configuration_generator.py of polarfire-soc/platform at the
+      commit pinned in tools/mchp_diff/oracle.env, whose script has the SHA-256 recorded there)
+      writes for a register, a memory element or the design information that the reader of the
+      MSS Configurator XML decodes equals the value of the reader; every define of the generator is
+      either compared, of a section that the reader only validates, or one of the generator's own
+      version constants, and every register and memory element of the reader has a define. A
+      difference is admitted only by an entry of tools/mchp_diff/exceptions.yaml that names the
+      define, the XML, whose defect it is (ours or Microchip's) and the reason; an entry that admits
+      nothing is refused.
+    tsf: false
+    source: tools/mchp_diff/README.md

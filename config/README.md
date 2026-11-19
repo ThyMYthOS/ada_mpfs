@@ -381,7 +381,8 @@ the sections that are only validated. A broken XML gives one line per violated r
 `build/svd/PolarfireSoC.svd` (made current first) or `--svd FILE`.
 
 **Format versions.** `xml_format_version` must be `0.6.5` or `0.6.8`, the versions of the reference XMLs;
-any other is refused (`GEN-E042`). A version enters the list together with a reference XML of it.
+any other is refused (`GEN-E042`). A version enters the list together with a reference XML of it and a
+green run of the differential test below.
 
 **Sections.** The core sections are decoded: `mss_clocks` (`clocks`, `mss_sys`, `mss_pll`, `mss_cfm`,
 `sgmii_cfm`), `mss_io` (`io_mux` with the banks and `GPIO_INTERRUPT_FAB_CR`, `io_mux_alt`),
@@ -415,6 +416,12 @@ register this value; the register names the defect (`defect`), and `xml` marks i
 to Microchip (polarfire-soc/polarfire-soc-documentation#610, without an answer). The exception is this one
 field with this one value (`KNOWN_DEFECTS` in `xml_reader.py`); `0x8` in any other field, or another value
 there, is `GEN-E050`.
+
+**Differential test.** [`tools/mchp_diff`](../tools/mchp_diff/README.md) runs Microchip's generator at a
+pinned commit on every reference XML and compares each of its `LIBERO_SETTING_*` defines with the value
+of the reader: the registers of the core sections, the memory elements and the design information. A
+difference fails unless `tools/mchp_diff/exceptions.yaml` admits it with whose defect it is and the
+reason; the list is empty, every overlapping value of the three XMLs agrees.
 
 **Untrusted input.** The reader refuses a document type or entity declaration before the parser sees the
 file (`GEN-E041`), so no entity is expanded.
