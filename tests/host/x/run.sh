@@ -4,7 +4,7 @@
 #
 # Smoke test for ./x: every verb is listed in the help, option validation rejects
 # invalid and excluded combinations, and missing tool scripts fail instead of
-# passing silently. Exits non-zero on any failure.
+# passing silently; `toolchain pins` (the cache key of the CI toolchain action) and `toolchain prune`. Exits non-zero on any failure.
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -277,6 +277,110 @@ grep -q good_prove "$tl/log" && fail "test lib: *_prove.gpr is skipped" || pass 
 : > "$tl/log"; rm -rf "$tl/libs/warn" "$tl/libs/bad"; tlib "$X" test lib >/dev/null 2>&1
 [ "$(grep -c 'MPFS_HART=' "$tl/log")" = 4 ] && pass "test lib: without a name every library is built" || fail "test lib: without a name every library is built"
 rm -rf "$tl"
+
+# toolchain pins <target>: the pins that the install of a target reads, which CI hashes into the
+# cache key of .github/actions/toolchain. A copy of x and the pin files in a scratch tree, so that
+# the pins can be changed.
+pt="$(mktemp -d)"; mkdir -p "$pt/tools"
+cp "$X" "$pt/x"; cp "$ROOT/tools/mpfs-env.sh" "$ROOT/tools/toolchain.env" "$pt/tools/"
+PX="$pt/x"
+targets="svdtools svd2ada pac alire gnat gnatprove adalang_analyzer renode openocd"
+# The variables of tools/toolchain.env that no install reads (the OS provides the tool).
+unused="QEMU_MIN"
+pin_names () { "$PX" toolchain pins "$1" 2>/dev/null | cut -d= -f1 | tr '\n' ' '; }
+want_names () {
+  case "$1" in
+    alire)            echo "ALR_SHA256_UNIVERSAL_MACOS ALR_SHA256_X86_64_LINUX ALR_SHA256_X86_64_WINDOWS ALR_VERSION " ;;
+    gnat)             echo "$(want_names alire)GNAT_NATIVE_VERSION GNAT_RISCV64_VERSION GPRBUILD_VERSION " ;;
+    gnatprove)        echo "$(want_names gnat)GNATPROVE_VERSION " ;;
+    adalang_analyzer) echo "$(want_names gnat)ADALANG_ANALYZER_VERSION " ;;
+    svdtools)         echo "SVDTOOLS_RUSTC_MIN SVDTOOLS_SHA256_AARCH64_DARWIN SVDTOOLS_SHA256_X86_64_LINUX SVDTOOLS_SHA256_X86_64_WINDOWS SVDTOOLS_VERSION " ;;
+    svd2ada)          echo "$(want_names gnat)SVD2ADA_COMMIT SVD2ADA_REF SVD2ADA_REPO " ;;
+    pac)              echo "$(want_names gnat)PYTHON_MIN SVD2ADA_COMMIT SVD2ADA_REF SVD2ADA_REPO $(want_names svdtools)" ;;
+    renode)           echo "RENODE_SHA256_AARCH64_DARWIN RENODE_SHA256_X86_64_LINUX RENODE_VERSION " ;;
+    openocd)          echo "OPENOCD_SHA256_X86_64_LINUX OPENOCD_VERSION OPENOCD_XPACK " ;;
+  esac | tr ' ' '\n' | grep . | LC_ALL=C sort | tr '\n' ' '
+}
+
+# the lines of each target: the variables it reads, sorted, with the values of the pin file
+for t in $targets; do
+  out="$("$PX" toolchain pins "$t" 2>&1)"
+  [ "$(pin_names "$t")" = "$(want_names "$t")" ] && pass "pins $t: the variables it reads" \
+    || fail "pins $t: the variables it reads (got: $(pin_names "$t"))"
+  [ "$out" = "$(printf '%s\n' "$out" | LC_ALL=C sort)" ] && pass "pins $t: sorted" || fail "pins $t: sorted"
+  ( . "$ROOT/tools/toolchain.env"
+    ok=1; while IFS== read -r n v; do [ "${!n}" = "$v" ] || ok=0; done <<<"$out"; [ "$ok" = 1 ] ) \
+    && pass "pins $t: NAME=value of tools/toolchain.env" || fail "pins $t: NAME=value of tools/toolchain.env"
+done
+
+# an unknown target, none and two targets fail and print no pins
+for bad in nosuch "" "gnat pac"; do
+  out="$("$PX" toolchain pins $bad 2>/dev/null)"; rc=$?
+  [ $rc -ne 0 ] && [ -z "$out" ] && pass "pins '$bad': fails without output" || fail "pins '$bad': fails without output (exit $rc)"
+done
+
+# comments, blank lines, quoting and the order of the lines do not change any target
+declare -A base
+for t in $targets; do base[$t]="$("$PX" toolchain pins "$t")"; done
+{ echo "# another comment"; echo; grep -v '^#' "$ROOT/tools/toolchain.env" | grep . | tac \
+    | sed -E 's/^(ALR_VERSION|RENODE_VERSION)=(.*)$/\1="\2"/'; echo "# last"; } > "$pt/tools/toolchain.env"
+same=1; for t in $targets; do [ "$("$PX" toolchain pins "$t")" = "${base[$t]}" ] || same=0; done
+[ $same = 1 ] && pass "pins: comments, blank lines, quoting and order change no target" \
+  || fail "pins: comments, blank lines, quoting and order change no target"
+cp "$ROOT/tools/toolchain.env" "$pt/tools/toolchain.env"
+
+# every variable: it changes the output of the targets that read it and of no other target; every
+# variable but the unused ones is read by some target
+all_vars="$(sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' "$ROOT/tools/toolchain.env")"
+for v in $all_vars; do
+  sed -E "s/^$v=.*/$v=9.9/" "$ROOT/tools/toolchain.env" > "$pt/tools/toolchain.env"
+  readers=""; wrong=""
+  for t in $targets; do
+    got="$("$PX" toolchain pins "$t")"
+    case " $(want_names "$t")" in *" $v "*) reads=1; readers="$readers $t" ;; *) reads=0 ;; esac
+    if [ "$reads" = 1 ] && [ "$got" = "${base[$t]}" ]; then wrong="$wrong $t(unchanged)"; fi
+    if [ "$reads" = 0 ] && [ "$got" != "${base[$t]}" ]; then wrong="$wrong $t(changed)"; fi
+  done
+  case " $unused " in
+    *" $v "*) [ -z "$readers" ] || wrong="$wrong read-by:$readers" ;;
+    *) [ -n "$readers" ] || wrong="$wrong read-by-nobody" ;;
+  esac
+  [ -z "$wrong" ] && pass "pins: $v changes${readers:- no target}" || fail "pins: $v:$wrong"
+done
+cp "$ROOT/tools/toolchain.env" "$pt/tools/toolchain.env"
+rm -rf "$pt"
+
+# A cache restored from an older pin never supplies the old version: the install looks for the
+# pinned version only, installs it next to the old one, and prune removes the old one.
+(
+  . "$ROOT/tools/toolchain.env"
+  rp="$(mktemp -d)"; tp="$rp/tools"; tc="$rp/toolchains"; sb="$rp/bin"
+  mkdir -p "$sb" "$tp/alr-$ALR_VERSION/bin" "$tp/gnatprove-0.0.1/bin" "$tp/svdtools-0.0.1/bin" "$tp/venv" \
+           "$tc/gnat_native_0.0.1_abc/bin" "$tc/gnat_native_${GNAT_NATIVE_VERSION}_def/bin" "$tc/unrelated"
+  printf '#!/bin/sh\necho "gnatprove 0.0.1"\n' > "$tp/gnatprove-0.0.1/bin/gnatprove"; chmod +x "$tp/gnatprove-0.0.1/bin/gnatprove"
+  # a stand-in for alr: records the calls and creates the prefix of an install
+  cat > "$sb/alr" <<'ALR'
+#!/bin/sh
+echo "$*" >> "$ALR_LOG"
+case "$*" in *"install --prefix="*) p="${*#*--prefix=}"; mkdir -p "${p%% *}/bin" ;; esac
+ALR
+  chmod +x "$sb/alr"
+  line="$(PATH="$sb:$PATH" MPFS_TOOLS_PREFIX="$tp" MPFS_ADA_TOOLCHAINS="$tc" "$X" toolchain check 2>&1 | grep '^  gnatprove ')"
+  case "$line" in *0.0.1*) fail "restored cache: the older gnatprove is not used by check ($line)" ;;
+                  *) pass "restored cache: the older gnatprove is not used by check" ;; esac
+  : > "$rp/log"
+  ALR_LOG="$rp/log" PATH="$sb:$PATH" MPFS_TOOLS_PREFIX="$tp" MPFS_ADA_TOOLCHAINS="$tc" "$X" toolchain install gnatprove >/dev/null 2>&1
+  grep -q -- "install --prefix=$tp/gnatprove-$GNATPROVE_VERSION gnatprove=$GNATPROVE_VERSION" "$rp/log" \
+    && pass "restored cache: the pinned gnatprove is installed next to the older one" \
+    || fail "restored cache: the pinned gnatprove is installed next to the older one ($(tr '\n' ';' < "$rp/log"))"
+  [ -d "$tp/gnatprove-0.0.1" ] && pass "install keeps an older version in its prefix" || fail "install keeps an older version in its prefix"
+  out="$(MPFS_TOOLS_PREFIX="$tp" MPFS_ADA_TOOLCHAINS="$tc" "$X" toolchain prune 2>&1)"; rc=$?
+  gone=1; for d in "$tp/gnatprove-0.0.1" "$tp/svdtools-0.0.1" "$tc/gnat_native_0.0.1_abc"; do [ ! -e "$d" ] || gone=0; done
+  kept=1; for d in "$tp/alr-$ALR_VERSION" "$tp/gnatprove-$GNATPROVE_VERSION" "$tp/venv" "$tc/gnat_native_${GNAT_NATIVE_VERSION}_def" "$tc/unrelated"; do [ -e "$d" ] || kept=0; done
+  [ $rc -eq 0 ] && [ $gone = 1 ] && pass "prune removes the versions that are not pinned" || fail "prune removes the versions that are not pinned ($out)"
+  [ $kept = 1 ] && pass "prune keeps the pinned versions, the venv and unknown directories" || fail "prune keeps the pinned versions, the venv and unknown directories"
+  rm -rf "$rp"
+)
 
 echo "summary: $fails failure(s)"
 [ $fails -eq 0 ]

@@ -1,22 +1,38 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# The pinned tools of one `./x toolchain install <target>`, cached. Every version is pinned in
-# tools/toolchain.env, so the cache key follows that file. The install is idempotent: what the
-# cache restored is detected and not installed again. A target that needs the compilers and has no cache
-# of its own starts from the cache of the compilers (target gnat) of the same pins. Needs the repository checked out.
+# The pinned tools of one `./x toolchain install <target>`, cached. The key is the hash of the
+# pins that this target reads (`./x toolchain pins <target>`: the NAME=value lines of
+# tools/toolchain.env, sorted, from the same code that decides what the install reads), not of the
+# whole file: a change to a pin of another target, to QEMU_MIN or to a comment keeps the cache.
+# When a pin of the target did change, the newest cache of the same target and OS (restore-keys
+# prefix `toolchain-<target>-<os>-`) is restored and the install, which is idempotent and keeps
+# every version in a prefix of its own, adds only what is missing; nothing of an older version is
+# ever used, because ./x looks for the pinned version only (see mpfs-env.sh). `./x toolchain prune`
+# then removes the versions that are no longer pinned, so that the cache does not grow by every
+# change. A target that needs the compilers and has no cache of its own starts from the cache of
+# the compilers (target gnat) of the same pins. Needs the repository checked out.
 name: toolchain
 description: Restore the cached tools and install the pinned ones with ./x toolchain install
 inputs:
   target:
-    description: "svdtools, svd2ada, pac, alire, gnat, gnatprove, adalang_analyzer or renode"
+    description: "svdtools, svd2ada, pac, alire, gnat, gnatprove, adalang_analyzer, renode or openocd"
     default: gnat
   compilers:
-    description: "false for a target that needs no Alire toolchains (svdtools, alire, renode): do not start from the cache of the compilers"
+    description: "false for a target that needs no Alire toolchains (svdtools, alire, renode, openocd): do not start from the cache of the compilers"
     default: "true"
 runs:
   using: composite
   steps:
+    - name: Hash the pins of ${{ inputs.target }}
+      id: pins
+      shell: bash
+      env:
+        TARGET: ${{ inputs.target }}
+      run: |
+        h="$(./x toolchain pins "$TARGET" | sha256sum)"; echo "target=${h%% *}" >> "$GITHUB_OUTPUT"
+        h="$(./x toolchain pins gnat | sha256sum)"; echo "gnat=${h%% *}" >> "$GITHUB_OUTPUT"
+
     - name: Cache the tools (${{ inputs.target }})
       uses: actions/cache@v6.1.0
       with:
@@ -24,9 +40,15 @@ runs:
           ~/.local/share/alire
           ~/.local/share/ada_mpfs/tools
           ~/.config/alire
-        key: toolchain-${{ inputs.target }}-${{ runner.os }}-${{ hashFiles('tools/toolchain.env') }}
-        restore-keys: ${{ inputs.compilers == 'true' && format('toolchain-gnat-{0}-{1}', runner.os, hashFiles('tools/toolchain.env')) || '' }}
+        key: toolchain-${{ inputs.target }}-${{ runner.os }}-${{ steps.pins.outputs.target }}
+        restore-keys: |
+          toolchain-${{ inputs.target }}-${{ runner.os }}-
+          ${{ inputs.compilers == 'true' && format('toolchain-gnat-{0}-{1}', runner.os, steps.pins.outputs.gnat) || '' }}
 
     - name: ./x toolchain install ${{ inputs.target }}
       shell: bash
       run: ./x toolchain install ${{ inputs.target }}
+
+    - name: ./x toolchain prune
+      shell: bash
+      run: ./x toolchain prune

@@ -19,6 +19,10 @@
 #                                      compilers and that one crate; renode: the pinned Renode
 #                                      release, checksum verified; openocd: Microchip's OpenOCD for the
 #                                      board, checksum verified) / report deviations
+#    ./x toolchain pins <target>       the NAME=value lines of tools/toolchain.env that install
+#                                      <target> reads, sorted (CI hashes them into the cache key)
+#    ./x toolchain prune               delete installed versions that tools/toolchain.env does
+#                                      not name (Alire toolchains and tool prefixes)
 #    ./x build <ex> [-P PROFILE] [--hart e51|u54] [--harts 1-4] [--priv m|u]
 #                                      build an example (PROFILE: light|
 #                                      light-tasking|embedded|auto). --harts is
@@ -321,6 +325,72 @@ mpfs_install_crate () {
   fi
 }
 
+# The pins of tools/toolchain.env that `./x toolchain install <target>` reads, as shell patterns
+# (one place for the install code and for the cache key of .github/actions/toolchain, which hashes
+# the output of `./x toolchain pins <target>`). The targets are those of cmd_toolchain: when an
+# install gains a dependency, this list gains the pin. A pin that no target lists (QEMU_MIN: the OS
+# provides QEMU) does not change any cache; tests/host/x/run.sh keeps that list short.
+#   alr:    the pinned release, per checksum of the platform (ensure_alr installs it for every
+#           target that needs the compilers)
+#   gnat:   the three Alire toolchains
+#   PYTHON_MIN: the virtual environment that `install pac` creates
+mpfs_target_pins () {
+  local alr='ALR_*' gnat='GNAT_RISCV64_VERSION GNAT_NATIVE_VERSION GPRBUILD_VERSION'
+  case "$1" in
+    alire)            echo "$alr" ;;
+    gnat)             echo "$alr $gnat" ;;
+    gnatprove)        echo "$alr $gnat GNATPROVE_VERSION" ;;
+    adalang_analyzer) echo "$alr $gnat ADALANG_ANALYZER_VERSION" ;;
+    svdtools)         echo 'SVDTOOLS_*' ;;
+    openocd)          echo 'OPENOCD_*' ;;
+    svd2ada)          echo "$alr $gnat SVD2ADA_*" ;;
+    pac)              echo "$alr $gnat SVD2ADA_* SVDTOOLS_* PYTHON_MIN" ;;
+    renode)           echo 'RENODE_*' ;;
+    *) return 1 ;;
+  esac
+}
+
+# `NAME=value` of every pin of target $1, sorted by name, from the values that tools/mpfs-env.sh
+# sourced (so comments, order and quoting in tools/toolchain.env do not matter).
+mpfs_toolchain_pins () {
+  local target="$1" pat names n p hit out=
+  pat="$(mpfs_target_pins "$target")" \
+    || die "usage: ./x toolchain pins [svdtools|svd2ada|pac|alire|gnat|gnatprove|adalang_analyzer|renode|openocd]"
+  names="$(sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' "$ROOT/tools/toolchain.env" | LC_ALL=C sort -u)"
+  local -a pats; read -ra pats <<<"$pat"
+  for p in "${pats[@]}"; do
+    hit=
+    for n in $names; do
+      # shellcheck disable=SC2053
+      if [[ $n == $p ]]; then hit=1; out+="$n=${!n}"$'\n'; fi
+    done
+    [ -n "$hit" ] || die "pin $p of target $target is not in tools/toolchain.env"
+  done
+  printf '%s' "$out" | LC_ALL=C sort -u
+}
+
+# Removes what is installed and is not pinned: Alire toolchains and per-version prefixes of the
+# versions that tools/toolchain.env no longer names (a cache that started from an older one keeps
+# them). Only the names this install creates are touched; the pinned ones stay.
+mpfs_toolchain_prune () {
+  local d keep crate ver
+  for crate in gprbuild:"$GPRBUILD_VERSION" gnat_riscv64_elf:"$GNAT_RISCV64_VERSION" gnat_native:"$GNAT_NATIVE_VERSION"; do
+    ver="${crate#*:}"; crate="${crate%%:*}"
+    for d in "$MPFS_ADA_TOOLCHAINS/${crate}_"*; do
+      [ -d "$d" ] || continue
+      case "$d" in "$MPFS_ADA_TOOLCHAINS/${crate}_${ver}_"*) ;; *) echo "x: removing $d"; rm -rf "$d" ;; esac
+    done
+  done
+  for crate in alr:"$ALR_VERSION" gnatprove:"$GNATPROVE_VERSION" adalang_analyzer:"$ADALANG_ANALYZER_VERSION" \
+               svdtools:"$SVDTOOLS_VERSION" svd2ada:"$SVD2ADA_COMMIT" renode:"$RENODE_VERSION" openocd:"$OPENOCD_VERSION"; do
+    ver="${crate#*:}"; crate="${crate%%:*}"; keep="$MPFS_TOOLS_PREFIX/$crate-$ver"
+    for d in "$MPFS_TOOLS_PREFIX/$crate-"*; do
+      [ -d "$d" ] && [ "$d" != "$keep" ] && { echo "x: removing $d"; rm -rf "$d"; }
+    done
+  done
+  return 0
+}
+
 cmd_toolchain () {
   local sub="${1:-}"; shift || true
   # shellcheck source=tools/mpfs-env.sh
@@ -373,7 +443,9 @@ cmd_toolchain () {
       mpfs_toolchain_on_path || true
       mpfs_toolchain_check
       ;;
-    *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|alire|gnat|gnatprove|adalang_analyzer|renode|openocd]|check" ;;
+    pins) [ $# -eq 1 ] || die "usage: ./x toolchain pins <target>"; mpfs_toolchain_pins "$1" ;;
+    prune) mpfs_toolchain_prune ;;
+    *) die "usage: ./x toolchain install [svdtools|svd2ada|pac|alire|gnat|gnatprove|adalang_analyzer|renode|openocd]|check|pins <target>|prune" ;;
   esac
 }
 
