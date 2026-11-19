@@ -85,10 +85,12 @@ def _():
         assert got == [expected(path)], (path.name, got)
 
 
-@case("every code of system.yaml has a broken description that is rejected with it (tests/host/xml_reader has those of the XML)")
+@case("every code of system.yaml has a broken description that is rejected with it (tests/host/xml_reader has those "
+      "of the XML, tests/host/derive those of the derivations)")
 def _():
     covered = {expected(p) for p in BROKEN.glob("*.yaml")}
-    assert covered == set(checks.CODES) - checks.XML_CODES, sorted((set(checks.CODES) - checks.XML_CODES) ^ covered)
+    own = set(checks.CODES) - checks.XML_CODES - checks.DERIVE_CODES
+    assert covered == own, sorted(own ^ covered)
 
 
 @case("the messages name the file, the code and the path of the field")

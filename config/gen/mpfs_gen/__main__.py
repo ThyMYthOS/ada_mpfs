@@ -10,15 +10,20 @@
   python3 config/gen/mpfs_gen xml [--check] [--fields] [--svd SVD] FILE...
                                                        read MSS Configurator XMLs and print the
                                                        registers of their core sections
+  python3 config/gen/mpfs_gen derive [--check] [--xml XML] [--svd SVD] FILE...
+                                                       derive the systems of descriptions with the XML
+                                                       of each (or XML) and print them
 
-`check` prints `FILE: ok` or one line per violated rule, `FILE: GEN-Exxx PATH: message`; so does
-`xml --check`. `xml` prints the design, the hash and every register of the core sections
+`check` prints `FILE: ok` or one line per violated rule, `FILE: GEN-Exxx PATH: message`; so do
+`xml --check` and `derive --check`. `derive` prints the clocks, the L2, the windows and, per partition,
+CPU_To_Hart, the PLIC sources and contexts and the release masks. `xml` prints the design, the hash and every register of the core sections
 (`SECTION/NAME = VALUE`, with --fields also each field), the memory elements and the sections that are
 only validated. Without --svd the merged SVD is build/svd/PolarfireSoC.svd, made current first.
 Exit status: 0 ok, 2 an input breaks a rule or the arguments are wrong.
 """
 import argparse
 import sys
+from fractions import Fraction
 from pathlib import Path
 
 # Run as `python3 config/gen/mpfs_gen`, the directory of this file is the first entry of the module path,
@@ -30,8 +35,9 @@ sys.path[:0] = [str(HERE.parent), str(HERE.parents[2] / "tools")]
 
 from gen_ada import errors, svdread
 
-from mpfs_gen import ROOT, presets, xml_reader, yaml_reader
+from mpfs_gen import ROOT, derive, presets, xml_reader, yaml_reader
 from mpfs_gen.checks import DiagnosticError
+from mpfs_gen.derive import Derived
 from mpfs_gen.model import MssConfiguration, XmlRegister
 
 TOOL = "mpfs_gen"
@@ -54,6 +60,11 @@ def parser() -> argparse.ArgumentParser:
     xml.add_argument("--fields", action="store_true", help="also print the fields of each register")
     xml.add_argument("--svd", type=Path, help="the merged SVD (default: build/svd, made current)")
     xml.add_argument("files", nargs="+", type=Path)
+    der = sub.add_parser("derive", help="derive the systems of descriptions")
+    der.add_argument("--check", action="store_true", help="only check: print FILE: ok")
+    der.add_argument("--xml", type=Path, help="the MSS Configurator XML (default: that of the description)")
+    der.add_argument("--svd", type=Path, help="the merged SVD (default: build/svd, made current)")
+    der.add_argument("files", nargs="+", type=Path)
     return p
 
 
@@ -94,6 +105,52 @@ def describe(config: MssConfiguration, fields: bool) -> list[str]:
     return out
 
 
+def mhz(value: Fraction | int) -> str:
+    """A rate in MHz, exact to the Hz."""
+    return f"{float(Fraction(value) / 1_000_000):.6f}".rstrip("0").rstrip(".") + " MHz"
+
+
+def describe_derived(d: Derived) -> list[str]:
+    """The lines that `derive` prints for one system."""
+    c, l2 = d.clocks, d.l2
+    out = [f"# {d.xml}", f"# sha256 {d.xml_sha256}",
+           (f"clocks: reference {mhz(c.reference)}, VCO {mhz(c.vco)}, system {mhz(c.system)}, CPU {mhz(c.cpu)}, "
+            f"AXI {mhz(c.axi)}, AHB/APB {mhz(c.ahb)}, RTC toggle {c.rtc_toggle} Hz (period {c.rtc_period})"),
+           "clocks of the XML: " + ", ".join(f"{name} {value}" for name, value in c.stated)]
+    ways, xml = l2.ways, l2.xml_ways
+    out.append(f"l2: cache {ways.cache}, LIM {ways.lim}, scratchpad {ways.scratchpad} ways"
+               + (f" (overrides the XML's {xml.cache}, {xml.lim}, {xml.scratchpad}: {l2.reason})" if l2.override
+                  else " (as the XML)")
+               + f"; WAY_ENABLE {l2.way_enable}")
+    for mem in d.memories:
+        used = sum(w.length for w in d.windows if w.memory == mem.name)
+        if used:
+            out.append(f"memory {mem.name}: {number(mem.origin)} length {number(mem.length)}, used {number(used)}")
+    for w in d.windows:
+        who = f"ipc {w.channel} ({', '.join(w.owners)})" if w.channel else f"{w.owners[0]} {w.kind}"
+        out.append(f"window {w.memory} {number(w.origin)} length {number(w.length)} {w.mode}: {who}")
+    for p in d.partitions:
+        irq, per = p.interrupts, p.peripherals
+        out.append(f"partition {p.name}: harts {list(p.harts)}, mask {p.mask:#x}, CPU_To_Hart {list(p.cpu_to_hart)}")
+        out.append(f"  plic contexts {list(irq.contexts)}, sources "
+                   + (", ".join(f"{s.name}={s.number}" for s in irq.sources) or "none")
+                   + "; local " + (", ".join(f"{n}={k}" for n, k in irq.local) or "none"))
+        out.append(f"  peripherals {', '.join(per.names) or 'none'}: SUBBLK_CLOCK_CR {number(per.clock_mask)}, "
+                   f"SOFT_RESET_CR {number(per.reset_mask)}")
+    out.append(f"RAM_SHUTDOWN_CR {number(d.ram_shutdown)} ({', '.join(d.ram_shutdown_blocks) or 'nothing'})")
+    out.append("gpio direct: " + ", ".join(f"{name}={line}" for name, line in d.gpio_aliases))
+    return out
+
+
+def derived(path: Path, xml: Path | None, svd: Path) -> Derived:
+    """The derived system of the description <path> with <xml> or the XML of the description."""
+    system = yaml_reader.read(path)
+    xml = xml or derive.xml_of(system, path)
+    shown = xml.relative_to(Path.cwd()) if xml.is_absolute() and xml.is_relative_to(Path.cwd()) else xml
+    config = xml_reader.read(xml, svd, name=str(shown))
+    return derive.derive(system, config, svd, where=f"{path} with {config.source}")
+
+
 def main(argv: list[str]) -> int:
     args = parser().parse_args(argv)
     if args.command == "preset":
@@ -102,7 +159,7 @@ def main(argv: list[str]) -> int:
     if args.command == "standalone-args":
         print(" ".join(presets.standalone_args(yaml_reader.read(args.file))))
         return errors.OK
-    if args.command == "xml":
+    if args.command in ("xml", "derive"):
         svd = args.svd if args.svd else svdread.ensure(ROOT)
     status = errors.OK
     for path in args.files:
@@ -110,6 +167,9 @@ def main(argv: list[str]) -> int:
             if args.command == "check":
                 yaml_reader.read(path)
                 print(f"{path}: ok")
+            elif args.command == "derive":
+                result = derived(path, args.xml, svd)
+                print(f"{path}: ok" if args.check else "\n".join([f"# {path}", *describe_derived(result)]))
             elif args.check:
                 xml_reader.read(path, svd)
                 print(f"{path}: ok")

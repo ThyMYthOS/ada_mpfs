@@ -16,7 +16,7 @@ PRIVILEGES = ("m", "u")
 MEMORY_PROFILES = ("lim", "scratchpad", "envm")
 
 # The console: the LO base of the MMUART (MPFS_Registers.MMUARTn_LO_Base), the divisor and the
-# fraction of the 115200 baud rate at the ~40 MHz APB clock of an Icicle Kit at reset. MMUART4 (which
+# fraction of the 115200 baud rate at the ~40 MHz APB clock of the MSS at reset. MMUART4 (which
 # the board does not bring out) uses the fractional baud rate mode (21 and 45/64), so that it is
 # exercised; the other four use the integer divisor 22.
 CONSOLES = {
@@ -47,12 +47,21 @@ INTERRUPT_STACK = {"light": 8192, "light-tasking": 8192, "embedded": 12912}
 # Stack sizes are multiples of this (the RISC-V psABI aligns the stack pointer to 16 bytes).
 STACK_ALIGNMENT = 16
 
-# The L2 cache is 16 ways of 128 KB, shared out between cache, LIM and scratchpad. At reset the LIM
-# has 15 of them (1920 KB) and the cache one. The scratchpad profile takes two ways from the LIM.
+# The L2 cache is 16 ways of 128 KB, shared out between cache, LIM and scratchpad, in every PolarFire
+# SoC whatever the board. At reset the LIM has 15 of them (1920 KB) and the cache one; the MSS
+# Configurator XML sets the split that a system uses (derive/l2.py). The scratchpad profile takes two ways from the LIM.
 WAYS = 16
 WAY_SIZE = 0x20000
 MAX_LIM_WAYS = 15
 MEMORY_WAYS = {"lim": (1, 15, 0), "scratchpad": (1, 13, 2), "envm": (1, 15, 0)}
+
+# The origins of the memories that windows are placed in (the literals of crates/mpfs_rts/ld/mpfs-memory.ld;
+# the scratchpad is ZERO_DEVICE_BOTTOM of Microchip's mss_l2_cache.h). The LIM and the scratchpad are as long
+# as their L2 ways.
+ENVM_ORIGIN = 0x20220100
+LIM_ORIGIN = 0x08000000
+SCRATCHPAD_ORIGIN = 0x0A000000
+DTIM_ORIGIN = 0x01000000
 
 # The local memories: ITIM per hart (the E51 has one of 8 KB, a U54 one of 28 KB, in windows of 32 KB
 # from 0x0180_0000), DTIM on the E51 only (8 KB).
@@ -61,6 +70,11 @@ ITIM_WINDOW = 0x8000
 ITIM_MAX = (0x2000, 0x7000, 0x7000, 0x7000, 0x7000)
 DTIM_MAX = 0x2000
 ENVM_LENGTH = 0x1FF00
+
+# The rate of mtime that the runtime assumes: System.BB.Board_Parameters.Clock_Frequency
+# (crates/mpfs_rts/mpfs/gnat/s-bbbopa.ads), of which Ada.Real_Time.Time_Unit is the inverse. The RTC
+# divider of the configuration must give exactly this rate from the reference clock.
+RUNTIME_CLOCK_HZ = 1_000_000
 
 # Nothing in the runtime uses more than one hart yet: a console that needs a second one (a FIFO in
 # RAM that the other hart drains) is refused until SMP exists.

@@ -62,6 +62,7 @@ from mpfs_gen.target import (
     MEMORY_WAYS,
     NUMBER_OF_HARTS,
     PROFILES,
+    RUNTIME_CLOCK_HZ,
     SECONDARY_STACK,
     WAY_SIZE,
     WAYS,
@@ -80,7 +81,7 @@ ROLES = {"primary": 1, "secondary": 0}
 # The runtime's Clock_Frequency (System.BB.Board_Parameters, Ada.Real_Time.Time_Unit = 1.0 / Clock_Frequency)
 # is 1 MHz, and the package checks that the partition says the same. It is the nominal rate that is
 # compared, not the measured one (the board counts 997,252 ticks per second, docs/lab/results/p1.md).
-DEFAULT_RTC_TOGGLE_HZ = 1_000_000
+DEFAULT_RTC_TOGGLE_HZ = RUNTIME_CLOCK_HZ
 
 # The link symbols that the partition data set (this order is the order of the list), and the symbols
 # that the placement script defines. The second list is the part of the interface that the data does

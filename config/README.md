@@ -12,9 +12,9 @@ runtime, its linker scripts and start code (`crates/mpfs_rts`), and the build. A
 works with the configuration generator.
 
 **Images that run together.** The tool describes one partition, one image. Nothing compares the memory regions
-of two images that run on the same board, so the LIM regions of such images must be kept apart by hand until the
-configuration generator checks the windows (open issue
-[#89](https://github.com/ThyMYthOS/ada_mpfs/issues/89)).
+of two images that run on the same board, so the LIM regions of such images must be kept apart by hand. The
+configuration generator places and checks the windows of the partitions of a system description
+([derived system](#derived-system)); its emitters, which will hand the origins to the images, do not exist yet.
 
 ### The two files
 
@@ -183,9 +183,10 @@ A system description, `system.yaml`, says which partitions run on which harts of
 them. Its format is the JSON schema [`gen/schema/system.schema.json`](gen/schema/system.schema.json) (schema
 version 1), read by the package [`gen/mpfs_gen`](gen/mpfs_gen/__init__.py). The reader parses the file,
 validates it against the schema, applies the defaults, normalises the values and checks the rules that a
-schema cannot express; what it returns is the immutable model of `mpfs_gen/model.py`. Nothing derives
-partition data, linker scripts or boot tables from it yet: those are the next stages of the configuration
-generator. To check a description:
+schema cannot express; what it returns is the immutable model of `mpfs_gen/model.py`. Together with the MSS
+Configurator XML it gives the [derived system](#derived-system); nothing writes partition data, linker
+scripts or boot tables from that yet: the emitters are the next stage of the configuration generator. To
+check a description:
 
 ```sh
 python3 config/gen/mpfs_gen check systems/amp_a/system.yaml
@@ -277,11 +278,13 @@ the description agrees with the XML are checked by the later stages that read th
 
 Each rule has its own code. `GEN-E001` to `GEN-E013` are the rules of the schema (the reader maps each
 failure of the validator to the code of its keyword; a size that is not a size is `GEN-E010` whatever the
-keyword), `GEN-E020` to `GEN-E034` the rules across fields, `GEN-E040` on the rules of the [MSS Configurator
-XML](#mss-configurator-xml). The table is `CODES` in `gen/mpfs_gen/checks.py`, and a test compares the two.
-`tests/host/system_yaml/fixtures/broken` has a description for each code of `system.yaml`, and
+keyword), `GEN-E020` to `GEN-E034` the rules across fields, `GEN-E040` to `GEN-E052` the rules of the [MSS
+Configurator XML](#mss-configurator-xml), `GEN-E060` on the rules of the [derived system](#derived-system).
+The table is `CODES` in `gen/mpfs_gen/checks.py`, and a test compares the two.
+`tests/host/system_yaml/fixtures/broken` has a description for each code of `system.yaml`,
 `tests/host/xml_reader/fixtures/broken` an XML (or an edit of the XML of the Icicle Kit) for each code of the
-XML, that is rejected with exactly that code.
+XML, that is rejected with exactly that code, and `tests/host/derive` a negative case for each code of the
+derivations.
 
 | Code | Rule |
 |---|---|
@@ -326,6 +329,31 @@ XML, that is rejected with exactly that code.
 | `GEN-E050` | a value is wider than its field |
 | `GEN-E051` | a field is at another bit position than the field of the same name in the SVD |
 | `GEN-E052` | a value is wider than the field of the same name in the SVD |
+| `GEN-E060` | the XML does not have the SHA-256 that system.yaml names for it |
+| `GEN-E061` | a clock of mss_clocks/clocks differs by more than 1 ppm from the clock recomputed from the MSS PLL and the dividers |
+| `GEN-E062` | the MSS PLL has a reference divider, a feedback multiplier or an output divider of 0 |
+| `GEN-E063` | the CPU clock is above 625 MHz |
+| `GEN-E064` | the AXI clock is above 312.5 MHz |
+| `GEN-E065` | the AHB/APB clock is above 156.25 MHz |
+| `GEN-E066` | the CPU clock is below the AXI clock |
+| `GEN-E067` | the AHB/APB clock divider is 1 |
+| `GEN-E068` | the AHB clock is not above 66 MHz while USB is configured |
+| `GEN-E069` | the reference clock divided by the RTC toggle clock is not a whole number from 1 to 4095 |
+| `GEN-E070` | RTC_CLOCK_CR.PERIOD is not the reference clock divided by the RTC toggle clock |
+| `GEN-E071` | the RTC toggle clock is not the Clock_Frequency of the runtime (1 MHz) |
+| `GEN-E072` | the L2 of the XML has no cache way or more than 16 ways (WAY_ENABLE, NUM_SCRATCH_PAD_WAYS) |
+| `GEN-E073` | a way mask of the XML includes a scratchpad way |
+| `GEN-E074` | l2.cache_partitioning names a way that is not a cache way |
+| `GEN-E075` | the size of a window is not a multiple of 4 (the granularity of a PMP entry) |
+| `GEN-E076` | the windows of a memory do not fit it (the L2 budget of LIM and scratchpad, the eNVM) |
+| `GEN-E077` | a window reaches outside its memory |
+| `GEN-E078` | windows of two different partitions overlap |
+| `GEN-E079` | a window lies in the ITIM or DTIM of a hart that is not in its partition |
+| `GEN-E080` | an interrupt is not a PLIC source of the SVD |
+| `GEN-E081` | a local interrupt is not one of every hart of the partition |
+| `GEN-E082` | a PLIC source is handled by two partitions |
+| `GEN-E083` | a peripheral is neither a block of SUBBLK_CLOCK_CR nor a watchdog of the SVD |
+| `GEN-E084` | a partition owns a peripheral that CONFIGURED_PERIPHERALS of the XML leaves out |
 
 Several rules are also checks of the package `MPFS_Partition` (a mask that mixes E51 and U54, a stack size,
 `ram_fifo`, the L2 ways, the ITIM): the reader refuses a description early, and the package still refuses
@@ -333,8 +361,11 @@ partition data that breaks them, whichever tool wrote it.
 
 ### The reference systems
 
-[`systems/`](../systems/README.md) has four systems that the schema validates. Their window sizes are example
-data that fit together into the LIM; they are not measured.
+[`systems/`](../systems/README.md) has four systems that the schema validates and that derive with the XMLs of
+the Icicle Kit (`icicle`, `icicle_es`; the video kit does not configure MMUART2 and MMUART3, which they use).
+Their window sizes are example data that fit together into the LIM; they are not measured. The reference
+XMLs configure 4 ways of LIM (512 KiB), too few for them, so `amp_a` to `amp_c` override the L2 with the split at
+reset (1 way of cache, 15 of LIM) and `amp_d` with 4 ways of cache and 12 of LIM.
 
 | System | E51 (hart 0) | U54 (harts 1 to 4) |
 |---|---|---|
@@ -436,3 +467,73 @@ Each board directory has the XML of its design, unchanged; where it comes from i
 | [`icicle`](boards/icicle/README.md) | `ICICLE_MSS_mss_cfg.xml` | 0.6.8 | 2024.2 | MPFS250T |
 | [`icicle_es`](boards/icicle_es/README.md) | `ICICLE_MSS_mss_cfg.xml` | 0.6.5 | 2022.2 | MPFS250T_ES |
 | [`video_kit`](boards/video_kit/README.md) | `MSS_video-kit_mss_cfg.xml` | 0.6.8 | 2023.2 | MPFS250TS |
+
+## Derived system
+
+The package `gen/mpfs_gen/derive` derives from a system description and the MSS Configurator XML of its board
+the data that the emitters will write: the clocks, the L2, the windows of the partitions and channels, and per
+partition `CPU_To_Hart`, the PLIC sources and contexts and the release masks of its peripherals. The result,
+`Derived`, is immutable; a description and an XML that break a rule give one line per rule,
+`FILE with XML: GEN-Exxx PATH: message`, and status 2.
+
+```sh
+python3 config/gen/mpfs_gen derive systems/amp_a/system.yaml                      # print the derived system
+python3 config/gen/mpfs_gen derive --check systems/*/system.yaml                  # FILE: ok
+python3 config/gen/mpfs_gen derive --xml config/boards/icicle_es/ICICLE_MSS_mss_cfg.xml systems/amp_a/system.yaml
+```
+
+The XML is `xml.file` of the description (its SHA-256 must be `xml.sha256`, `GEN-E060`), otherwise the one XML
+in the directory of the board; `--xml` takes another.
+
+**Clocks** (`derive/clocks.py`). The rates of `mss_clocks/clocks` are recomputed from the MSS PLL and must
+agree within 1 ppm (`GEN-E061`): VCO = `MSS_EXT_SGMII_REF_CLK` / `RFDIV` × (`INTIN` + `FRACIN` / 2²⁴ when
+`FRACN_EN`), the MSS clock = VCO / (4 × `POST0DIV`) (output 0 of the PLL, selected by bit 0 of `MSSCLKMUX`),
+and CPU, AXI and AHB/APB that divided by 2 to the power of the dividers of `CLOCK_CONFIG_CR`. Microchip's HAL
+does not spell the formula out; it is the one of the PolarFire clocking documentation, and every reference XML
+agrees with it exactly (125 MHz / 5 × 96 = 2400 MHz, / 4 = 600 MHz; CPU 600, AXI 300, AHB/APB 150 MHz). A
+divider or multiplier of 0 is `GEN-E062`. The limits are those of `mss_pll.h` (lines 147 to 155 at the commit
+of `tools/mchp_diff/oracle.env`): CPU at most 625 MHz (`GEN-E063`), AXI at most 312.5 MHz (`GEN-E064`), AHB/APB
+at most 156.25 MHz (`GEN-E065`), CPU not below AXI (`GEN-E066`), AHB/APB not divided by 1 (`GEN-E067`), AHB
+above 66 MHz when `CONFIGURED_PERIPHERALS` has USB (`GEN-E068`). The RTC: the reference divided by
+`MSS_RTC_TOGGLE_CLK` must be a whole number from 1 to 4095 (`GEN-E069`), `RTC_CLOCK_CR.PERIOD` must hold it
+(`GEN-E070`; 125 in the reference XMLs), and the toggle clock must be the `Clock_Frequency` of the runtime,
+1 MHz (`GEN-E071`).
+
+**L2** (`derive/l2.py`). The XML is the source of the split. It is a setting of the MSS, not a property of the
+board: every PolarFire SoC has the same 16 ways of 128 KiB, and the XML of any board, the Icicle Kit's included,
+can share them out differently (only the DDR memory depends on the board). As Microchip's `mss_l2_cache.c` lays the ways out: cache ways 0 to `WAY_ENABLE` −
+`NUM_SCRATCH_PAD_WAYS`, the scratchpad the upper `NUM_SCRATCH_PAD_WAYS` of the enabled ways (the code, not the
+comment of the header), the LIM the ways above `WAY_ENABLE`. The reference XMLs have `WAY_ENABLE` 11 and 4
+scratchpad ways: 8 ways of cache, 4 of scratchpad (ways 8 to 11), 4 of LIM. The XML must leave at least one
+cache way (`GEN-E072`) and keep the scratchpad ways out of its way masks (`GEN-E073`). `l2.ways` overrides the
+split and is laid out the same way; the ways of `l2.cache_partitioning` must be cache ways (`GEN-E074`).
+
+**Windows** (`derive/placement.py`). Each partition has one window for its code and data per memory (`envm`,
+`lim`, `scratchpad`), and `fast_text` a window in the ITIM of each of its harts. A channel lies in the memory
+of the data of both its partitions (the LIM where they differ). Where the channels of a memory form chains,
+each chain is one block, `A | IPC_AB | B | IPC_BC | C`, starting at the end that comes first in the
+description; otherwise all channels of the memory form one shared block. The blocks are placed
+first-fit-decreasing (equal sizes in the order of the description), at a multiple of the size of their first
+window where that is a power of two (a NAPOT region), at a multiple of 4 (TOR) otherwise. A size that is no
+multiple of 4 is `GEN-E075`, windows that do not fit their memory are `GEN-E076` (the message names the
+partitions). The system map is then checked, whoever placed its windows: a window outside its memory
+(`GEN-E077`), windows of two different partitions that overlap (`GEN-E078`, the message names both), a window
+in the ITIM or DTIM of a hart that its partition does not have (`GEN-E079`). The space of the boot loader in
+the LIM is not counted yet: the boot loader does not exist.
+
+**Per partition.** `CPU_To_Hart` is the position of the k-th set bit of the mask. The PLIC sources are the
+names of the SVD with their numbers (`GEN-E080` for another name, `GEN-E082` for a source of two partitions);
+the boot loader enables them in the M-mode context of each hart of the partition only (hart 0 context 0, hart
+n context 2n − 1). `local:NAME` must be a local interrupt of every hart of the partition (`GEN-E081`). The PLIC
+level of a source is the level of the Ada priority of its handler (`Interrupt_Priority'First + n − 1` is level
+n, `crates/mpfs_rts/README.md`); `system.yaml` does not carry those priorities yet, so the levels are left
+open. A peripheral is a field of `SUBBLK_CLOCK_CR` in lower case or a watchdog of the SVD (`GEN-E083`); the
+release masks of `SUBBLK_CLOCK_CR` and `SOFT_RESET_CR` have the bits of the SVD for the peripherals and the
+console MMUART of the partition. A peripheral that `CONFIGURED_PERIPHERALS` has a field for must be configured
+there (`GEN-E084`).
+
+**System.** `RAM_SHUTDOWN_CR` shuts down the RAMs of CAN0, CAN1, USB, GEM0, GEM1 and MMC when
+`CONFIGURED_PERIPHERALS` leaves them out and of the DDR controller when `DDRPHY_MODE` is off, by the rules of
+Microchip's `mss_peripherals.h` (the video kit: CAN0 and CAN1). The direct GPIO interrupts `GPIO_DIRECT_0` to
+`_31` are GPIO0 or GPIO1 lines, or GPIO2 lines where the bit of `GPIO_INTERRUPT_FAB_CR` is set; `_32` to `_37`
+are GPIO1 bits 18 to 23.

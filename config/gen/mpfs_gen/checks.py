@@ -9,7 +9,8 @@ CODES is the one list of the codes: each rule has its own, and config/README.md 
 test compares them). A code is never reused for another rule. The schema rules (GEN-E001 to GEN-E013)
 are reported by yaml_reader.py from the failures of the validator, the rules across fields (GEN-E020 to
 GEN-E034) by semantic() below on a description that the schema accepts, and the rules of the MSS
-Configurator XML (GEN-E040 on, XML_CODES) by xml_reader.py.
+Configurator XML (GEN-E040 to GEN-E059, XML_CODES) by xml_reader.py, and the rules of the derivations from
+a description and its XML (GEN-E060 on, DERIVE_CODES) by the package derive.
 """
 from dataclasses import dataclass
 from pathlib import Path
@@ -62,10 +63,38 @@ CODES: dict[str, str] = {
     "GEN-E050": "a value is wider than its field",
     "GEN-E051": "a field is at another bit position than the field of the same name in the SVD",
     "GEN-E052": "a value is wider than the field of the same name in the SVD",
+    "GEN-E060": "the XML does not have the SHA-256 that system.yaml names for it",
+    "GEN-E061": "a clock of mss_clocks/clocks differs by more than 1 ppm from the clock recomputed from the "
+                "MSS PLL and the dividers",
+    "GEN-E062": "the MSS PLL has a reference divider, a feedback multiplier or an output divider of 0",
+    "GEN-E063": "the CPU clock is above 625 MHz",
+    "GEN-E064": "the AXI clock is above 312.5 MHz",
+    "GEN-E065": "the AHB/APB clock is above 156.25 MHz",
+    "GEN-E066": "the CPU clock is below the AXI clock",
+    "GEN-E067": "the AHB/APB clock divider is 1",
+    "GEN-E068": "the AHB clock is not above 66 MHz while USB is configured",
+    "GEN-E069": "the reference clock divided by the RTC toggle clock is not a whole number from 1 to 4095",
+    "GEN-E070": "RTC_CLOCK_CR.PERIOD is not the reference clock divided by the RTC toggle clock",
+    "GEN-E071": "the RTC toggle clock is not the Clock_Frequency of the runtime (1 MHz)",
+    "GEN-E072": "the L2 of the XML has no cache way or more than 16 ways (WAY_ENABLE, NUM_SCRATCH_PAD_WAYS)",
+    "GEN-E073": "a way mask of the XML includes a scratchpad way",
+    "GEN-E074": "l2.cache_partitioning names a way that is not a cache way",
+    "GEN-E075": "the size of a window is not a multiple of 4 (the granularity of a PMP entry)",
+    "GEN-E076": "the windows of a memory do not fit it (the L2 budget of LIM and scratchpad, the eNVM)",
+    "GEN-E077": "a window reaches outside its memory",
+    "GEN-E078": "windows of two different partitions overlap",
+    "GEN-E079": "a window lies in the ITIM or DTIM of a hart that is not in its partition",
+    "GEN-E080": "an interrupt is not a PLIC source of the SVD",
+    "GEN-E081": "a local interrupt is not one of every hart of the partition",
+    "GEN-E082": "a PLIC source is handled by two partitions",
+    "GEN-E083": "a peripheral is neither a block of SUBBLK_CLOCK_CR nor a watchdog of the SVD",
+    "GEN-E084": "a partition owns a peripheral that CONFIGURED_PERIPHERALS of the XML leaves out",
 }
 
 # The codes of the reader of the MSS Configurator XML (xml_reader.py); the others are those of system.yaml.
 XML_CODES = frozenset(code for code in CODES if "GEN-E040" <= code <= "GEN-E059")
+# The codes of the derivations from a system description and its XML (derive/).
+DERIVE_CODES = frozenset(code for code in CODES if "GEN-E060" <= code <= "GEN-E099")
 
 
 @dataclass(frozen=True, slots=True)
@@ -98,6 +127,10 @@ class SystemDescriptionError(DiagnosticError):
 
 class ConfiguratorXmlError(DiagnosticError):
     """An MSS Configurator XML that breaks rules."""
+
+
+class DerivationError(DiagnosticError):
+    """A system description and an XML whose derived system breaks rules."""
 
 
 def diagnostic(code: str, path: str, message: str) -> Diagnostic:
