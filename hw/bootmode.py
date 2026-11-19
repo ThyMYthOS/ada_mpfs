@@ -4,7 +4,7 @@
 """Switch the boot mode (0..3) of the Icicle Kit with fpgenprog, through the FlashPro.
 
     bootmode.py N [ELF] [--yes] [--dry-run] [--prepare-only] [--workdir DIR] [--lab FILE]
-                [--die DIE] [--package PKG] [--flashpro SERIAL] [--verify]
+                [--die DIE] [--package PKG] [--flashpro ID] [--verify]
                 [--snvm-page PAGE] [--usk KEY] [--encrypt] [--keys PRIVATE.pem PUBLIC.pem]
 
 A Python port of the Java mpfsBootmodeProgrammer of Microchip (hw/bootprog.py; no Java): it makes the image of the
@@ -23,10 +23,20 @@ another design, and it rewrites the configuration of the FPGA part. So nothing i
 that. --dry-run does nothing and only says what it would do; --prepare-only makes the image, the project and the
 bitstream and stops before the programming (no prompt, no FlashPro needed).
 
-With more than one FlashPro connected, --flashpro SERIAL (or FLASHPRO_SERIAL in lab.conf) names the one to use. It is
-written into the fpgenprog project, which is not proven to select it: before it programs, the script runs a verify
-(it writes nothing) and refuses to go on unless fpgenprog used that FlashPro. After every run the FlashPro that
-fpgenprog used is printed, so its serial number is known.
+With more than one FlashPro connected, --flashpro ID (or FLASHPRO_ID in lab.conf) names the one to use: the name the
+programming tools of Microchip give it, which ./x hw program --scan lists with the model. It is not in general the USB
+serial number that ./x hw flashpros shows, and a FlashPro whose USB descriptor has no serial number (shown with - there) has
+only this name. Without FLASHPRO_ID, a FlashPro5 that FLASHPRO_SERIAL names is taken to be S2 and that serial number (an
+assumption), and otherwise FLASHPRO_SERIAL is used as it is.
+fpgenprog cannot pick one of several FlashPros: its script runs the action on every connected programmer (both were programmed
+when two were connected). So FlashPro Express (FPEXPRESS in lab.conf, or the one next to fpgenprog) is asked which
+programmers are connected. With one and none named, that one is taken and fpgenprog programs. With several and none named, or a
+name that is not among them, the script stops before it does anything (exit status 2) and lists them; with a name the image and
+the bitstream are made with fpgenprog and the programming file it leaves in the project is programmed with ./x hw program, for
+that programmer only (not run on a board with two FlashPros). Without FlashPro Express the name is written into the project as
+a minimal element, which fpgenprog does not honour with several connected: before it programs, the script runs a verify (it
+writes nothing) and refuses to go on if the output of fpgenprog shows any other programmer. After every run the programmers its
+output names are printed.
 
 The boot mode 2 options (--snvm-page, --usk, --encrypt) and the boot mode 3 option (--keys) are those of the
 Java tool; a USK of zero or none is replaced by a generated one that is saved next to the image. Boot mode
@@ -48,9 +58,12 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Callable
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bootprog  # noqa: E402
+import flashpros  # noqa: E402
+import fpexpress  # noqa: E402
 import lab  # noqa: E402
 
 BARE_HELLO = "bare_hello"
@@ -229,8 +242,10 @@ def make_parser() -> argparse.ArgumentParser:
     ap.add_argument("--lab", metavar="FILE", help="lab settings (default: hw/lab.conf, on top of hw/lab.conf.example)")
     ap.add_argument("--die", metavar="DIE", help=f"target die (default: BOOTMODE_DIE of lab.conf); one of {', '.join(bootprog.DIES)}")
     ap.add_argument("--package", metavar="PKG", help=f"target package (default: BOOTMODE_PACKAGE of lab.conf); one of {', '.join(bootprog.PACKAGES)}")
-    ap.add_argument("--flashpro", metavar="SERIAL",
-                    help="serial number of the FlashPro to use when several are connected (default: FLASHPRO_SERIAL of lab.conf, else the one fpgenprog picks)")
+    ap.add_argument("--flashpro", metavar="ID",
+                    help="the FlashPro to use when several are connected, as the programming tools of Microchip name it (./x hw program --scan "
+                    "lists the names), not necessarily its USB serial number (default: FLASHPRO_ID of lab.conf, else a FlashPro5 "
+                    "that FLASHPRO_SERIAL names as S2 and the serial number, else FLASHPRO_SERIAL, else the one fpgenprog picks)")
     ap.add_argument("--verify", action="store_true", help="verify the target after programming")
     ap.add_argument("--snvm-page", "--snvm_page", dest="snvm_page", metavar="PAGE", type=int, default=0,
                     help=f"boot mode 2 only: the sNVM page the image is stored from (0 to {bootprog.SNVM_PAGES - 1}, default 0)")
@@ -267,6 +282,52 @@ def summary(done: bootprog.Prepared) -> None:
         say("warn", "bootmode: the private key of the certificate was generated and is not saved", sys.stderr)
 
 
+def name_programmer(lab_conf: dict[str, str], workdir: Path,
+                    requested: str | None) -> tuple[str | None, str | None, bool]:
+    """The programmer to use, its <programmer> element for the project of fpgenprog, and whether more than one programmer is
+    connected, from FlashPro Express.
+
+    With more than one FlashPro connected fpgenprog does not know which one to take, so the project has to name it, as the
+    project of ./x hw program does. FlashPro Express lists the programmers and writes that element (with type and connection).
+    <requested> (--flashpro, FLASHPRO_ID, ...) must be one of them; without it one programmer is taken, several are an error.
+    FlashPro Express not found: (requested, None, False): the project gets a minimal element, or none, as before."""
+    path = fpexpress.resolve_fpexpress(lab_conf, required=False)
+    if path is None:
+        say("warn", "bootmode: FlashPro Express not found (FPEXPRESS in hw/lab.conf): the programmer is not checked and, with "
+            "more than one FlashPro, fpgenprog picks one", sys.stderr)
+        return requested, None, False
+    run = fpexpress.Run(path, workdir / "fpexpress", log_name="fpexpress.log")
+    try:
+        names, models, _ = fpexpress.find_programmers(run, run.workdir / fpexpress.JOB_DIR)
+        found = ", ".join(f"{n} ({models[n]})" if n in models else n for n in names) or "none"
+        if requested and requested not in names:
+            fail(f"the FlashPro '{requested}' is not among the programmers FlashPro Express sees: {found}. "
+                 "Name one of them with --flashpro or FLASHPRO_ID (./x hw flashpros lists the USB devices)")
+        if not requested and len(names) != 1:
+            fail("no FlashPro was found by FlashPro Express (log: " + str(run.log.name) + ")" if not names else
+                 f"more than one FlashPro is connected: {found}. Name the one to program with --flashpro or FLASHPRO_ID")
+        name = requested or names[0]
+        job = run.workdir / fpexpress.JOB_DIR
+        return name, fpexpress.programmer_element(run, job, name), len(names) > 1
+    except fpexpress.FpExpressError as e:
+        fail(str(e))
+    finally:
+        run.close()
+
+
+def fpexpress_command(opt: bootprog.Options, lab_arg: str | None) -> Callable[[str], list[str]]:
+    """The command for an action when more than one FlashPro is connected: ./x hw program on the PPD file that fpgenprog made, for
+    the one programmer. fpgenprog cannot do it: it has no option for a programmer, and its script runs the action on every
+    connected programmer (seen with two FlashPros: both were programmed, one of them failed)."""
+    def command(action: str) -> list[str]:
+        ppd = opt.project_dir / "proj_fp" / "target.ppd"
+        if not ppd.is_file():
+            raise bootprog.BootError(f"fpgenprog made no programming file {ppd}: it cannot be programmed through FlashPro Express")
+        return [sys.executable, str(Path(__file__).resolve().parent / "program.py"), str(ppd), "--programmer", str(opt.flashpro),
+                "--action", action, "--yes", "--workdir", str(opt.workdir / "program"), *(["--lab", lab_arg] if lab_arg else [])]
+    return command
+
+
 def main(argv=None):
     a = PARSER.parse_args(argv)
     ensure_lab_conf(a.lab)
@@ -281,6 +342,11 @@ def main(argv=None):
              "and there is no terminal to ask (nothing was done)")
     workdir = Path(a.workdir).resolve()
     elf = boot_elf(a.elf, a.mode, a.dry_run)
+    requested = (a.flashpro or lab_conf.get("FLASHPRO_ID") or flashpros.flashpro5_id(lab_conf)
+                 or lab_conf.get("FLASHPRO_SERIAL") or None)
+    element, several = None, False
+    if programming:
+        requested, element, several = name_programmer(lab_conf, workdir, requested)
     usk = bootprog.normalize_usk(a.usk)
     opt = bootprog.Options(
         workdir=workdir, mode=bootprog.BootMode(a.mode), fpgenprog=fpgenprog, bin_dir=bin_dir,
@@ -288,7 +354,9 @@ def main(argv=None):
         elf=elf, usk=usk, snvm_page=a.snvm_page, encrypt=a.encrypt,
         private_key=Path(a.keys[0]) if a.keys else None, public_key=Path(a.keys[1]) if a.keys else None,
         verify=a.verify, prepare_only=a.prepare_only,
-        flashpro=a.flashpro or lab_conf.get("FLASHPRO_SERIAL") or None)
+        flashpro=requested, programmer_element=element)
+    if several:
+        opt.program_command = fpexpress_command(opt, a.lab)
     log = bootprog.Log(emit)
     try:
         # a dry run names the stand-in boot program without building it, so the ELF may not exist yet
@@ -310,7 +378,7 @@ def main(argv=None):
         if a.prepare_only:
             say("ok", f"bootmode: prepared; not programmed (--prepare-only). The project is {opt.project_dir}")
             return 0
-        if not a.yes and not confirm(a.mode, bootprog.fp_run_action(opt, "PROGRAM")):
+        if not a.yes and not confirm(a.mode, bootprog.action_command(opt, "PROGRAM")):
             say("warn", "bootmode: not confirmed, nothing was written to the board", sys.stderr)
             return 1
         seen = bootprog.flash(done, log)

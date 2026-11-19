@@ -13,6 +13,7 @@ front of <Servers>. It does no hardware and no bitstream.
   FAKE_FP_FAIL        "<subcommand>[:<status>]": that subcommand ends with that status (default 1)
   FAKE_FP_SILENT      1: run_action prints nothing
   FAKE_FP_PROGRAMMER  serial number of the programmer it "finds" (default STANDIN1)
+  FAKE_FP_GANG        comma separated serials: all of them do the action (default: only the one it takes)
   FAKE_FP_HONOUR      1: run_action takes the programmer named in proj_fp.pro, if there is one, before it
                       takes the one it finds; the real fpgenprog is not known to do this
 """
@@ -69,7 +70,10 @@ def main(argv: list[str]) -> int:
             print(f"fake fpgenprog: {sub}: the content file is not Intel hex", file=sys.stderr)
             return 2
         return 0
-    if sub in ("mss_boot_info", "generate_bitstream"):
+    if sub == "generate_bitstream":   # the programming file that the real one leaves in the project folder
+        (project / "proj_fp" / "target.ppd").write_text("fake ppd\n", encoding="utf-8")
+        return 0
+    if sub == "mss_boot_info":
         return 0
     if sub == "run_action":
         action = option(args, "--action")
@@ -78,12 +82,17 @@ def main(argv: list[str]) -> int:
         named = re.search(r"<id>\s*(\S+)\s*</id>", found.group(0)) if found else None
         serial = named.group(1) if named and os.environ.get("FAKE_FP_HONOUR") == "1" else os.environ.get("FAKE_FP_PROGRAMMER", "STANDIN1")
         element = f'<programmer status="enable" type="FlashPro6Lite"><name>{serial}</name><id>{serial}</id></programmer>'
+        if named and os.environ.get("FAKE_FP_HONOUR") == "1":
+            element = found.group(0)   # the programmer is named: its element stays as it is
         text, n = PROGRAMMER.subn(lambda _: element, text, count=1)
         if not n:   # a new project has an empty <Servers>; the programmer goes in front of it
             text = SERVERS.sub(lambda m: f"{m.group(1)}{element}\n{m.group(0)}", text, count=1)
         pro.write_text(text, encoding="utf-8")
         if os.environ.get("FAKE_FP_SILENT") != "1":
-            print(f"fake fpgenprog: {action} on FlashPro {serial}")
+            # FlashPro Express prints a line like this for each programmer that does the action; with several connected
+            # and FAKE_FP_GANG naming them, all do it, as the real fpgenprog did with a project that names one
+            for who in (os.environ.get("FAKE_FP_GANG", "").split(",") if os.environ.get("FAKE_FP_GANG") else [serial]):
+                print(f"programmer '{who}' : device 'target' : Executing action {action}")
         return 0
     print(f"fake fpgenprog: unknown subcommand {sub}", file=sys.stderr)
     return 2

@@ -106,6 +106,10 @@ class Options:
     verify: bool = False
     prepare_only: bool = False         # everything except programming (the Java tool's --dryrun)
     flashpro: str | None = None        # serial number of the FlashPro to use; None: what fpgenprog picks
+    programmer_element: str | None = None  # the <programmer> element FlashPro Express wrote for it (type, connection); None: a minimal one
+    program_command: Callable[[str], list[str]] | None = None
+    # the command for an action (PROGRAM, VERIFY) in place of fpgenprog run_action: fpgenprog has no way to pick one FlashPro
+    # (its script runs the action on every connected programmer), so a lab with several programs through FlashPro Express
 
     @property
     def out_dir(self) -> Path:
@@ -515,6 +519,11 @@ def fp_generate_bitstream(opt: Options) -> list[str]:
     return [str(opt.fpgenprog), "generate_bitstream", "--location", str(opt.project_dir)]
 
 
+def action_command(opt: Options, action: str) -> list[str]:
+    """The command that does <action> on the project: program_command if there is one, else fpgenprog run_action."""
+    return opt.program_command(action) if opt.program_command is not None else fp_run_action(opt, action)
+
+
 def fp_run_action(opt: Options, action: str) -> list[str]:
     return [str(opt.fpgenprog), "run_action", "--location", str(opt.project_dir), "--action", action]
 
@@ -536,6 +545,8 @@ def project_file(opt: Options) -> Path:
 
 
 PROGRAMMER_RE = re.compile(r"<programmer\b.*?</programmer>", re.S)
+PROGRAMMER_GAP_RE = re.compile(r"[ \t]*<programmer\b.*?</programmer>[ \t]*\n?", re.S)
+USED_RE = re.compile(r"programmer '([^']+)' : device '[^']*' : Executing action", re.I)
 SERVERS_RE = re.compile(r"^([ \t]*)<Servers>", re.M)   # the programmer element stands in front of it
 PROGRAMMER_ID_RE = re.compile(r"<id>\s*(\S+)\s*</id>")
 
@@ -554,12 +565,11 @@ def select_flashpro(opt: Options, log: Log, serial: str) -> None:
         text = pro.read_text(encoding="utf-8")
     except OSError as e:
         raise BootError(f"Cannot read the project file {pro} to select the FlashPro: {e}") from e
-    element = (f'<programmer status="enable"><name>{serial}</name><id>{serial}</id></programmer>')
-    new, count = PROGRAMMER_RE.subn(lambda _: element, text, count=1)
+    element = opt.programmer_element or f'<programmer status="enable"><name>{serial}</name><id>{serial}</id></programmer>'
+    stripped = PROGRAMMER_GAP_RE.sub("", text)   # the elements that are there (and the lines they leave empty) go
+    new, count = SERVERS_RE.subn(lambda m: f"{m.group(1)}{element}\n{m.group(0)}", stripped, count=1)
     if not count:
-        new, count = SERVERS_RE.subn(lambda m: f"{m.group(1)}{element}\n{m.group(0)}", text, count=1)
-    if not count:
-        raise BootError(f"The project file {pro} has neither a <programmer> nor a <Servers> element: "
+        raise BootError(f"The project file {pro} has no <Servers> element: "
                         "fpgenprog changed its format; the FlashPro cannot be selected")
     pro.write_text(new, encoding="utf-8")
     log.debug(f"FlashPro {serial} written into {pro}.")
@@ -576,14 +586,27 @@ def programmer_in_project(opt: Options) -> str | None:
     return found.group(1) if found else None
 
 
-def check_flashpro(opt: Options, log: Log, serial: str) -> None:
-    """Raises BootError unless the project names FlashPro <serial>."""
-    used = programmer_in_project(opt)
-    if used != serial:
-        raise BootError(f"fpgenprog used the FlashPro {used or '(none: no programmer is named in the project)'} instead of "
-                        f"{serial}: nothing was programmed. Selecting a FlashPro by writing it into the project does not "
-                        f"work with this fpgenprog, or {serial} is not connected.")
-    log.info(f"FlashPro {serial} is the programmer of the project.")
+def programmers_used(output: str) -> list[str]:
+    """The programmers that fpgenprog ran the action on, in the order its output names them (once each): FlashPro Express
+    prints "programmer 'NAME' : device 'target' : Executing action VERIFY" for each. With two FlashPros connected a
+    project that names one programmer still had both do the action (they program in parallel)."""
+    seen: list[str] = []
+    for name in USED_RE.findall(output):
+        if name not in seen:
+            seen.append(name)
+    return seen
+
+
+def check_flashpro(opt: Options, log: Log, serial: str, output: str) -> None:
+    """Raises BootError unless the action that printed <output> ran on FlashPro <serial> and on no other programmer.
+    The project file says nothing about that: it is what select_flashpro wrote, fpgenprog does not change it."""
+    used = programmers_used(output)
+    if used != [serial]:
+        what = ("on " + ", ".join(used)) if used else "on none that its output names (it may have stopped early; see the log)"
+        raise BootError(f"fpgenprog ran the action {what} instead of only on {serial}: nothing was programmed. Naming "
+                        f"{serial} in the project does not make this fpgenprog use that FlashPro alone, or {serial} is "
+                        "not connected. Disconnect the other FlashPro and run it again.")
+    log.info(f"FlashPro {serial} is the only programmer fpgenprog ran the action on.")
 
 
 # ----------------------------------------------------------------------------------------------------------
@@ -772,27 +795,30 @@ def flash(done: Prepared, log: Log) -> int:
     bytes fpgenprog printed while it programmed: no output at all means something is wrong with the tool, not
     a success. Writes to the FPGA configuration: bootmode.py asks first."""
     opt = done.opt
-    if opt.flashpro:
+    if opt.program_command is not None:
+        log.info(f"Programming through FlashPro Express, on FlashPro {opt.flashpro} only.")
+    elif opt.flashpro:
         # A VERIFY changes nothing on the board: it shows which programmer fpgenprog takes, before anything is written.
         log.info(f"Checking that fpgenprog uses FlashPro {opt.flashpro} (a verify, which writes nothing)...")
-        run_tool(fp_run_action(opt, "VERIFY"), log, show=False)
-        check_flashpro(opt, log, opt.flashpro)
+        status, output = run_tool(fp_run_action(opt, "VERIFY"), log, show=False)
+        log.debug(f"The check ended with status {status}.")
+        check_flashpro(opt, log, opt.flashpro, output)
         select_flashpro(opt, log, opt.flashpro)
     log.info("Programming the target...")
     start = time.monotonic()
-    status, output = run_tool(fp_run_action(opt, "PROGRAM"), log, show=True, stream=True)
+    status, output = run_tool(action_command(opt, "PROGRAM"), log, show=True, stream=True)
     log.debug(f"PROGRAM took {time.monotonic() - start:.1f} s")
     if status != 0:
         raise BootError(f'Running the fpgenprog PROGRAM action failed (status {status}).')
     seen = len(output.strip())
-    used = programmer_in_project(opt)
+    used = programmers_used(output)
     if used:
-        log.info(f"FlashPro used: {used}")
-    if opt.flashpro and used != opt.flashpro:
-        log.warn(f"The project names FlashPro {used or '(none)'} after the run, not {opt.flashpro}.")
+        log.info(f"FlashPro used: {', '.join(used)}")
+    if opt.flashpro and used != [opt.flashpro]:
+        log.warn(f"fpgenprog ran PROGRAM on {', '.join(used) or '(none that its output names)'}, not only on {opt.flashpro}.")
     if opt.verify:
         log.info("Verifying the target...")
-        status, _ = run_tool(fp_run_action(opt, "VERIFY"), log, show=True, stream=True)
+        status, _ = run_tool(action_command(opt, "VERIFY"), log, show=True, stream=True)
         if status != 0:
             raise BootError("Verification of bitstream on the target failed.")
     return seen

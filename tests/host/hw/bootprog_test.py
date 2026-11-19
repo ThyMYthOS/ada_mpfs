@@ -370,7 +370,7 @@ check(bp.programmer_in_project(done.opt) == "SN4242", "flash: fpgenprog that hon
 del os.environ["FAKE_FP_HONOUR"]
 
 done = prepared(flashpro="SN4242")
-raises(bp.BootError, "instead of SN4242", "flash: fpgenprog that takes another FlashPro is stopped before it programs", bp.flash, done, log)
+raises(bp.BootError, "instead of only on SN4242", "flash: fpgenprog that takes another FlashPro is stopped before it programs", bp.flash, done, log)
 check(actions() == ["VERIFY"], "flash: ... and PROGRAM did not run")
 
 os.environ["FAKE_FP_FAIL"] = "run_action"
