@@ -169,6 +169,18 @@ precedence = "closest"
 SPDX-FileCopyrightText = "2026 Manuel Stahl <thymythos@googlemail.com>"
 SPDX-License-Identifier = "CC-BY-4.0"
 
+# The MSS Configurator XMLs of the boards, unchanged from Microchip's Hart Software Services (MIT, see
+# PROVENANCE.md); the files carry no notice of their own.
+[[annotations]]
+path = [
+  "config/boards/icicle/ICICLE_MSS_mss_cfg.xml",
+  "config/boards/icicle_es/ICICLE_MSS_mss_cfg.xml",
+  "config/boards/video_kit/MSS_video-kit_mss_cfg.xml",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = "2019-2021 Microchip Corporation"
+SPDX-License-Identifier = "MIT"
+
 # JSON has no comments: the schema of system.yaml, which the configuration generator reads, carries
 # the licence of the generator here.
 [[annotations]]
