@@ -55,6 +55,12 @@
 #   BOOTMODE_DIE  --die of hw/bootmode.py: MPFS250T_ES is the engineering sample that most Icicle Kits carry;
 #                 series silicon uses another die name
 #   BOOTMODE_PACKAGE  --package of hw/bootmode.py
+#   MSS_XML       the MSS Configurator XML of the board that is connected, which ./x hw initialize and
+#                 ./x svd probe --enable-clocks take their register values from (--xml FILE overrides it). A
+#                 relative path is relative to the root of the repository, not to hw/ or the working
+#                 directory: config/boards/icicle_es/ICICLE_MSS_mss_cfg.xml has the values that ./x hw initialize
+#                 wrote before it read the XML. Empty, the default: there is no default board, so
+#                 both tools stop with exit status 2 and say so until --xml or MSS_XML names one
 #
 # TCP ports. The board is connected to another machine, and its serial devices are tunnelled from there, one TCP
 # port per UART, by socat (run it on that machine; the tools here connect as TCP clients):
@@ -89,3 +95,4 @@ FLASHPRO_SERIAL=
 FLASHPRO_USB_LOCATION=
 BOOTMODE_DIE=MPFS250T_ES
 BOOTMODE_PACKAGE=FCVG484
+MSS_XML=

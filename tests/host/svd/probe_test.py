@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
-# @verifies HW-001
+# @verifies HW-001, HW-002
 """Tests for hw/svd_probe.py against stand-ins for the OpenOCD telnet port.
 
     probe_test.py [MERGED_SVD]
@@ -11,7 +11,8 @@ telnet port (echo, output, prompt "> ") and that can misbehave on purpose: reset
 the connection, answer with an error text, refuse the second connection. The cases for
 the negative paths (dead connection, failed resume, ...) assert that the tool stops, says
 why and issues no further reads, so they fail if the tool does not. MERGED_SVD (default
-build/svd/PolarfireSoC.svd) is only used by the cases that check the real skip list.
+build/svd/PolarfireSoC.svd) is only used by the cases that check the real skip list. --enable-clocks needs the MSS
+Configurator XML of the board: run() gives it the XML of config/boards/icicle_es unless the case names one.
 SVD_PROBE selects another copy of the tool, which is how the cases are mutation-checked.
 Prints "ok:" or "FAIL:" per case; exits non-zero if one failed.
 """
@@ -30,6 +31,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 TOOL = Path(os.environ.get("SVD_PROBE", ROOT / "hw" / "svd_probe.py"))
 REAL_SVD = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "build" / "svd" / "PolarfireSoC.svd"
+ICICLE_ES = ROOT / "config" / "boards" / "icicle_es" / "ICICLE_MSS_mss_cfg.xml"
+ICICLE = ROOT / "config" / "boards" / "icicle" / "ICICLE_MSS_mss_cfg.xml"
 RESET, EOF, HANG = "reset", "eof", "hang"  # what a script can answer instead of text; HANG: no answer, the connection stays open
 failures = 0
 
@@ -166,11 +169,15 @@ def reg(name: str, offset: int, reset: int | None = 0, mask: int | None = None, 
 
 
 def run(svd: Path, stub: Stub | None, *args: str, port: int | None = None, timeout: float = 60):
-    """Run the tool; returns the completed process with text output."""
+    """Run the tool; returns the completed process with text output. With --enable-clocks and neither --xml nor
+    --lab among <args> the XML of the Icicle Kit (engineering sample) is given; LAB_CONF is not passed on."""
     cmd = [sys.executable, str(TOOL), "--svd", str(svd)]
     if stub or port:
         cmd += ["--port", str(port or stub.port)]
-    return subprocess.run(cmd + list(args), capture_output=True, text=True, timeout=timeout)
+    if "--enable-clocks" in args and "--xml" not in args and "--lab" not in args:
+        cmd += ["--xml", str(ICICLE_ES)]
+    env = {k: v for k, v in os.environ.items() if k != "LAB_CONF"}
+    return subprocess.run(cmd + list(args), capture_output=True, text=True, timeout=timeout, env=env)
 
 
 def interrupt(svd: Path, stub: Stub, args: list[str], wait_for: str | None, again: float | None = None,
@@ -179,6 +186,8 @@ def interrupt(svd: Path, stub: Stub, args: list[str], wait_for: str | None, agai
     is accepted) has arrived, and a second one <again> seconds later. Returns (exit code, stdout,
     stderr, seconds from the last signal to the exit). The tool is killed after <limit> seconds."""
     cmd = [sys.executable, str(TOOL), "--svd", str(svd), "--port", str(stub.port)] + args
+    if "--enable-clocks" in args and "--xml" not in args:
+        cmd += ["--xml", str(ICICLE_ES)]
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     try:
         deadline = time.monotonic() + 10
@@ -418,11 +427,45 @@ def test_enable_clocks(tmp: Path) -> None:
     check("clocks: bits 31, 30 and 17 do not make a warning", "WARNING" not in r.stderr, r.stderr)
     check("clocks: the readback comes after the writes and before the first read",
           [c.split()[0] for c in stub.commands("") if c.split()[:1] and c.split()[0] in ("mww", "mdw")][:10] == ["mww"] * 8 + ["mdw", "mdw"], str(stub.log))
-    check("clocks: the reference clock of CLINT.MTIME is set up after the two clock registers (hw/mss_init.py REFCLK)",
+    check("clocks: the reference clock of CLINT.MTIME is set up after the two clock registers (hw/mss_init.py refclk)",
           [c for c in stub.commands("") if c.startswith("mww")][2:8] == [
               "mww 0x2000200C 0x7D", "mww 0x2000200C 0x1007D", "mww 0x37080008 0x8A080", "mww 0x20002098 0x1",
               "mww 0x200031BC 0x3800", "mww 0x20007C18 0xF00050CC"], str(stub.log))
-    check("clocks: it says so", "reference clock set up (6 writes" in r.stdout, r.stdout)
+    check("clocks: it says so, with the XML and its SHA-256",
+          "reference clock set up (6 writes" in r.stdout and "config/boards/icicle_es/ICICLE_MSS_mss_cfg.xml sha256 " in r.stdout,
+          r.stdout)
+    stub.close()
+    # the XML is required: no --xml and no MSS_XML is exit code 2 with a message that names both, before the connection
+    nothing = tmp / "lab-nothing.conf"
+    nothing.write_text("OCD_PORT=4444\n")
+    stub = Stub()
+    r = run(svd, stub, "--enable-clocks", "--skip-file", str(tmp / "empty.list"), "--lab", str(nothing))
+    check("clocks: without an XML the exit code is 2 and the message names --xml and MSS_XML",
+          r.returncode == 2 and "no MSS Configurator XML" in r.stderr and "--xml" in r.stderr and "MSS_XML" in r.stderr,
+          f"{r.returncode} {r.stderr!r}")
+    check("clocks: without an XML nothing is sent to OpenOCD", not stub.accepted.is_set() and not stub.log, str(stub.log))
+    r = run(svd, None, "--enable-clocks", "--list", "--lab", str(nothing))
+    check("clocks: --list needs no XML", r.returncode == 0, f"{r.returncode} {r.stderr!r}")
+    stub.close()
+    # MSS_XML of the lab configuration, relative to the repository root; the XML of the 2024.2 design has the same
+    # RTC period and CLK_CNTL
+    conf = tmp / "lab-xml.conf"
+    conf.write_text("MSS_XML=config/boards/icicle/ICICLE_MSS_mss_cfg.xml\n")
+    stub = Stub(write_mask={0x2084: 0x3FFDFFFF})
+    r = run(svd, stub, "--enable-clocks", "--skip-file", str(tmp / "empty.list"), "--lab", str(conf))
+    check("clocks: MSS_XML of the lab configuration is taken, relative to the repository root",
+          "values of config/boards/icicle/ICICLE_MSS_mss_cfg.xml sha256" in r.stdout
+          and [c for c in stub.commands("") if c.startswith("mww")][2:8] == [
+              "mww 0x2000200C 0x7D", "mww 0x2000200C 0x1007D", "mww 0x37080008 0x8A080", "mww 0x20002098 0x1",
+              "mww 0x200031BC 0x3800", "mww 0x20007C18 0xF00050CC"], f"{r.stdout} {stub.log}")
+    stub.close()
+    # an XML that the reader rejects: exit code 2 with the reader's message
+    bad = tmp / "bad.xml"
+    bad.write_text('<?xml version="1.0"?><!DOCTYPE mss><mss/>')
+    stub = Stub()
+    r = run(svd, stub, "--enable-clocks", "--skip-file", str(tmp / "empty.list"), "--xml", str(bad))
+    check("clocks: an XML that the reader rejects is exit code 2 with the reader's message",
+          r.returncode == 2 and "GEN-E041" in r.stderr and not stub.log, f"{r.returncode} {r.stderr!r}")
     stub.close()
     # a clock bit that does not stick, and a peripheral that stays in reset
     stub = Stub(write_mask={0x2084: 0x3FF5FFFF, 0x2088: 0x00004000})

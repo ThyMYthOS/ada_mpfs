@@ -47,17 +47,22 @@ jumper or a switch.
 In boot mode 0 no boot software runs, so the MSS keeps its reset state. Without `./x hw initialize` `CLINT.MTIME`
 reads 0 and does not count (measured on the board of the project owner: the counter stayed at 0 for as long as it was
 watched), and the SGMII/DDR PHY registers read 0. Every image that uses `Ada.Real_Time`, `delay until` or the
-`mtime` of the PAC needs it, and `tests/hw/run_matrix.sh` runs it before every cell.
+`mtime` of the PAC needs it, and `tests/hw/run_matrix.sh` runs it before every cell. It takes the register values
+from the MSS Configurator XML of the board, which `MSS_XML` in `hw/lab.conf` names (or `--xml FILE`; there is no
+default, see `hw/README.md`, "Initialize"):
+
+    MSS_XML=config/boards/icicle_es/ICICLE_MSS_mss_cfg.xml
 
     ./x hw initialize --minimal      # the six writes below: all that MTIME needs
     ./x hw initialize                # the full sequence of the first-stage boot software, without the clock switch
-    ./x hw initialize --dry-run      # print the steps, write nothing (no OpenOCD needed)
+    ./x hw initialize --dry-run      # print the XML, its SHA-256 and the steps, write nothing (no OpenOCD needed)
     ./x hw reset                     # back to the power-on state (undoes initialize)
 
 The full sequence is what Microchip's first-stage boot software (HSS, `mss_nwc_init`, `sgmii_setup`, `mss_pll_config`) does
 to the MSS before it switches the clock (details in `hw/README.md`, "Initialize"); after it the PHY block is readable and the
 MSS PLL is locked, and the CPU stays on its boot clock (80 MHz measured: 79 `mcycle` per `mtime` tick). `--minimal` does the
-six writes of `mss_init.REFCLK` (also `./x svd probe --enable-clocks`), in this order:
+six writes of `mss_init.refclk` (also `./x svd probe --enable-clocks`), in this order (the values of the XML of
+`config/boards/icicle_es`):
 
 | # | Write | Value | What for |
 |---|---|---|---|

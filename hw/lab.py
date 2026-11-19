@@ -60,6 +60,20 @@ def load(path: str | None = None) -> dict[str, str]:
     return values
 
 
+def mss_xml(option: Path | None, values: dict[str, str], tool: str) -> Path:
+    """The MSS Configurator XML of the board: <option> (--xml, relative to the working directory), else MSS_XML of
+    the lab settings (relative to the root of the repository). Neither: SystemExit with a message that names both,
+    which run() turns into status 2. There is no default board."""
+    if option is not None:
+        return option
+    configured = values.get("MSS_XML", "")
+    if configured:
+        path = Path(os.path.expanduser(configured))
+        return path if path.is_absolute() else ROOT / path
+    raise SystemExit(f"{tool}: no MSS Configurator XML: give --xml FILE or set MSS_XML in hw/lab.conf "
+                     "(relative to the repository root; the XMLs of the reference boards are in config/boards)")
+
+
 def toolchain_bin() -> Path:
     """The bin directory of the pinned gnat_riscv64_elf (GNAT_RISCV64_VERSION of
     tools/toolchain.env) below MPFS_ADA_TOOLCHAINS (default: Alire's install dir).

@@ -6,7 +6,8 @@
 
   svd_probe.py [--svd FILE] [--host H] [--port P] [--target T] [--no-halt] [--block [PATTERN=]N] [--timeout S]
                [--keep-going] [--max-failures N] [--skip P] [--include P] [--skip-file FILE] [--compare-state]
-               [--read-destructive] [--poke ADDR=VALUE] [--enable-clocks] [--list] [--all | PERIPHERAL...]
+               [--read-destructive] [--poke ADDR=VALUE] [--enable-clocks [--xml FILE] [--lab FILE]] [--list]
+               [--all | PERIPHERAL...]
 
 Reads the registers of the named peripherals (all of them with --all or without
 a name; a block that hw/svd_probe.list excludes is skipped only in such a whole-device run, a block named on the
@@ -84,6 +85,12 @@ per peripheral, the registers that were not reached), then the cause, which also
 a plain > has it. The counts keep apart: skipped (not read after an unreadable register), readAction, DLAB, noref,
 state and excluded (blocks that a rule of hw/svd_probe.list left out).
 
+--enable-clocks writes the reference clock that CLINT.MTIME needs with the values of the MSS Configurator XML of the
+board (hw/mss_init.py refclk: the RTC period and CFG_DDR_SGMII_PHY.CLK_CNTL), as ./x hw initialize --minimal does. The
+XML is required: --xml FILE, or else MSS_XML of the lab configuration (--lab FILE, LAB_CONF or hw/lab.conf; a relative
+path there is relative to the repository root); the reader checks it against --svd. Without one, or with one that the
+reader rejects, the probe stops with exit code 2 before it connects. --list reads nothing and needs no XML.
+
 --recover (opt-in) answers a stalled debug module with the sequence of ./x hw reset (hw/recover.py: clear cmderr, reset halt,
 check SYSREG.SUBBLK_CLOCK_CR and SOFT_RESET_CR against their reset values): the peripheral whose access hung is reported as
 "hung (recovered)" and not read further (counted as hung in the summary), the --poke writes and --enable-clocks are applied again
@@ -116,6 +123,7 @@ from typing import Callable
 from xml.etree import ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import lab  # noqa: E402  (hw/lab.py: MSS_XML of the lab configuration)
 import mss_init  # noqa: E402  (hw/mss_init.py, shared with hw/initialize.py)
 import recover  # noqa: E402  (hw/recover.py, shared with hw/reset.py)
 
@@ -737,7 +745,7 @@ def poke(target: OpenOcd, address: int, value: int, name: str) -> None:
     print(f"readback 0x{got:08X}" if isinstance(got, int) else f"readback unreadable ({got})")
 
 
-def enable_clocks(root: ET.Element, target: OpenOcd) -> None:
+def enable_clocks(root: ET.Element, target: OpenOcd, values: mss_init.Values) -> None:
     """Turn on all MSS peripheral clocks and release all peripheral resets (SYSREG), then read both back.
 
     The readback goes to stdout as one line. A warning on stderr says that SOFT_RESET_CR is not 0 (a peripheral is
@@ -748,10 +756,13 @@ def enable_clocks(root: ET.Element, target: OpenOcd) -> None:
     writes = (("SUBBLK_CLOCK_CR", 0xFFFFFFFF), ("SOFT_RESET_CR", 0))
     for name, value in writes:
         write_word(target, sysreg[name].address, value, f"SYSREG.{name}")
-    # what CLINT.MTIME needs on top (hw/mss_init.py REFCLK): the RTC divisor and the clock receiver of the reference
-    mss_init.run(mss_init.REFCLK, lambda address, value, what: write_word(target, address, value, what),
+    # what CLINT.MTIME needs on top (hw/mss_init.py refclk): the RTC divisor and the clock receiver of the reference,
+    # with the values of the MSS Configurator XML of the board
+    steps = mss_init.refclk(values)
+    mss_init.run(steps, lambda address, value, what: write_word(target, address, value, what),
                  lambda address: target.read(address, 32))
-    print(f"svd_probe: reference clock set up ({len(mss_init.REFCLK)} writes, hw/mss_init.py): CLINT.MTIME counts")
+    print(f"svd_probe: reference clock set up ({len(steps)} writes, hw/mss_init.py, values of {values.source} "
+          f"sha256 {values.sha256}): CLINT.MTIME counts")
     back = {}
     for name, value in writes:
         reg = sysreg[name]
@@ -922,7 +933,14 @@ def main(argv: list[str]) -> int:
                          "SOFT_RESET_CR is not 0 or SUBBLK_CLOCK_CR differs from what its SVD fields allow. A peripheral with "
                          "its clock off or in reset can hang the bus, which only a reset of the board recovers. It also sets up the "
                          "reference clock that CLINT.MTIME needs (hw/mss_init.py: RTC divisor, IOSCBCFG.TIMER, SYSREG.DFIAPB_CR, "
-                         "SCB_REGS.MSSIO_CONTROL_CR, CFG_DDR_SGMII_PHY.CLK_CNTL), so the PHY block is readable, too")
+                         "SCB_REGS.MSSIO_CONTROL_CR, CFG_DDR_SGMII_PHY.CLK_CNTL), so the PHY block is readable, too. "
+                         "The RTC period and CLK_CNTL come from the MSS Configurator XML of the board: --xml, or MSS_XML "
+                         "of the lab configuration; not needed with --list")
+    ap.add_argument("--xml", type=Path, metavar="FILE",
+                    help="the MSS Configurator XML of the board for --enable-clocks (default: MSS_XML of lab.conf, relative "
+                         "to the repository root); the reader checks it against --svd")
+    ap.add_argument("--lab", metavar="FILE", help="the lab configuration that MSS_XML is read from (default: hw/lab.conf "
+                    "or LAB_CONF)")
     ap.add_argument("--list", action="store_true", help="print the registers and expected values, read nothing")
     args = ap.parse_args(argv[1:])
     if args.reset_halt and args.no_halt:
@@ -932,6 +950,19 @@ def main(argv: list[str]) -> int:
         print(f"svd_probe: {args.svd} not found; run ./x svd merge", file=sys.stderr)
         return 2
     root = ET.parse(args.svd).getroot()
+    values = None
+    if args.enable_clocks and not args.list:
+        try:
+            xml = args.xml if args.xml else lab.mss_xml(None, lab.load(args.lab), "svd_probe")
+            values = mss_init.load(xml, args.svd)
+        except SystemExit as e:  # lab.py: no XML, or a lab.conf that cannot be used
+            if not isinstance(e.code, str):
+                raise
+            print(e.code if e.code.startswith("svd_probe:") else f"svd_probe: {e.code}", file=sys.stderr)
+            return 2
+        except mss_init.XmlError as e:
+            print(f"svd_probe: {e}", file=sys.stderr)
+            return 2
     try:
         pokes = [parse_poke(spec, root) for spec in args.poke]
     except ValueError as e:
@@ -1030,8 +1061,8 @@ def main(argv: list[str]) -> int:
         print(power_state(root, target))
         for address, value, name in pokes:
             poke(target, address, value, name)
-        if args.enable_clocks:
-            enable_clocks(root, target)
+        if values is not None:
+            enable_clocks(root, target, values)
         target.reset_after_busy = args.recover
         recoveries = 0
         checks = [recover.Check(f"SYSREG.{r.name.split('.')[1]}", r.address, r.reset)
@@ -1057,8 +1088,8 @@ def main(argv: list[str]) -> int:
             print(power_state(root, target).replace("power state:", "power state after the recovery:", 1))
             for address, value, name in pokes:
                 poke(target, address, value, name)
-            if args.enable_clocks:
-                enable_clocks(root, target)
+            if values is not None:
+                enable_clocks(root, target, values)
             return True
 
         probe(regs, target, blocks, args.keep_going, args.max_failures, args.read_destructive, state_rules, result,

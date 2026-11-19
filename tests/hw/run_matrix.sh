@@ -5,7 +5,8 @@
 #
 #   tests/hw/run_matrix.sh [-s SECS] [-o DIR] [-m lim|scratchpad] [NAME ...]
 #
-# Needs OpenOCD and the serial ports as for `./x hw run` (hw/lab.conf) and the board in boot mode 0 after
+# Needs OpenOCD and the serial ports as for `./x hw run` (hw/lab.conf; MSS_XML there names the MSS Configurator XML
+# that the initialize takes its values from) and the board in boot mode 0 after
 # `./x hw initialize --minimal` (CLINT.MTIME must count); the script resets and initializes the board before every cell. NAME is a name of the list (delay_accuracy_test_e51,
 # ...); -m scratchpad builds the images for the L2 scratchpad (--memory scratchpad) and runs hw/l2_scratchpad.py after
 # each initialize (heap_test needs a heap of 512 KiB, so it fails there; name the rows you want); without a NAME every row whose image is the one of its example runs. Rows whose MMUART has no port

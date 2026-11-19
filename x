@@ -58,7 +58,7 @@
 #                                      static stack analysis: per-frame sizes and the
 #                                      deepest call chain per entry (tools/stack_report)
 #    ./x svd merge|check               merge the SVD and record its hash / verify the hash
-#    ./x svd probe [--enable-clocks] [--all|<periph>...]
+#    ./x svd probe [--enable-clocks [--xml FILE]] [--all|<periph>...]
 #                                      compare reset values with a target (OpenOCD); regenerates a stale build/svd.
 #                                      Skips registers with a readAction (--read-destructive) and, in a whole-device
 #                                      run, the blocks of hw/svd_probe.list (--include, or name the peripheral);

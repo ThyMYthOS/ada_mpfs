@@ -8,9 +8,12 @@
 # toolchain for the images and probes. Every
 # --expect that does not match must exit 1, every set-up error 2, and the cases that
 # match show that the stand-ins are not what makes the others fail. What this cannot
-# show: that a real OpenOCD, FlashPro6 and CP2108 behave like the stand-ins. Exits
-# non-zero on any failure.
-# @verifies BLD-001
+# show: that a real OpenOCD, FlashPro6 and CP2108 behave like the stand-ins. The
+# register values of ./x hw initialize come from the MSS Configurator XMLs of
+# config/boards, read against the merged SVD (tools/svd.py ensure; svdtools if it is
+# missing or stale); mss_init_test.py pins the values that hw/mss_init.py wrote before
+# it read the XML. Exits non-zero on any failure.
+# @verifies BLD-001, HW-002
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -1119,10 +1122,20 @@ printf 'OCD_PORT=5555\n' > "$tmp/lab-onlyport.conf"
   || fail "lab.py: a key that the conf does not set takes its default from lab.conf.example"
 
 # --- mss_init.py and initialize.py -----------------------------------------------------
-init () { "$PY" "$HW/initialize.py" "$@"; }
+# The sequences built from the MSS Configurator XML against the old literal values, and the executor
+out="$("$PY" -I "$ROOT/tests/host/hw/mss_init_test.py" 2>&1)"; rc=$?
+echo "$out" | grep -v '^ok:' | sed 's/^/  mss_init_test: /'
+[ $rc -eq 0 ] && pass "mss_init: $(echo "$out" | grep -c '^ok:') checks of the sequences from the XML (the old values pinned) and of the executor" \
+  || fail "mss_init: the checks of mss_init_test.py failed (see above)"
+# initialize.py: always with --lab, so that LAB_CONF or a hw/lab.conf of the checkout does not decide the XML
+init () { env -u LAB_CONF "$PY" "$HW/initialize.py" "$@"; }
+ES_XML="$ROOT/config/boards/icicle_es/ICICLE_MSS_mss_cfg.xml"
 serve init
 LI="$tmp/lab-init.conf"
-expect_rc  "initialize: --minimal against the stand-in exits 0" 0 init --minimal --lab "$LI"
+printf 'MSS_XML=config/boards/icicle_es/ICICLE_MSS_mss_cfg.xml\n' >> "$LI"   # relative to the repository root
+printf 'OCD_PORT=1\nOPENOCD=%s\nUART_PATTERN=x{n}\nUART_COUNT=4\n' "$tmp/ocd" > "$tmp/lab-nothing.conf"
+LN="$tmp/lab-nothing.conf"   # no MSS_XML
+expect_rc  "initialize: --minimal against the stand-in exits 0 (MSS_XML of lab.conf)" 0 init --minimal --lab "$LI"
 w="$(grep '^mww' "$tmp/init.log")"
 [ "$(printf '%s\n' "$w" | sed -n '1,2p;3,6p' | tr '\n' '|')" = "mww 0x2000200C 0x7D|mww 0x2000200C 0x1007D|mww 0x37080008 0x8A080|mww 0x20002098 0x1|mww 0x200031BC 0x3800|mww 0x20007C18 0xF00050CC|" ] \
   && pass "initialize: --minimal writes the five things CLINT.MTIME needs, in order" || fail "initialize: --minimal writes the five things CLINT.MTIME needs, in order ($w)"
@@ -1134,55 +1147,50 @@ w="$(grep '^mww' "$tmp/init.log")"
 [ "$(grep -c '^reg fcsr 0$' "$tmp/init.log")" = 4 ] \
   && pass "initialize: clears fcsr of the four U54" || fail "initialize: clears fcsr of the four U54"
 grep -q '^halt$' "$tmp/init.log" && grep -q '^resume$' "$tmp/init.log" && pass "initialize: halts the hart and resumes it at the end" || fail "initialize: halts the hart and resumes it at the end"
-expect_out "initialize: --dry-run prints the steps" "mww 0x20007C18 0xF00050CC    ;# CFG_DDR_SGMII_PHY.CLK_CNTL" init --minimal --dry-run
+expect_out "initialize: --dry-run prints the steps and the register of the XML" \
+  "mww 0x20007C18 0xF00050CC    ;# CFG_DDR_SGMII_PHY.CLK_CNTL: clock receiver of the reference [xml mss_sgmii/tip/CLK_CNTL]" init --minimal --dry-run --lab "$LI"
 : > "$tmp/init.log"
-init --dry-run >/dev/null 2>&1
+init --dry-run --lab "$LI" >/dev/null 2>&1
 [ ! -s "$tmp/init.log" ] && pass "initialize: --dry-run does not touch OpenOCD" || fail "initialize: --dry-run does not touch OpenOCD"
-full="$(init --dry-run)"
+full="$(init --dry-run --lab "$LI")"
 case "$full" in *"MSSIO_CONTROL_CR"*"IOSCB_MUX_SGMII.SOFT_RESET"*"PLL_CTRL.LOCK"*) pass "initialize: the full sequence has the MSSIO handshake, the SGMII set-up and the PLL lock in this order" ;; *) fail "initialize: the full sequence order" ;; esac
 case "$full" in *"ENVM_CR"*|*"CLOCK_CONFIG_CR"*|*"MSSCLKMUX"*) fail "initialize: the full sequence leaves out the clock switch (found one of ENVM_CR, CLOCK_CONFIG_CR, MSSCLKMUX)" ;; *) pass "initialize: the full sequence leaves out the clock switch" ;; esac
-case "$(init --dry-run --skip-io)" in *IOMUX*) fail "initialize: --skip-io leaves out the IO set-up" ;; *) pass "initialize: --skip-io leaves out the IO set-up" ;; esac
+case "$(init --dry-run --skip-io --lab "$LI")" in *IOMUX*) fail "initialize: --skip-io leaves out the IO set-up" ;; *) pass "initialize: --skip-io leaves out the IO set-up" ;; esac
 case "$full" in *IOMUX0_CR*) pass "initialize: the IO set-up is part of the full sequence" ;; *) fail "initialize: the IO set-up is part of the full sequence" ;; esac
+# --dry-run: the XML with its SHA-256 first, the values with their registers, the known defect of PLL_PHADJ
+sha="$(sha256sum "$ES_XML" | cut -d' ' -f1)"
+[ "$(printf '%s\n' "$full" | head -n 1)" = "# MSS Configurator XML config/boards/icicle_es/ICICLE_MSS_mss_cfg.xml sha256 $sha" ] \
+  && pass "initialize: --dry-run names the XML and its SHA-256 in the first line" || fail "initialize: --dry-run names the XML and its SHA-256 ($(printf '%s\n' "$full" | head -n 1))"
+case "$full" in *"# note: mss_clocks/mss_pll/PLL_PHADJ: known defect of the configurator"*) pass "initialize: --dry-run prints the note on the known defect of PLL_PHADJ" ;; *) fail "initialize: --dry-run prints the note on the known defect of PLL_PHADJ" ;; esac
+case "$full" in *"mww 0x3E001020 0x00004003    ;# IOSCB_PLL_MSS.PLL_PHADJ [xml mss_clocks/mss_pll/PLL_PHADJ]"*) pass "initialize: --dry-run shows PLL_PHADJ 0x4003 from the XML" ;; *) fail "initialize: --dry-run shows PLL_PHADJ 0x4003 from the XML" ;; esac
+case "$full" in *"mww 0x20007C04 0x0880F2FF    ;# SGMII_MODE (RPC), REG_CDR_MOVE_STEP (bit 22) cleared"*"[xml mss_sgmii/tip/SGMII_MODE]"*) pass "initialize: --dry-run shows SGMII_MODE with bit 22 cleared" ;; *) fail "initialize: --dry-run shows SGMII_MODE with bit 22 cleared" ;; esac
+case "$(init --dry-run --minimal --lab "$LI")" in *"# note:"*) fail "initialize: --minimal writes no PLL_PHADJ, so it prints no note" ;; *) pass "initialize: --minimal writes no PLL_PHADJ, so it prints no note" ;; esac
+# --xml comes before MSS_XML; the XML of the 2024.2 design has another IO mux
+new="$(init --dry-run --lab "$LI" --xml "$ROOT/config/boards/icicle/ICICLE_MSS_mss_cfg.xml")"
+case "$new" in *"config/boards/icicle/ICICLE_MSS_mss_cfg.xml sha256"*"mww 0x20002200 0x00000FD5"*"mww 0x20002210 0x88664444"*) pass "initialize: --xml comes before MSS_XML" ;; *) fail "initialize: --xml comes before MSS_XML" ;; esac
+[ "$(diff <(printf '%s\n' "$full" | grep '^mww') <(printf '%s\n' "$new" | grep '^mww') | grep -c '^[<>]')" = 4 ] \
+  && pass "initialize: the two Icicle Kit XMLs differ in two writes (IOMUX0, IOMUX4)" || fail "initialize: the two Icicle Kit XMLs differ in two writes (IOMUX0, IOMUX4)"
+# the XML is required: neither --xml nor MSS_XML is exit status 2 with a message that names both, also with --dry-run
+expect_rc  "initialize: no XML is exit status 2" 2 init --minimal --lab "$LN"
+expect_rc  "initialize: no XML is exit status 2 with --dry-run too" 2 init --dry-run --lab "$LN"
+expect_out "initialize: no XML: the message names --xml and MSS_XML" \
+  "initialize: no MSS Configurator XML: give --xml FILE or set MSS_XML in hw/lab.conf" init --dry-run --lab "$LN"
+: > "$tmp/init.log"
+grep -v '^MSS_XML=' "$LI" > "$tmp/lab-init-noxml.conf"
+init --lab "$tmp/lab-init-noxml.conf" >/dev/null 2>&1
+[ ! -s "$tmp/init.log" ] && pass "initialize: without an XML nothing is sent to OpenOCD" || fail "initialize: without an XML nothing is sent to OpenOCD"
+# an XML that the reader rejects: exit status 2 and the reader's message
+BROKEN="$ROOT/tests/host/xml_reader/fixtures/broken/e041_doctype.xml"
+expect_rc  "initialize: an XML that the reader rejects is exit status 2" 2 init --dry-run --lab "$LI" --xml "$BROKEN"
+expect_out "initialize: an XML that the reader rejects: the reader's message" "e041_doctype.xml: GEN-E041" init --dry-run --lab "$LI" --xml "$BROKEN"
+expect_out "initialize: a missing XML: the reader's message" "GEN-E040" init --dry-run --lab "$LI" --xml "$tmp/none.xml"
 # the stand-in reads every word as 0: the first poll runs out of time, which is exit status 2 and a message
 expect_out "initialize: a poll that never succeeds is an error that names it" "PVT_STAT.IOEN" init --lab "$LI"
 expect_rc  "initialize: a poll that never succeeds exits 2" 2 init --lab "$LI"
-printf 'OCD_PORT=1\nOPENOCD=%s\nUART_PATTERN=x{n}\nUART_COUNT=4\n' "$tmp/ocd" > "$tmp/lab-nothing.conf"
-expect_rc  "initialize: no OpenOCD is exit status 2" 2 init --minimal --lab "$tmp/lab-nothing.conf"
+expect_rc  "initialize: no OpenOCD is exit status 2" 2 init --minimal --lab "$LN" --xml "$ES_XML"
 expect_rc  "l2_scratchpad: no OpenOCD is exit status 2" 2 "$PY" "$HW/l2_scratchpad.py" --lab "$tmp/lab-nothing.conf"
 expect_rc  "l2_scratchpad: no cache way is exit status 2" 2 "$PY" "$HW/l2_scratchpad.py" --cache-ways 0 --lab "$tmp/lab-nothing.conf"
 expect_rc  "l2_scratchpad: more than 16 ways is exit status 2" 2 "$PY" "$HW/l2_scratchpad.py" --scratchpad-ways 16 --lab "$tmp/lab-nothing.conf"
-# the executor itself, with reads that satisfy the polls
-"$PY" - "$HW" <<'PYEOF' && pass "mss_init.run: writes, read-modify-writes, polls, the silicon variant and the delays" || fail "mss_init.run: writes, read-modify-writes, polls, the silicon variant and the delays"
-import sys
-sys.path.insert(0, sys.argv[1])
-import mss_init as m
-mem = {m.PVT_STAT: (1 << 6) | (1 << 14), m.PLL_CNTL: 1 << 7, m.RECAL_CNTL: 1 << 23, m.PLL_MSS + 4: 1 << 25,
-       m.SUBBLK_CLOCK_CR: 1, m.SOFT_RESET_CR: 0x3FFFFFFE, m.SPARE_STAT: 1 << 31, m.IO_CALIB_SGMII + 4: 0xE000}
-writes, slept = [], []
-status = {m.PVT_STAT, m.PLL_CNTL, m.RECAL_CNTL, m.PLL_MSS + 4, m.SPARE_STAT}  # read-only status: a write does not change it
-def write(a, v, what):
-    writes.append((a, v))
-    if a not in status:
-        mem[a] = v
-m.run(m.full(), write, lambda a: mem.get(a, 0), sleep=slept.append)
-assert (m.SUBBLK_CLOCK_CR, 7) in writes and (m.SOFT_RESET_CR, 0x3FFFFFF8) in writes, writes
-assert (m.PVT_STAT, (1 << 6) | (1 << 14) | 0x40000000) in writes
-assert (m.IO_CALIB_SGMII + 4, 0xE000 | (1 << 14)) in writes
-assert writes.count((m.DYN_CNTL, 0x607F)) == 2, "rev C: the lanes are reset twice"
-assert 0.01 in slept, slept
-n_revc = len(writes)
-mem[m.SPARE_STAT] = 0
-writes.clear()
-m.run(m.full(), write, lambda a: mem.get(a, 0), sleep=slept.append)
-assert writes.count((m.DYN_CNTL, 0x607F)) == 1 and len(writes) == n_revc - 2, "rev B: the lanes are reset once"
-assert not any(a in (m.SYSREG + 0xB8, m.SYSREG + 0x008, m.MUX_MSS + 0x0C) for a, _ in writes), "no clock switch"
-t = iter(range(100))
-try:
-    m.run([m.Poll(0x10, 1, 1, "never", 1.0)], write, lambda a: 0, sleep=lambda s: None, monotonic=lambda: next(t) * 0.5)
-    raise SystemExit("a poll that never succeeds did not fail")
-except m.MssInitError as e:
-    assert "never" in str(e)
-PYEOF
 
 # tests/hw/run_matrix.sh: a cell runs without a console flag first (the examples are primary images: they bring their UART
 # up themselves), then with --uart-clocks, then with --uart-standin, and the line of the cell says which one passed. A copy

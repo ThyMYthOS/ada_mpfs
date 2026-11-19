@@ -191,10 +191,11 @@ def serve():
             c.sendall(line + b"\r\n" + (r.encode() + b"\r\n" if r else b"") + b"> ")
 threading.Thread(target=serve, daemon=True).start()
 r = subprocess.run([sys.executable, root + "/hw/svd_probe.py", "--svd", sys.argv[2], "--port", str(port),
-                    "--enable-clocks", "--skip", "CLINT,PLIC", "SYSREG", "CLINT"], capture_output=True, text=True)
+                    "--enable-clocks", "--xml", root + "/config/boards/icicle_es/ICICLE_MSS_mss_cfg.xml",
+                    "--skip", "CLINT,PLIC", "SYSREG", "CLINT"], capture_output=True, text=True)
 assert r.returncode == 1 and "register(s)" in r.stdout, r
 mww = [l for l in seen if l.startswith("mww")]
-# the two SYSREG registers first, then the six writes of the reference clock for CLINT.MTIME (hw/mss_init.py REFCLK)
+# the two SYSREG registers first, then the six writes of the reference clock for CLINT.MTIME (hw/mss_init.py refclk, values of the XML)
 assert len(mww) == 8 and mww[0].endswith(" 0xFFFFFFFF") and mww[1].endswith(" 0x0"), seen
 assert mww[2:] == ["mww 0x2000200C 0x7D", "mww 0x2000200C 0x1007D", "mww 0x37080008 0x8A080", "mww 0x20002098 0x1",
                    "mww 0x200031BC 0x3800", "mww 0x20007C18 0xF00050CC"], seen

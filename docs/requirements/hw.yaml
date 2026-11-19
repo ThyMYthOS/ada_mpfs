@@ -9,3 +9,12 @@ requirements:
       unless it is asked to.
     tsf: false
     source: hw/README.md
+  - id: HW-002
+    text: >-
+      ./x hw initialize and svd_probe --enable-clocks write every register value that the MSS
+      Configurator XML has from the XML of the board, named by --xml or by MSS_XML of the lab
+      configuration and read by the reader of the configuration generator; without an XML, or
+      with one that the reader rejects, they write nothing and exit with status 2 and a message.
+      --dry-run prints the XML with its SHA-256 and, for each value of the XML, its register.
+    tsf: false
+    source: hw/README.md

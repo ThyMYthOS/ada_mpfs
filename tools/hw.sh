@@ -68,11 +68,13 @@
 #                              of the target pass through when on and are removed when off; other escape
 #                              sequences of the target are always removed. --expect matches the text as the
 #                              target printed it, whatever the view and the colours.
-#   ./x hw initialize [--minimal] [--skip-io] [--dry-run] [--target T] [--lab F]
+#   ./x hw initialize [--xml FILE] [--svd FILE] [--minimal] [--skip-io] [--dry-run] [--target T] [--lab F]
 #                              do what the first-stage boot software does to the MSS before the clock switch
 #                              (hw/initialize.py, hw/mss_init.py): RTC divisor, dynamic enables, IO set-up, SGMII channel
 #                              set-up and the MSS PLL up to its lock; CLINT.MTIME counts afterwards. The CPU keeps its boot
-#                              clock. --minimal does only what MTIME needs; --dry-run prints the steps and writes nothing.
+#                              clock. The values come from the MSS Configurator XML of the board, which is required: --xml
+#                              FILE or MSS_XML of lab.conf (exit status 2 without one). --minimal does only what MTIME
+#                              needs; --dry-run prints the XML, its SHA-256 and the steps and writes nothing.
 #   ./x hw reset [--svd FILE] [--target T] [--lab F]
 #                              reset the board to its power-on state through OpenOCD (dmi_read/dmi_write of
 #                              abstractcs, reset halt, check SUBBLK_CLOCK_CR and SOFT_RESET_CR), also after a

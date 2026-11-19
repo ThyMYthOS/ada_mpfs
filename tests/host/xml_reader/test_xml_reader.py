@@ -4,8 +4,8 @@
 # @verifies GEN-003, GEN-004
 """config/gen/mpfs_gen/xml_reader.py: the reference XMLs of config/boards, the broken XMLs of fixtures/broken
 (each names the one code it must be rejected with), the known defect of PLL_PHADJ, the layout from the SVD,
-the values against the literals of hw/mss_init.py, the command line. Needs the merged SVD (tools/svd.py
-ensure)."""
+the command line. Needs the merged SVD (tools/svd.py ensure). The values that hw/mss_init.py takes from the
+Icicle Kit XMLs are compared with its former literals in tests/host/hw/mss_init_test.py."""
 import dataclasses
 import hashlib
 import re
@@ -16,9 +16,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent.parent
-sys.path[:0] = [str(HERE.parent / "gen_ada"), str(ROOT / "config" / "gen"), str(ROOT / "tools"), str(ROOT / "hw")]
+sys.path[:0] = [str(HERE.parent / "gen_ada"), str(ROOT / "config" / "gen"), str(ROOT / "tools")]
 
-import mss_init
 from gen_ada import svdread
 from harness import case, finish, raises
 from mpfs_gen import checks, xml_reader
@@ -207,39 +206,6 @@ def _():
     mems = {m.name: m for m in read(BASE).mem_elements}
     assert mems["RESET_VECTOR_HART0"].address == 0x20220000 and mems["RESET_VECTOR_HART0"].size == 4
     assert mems["DDR_64_CACHE"].address == 0x1000000000
-
-
-@case("the values that hw/mss_init.py writes are those of the Icicle Kit XMLs, with the known exceptions")
-def _():
-    for board in ("icicle", "icicle_es"):
-        config = read(BOARDS / board / "ICICLE_MSS_mss_cfg.xml")
-        io = "mss_io/io_mux"
-        # RTC: the period; mss_init.py writes it with the clock off first and then sets ENABLE (bit 16).
-        assert config.value("mss_clocks/mss_sys", "RTC_CLOCK_CR") == mss_init.RTC_PERIOD
-        # SGMII_MODE: mss_init.py clears REG_CDR_MOVE_STEP (bit 22) on purpose.
-        assert config.value("mss_sgmii/tip", "SGMII_MODE") == mss_init.SGMII_MODE_VALUE | 1 << 22
-        for name, value in (("CH0_CNTL", 0x37F07770), ("CH1_CNTL", 0x37F07770), ("RECAL_CNTL", 0x000020C8),
-                            ("CLK_CNTL", 0xF00050CC), ("SPARE_CNTL", 0xFF000000), ("PLL_CNTL", 0x80140101)):
-            assert config.value("mss_sgmii/tip", name) == value, (board, name)
-        bank4 = tuple(config.value(io, f"MSSIO_BANK4_IO_CFG_{i}_{i + 1}_CR") for i in range(0, 14, 2))
-        bank2 = tuple(config.value(io, f"MSSIO_BANK2_IO_CFG_{i}_{i + 1}_CR") for i in range(0, 24, 2))
-        assert (bank4, bank2) == (mss_init._BANK4, mss_init._BANK2), board
-        assert config.value(io, "MSSIO_BANK2_CFG_CR") == 0x00080907 and config.value(io, "MSSIO_BANK4_CFG_CR") == 0x00040A0D
-        for name, value in (("PLL_REF_FB", 0x500), ("PLL_DIV_0_1", 0x01000100), ("PLL_DIV_2_3", 0x4B000300),
-                            ("PLL_CTRL2", 0x1020), ("PLL_FRACN", 0), ("SSCG_REG_0", 0), ("SSCG_REG_1", 0),
-                            ("SSCG_REG_2", 0x60), ("SSCG_REG_3", 1), ("PLL_CTRL", 0x01000037),
-                            ("PLL_PHADJ", 0x4003)):
-            assert config.value(PLL, name) == value, (board, name)
-        for section, name, value in (("mss_cfm", "PLL_CKMUX", 0x155), ("mss_cfm", "BCLKMUX", 0x208),
-                                     ("mss_cfm", "FMETER_ADDR", 0), ("mss_cfm", "FMETER_DATAW", 0),
-                                     ("sgmii_cfm", "CLK_XCVR", 0x2C30)):
-            assert config.value(f"mss_clocks/{section}", name) == value, (board, name)
-        iomux = tuple(config.value(io, f"IOMUX{i}_CR") for i in range(7))
-        if board == "icicle_es":
-            assert iomux == mss_init._IOMUX
-        else:
-            # The 2024.2 design differs in IOMUX0 (bit 3) and IOMUX4 (pads 4 and 5: 6 instead of C).
-            assert iomux == (0x00000FD5,) + mss_init._IOMUX[1:4] + (0x88664444,) + mss_init._IOMUX[5:], iomux
 
 
 @case("the messages name the file, the code and the path of the register or field")

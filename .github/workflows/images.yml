@@ -131,7 +131,18 @@ jobs:
           crates/mpfs_rts/make_packs.sh --check
           crates/mpfs_rts/compare_toolchain.sh
 
-      # The suites that need no svdtools: the svd, pac and x suites run in the registers
+      # The suite hw reads the MSS Configurator XMLs of config/boards (./x hw initialize and
+      # svd_probe.py --enable-clocks take their register values from them), and the reader checks
+      # them against the merged SVD: svdtools (the pinned release binary, no cache of its own) and
+      # xmllint, then ./x svd check merges it into build/svd and compares its hash with the recorded one.
+      - name: Merge the SVD for the reader of the XML
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libxml2-utils
+          ./x toolchain install svdtools
+          ./x svd check
+
+      # The suites that need no further tools: the svd, pac and x suites run in the registers
       # workflow, and the prove suite runs with gnatprove in the quality workflow (here its
       # stand-in cases only).
       #

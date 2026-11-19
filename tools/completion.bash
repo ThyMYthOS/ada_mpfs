@@ -56,7 +56,7 @@ _mpfs_x () {
     metrics) [ "$COMP_CWORD" -eq 2 ] && COMPREPLY=($(compgen -W "verify bless" -- "$cur")) ;;
     analyze) COMPREPLY=($(compgen -W "--style --update-baseline" -- "$cur")) ;;
     svd)    if [ "$COMP_CWORD" -eq 2 ]; then COMPREPLY=($(compgen -W "merge check probe" -- "$cur"))
-            elif [ "$sub" = probe ]; then COMPREPLY=($(compgen -W "--enable-clocks --all --help" -- "$cur")); fi ;;
+            elif [ "$sub" = probe ]; then COMPREPLY=($(compgen -W "--enable-clocks --xml --all --help" -- "$cur")); fi ;;
     pac)    [ "$COMP_CWORD" -eq 2 ] && COMPREPLY=($(compgen -W "generate check" -- "$cur")) ;;
     trace)  COMPREPLY=($(compgen -W "--check" -- "$cur")) ;;
     hw)     if [ "$COMP_CWORD" -eq 2 ]; then
@@ -69,7 +69,7 @@ _mpfs_x () {
               COMPREPLY=($(compgen -W "--scan --device --programmer --action --tck --workdir --yes --dry-run --lab" -- "$cur"))
               [ -z "$cur" ] || COMPREPLY+=($(compgen -f -- "$cur"))
             elif [ "$sub" = openocd ]; then COMPREPLY=($(compgen -W "--lab" -- "$cur"))
-            elif [ "$sub" = initialize ]; then COMPREPLY=($(compgen -W "--minimal --skip-io --dry-run --target --lab" -- "$cur"))
+            elif [ "$sub" = initialize ]; then COMPREPLY=($(compgen -W "--xml --svd --minimal --skip-io --dry-run --target --lab" -- "$cur"))
             elif [ "$sub" = run ]; then
               COMPREPLY=($(compgen -W "--hart --secs --expect --expect-port --uart-clocks --uart-standin --view --color --lab" -- "$cur"))
             elif [ "$sub" = monitor ]; then COMPREPLY=($(compgen -W "--secs --port --expect --view --color --lab" -- "$cur")); fi ;;

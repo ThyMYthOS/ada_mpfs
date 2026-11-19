@@ -7,8 +7,8 @@
 #   - test_xml_reader.py: the reference XMLs of config/boards read, each with its format version; each XML
 #     of fixtures/broken (an .xml as it is, an .edit applied to the XML of the Icicle Kit) is rejected with
 #     exactly the code that its line `expect: GEN-Exxx` names, and every code of the XML has one; the known
-#     defect of PLL_PHADJ; lookup by section and name; the values against the layout of the SVD and against
-#     the literals of hw/mss_init.py; the messages; the command line.
+#     defect of PLL_PHADJ; lookup by section and name; the values against the layout of the SVD; the
+#     messages; the command line. (What hw/mss_init.py takes from the XML is tested in tests/host/hw.)
 #
 # Needs the merged SVD (tools/svd.py ensure rebuilds it if it is missing or stale, which needs svdtools),
 # no toolchain. Exits non-zero on any failure.
