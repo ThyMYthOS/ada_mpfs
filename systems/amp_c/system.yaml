@@ -5,10 +5,15 @@
 # kernel and an application domain (ten domains): the E51 and U54 harts 1 to 4 with the profiles
 # embedded, light, light-tasking, embedded and embedded.
 #
-# Example data. The window and channel sizes are chosen to fit together into the LIM of the Icicle Kit
-# at reset (15 ways of 128 KiB, 1920 KiB); they are not measured from images.
+# Example data. The window and channel sizes are chosen to fit together into the LIM
+# at reset (15 ways of 128 KiB, 1920 KiB); they are not measured from images. The reference XML
+# configures 8 ways of cache, 4 of scratchpad and 4 of LIM (512 KiB), so the description keeps the L2
+# at reset with an override.
 schema: 1
 board: icicle
+l2:
+  ways: { cache: 1, lim: 15, scratchpad: 0 }
+  reason: the windows need more than the 512 KiB of LIM of the XML; the L2 at reset has 1920 KiB
 security_profile: prod
 partitions:
   - name: monitor

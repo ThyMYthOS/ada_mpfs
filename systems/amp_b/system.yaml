@@ -4,10 +4,15 @@
 # Reference system amp_b: tasking on the E51, a small control loop on U54 hart 1 and one SMP
 # application with tasking on harts 2 to 4, all in user mode.
 #
-# Example data. The window and channel sizes are chosen to fit together into the LIM of the Icicle Kit
-# at reset (15 ways of 128 KiB, 1920 KiB); they are not measured from images.
+# Example data. The window and channel sizes are chosen to fit together into the LIM
+# at reset (15 ways of 128 KiB, 1920 KiB); they are not measured from images. The reference XML
+# configures 8 ways of cache, 4 of scratchpad and 4 of LIM (512 KiB), so the description keeps the L2
+# at reset with an override.
 schema: 1
 board: icicle
+l2:
+  ways: { cache: 1, lim: 15, scratchpad: 0 }
+  reason: the windows need more than the 512 KiB of LIM of the XML; the L2 at reset has 1920 KiB
 partitions:
   - name: supervisor
     harts: [0]
