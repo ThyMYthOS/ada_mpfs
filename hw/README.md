@@ -28,7 +28,7 @@
 
 Exit status of `run_image.py`, `run_probe.py` and `monitor.py`: 0 success, 1 the expectation was not met, 2 a set-up error (no OpenOCD,
 no serial port, no toolchain, bad arguments); 130 after Ctrl+C. `./x hw bootmode|openocd|run|probe|monitor|reset|initialize` is the shell around them (`tools/hw.sh`).
-`tests/host/hw/run.sh` tests the scripts against a stand-in for the OpenOCD telnet port, and files and a stand-in for socat's TCP ports (`fake_uart.py`) in place of the serial ports; the live view runs on a pseudo-terminal whose screen a small emulator (`ptyrun.py`) reproduces; the
+`./x hw` (or `./x hw help`) prints every command with its options and the keys of `lab.conf`; `./x hw COMMAND --help` the options of one command. `tests/host/hw/run.sh` tests the scripts against a stand-in for the OpenOCD telnet port, and files and a stand-in for socat's TCP ports (`fake_uart.py`) in place of the serial ports; the live view runs on a pseudo-terminal whose screen a small emulator (`ptyrun.py`) reproduces; the
 hardware itself is not part of any automatic test.
 
 ## OpenOCD on another machine

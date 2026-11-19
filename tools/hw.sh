@@ -2,27 +2,62 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# hw.sh -- the Icicle Kit from the command line; a shell around hw/*.py. Driven by `./x hw`.
+# ./x hw -- a PolarFire SoC (MPFS) board from the command line: a shell (tools/hw.sh) around hw/*.py and hw/start_openocd.sh.
 #
-#   hw.sh bootmode N [ELF] [--yes] [--dry-run] [--prepare-only] [--workdir DIR] [--flashpro ID] [--lab F]
+#   ./x hw [help|-h|--help]    this text
+#   ./x hw COMMAND --help      the options of one command (the Python tools print theirs; openocd hands --help to OpenOCD)
+#
+# Commands
+#
+#   flashpros    list the connected FlashPro adapters: serial number, USB ID, name, model and USB location
+#   openocd      start Microchip's OpenOCD, the debug server that reset, initialize, run and probe talk to
+#   reset        reset the board to its power-on state through OpenOCD
+#   initialize   do what the first-stage boot software does to the MSS (clocks, PLL), so that CLINT.MTIME counts
+#   run          build an example (or take an ELF), load it onto a hart, run it and show the serial ports
+#   probe        run a probe program of hw/ on a hart and print its result block
+#   monitor      show what the serial ports print, as it arrives
+#   bootmode     switch the boot mode (0..3) with fpgenprog: PERMANENT, it reprograms the FPGA part
+#   program      program the FPGA from a STAPL or PPD file with FlashPro Express, or list programmers and chains (--scan)
+#
+# The usual order is flashpros (what is connected), openocd (in a terminal of its own), then reset and initialize --minimal,
+# then run or monitor. OpenOCD and the two programmers (bootmode, program) all use the FlashPro: stop OpenOCD before you run
+# bootmode or program, which refuse while OpenOCD answers on its port.
+#
+# Any MPFS board with a FlashPro works, not only the Icicle Kit. What is the Icicle Kit's is the defaults: the serial ports
+# (UART_PATTERN), BOOTMODE_DIE and BOOTMODE_PACKAGE of hw/lab.conf.example, and the register values that initialize writes
+# (hw/mss_init.py holds those of the Icicle Kit design: check them before you use initialize on another board).
+#
+# The commands and their options
+#
+#   ./x hw flashpros [--vendor ID] [--all]
+#                              lists what is connected, from the USB descriptors in sysfs (nothing is opened): serial number
+#                              ("-" if the descriptor has none), ID, name, model, USB location. --all lists every USB device.
+#                              The serial number or the location picks an adapter out for OpenOCD (FLASHPRO_SERIAL,
+#                              FLASHPRO_USB_LOCATION). bootmode and program name a FlashPro as the Microchip tools do
+#                              (FLASHPRO_ID), which is not in general the serial number; ./x hw program --scan lists those names.
+#                              bootmode asks FlashPro Express for them. With several connected it stops and lists them unless one is
+#                              named, and then programs that one only (through FlashPro Express: fpgenprog would program all).
+#   ./x hw openocd [--lab F] [args]
+#                              start Microchip's OpenOCD (hw/start_openocd.sh); args go to OpenOCD, --lab F names the lab.conf.
+#                              Which FlashPro, which JTAG clock and which port it uses come from lab.conf (FLASHPRO_*, OCD_TCK_MHZ, OCD_PORT).
+#   ./x hw bootmode N [ELF] [--yes] [--dry-run] [--prepare-only] [--workdir DIR] [--flashpro ID] [--lab F]
 #                              switch the boot mode (0..3) with fpgenprog (hw/bootmode.py, a Python port of the programmer of
 #                              Microchip; --help lists the options of the boot modes 2 and 3). ELF is the boot program
-#                              (default: the example bare_hello, built). --flashpro chooses one of several FlashPros. Errors come with the help text, which
+#                              (default: the example bare_hello, built). --flashpro chooses one of several FlashPros (the name
+#                              ./x hw program --scan shows). Errors come with the help text, which
 #                              describes the boot modes. PERMANENT: it reprograms the FPGA part; nothing is written without --yes or a
 #                              typed "yes". --dry-run says what it would do; --prepare-only stops before the programming. Stop OpenOCD first: it and the
 #                              programmer both use the FlashPro, and the script refuses while OpenOCD answers
 #                              on the port of lab.conf.
-#   hw.sh openocd [--lab F] [args]
-#                              start Microchip's OpenOCD (hw/start_openocd.sh); args go to OpenOCD, --lab F names the lab.conf
-#   hw.sh run <ex|file.elf> [--hart N] [--secs S] [--expect RE] [--expect-port N] [--uart-clocks|--uart-standin]
+#   ./x hw run <ex|file.elf> [--hart N] [--secs S] [--expect RE] [--expect-port N] [--uart-clocks|--uart-standin]
 #                           [--view MODE] [--color WHEN] [--lab F]
 #                              build the example (or take the ELF), load it onto hart N
 #                              (0 = E51, 1-4 = U54; default: the HART of example.conf, hart 0
 #                              for E51, hart 1 for U54), run it, show what the serial ports print as it arrives.
 #                              With --expect the exit status says whether the console matched RE.
-#   hw.sh probe <probe.S> <hart> [--words N] [--secs S] [--expect RE] [--lab F]
+#   ./x hw probe <probe.S> <hart> [--words N] [--secs S] [--expect RE] [--lab F]
 #                              run a probe of hw/ and print its result block
-#   hw.sh monitor [--secs N] [--port N] [--expect RE] [--view MODE] [--color WHEN] [--lab F]
+#   ./x hw monitor [--secs N] [--port N] [--expect RE] [--view MODE] [--color WHEN] [--lab F]
 #                              show what the serial ports print, as it arrives
 #   --view MODE (run, monitor) how the serial text is shown: live (a window of 8 lines per port, in which the
 #                              text scrolls; the default on a terminal), interleaved (complete lines in the
@@ -33,27 +68,38 @@
 #                              of the target pass through when on and are removed when off; other escape
 #                              sequences of the target are always removed. --expect matches the text as the
 #                              target printed it, whatever the view and the colours.
-#   hw.sh initialize [--minimal] [--skip-io] [--dry-run] [--target T] [--lab F]
+#   ./x hw initialize [--minimal] [--skip-io] [--dry-run] [--target T] [--lab F]
 #                              do what the first-stage boot software does to the MSS before the clock switch
 #                              (hw/initialize.py, hw/mss_init.py): RTC divisor, dynamic enables, IO set-up, SGMII channel
 #                              set-up and the MSS PLL up to its lock; CLINT.MTIME counts afterwards. The CPU keeps its boot
 #                              clock. --minimal does only what MTIME needs; --dry-run prints the steps and writes nothing.
-#   hw.sh reset [--svd FILE] [--target T] [--lab F]
+#   ./x hw reset [--svd FILE] [--target T] [--lab F]
 #                              reset the board to its power-on state through OpenOCD (dmi_read/dmi_write of
 #                              abstractcs, reset halt, check SUBBLK_CLOCK_CR and SOFT_RESET_CR), also after a
 #                              hung debug module; exit 0 only if the check passed, 2 otherwise
-#   hw.sh program FILE [--device NAME] [--programmer ID] [--action ACTION] [--tck MHZ] [--workdir DIR] [--yes] [--dry-run] [--lab F]
-#   hw.sh program --scan [--programmer ID] [--tck MHZ] [--workdir DIR] [--dry-run] [--lab F]
+#   ./x hw program FILE [--device NAME] [--programmer ID] [--action ACTION] [--tck MHZ] [--workdir DIR] [--yes] [--dry-run] [--lab F]
+#   ./x hw program --scan [--programmer ID] [--tck MHZ] [--workdir DIR] [--dry-run] [--lab F]
 #                              program the FPGA from a STAPL (.stp) or PPD (.ppd) file with FlashPro Express (hw/program.py): it writes a Tcl script
 #                              (job project, TCK frequency, scan of the chain, device, file, action) and runs FPExpress on it.
 #                              Programmer and device are found by FlashPro Express unless named. PROGRAM and ERASE change the FPGA, so
 #                              they write only with --yes or a typed "yes"; DEVICE_INFO, READ_IDCODE and VERIFY only read. --scan only
 #                              lists the programmers and the devices of their JTAG chains. The TCK frequency is --tck or
-#                              OCD_TCK_MHZ of lab.conf. --dry-run prints the scripts. Stop OpenOCD first (the FlashPro is shared).
+#                              TCK_MHZ of lab.conf (OCD_TCK_MHZ is OpenOCD's). --dry-run prints the scripts. Stop OpenOCD first (the FlashPro is shared).
 #
-# Ports, OpenOCD directory and the serial ports (devices, or TCP ports that socat tunnels from another machine:
-# tcp://HOST:PORT) come from hw/lab.conf (a copy of hw/lab.conf.example; --lab FILE or
-# LAB_CONF names another one). Exit status: 0 success, 1 the expectation was not met,
+# Settings
+#
+# Everything that differs between machines is in hw/lab.conf, a copy of hw/lab.conf.example (which lists every key with what
+# it is for); --lab FILE, or the environment variable LAB_CONF, names another file. The keys, by what they are for:
+#   OpenOCD       OPENOCD (install directory), OCD_HOST, OCD_PORT, OCD_ROOT (OpenOCD on another machine)
+#   serial ports  UART_PATTERN, UART_COUNT, UART<n> (devices, or TCP ports that socat tunnels from another machine: tcp://HOST:PORT)
+#   FlashPro      FLASHPRO_TYPE (model), FLASHPRO_SERIAL, FLASHPRO_USB_LOCATION (which adapter OpenOCD uses), FLASHPRO_ID (which one
+#                 the Microchip tools use), OCD_TCK_MHZ (JTAG clock of OpenOCD), TCK_MHZ (JTAG clock of
+#                 hw/program.py)
+#   tools         FPGENPROG, FPEXPRESS (full paths of fpgenprog and FPExpress)
+#   bootmode      BOOTMODE_DIE, BOOTMODE_PACKAGE
+# More: hw/README.md, docs/lab/openocd.md.
+#
+# Exit status: 0 success, 1 the expectation was not met,
 # 2 set-up error (no OpenOCD, no serial port, bad arguments), 130 ended with Ctrl+C.
 
 set -u
@@ -62,11 +108,16 @@ root="$(cd "$here/.." && pwd)"
 
 die () { echo "hw: $*" >&2; exit 2; }
 
+# the help is the comment at the top of this file, without its "# ", up to the code: one text for the reader of the file
+# and for ./x hw help
+usage () { sed -n -e '/^set -u/q' -e '5,$p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+
 verb="${1:-}"; shift || true
 case "$verb" in
+  ""|help|-h|--help) usage; exit 0 ;;
   openocd) exec sh "$root/hw/start_openocd.sh" "$@" ;;
   bootmode|flashpros|run|probe|monitor|reset|initialize|program) ;;
-  *) die "usage: ./x hw bootmode|flashpros|openocd|run|probe|monitor|reset|initialize|program" ;;
+  *) die "unknown command '$verb' (./x hw help lists them)" ;;
 esac
 
 # shellcheck source=tools/mpfs-env.sh

@@ -60,7 +60,7 @@ _mpfs_x () {
     pac)    [ "$COMP_CWORD" -eq 2 ] && COMPREPLY=($(compgen -W "generate check" -- "$cur")) ;;
     trace)  COMPREPLY=($(compgen -W "--check" -- "$cur")) ;;
     hw)     if [ "$COMP_CWORD" -eq 2 ]; then
-              COMPREPLY=($(compgen -W "bootmode flashpros openocd run probe monitor reset initialize program" -- "$cur"))
+              COMPREPLY=($(compgen -W "bootmode flashpros openocd run probe monitor reset initialize program help" -- "$cur"))
             elif [ "$sub" = bootmode ]; then
               COMPREPLY=($(compgen -W "0 1 2 3 --yes --dry-run --workdir --lab" -- "$cur"))
               [ -z "$cur" ] || COMPREPLY+=($(compgen -f -- "$cur"))

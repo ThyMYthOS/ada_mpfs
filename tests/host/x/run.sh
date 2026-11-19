@@ -35,6 +35,22 @@ done
 
 case "$help" in *"./x hw bootmode|flashpros|openocd|run|probe|monitor|reset"*) pass "help lists hw bootmode" ;; *) fail "help lists hw bootmode" ;; esac
 
+# ./x hw prints a full help (also with help, -h and --help), needs no toolchain for it, lists every command that it dispatches and
+# the settings, and an unknown command is an error that points to it
+hwhelp="$("$X" hw 2>&1)"
+expect_rc "./x hw prints the help and exits 0" 0 "$X" hw
+for c in bootmode flashpros openocd run probe monitor reset initialize program; do
+  case "$hwhelp" in *"./x hw $c"*) pass "hw help lists $c" ;; *) fail "hw help lists $c" ;; esac
+done
+for a in help -h --help; do
+  [ "$("$X" hw "$a" 2>&1)" = "$hwhelp" ] && pass "./x hw $a prints the same help" || fail "./x hw $a prints the same help"
+done
+case "$hwhelp" in *"./x hw program --scan"*) pass "hw help lists program --scan" ;; *) fail "hw help lists program --scan" ;; esac
+case "$hwhelp" in *"--lab F"*"FLASHPRO_USB_LOCATION"*"OCD_TCK_MHZ"*"BOOTMODE_DIE"*) pass "hw help names the options --lab and the keys of lab.conf" ;; *) fail "hw help names the options --lab and the keys of lab.conf" ;; esac
+case "$hwhelp" in *"COMMAND --help"*) pass "hw help says how to get the options of one command" ;; *) fail "hw help says how to get the options of one command" ;; esac
+expect_rc "./x hw with an unknown command fails" nonzero "$X" hw nosuch
+case "$("$X" hw nosuch 2>&1)" in *"unknown command 'hw nosuch'"*"./x hw help"*) pass "an unknown hw command names itself and points to ./x hw help" ;; *) fail "an unknown hw command names itself and points to ./x hw help" ;; esac
+
 # MPFS_PREBUILT_IMAGES=1 builds nothing: without the images of an earlier build the QEMU and
 # Renode tests fail and say which image is missing (in a tree that has none).
 if [ -z "$(find "$ROOT/examples" -path '*/bin-*' -name '*.elf' 2>/dev/null | head -1)" ]; then

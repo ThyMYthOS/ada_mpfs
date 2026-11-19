@@ -77,6 +77,7 @@
 #                                      [--device NAME] [--programmer ID] [--action A] [--tck MHZ] [--yes] [--dry-run]: PROGRAM
 #                                      rewrites the FPGA configuration; program --scan only lists the programmers and the
 #                                      devices of their JTAG chains; stop OpenOCD first)
+#    ./x hw [help]                     the commands of ./x hw with their options and the settings of hw/lab.conf
 #    ./x completion [bash|zsh]         print the tab-completion script (see README)
 #
 #  <ex> is the directory name below examples/.  Every failure exits non-zero.
@@ -947,7 +948,8 @@ cmd_completion () {
 cmd_hw () {
   case "${1:-}" in
     bootmode|flashpros|openocd|run|probe|monitor|reset|initialize|program) delegate tools/hw.sh "$@" ;;
-    *) die "usage: ./x hw bootmode|flashpros|openocd|run|probe|monitor|reset|initialize|program" ;;
+    ""|help|-h|--help) delegate tools/hw.sh help ;;
+    *) die "unknown command 'hw $1' (./x hw help lists the commands and their options)" ;;
   esac
 }
 

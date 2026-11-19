@@ -752,7 +752,7 @@ expect_rc  "start_openocd: a missing lab.conf exits 2" 2 env LAB_CONF="$tmp/none
 # --- ./x hw -----------------------------------------------------------------------
 X="$ROOT/x"
 expect_rc  "x hw: an unknown verb fails" nonzero "$X" hw bogus
-expect_rc  "x hw: without a verb fails" nonzero "$X" hw
+expect_rc  "x hw: without a verb prints the help and exits 0" 0 "$X" hw
 expect_rc  "x hw run: an unknown example exits 2" 2 "$X" hw run no_such_example
 expect_rc  "x hw run: an ELF file is run, the exit status passes through (match)" 0 "$X" hw run "$tmp/loop.elf" --secs 0.3 --lab "$L" --expect 'bare hello'
 expect_rc  "x hw run: and the exit status of a missed expectation passes through" 1 "$X" hw run "$tmp/loop.elf" --secs 0.3 --lab "$L" --expect 'something else'
