@@ -118,6 +118,21 @@ def _():
     assert covered == checks.XML_CODES, sorted(covered ^ checks.XML_CODES)
 
 
+@case("a section that is only validated is not compared with the SVD: 0x4 in the 1-bit CFG_DATA_MASK of a design without DDR")
+def _():
+    edit = Path(tempfile.mkdtemp()) / "ddrc.edit"
+    edit.write_text('after: <ddrc>\nold: name="CFG_DATA_MASK" offset="0" width="32">0x1<\n'
+                    'new: name="CFG_DATA_MASK" offset="0" width="32">0x4<\n')
+    path = edit.with_suffix(".xml")
+    path.write_text(edited(edit))
+    assert codes_of(path) == [], codes_of(path)
+    assert "mss_ddr/ddrc" in read(path).validated
+    # the XML's own width still holds there
+    path.write_text(edited(edit).replace('name="CFG_DATA_MASK" offset="0" width="32">0x4<',
+                                         'name="CFG_DATA_MASK" offset="0" width="1">0x4<', 1))
+    assert codes_of(path) == ["GEN-E050"], codes_of(path)
+
+
 @case("the codes of the reader are in CODES and in the table of config/README.md (checked by system_yaml)")
 def _():
     assert checks.XML_CODES and checks.XML_CODES <= set(checks.CODES)

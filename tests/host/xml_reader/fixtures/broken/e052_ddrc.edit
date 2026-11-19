@@ -1,8 +1,0 @@
-# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
-# SPDX-License-Identifier: Apache-2.0
-#
-# expect: GEN-E052
-# A register of the DDR controller (only validated) holds more than its field in the SVD.
-after: <ddrc>
-old: name="CFG_MANUAL_ADDRESS_MAP" offset="0" width="32">0x0<
-new: name="CFG_MANUAL_ADDRESS_MAP" offset="0" width="32">0xFFFF<

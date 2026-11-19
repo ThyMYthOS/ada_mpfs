@@ -389,7 +389,10 @@ any other is refused (`GEN-E042`). A version enters the list together with a ref
 `cache`, `pmp_h0` to `pmp_h4`, the ten `mpu_*`), `mss_general/mss_peripherals`, `mss_sgmii/tip` (the
 values of the SGMII off mode) and `mss_ddr/mode` and `mss_ddr/off_mode` (`DDRPHY_MODE`). A register is
 found by section and name: the three PLLs have registers of the same names. The other sections (the rest of
-`mss_ddr`, `sgmii_pll`, `ddr_pll`, `hsio`) are only validated, by the same rules, and are not in the model.
+`mss_ddr`, `sgmii_pll`, `ddr_pll`, `hsio`) are only validated and are not in the model: by the same rules,
+except the comparison with the SVD (`GEN-E051`, `GEN-E052`). Nothing writes them, and a design that does
+not use them carries the defaults of the configurator (a design without DDR has `0x4` in the one-bit
+`CFG_DATA_MASK` of the DDR controller).
 
 **Values.** A register's value is what Microchip's generator makes of it: the RW fields shifted to their
 offsets and added; fields of other types are not part of it. `clocks` and `nvm_map` are decimal; in the

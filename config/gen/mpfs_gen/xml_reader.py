@@ -12,8 +12,9 @@ The order: the bytes are read and hashed (SHA-256), a document type or entity de
 be one of FORMAT_VERSIONS (GEN-E042); a file that fails one of these is not looked at further. Then every
 section is checked, also those that are only validated (DDR, the SGMII and DDR PLLs, the high-speed IO):
 each register and field once, numbers of their form, fields inside their register and apart, values that
-fit their field as the XML states it and as the SVD states it. Only the core sections (CORE) become the
-model; a core section or a register that the generator needs (NEEDED) must be there.
+fit their field as the XML states it and, in the core sections, as the SVD states it. Only the core
+sections (CORE) become the model; a core section or a register that the generator needs (NEEDED) must be
+there.
 
 A register's value is what Microchip's generator (mpfs_configuration_generator.py) makes of it: the RW
 fields shifted to their offsets and added; fields of other types are not part of it. The two sections
@@ -25,7 +26,9 @@ The layout of a field is checked against the field of the same name in the SVD, 
 well (svd_place() says which register of the SVD that is). The SVD has no layout for the values that the
 configurator keeps for the software only (the clock rates, the PMP CSRs, the L2 settings, apb_split
 except APBBUS_CR, the memory elements), nor for the few registers that it does not describe yet (the
-multiplexers of sgmii_cfm, IMIRROR_TRIM): those are checked against their own declaration only.
+multiplexers of sgmii_cfm, IMIRROR_TRIM): those are checked against their own declaration only. So are the
+sections that are only validated: nothing writes them, and a design that does not use them carries what
+the configurator puts there by default (a design without DDR has 0x4 in the one-bit CFG_DATA_MASK).
 
 A value that breaks the width of its field is an error, unless it is a known defect of the configurator
 (KNOWN_DEFECTS); then the reader keeps the field as written, takes the value of the register by the rule of
@@ -197,7 +200,8 @@ class _Reader:
             self.report("GEN-E040", section, "a <register> without a name")
             return None
         at = f"{section}/{name}"
-        place = next((p for p in svd_place(section, name) if p in self.svd), None)
+        # only the core sections are written: the others are checked against their own declaration
+        place = next((p for p in svd_place(section, name) if p in self.svd), None) if section in CORE else None
         svd = self.svd[place] if place else None
         leaf = section.rpartition("/")[2]
         size = svd.size if svd else (64 if leaf.startswith(("pmp_h", "mpu_")) else 32)
