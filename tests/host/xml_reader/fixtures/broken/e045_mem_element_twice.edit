@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E045
+# mem_elements has RESET_VECTOR_HART0 twice.
+after: <mem_elements>
+old: name="RESET_VECTOR_HART1"
+new: name="RESET_VECTOR_HART0"

@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E050
+# The 0x8 of the MSS PLL in the SGMII PLL, a section that is only validated: the known defect is the one of the MSS PLL.
+after: <sgmii_pll>
+old: name="REG_OUT3_PHSINIT" offset="11" width="3">0x6<
+new: name="REG_OUT3_PHSINIT" offset="11" width="3">0x8<

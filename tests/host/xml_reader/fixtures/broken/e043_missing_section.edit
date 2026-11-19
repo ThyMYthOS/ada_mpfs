@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E043
+# The section io_mux_alt is renamed: the core section is missing.
+after: <mss_io>
+old: <io_mux_alt>
+new: <io_mux_other>
+after: <io_mux_other>
+old: </io_mux_alt>
+new: </io_mux_other>

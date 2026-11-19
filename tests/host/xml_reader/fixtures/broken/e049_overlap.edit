@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E049
+# MMUART1 of CONTEXT_A_EN (no layout in the SVD) is at bit 0, the bit of MMUART0.
+after: name="CONTEXT_A_EN"
+old: name="MMUART1" offset="1"
+new: name="MMUART1" offset="0"

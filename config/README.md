@@ -277,9 +277,11 @@ the description agrees with the XML are checked by the later stages that read th
 
 Each rule has its own code. `GEN-E001` to `GEN-E013` are the rules of the schema (the reader maps each
 failure of the validator to the code of its keyword; a size that is not a size is `GEN-E010` whatever the
-keyword), `GEN-E020` on are the rules across fields. The table is `CODES` in `gen/mpfs_gen/checks.py`, and a
-test compares the two. `tests/host/system_yaml/fixtures/broken` has a description for each code that is
-rejected with exactly that code.
+keyword), `GEN-E020` to `GEN-E034` the rules across fields, `GEN-E040` on the rules of the [MSS Configurator
+XML](#mss-configurator-xml). The table is `CODES` in `gen/mpfs_gen/checks.py`, and a test compares the two.
+`tests/host/system_yaml/fixtures/broken` has a description for each code of `system.yaml`, and
+`tests/host/xml_reader/fixtures/broken` an XML (or an edit of the XML of the Icicle Kit) for each code of the
+XML, that is rejected with exactly that code.
 
 | Code | Rule |
 |---|---|
@@ -311,6 +313,19 @@ rejected with exactly that code.
 | `GEN-E032` | a memory window without a size in a system of more than one partition |
 | `GEN-E033` | the boot source fram without a fram section |
 | `GEN-E034` | the board has no directory in config/boards |
+| `GEN-E040` | the XML cannot be read, is not well-formed or has not the structure of an MSS Configurator XML |
+| `GEN-E041` | the XML has a document type or entity declaration |
+| `GEN-E042` | xml_format_version is missing or not a version the reader knows (0.6.5, 0.6.8) |
+| `GEN-E043` | a core section is missing |
+| `GEN-E044` | a register that the generator needs is missing from its section |
+| `GEN-E045` | a section has a register or memory element twice |
+| `GEN-E046` | a register has a field twice |
+| `GEN-E047` | a number does not have its form (0x and hex digits; decimal digits where the section is decimal; a bare number above 9 in a hex section is ambiguous) |
+| `GEN-E048` | a field reaches beyond its register |
+| `GEN-E049` | two fields of a register overlap |
+| `GEN-E050` | a value is wider than its field |
+| `GEN-E051` | a field is at another bit position than the field of the same name in the SVD |
+| `GEN-E052` | a value is wider than the field of the same name in the SVD |
 
 Several rules are also checks of the package `MPFS_Partition` (a mask that mixes E51 and U54, a stack size,
 `ram_fifo`, the L2 ways, the ITIM): the reader refuses a description early, and the package still refuses
@@ -345,3 +360,69 @@ FILE` prints the parameters of `standalone.py` that stand for it. The test `test
 for every variant that `standalone.py` with the parameters of its preset writes the same bytes as with the
 parameters of `./x build`, so that a build from a description and a build without one get the same partition
 data.
+
+## MSS Configurator XML
+
+Libero's MSS Configurator writes the configuration of the MSS of a design as an XML file: clocks and PLL,
+IO multiplexing and banks, the memory map, L2, PMP and MPU, DDR and SGMII. Microchip's HAL turns it into C
+headers with `mpfs_configuration_generator.py`; here `gen/mpfs_gen/xml_reader.py` reads it into the
+immutable model `MssConfiguration` of `mpfs_gen/model.py`. To read one:
+
+```sh
+python3 config/gen/mpfs_gen xml config/boards/icicle/ICICLE_MSS_mss_cfg.xml           # every register
+python3 config/gen/mpfs_gen xml --fields config/boards/icicle/ICICLE_MSS_mss_cfg.xml  # and its fields
+python3 config/gen/mpfs_gen xml --check config/boards/*/*.xml                         # FILE: ok
+```
+
+The printout has the design, the SHA-256 of the file, one line per register of the core sections
+(`SECTION/NAME = VALUE`, and the register of the SVD with its layout in brackets), the memory elements and
+the sections that are only validated. A broken XML gives one line per violated rule,
+`FILE: GEN-Exxx SECTION/REGISTER.FIELD: message`, and status 2. The merged SVD is
+`build/svd/PolarfireSoC.svd` (made current first) or `--svd FILE`.
+
+**Format versions.** `xml_format_version` must be `0.6.5` or `0.6.8`, the versions of the reference XMLs;
+any other is refused (`GEN-E042`). A version enters the list together with a reference XML of it.
+
+**Sections.** The core sections are decoded: `mss_clocks` (`clocks`, `mss_sys`, `mss_pll`, `mss_cfm`,
+`sgmii_cfm`), `mss_io` (`io_mux` with the banks and `GPIO_INTERRUPT_FAB_CR`, `io_mux_alt`),
+`mss_memory_map` (`apb_split` with `APBBUS_CR` and `MEM_CONFIGS_ENABLED`, `map/mem_elements`, `nvm_map`,
+`cache`, `pmp_h0` to `pmp_h4`, the ten `mpu_*`), `mss_general/mss_peripherals`, `mss_sgmii/tip` (the
+values of the SGMII off mode) and `mss_ddr/mode` and `mss_ddr/off_mode` (`DDRPHY_MODE`). A register is
+found by section and name: the three PLLs have registers of the same names. The other sections (the rest of
+`mss_ddr`, `sgmii_pll`, `ddr_pll`, `hsio`) are only validated, by the same rules, and are not in the model.
+
+**Values.** A register's value is what Microchip's generator makes of it: the RW fields shifted to their
+offsets and added; fields of other types are not part of it. `clocks` and `nvm_map` are decimal; in the
+other sections a value has `0x`. Microchip's generator reads a bare number as hex in every section, so a bare
+number in a hex section is taken only from 0 to 9, where both readings agree (`GEN-E047`).
+
+**Widths.** Every value must fit the width that the XML declares for its field (`GEN-E050`). Where the SVD
+has the register, the source of the PAC as well, a field of the same name must be at the same bit position
+(`GEN-E051`) and the value must fit the field of the SVD (`GEN-E052`). The configurator keeps some values for
+the software only (the clock rates, the PMP CSRs, the L2 settings, most of `apb_split`), and the SVD does
+not describe a few registers yet (the multiplexers of `sgmii_cfm`, `IMIRROR_TRIM`); for those the XML's own
+widths are the check. The three PLLs share the layout of the PLL in `CFG_DDR_SGMII_PHY` (`<NAME>_MAIN`).
+
+**The known defect of `PLL_PHADJ`.** In every reference XML, `REG_OUT3_PHSINIT` of the MSS PLL is 3 bits
+wide and holds `0x8`. Shifted to its offset 11, the value sets bit 14, `REG_LOADPHS_B`, which the XML gives
+as 0. Microchip's generator adds the fields all the same and writes `0x4003`: all four phases 0 and
+`REG_LOADPHS_B` 1, the form that `PLL_PHADJ` of the SGMII and the DDR PLL has in the same XMLs, and the
+value that `hw/mss_init.py` writes on the board. The reader keeps the field as written and gives the
+register this value; the register names the defect (`defect`), and `xml` marks it. The defect is reported
+to Microchip (polarfire-soc/polarfire-soc-documentation#610, without an answer). The exception is this one
+field with this one value (`KNOWN_DEFECTS` in `xml_reader.py`); `0x8` in any other field, or another value
+there, is `GEN-E050`.
+
+**Untrusted input.** The reader refuses a document type or entity declaration before the parser sees the
+file (`GEN-E041`), so no entity is expanded.
+
+### Reference XMLs
+
+Each board directory has the XML of its design, unchanged; where it comes from is in
+[`PROVENANCE.md`](../PROVENANCE.md).
+
+| Board | File | Format | Libero | Part |
+|---|---|---|---|---|
+| [`icicle`](boards/icicle/README.md) | `ICICLE_MSS_mss_cfg.xml` | 0.6.8 | 2024.2 | MPFS250T |
+| [`icicle_es`](boards/icicle_es/README.md) | `ICICLE_MSS_mss_cfg.xml` | 0.6.5 | 2022.2 | MPFS250T_ES |
+| [`video_kit`](boards/video_kit/README.md) | `MSS_video-kit_mss_cfg.xml` | 0.6.8 | 2023.2 | MPFS250TS |

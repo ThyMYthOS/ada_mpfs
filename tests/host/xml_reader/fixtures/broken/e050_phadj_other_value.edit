@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E050
+# REG_OUT3_PHSINIT of the MSS PLL holds 0x9: only 0x8 is the known defect.
+after: <mss_pll>
+old: name="REG_OUT3_PHSINIT" offset="11" width="3">0x8<
+new: name="REG_OUT3_PHSINIT" offset="11" width="3">0x9<

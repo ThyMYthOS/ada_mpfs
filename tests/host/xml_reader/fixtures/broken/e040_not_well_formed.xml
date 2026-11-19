@@ -1,0 +1,11 @@
+<!--
+SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+SPDX-License-Identifier: Apache-2.0
+
+expect: GEN-E040
+The <mss> element is not closed.
+-->
+<mss>
+  <design_information>
+    <xml_format_version>0.6.8</xml_format_version>
+  </design_information>

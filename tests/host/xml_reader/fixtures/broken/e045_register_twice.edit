@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E045
+# apb_split has CONTEXT_A_EN twice (CONTEXT_B_EN renamed).
+after: <apb_split>
+old: name="CONTEXT_B_EN"
+new: name="CONTEXT_A_EN"

@@ -1,0 +1,12 @@
+<!--
+SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+SPDX-License-Identifier: Apache-2.0
+
+expect: GEN-E042
+No format version.
+-->
+<mss>
+  <design_information>
+    <libero_version>2024.2</libero_version>
+  </design_information>
+</mss>

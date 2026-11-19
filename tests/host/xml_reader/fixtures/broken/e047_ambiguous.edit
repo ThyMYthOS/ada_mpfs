@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E047
+# WAY_ENABLE is a bare 11 in a hex section: Microchip's generator would read 0x11.
+after: name="WAY_ENABLE"
+old: >0xB</field>
+new: >11</field>

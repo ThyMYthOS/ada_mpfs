@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E047
+# The CPU clock is not decimal digits.
+after: name="MSS_COREPLEX_CPU_CLK"
+old: >600000000</field>
+new: >6e8</field>

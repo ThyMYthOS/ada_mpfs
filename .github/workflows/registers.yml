@@ -15,6 +15,7 @@ on:
       - ".github/actions/**"
       - "svd/**"
       - "hw/svd_probe.py"
+      - "hw/mss_init.py"
       - "crates/mpfs_rts/gen_intnam.py"
       - "crates/mpfs_rts/mpfs/gnarl/a-intnam.ads"
       - "crates/bb-runtimes/src/s-bbpara__polarfiresoc.ads"
@@ -32,6 +33,7 @@ on:
       - ".github/actions/**"
       - "svd/**"
       - "hw/svd_probe.py"
+      - "hw/mss_init.py"
       - "crates/mpfs_rts/gen_intnam.py"
       - "crates/mpfs_rts/mpfs/gnarl/a-intnam.ads"
       - "crates/bb-runtimes/src/s-bbpara__polarfiresoc.ads"
@@ -99,6 +101,11 @@ jobs:
       # the standalone presets (PyYAML and jsonschema, no toolchain).
       - name: Host tests of the system description
         run: tests/host/system_yaml/run.sh
+
+      # The reader of the MSS Configurator XML: the reference XMLs of config/boards and the broken
+      # ones, checked against the SVD that was just merged.
+      - name: Host tests of the reader of the MSS Configurator XML
+        run: tests/host/xml_reader/run.sh
 
       # The merged SVD, whose hash `./x svd check` has just verified: the pac job takes it
       # instead of merging again (svd.py ensure accepts a file with the recorded hash).

@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E046
+# RTC_CLOCK_CR has the field PERIOD twice (the second at bit 16).
+after: name="RTC_CLOCK_CR"
+old: <field Type="RW" name="PERIOD" offset="0" width="12">0x7D</field>
+new: <field Type="RW" name="PERIOD" offset="0" width="12">0x7D</field><field Type="RW" name="PERIOD" offset="16" width="1">0x0</field>

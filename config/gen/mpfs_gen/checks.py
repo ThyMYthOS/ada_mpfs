@@ -7,8 +7,9 @@ schema cannot express.
 
 CODES is the one list of the codes: each rule has its own, and config/README.md has the same table (a
 test compares them). A code is never reused for another rule. The schema rules (GEN-E001 to GEN-E013)
-are reported by yaml_reader.py from the failures of the validator, the others (GEN-E020 on) by
-semantic() below on a description that the schema accepts.
+are reported by yaml_reader.py from the failures of the validator, the rules across fields (GEN-E020 to
+GEN-E034) by semantic() below on a description that the schema accepts, and the rules of the MSS
+Configurator XML (GEN-E040 on, XML_CODES) by xml_reader.py.
 """
 from dataclasses import dataclass
 from pathlib import Path
@@ -47,7 +48,24 @@ CODES: dict[str, str] = {
     "GEN-E032": "a memory window without a size in a system of more than one partition",
     "GEN-E033": "the boot source fram without a fram section",
     "GEN-E034": "the board has no directory in config/boards",
+    "GEN-E040": "the XML cannot be read, is not well-formed or has not the structure of an MSS Configurator XML",
+    "GEN-E041": "the XML has a document type or entity declaration",
+    "GEN-E042": "xml_format_version is missing or not a version the reader knows (0.6.5, 0.6.8)",
+    "GEN-E043": "a core section is missing",
+    "GEN-E044": "a register that the generator needs is missing from its section",
+    "GEN-E045": "a section has a register or memory element twice",
+    "GEN-E046": "a register has a field twice",
+    "GEN-E047": "a number does not have its form (0x and hex digits; decimal digits where the section is "
+                "decimal; a bare number above 9 in a hex section is ambiguous)",
+    "GEN-E048": "a field reaches beyond its register",
+    "GEN-E049": "two fields of a register overlap",
+    "GEN-E050": "a value is wider than its field",
+    "GEN-E051": "a field is at another bit position than the field of the same name in the SVD",
+    "GEN-E052": "a value is wider than the field of the same name in the SVD",
 }
+
+# The codes of the reader of the MSS Configurator XML (xml_reader.py); the others are those of system.yaml.
+XML_CODES = frozenset(code for code in CODES if "GEN-E040" <= code <= "GEN-E059")
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,8 +79,8 @@ class Diagnostic:
         return f"{self.code} {self.path or '(top level)'}: {self.message}"
 
 
-class SystemDescriptionError(errors.InputError):
-    """A system description that breaks rules: every diagnostic, one per line, after the file name."""
+class DiagnosticError(errors.InputError):
+    """An input that breaks rules: every diagnostic, one per line, after the file name."""
 
     def __init__(self, where: str, diagnostics: list[Diagnostic]):
         self.where = where
@@ -72,6 +90,14 @@ class SystemDescriptionError(errors.InputError):
     @property
     def codes(self) -> list[str]:
         return [d.code for d in self.diagnostics]
+
+
+class SystemDescriptionError(DiagnosticError):
+    """A system description (system.yaml) that breaks rules."""
+
+
+class ConfiguratorXmlError(DiagnosticError):
+    """An MSS Configurator XML that breaks rules."""
 
 
 def diagnostic(code: str, path: str, message: str) -> Diagnostic:

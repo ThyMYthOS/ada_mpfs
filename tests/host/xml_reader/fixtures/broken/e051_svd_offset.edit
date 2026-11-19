@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E051
+# PERIOD of RTC_CLOCK_CR at bit 1; the SVD has it at bit 0.
+after: name="RTC_CLOCK_CR"
+old: name="PERIOD" offset="0" width="12"
+new: name="PERIOD" offset="1" width="12"

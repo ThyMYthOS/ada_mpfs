@@ -20,3 +20,27 @@ requirements:
       ./x build passes for that variant without options.
     tsf: false
     source: config/README.md
+  - id: GEN-003
+    text: >-
+      An MSS Configurator XML is accepted only if it can be read, has no document type or entity
+      declaration, is well-formed with the root element mss, has an xml_format_version of 0.6.5 or
+      0.6.8, has every core section and every register of them that the generator needs, has no
+      register, memory element or field twice, has numbers of the form of their section, fields
+      inside their register and apart, and values that fit the width of their field as the XML
+      declares it and, where the SVD has the field, as the SVD declares it at the same bit position;
+      the sections that are only validated (DDR, the SGMII and DDR PLLs, the high-speed IO) are
+      checked by the same rules. Every violated rule is reported with its own error code GEN-Exxx
+      and the path of the register or field.
+    tsf: false
+    source: config/README.md
+  - id: GEN-004
+    text: >-
+      The reader of the MSS Configurator XML returns the registers of the core sections, found by
+      section and name, each with the value that Microchip's generator gives it (the RW fields at
+      their offsets), the layout of its fields from the XML and from the SVD, and the SHA-256 of the
+      file; a register with a known defect of the configurator (0x8 in the 3-bit REG_OUT3_PHSINIT
+      of PLL_PHADJ of the MSS PLL) keeps the value of Microchip's generator (0x4003) and names the
+      defect. Every reference
+      XML in config/boards is read.
+    tsf: false
+    source: config/README.md

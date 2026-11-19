@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E052
+# An MPU address of 38 bits: the XML declares 38, the SVD 36 bits.
+after: <mpu_fic0>
+old: >0xFFFFFFFFF</field>
+new: >0x3FFFFFFFFF</field>

@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E047
+# The address of a memory element is not a number.
+after: name="DDR_32_CACHE"
+old: >0x80000000</mem>
+new: >0x8000_0000</mem>

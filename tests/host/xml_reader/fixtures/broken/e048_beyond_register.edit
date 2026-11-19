@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E048
+# WAY_ENABLE (no layout in the SVD) reaches bit 35 of a 32-bit register.
+after: name="WAY_ENABLE"
+old: offset="0" width="8"
+new: offset="28" width="8"

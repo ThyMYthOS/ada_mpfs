@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E044
+# SPARE_CNTL of the SGMII off mode is missing.
+after: <tip>
+old: name="SPARE_CNTL"
+new: name="SPARE_CNTL_RENAMED"

@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E050
+# 0x8 in REG_OUT0_PHSINIT of the MSS PLL, 3 bits as well.
+after: <mss_pll>
+old: name="REG_OUT0_PHSINIT" offset="2" width="3">0x0<
+new: name="REG_OUT0_PHSINIT" offset="2" width="3">0x8<
