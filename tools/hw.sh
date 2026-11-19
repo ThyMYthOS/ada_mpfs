@@ -4,7 +4,7 @@
 #
 # hw.sh -- the Icicle Kit from the command line; a shell around hw/*.py. Driven by `./x hw`.
 #
-#   hw.sh bootmode N [ELF] [--yes] [--dry-run] [--prepare-only] [--workdir DIR] [--flashpro SERIAL] [--lab F]
+#   hw.sh bootmode N [ELF] [--yes] [--dry-run] [--prepare-only] [--workdir DIR] [--flashpro ID] [--lab F]
 #                              switch the boot mode (0..3) with fpgenprog (hw/bootmode.py, a Python port of the programmer of
 #                              Microchip; --help lists the options of the boot modes 2 and 3). ELF is the boot program
 #                              (default: the example bare_hello, built). --flashpro chooses one of several FlashPros. Errors come with the help text, which
@@ -41,6 +41,14 @@
 #                              reset the board to its power-on state through OpenOCD (dmi_read/dmi_write of
 #                              abstractcs, reset halt, check SUBBLK_CLOCK_CR and SOFT_RESET_CR), also after a
 #                              hung debug module; exit 0 only if the check passed, 2 otherwise
+#   hw.sh program FILE [--device NAME] [--programmer ID] [--action ACTION] [--tck MHZ] [--workdir DIR] [--yes] [--dry-run] [--lab F]
+#   hw.sh program --scan [--programmer ID] [--tck MHZ] [--workdir DIR] [--dry-run] [--lab F]
+#                              program the FPGA from a STAPL (.stp) or PPD (.ppd) file with FlashPro Express (hw/program.py): it writes a Tcl script
+#                              (job project, TCK frequency, scan of the chain, device, file, action) and runs FPExpress on it.
+#                              Programmer and device are found by FlashPro Express unless named. PROGRAM and ERASE change the FPGA, so
+#                              they write only with --yes or a typed "yes"; DEVICE_INFO, READ_IDCODE and VERIFY only read. --scan only
+#                              lists the programmers and the devices of their JTAG chains. The TCK frequency is --tck or
+#                              TCK_MHZ of lab.conf. --dry-run prints the scripts. Stop OpenOCD first (the FlashPro is shared).
 #
 # Ports, SoftConsole path and the serial ports (devices, or TCP ports that socat tunnels from another machine:
 # tcp://HOST:PORT) come from hw/lab.conf (a copy of hw/lab.conf.example; --lab FILE or
@@ -56,8 +64,8 @@ die () { echo "hw: $*" >&2; exit 2; }
 verb="${1:-}"; shift || true
 case "$verb" in
   openocd) exec sh "$root/hw/start_openocd.sh" "$@" ;;
-  bootmode|flashpros|run|probe|monitor|reset|initialize) ;;
-  *) die "usage: ./x hw bootmode|flashpros|openocd|run|probe|monitor|reset|initialize" ;;
+  bootmode|flashpros|run|probe|monitor|reset|initialize|program) ;;
+  *) die "usage: ./x hw bootmode|flashpros|openocd|run|probe|monitor|reset|initialize|program" ;;
 esac
 
 # shellcheck source=tools/mpfs-env.sh
@@ -70,6 +78,7 @@ case "$verb" in
   reset)   exec "$MPFS_PYTHON" "$root/hw/reset.py" "$@" ;;
   initialize) exec "$MPFS_PYTHON" "$root/hw/initialize.py" "$@" ;;
   bootmode) exec "$MPFS_PYTHON" "$root/hw/bootmode.py" "$@" ;;
+  program) exec "$MPFS_PYTHON" "$root/hw/program.py" "$@" ;;
   flashpros) exec "$MPFS_PYTHON" "$root/hw/flashpros.py" "$@" ;;
 esac
 

@@ -78,6 +78,8 @@ def main(argv: list[str]) -> int:
         named = re.search(r"<id>\s*(\S+)\s*</id>", found.group(0)) if found else None
         serial = named.group(1) if named and os.environ.get("FAKE_FP_HONOUR") == "1" else os.environ.get("FAKE_FP_PROGRAMMER", "STANDIN1")
         element = f'<programmer status="enable" type="FlashPro6Lite"><name>{serial}</name><id>{serial}</id></programmer>'
+        if named and os.environ.get("FAKE_FP_HONOUR") == "1":
+            element = found.group(0)   # the programmer is named: its element stays as it is
         text, n = PROGRAMMER.subn(lambda _: element, text, count=1)
         if not n:   # a new project has an empty <Servers>; the programmer goes in front of it
             text = SERVERS.sub(lambda m: f"{m.group(1)}{element}\n{m.group(0)}", text, count=1)

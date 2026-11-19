@@ -106,6 +106,7 @@ class Options:
     verify: bool = False
     prepare_only: bool = False         # everything except programming (the Java tool's --dryrun)
     flashpro: str | None = None        # serial number of the FlashPro to use; None: what fpgenprog picks
+    programmer_element: str | None = None  # the <programmer> element FlashPro Express wrote for it (type, connection); None: a minimal one
 
     @property
     def out_dir(self) -> Path:
@@ -554,7 +555,7 @@ def select_flashpro(opt: Options, log: Log, serial: str) -> None:
         text = pro.read_text(encoding="utf-8")
     except OSError as e:
         raise BootError(f"Cannot read the project file {pro} to select the FlashPro: {e}") from e
-    element = (f'<programmer status="enable"><name>{serial}</name><id>{serial}</id></programmer>')
+    element = opt.programmer_element or f'<programmer status="enable"><name>{serial}</name><id>{serial}</id></programmer>'
     new, count = PROGRAMMER_RE.subn(lambda _: element, text, count=1)
     if not count:
         new, count = SERVERS_RE.subn(lambda m: f"{m.group(1)}{element}\n{m.group(0)}", text, count=1)

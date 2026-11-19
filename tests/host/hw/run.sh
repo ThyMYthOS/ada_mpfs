@@ -679,7 +679,7 @@ while True:
         if not os.read(fd, 4096): break
     except OSError: break
 _, st = os.waitpid(pid, 0)
-sys.exit(os.waitstatus_to_exitcode(st))' "$answer" "$PY" "$HW/bootmode.py" "$@"
+sys.exit(os.waitstatus_to_exitcode(st))' "$answer" "$PY" "$HW/${PTY_SCRIPT:-bootmode.py}" "$@"
 }
 fpreset
 expect_rc  "bootmode: the answer 'no' exits 1" 1 ptyrun no 2 "$BML" --workdir "$BMW" --lab "$LB"
@@ -775,6 +775,18 @@ printf 'FLASHPRO_SERIAL=LABSN7\n' | cat "$LB" - > "$tmp/lab-bm-fp.conf"
 expect_out "bootmode: FLASHPRO_SERIAL of lab.conf names the FlashPro" "FlashPro used: LABSN7" env FAKE_FP_HONOUR=1 "$PY" "$HW/bootmode.py" 1 "$BME" --workdir "$BMW" --yes --lab "$tmp/lab-bm-fp.conf"
 expect_out "bootmode: --flashpro wins over FLASHPRO_SERIAL" "FlashPro used: SN9" env FAKE_FP_HONOUR=1 "$PY" "$HW/bootmode.py" 1 "$BME" --workdir "$BMW" --yes --flashpro SN9 --lab "$tmp/lab-bm-fp.conf"
 expect_rc  "bootmode: a FlashPro serial with a space exits 2" 2 bootmode 1 --yes --flashpro "a b" --lab "$LB"
+# FLASHPRO_ID: the name the programming tools give the FlashPro, which is what a FlashPro without a USB serial number has
+printf 'FLASHPRO_ID=LABID9\nFLASHPRO_SERIAL=LABSN7\n' | cat "$LB" - > "$tmp/lab-bm-id.conf"
+expect_out "bootmode: FLASHPRO_ID of lab.conf names the FlashPro" "FlashPro used: LABID9" env FAKE_FP_HONOUR=1 "$PY" "$HW/bootmode.py" 1 "$BME" --workdir "$BMW" --yes --lab "$tmp/lab-bm-id.conf"
+case "$(env FAKE_FP_HONOUR=1 "$PY" "$HW/bootmode.py" 1 "$BME" --workdir "$BMW" --yes --lab "$tmp/lab-bm-id.conf" 2>&1)" in *LABSN7*) fail "bootmode: FLASHPRO_ID wins over FLASHPRO_SERIAL" ;; *) pass "bootmode: FLASHPRO_ID wins over FLASHPRO_SERIAL" ;; esac
+expect_out "bootmode: --flashpro wins over FLASHPRO_ID" "FlashPro used: SN9" env FAKE_FP_HONOUR=1 "$PY" "$HW/bootmode.py" 1 "$BME" --workdir "$BMW" --yes --flashpro SN9 --lab "$tmp/lab-bm-id.conf"
+expect_out "bootmode: the name FlashPro Express shows for a FlashPro without a USB serial number is taken" "FlashPro used: B347B62F" env FAKE_FP_HONOUR=1 "$PY" "$HW/bootmode.py" 1 "$BME" --workdir "$BMW" --yes --flashpro B347B62F --lab "$LB"
+# a FlashPro5 that FLASHPRO_SERIAL names is assumed to be S2 and the serial number; another model is taken as it is
+printf 'FLASHPRO_SERIAL=FP5A1\n' | cat "$LB" - > "$tmp/lab-bm-fp5.conf"
+expect_out "bootmode: a FlashPro5 that FLASHPRO_SERIAL names is S2 and the serial number" "FlashPro used: S2FP5A1" env FLASHPRO_SYSFS="$tmp/usb-fp5" FAKE_FP_HONOUR=1 "$PY" "$HW/bootmode.py" 1 "$BME" --workdir "$BMW" --yes --lab "$tmp/lab-bm-fp5.conf"
+printf 'FLASHPRO_SERIAL=EFP6A1\n' | cat "$LB" - > "$tmp/lab-bm-efp6.conf"
+expect_out "bootmode: an embedded FlashPro6 that FLASHPRO_SERIAL names is taken as it is" "FlashPro used: EFP6A1" env FLASHPRO_SYSFS="$tmp/usb-efp6" FAKE_FP_HONOUR=1 "$PY" "$HW/bootmode.py" 1 "$BME" --workdir "$BMW" --yes --lab "$tmp/lab-bm-efp6.conf"
+expect_rc  "bootmode: a FlashPro5 name that fpgenprog does not honour exits 1 and nothing is programmed" 1 env FLASHPRO_SYSFS="$tmp/usb-fp5" "$PY" "$HW/bootmode.py" 1 "$BME" --workdir "$BMW" --yes --lab "$tmp/lab-bm-fp5.conf"
 # the boot program
 expect_rc  "bootmode: a missing ELF exits 2" 2 "$PY" "$HW/bootmode.py" 1 "$tmp/none.elf" --yes --lab "$LB"
 expect_out "bootmode: a missing ELF names it and prints the help text" "none.elf' does not exist" "$PY" "$HW/bootmode.py" 1 "$tmp/none.elf" --yes --lab "$LB"
@@ -782,7 +794,7 @@ expect_out "bootmode: --dry-run without an ELF names bare_hello" "bare_hello.elf
 expect_out "bootmode: mode 0 ignores an ELF and says so" "ignoring" "$PY" "$HW/bootmode.py" 0 "$BME" --workdir "$BMW" --yes --lab "$LB"
 # without an ELF the example bare_hello is built (./x build bare_hello --hart e51): a tree with a stand-in x
 mkdir -p "$tmp/bmroot/hw" "$tmp/bmroot/tools" "$tmp/bmroot/examples/bare_hello/bin-e51"
-cp "$HW/bootmode.py" "$HW/bootprog.py" "$HW/lab.py" "$HW/lab.conf.example" "$tmp/bmroot/hw/"
+cp "$HW/bootmode.py" "$HW/bootprog.py" "$HW/flashpros.py" "$HW/fpexpress.py" "$HW/lab.py" "$HW/lab.conf.example" "$tmp/bmroot/hw/"
 cp "$ROOT/tools/toolchain.env" "$tmp/bmroot/tools/"
 printf '#!/bin/sh\necho "$@" > "%s/bmroot/x.args"\n' "$tmp" > "$tmp/bmroot/x"; chmod +x "$tmp/bmroot/x"
 cp "$BME" "$tmp/bmroot/examples/bare_hello/bin-e51/bare_hello.elf"
@@ -1086,6 +1098,297 @@ case "$(FPL 2>&1)" in *CPSERIAL*) fail "flashpros: a CP2108 is not a FlashPro" ;
 expect_out "flashpros: --all lists the CP2108 too" "CPSERIAL" FPL --all
 expect_rc  "flashpros: no adapter of the vendor exits 1" 1 FPL --vendor dead
 expect_rc  "flashpros: no sysfs exits 2" 2 "$PY" "$HW/flashpros.py" --sysfs "$tmp/no-such-sysfs"
+
+# --- program.py ---------------------------------------------------------------------
+# FPExpress is a stand-in (fake_fpexpress.py) that records the Tcl scripts it is given and prints the lines the
+# detection reads. What this cannot show: that the real FPExpress prints those lines, and what its exit status
+# is: the Tcl exit of the programming script is not run here.
+mkdir -p "$tmp/pg"
+export FAKE_FPE_LOG="$tmp/pg/fpe.log"
+printf '#!/bin/sh\nexec "%s" "%s/tests/host/hw/fake_fpexpress.py" "$@"\n' "$PY" "$ROOT" > "$tmp/pg/FPExpress"
+chmod +x "$tmp/pg/FPExpress"
+STP="$tmp/pg/design.stp"; : > "$STP"; STP="$(readlink -f "$STP")"
+PGW="$tmp/pg/work"
+printf 'FPEXPRESS=%s/pg/FPExpress\nOCD_PORT=1\n' "$tmp" > "$tmp/lab-pg.conf"
+PL="$tmp/lab-pg.conf"
+pgcmd=("$PY" "$HW/program.py" "$STP" --workdir "$PGW" --lab "$PL")
+fpereset () { rm -f "$FAKE_FPE_LOG"; rm -rf "$PGW"; }
+fpelog () { cat "$FAKE_FPE_LOG" 2>/dev/null; }
+fpescripts () { fpelog | grep -c '^=== '; }
+fpelog_has () { fpelog | grep -q -F -- "$1"; }
+
+# the programmer lines of an embedded FlashPro6, as FlashPro Express printed them on a board: the name is the one in quotes
+# (the first line has "Embedded" where a name might be expected)
+pgparse () { "$PY" -I -c 'import sys; sys.path.insert(0, sys.argv[1]); import program; print(program.programmers_in(sys.stdin.read()))' "$HW"; }
+real=$'  Programmer: Embedded FP6 \'B347B62F\' : Version = EF9B\n  ===============================================================\n  programmer \'B347B62F\' : Embedded FlashPro6\n  Created new project \'/work/build/program/job/PolarfireProg/PolarfireProg.pro\'\n  Error:  Parameter \'name\' is missing or has invalid value.\n  Error:  The command \'auto_construct_job_project\' failed.\n'
+[ "$(printf '%s' "$real" | pgparse)" = "['B347B62F']" ] && pass "program: reads the programmer name from the quotes of the lines FlashPro Express printed on a board (not 'Embedded')" || fail "program: reads the programmer name from the quotes (got $(printf '%s' "$real" | pgparse))"
+[ "$(printf "programmer 'S200BM0VJ' : FlashPro5\nprogrammer 'B347B62F' : Embedded FlashPro6\n" | pgparse)" = "['S200BM0VJ', 'B347B62F']" ] && pass "program: two programmers give two names, in order" || fail "program: two programmers give two names, in order"
+[ "$(printf 'Created new project /x\nError: Parameter name\n' | pgparse)" = "[]" ] && pass "program: no programmer lines give no name" || fail "program: no programmer lines give no name"
+# the device line of the scan of an MPFS250 on a board: the name has parentheses and a bar
+pgdev () { "$PY" -I -c 'import sys; sys.path.insert(0, sys.argv[1]); import program; print(program.devices_in(sys.stdin.read()))' "$HW"; }
+[ "$(printf "programmer 'B347B62F' : Found 8 instruction register bits.\nprogrammer 'B347B62F' : Device 1: F81A1CF Mfr: Microsemi Part: MPFS250(T_ES|TS_ES)\nprogrammer 'B347B62F' : Check Chain...\n" | pgdev)" = "['MPFS250(T_ES|TS_ES)']" ] \
+  && pass "program: reads the device name of an MPFS250 with its parentheses and bar from the scan" || fail "program: reads the device name of an MPFS250 from the scan"
+fpereset
+expect_rc  "program: --yes detects, programs and exits 0" 0 "${pgcmd[@]}" --yes
+[ "$(fpescripts)" = 3 ] && pass "program: without names it runs three scripts: the programmer, the chain, the programming" || fail "program: without names it runs three scripts (got $(fpescripts))"
+fpelog_has "-programmer {FAKEPRG01}" && fpelog_has "enable_device -name {MPF500T} -enable 1" \
+  && fpelog_has "set_programming_file -name {MPF500T} -file {$STP}" && fpelog_has "set_programming_action -name {MPF500T} -action {PROGRAM}" \
+  && fpelog_has "run_selected_actions" \
+  && pass "program: the programming script names the programmer and the device found, the file and the action" \
+  || fail "program: the programming script names the programmer and the device found, the file and the action"
+fpelog_has "-job_project_location {$PGW/job}" && pass "program: the job project is in <workdir>/job" || fail "program: the job project is in <workdir>/job"
+[ -d "$PGW/job" ] && pass "program: the job project directory exists (FlashPro Express does not make it; the stand-in stops without it)" || fail "program: the job project directory exists"
+[ -f "$PGW/program.tcl" ] && [ -f "$PGW/program.log" ] && [ -f "$PGW/detect_programmer.tcl" ] && [ -f "$PGW/detect_device.tcl" ] \
+  && pass "program: the scripts and the log stay in the workdir" || fail "program: the scripts and the log stay in the workdir"
+expect_out "program: shows the output of FlashPro Express" "fake FPExpress: PROGRAM MPF500T on FAKEPRG01" "${pgcmd[@]}" --yes
+expect_out "program: prints what it did and for how long" "program: PROGRAM of MPF500T through programmer FAKEPRG01 took" "${pgcmd[@]}" --yes
+fpereset; "${pgcmd[@]}" --yes --programmer FAKEPRG01 --device MPF500T >/dev/null 2>&1
+[ "$(fpescripts)" = 1 ] && pass "program: --programmer and --device skip both detections" || fail "program: --programmer and --device skip both detections (got $(fpescripts) scripts)"
+printf 'FPEXPRESS=%s/pg/FPExpress\nOCD_PORT=1\nFLASHPRO_ID=LABPRG7\n' "$tmp" > "$tmp/lab-pg2.conf"
+fpereset; FAKE_FPE_PROGRAMMERS=LABPRG7 "$PY" "$HW/program.py" "$STP" --workdir "$PGW" --lab "$tmp/lab-pg2.conf" --yes >/dev/null 2>&1
+{ [ "$(fpescripts)" = 2 ] && fpelog_has "-programmer {LABPRG7}"; } && pass "program: FLASHPRO_ID of lab.conf names the programmer, so only the chain is scanned" || fail "program: FLASHPRO_ID of lab.conf names the programmer (got $(fpescripts) scripts)"
+# the serial of OpenOCD (FLASHPRO_SERIAL) is not the name FlashPro Express uses: 00BM80VJ against S200BM0VJ on a real board
+printf 'FPEXPRESS=%s/pg/FPExpress\nOCD_PORT=1\nFLASHPRO_SERIAL=00BM80VJ\n' "$tmp" > "$tmp/lab-pg2b.conf"
+fpereset; FAKE_FPE_PROGRAMMERS=S200BM0VJ "$PY" "$HW/program.py" "$STP" --workdir "$PGW" --lab "$tmp/lab-pg2b.conf" --yes >/dev/null 2>&1
+{ [ "$(fpescripts)" = 3 ] && fpelog_has "-programmer {S200BM0VJ}" && ! fpelog_has "00BM80VJ"; } && pass "program: FLASHPRO_SERIAL (the serial of OpenOCD) is not taken for the programmer; FlashPro Express finds its own name" || fail "program: FLASHPRO_SERIAL is not taken for the programmer (got $(fpescripts) scripts)"
+# a FlashPro5 that FLASHPRO_SERIAL names: FlashPro Express is assumed to call it "S2" and the serial number, and the guess is
+# checked against the programmers FlashPro Express finds (the model comes from FLASHPRO_TYPE or from the USB descriptors)
+printf 'FPEXPRESS=%s/pg/FPExpress\nOCD_PORT=1\nFLASHPRO_SERIAL=FP5A1\n' "$tmp" > "$tmp/lab-pg7.conf"
+pg7 () { env FLASHPRO_SYSFS="$tmp/usb-fp5" ${PG7ENV:+"$PG7ENV"} "$PY" "$HW/program.py" "$STP" --workdir "$PGW" --lab "$tmp/lab-pg7.conf" "$@"; }   # PG7ENV: one NAME=value for the run
+fpereset; PG7ENV=FAKE_FPE_PROGRAMMERS=S2FP5A1 pg7 --yes >/dev/null 2>&1
+{ [ "$(fpescripts)" = 3 ] && fpelog_has "-programmer {S2FP5A1}"; } \
+  && pass "program: a FlashPro5 that FLASHPRO_SERIAL names is S2 and the serial, and the programmers are looked for to check it" || fail "program: a FlashPro5 that FLASHPRO_SERIAL names is S2 and the serial (got $(fpescripts) scripts)"
+PG7ENV=FAKE_FPE_PROGRAMMERS=OTHER expect_rc  "program: a derived name that FlashPro Express does not find exits 2" 2 pg7 --yes
+PG7ENV=FAKE_FPE_PROGRAMMERS=OTHER expect_out "program: ... and says how the name was derived and what was found" "derived from FLASHPRO_SERIAL FP5A1" pg7 --yes
+fpereset; PG7ENV=FAKE_FPE_PROGRAMMERS=S2FP5A1,OTHER pg7 --yes --programmer OTHER >/dev/null 2>&1
+fpelog_has "-programmer {OTHER}" && ! fpelog_has "S2FP5A1" && pass "program: --programmer wins over the name derived from FLASHPRO_SERIAL" || fail "program: --programmer wins over the name derived from FLASHPRO_SERIAL"
+expect_rc  "program: --scan does not use the derived name and lists what is found" 0 env FLASHPRO_SYSFS="$tmp/usb-fp5" FAKE_FPE_PROGRAMMERS=OTHER "$PY" "$HW/program.py" --scan --workdir "$PGW" --lab "$tmp/lab-pg7.conf"
+expect_out "program: --dry-run says the name is derived" "derived from FLASHPRO_SERIAL" pg7 --dry-run
+printf 'FPEXPRESS=%s/pg/FPExpress\nOCD_PORT=1\nFLASHPRO_SERIAL=EFP6A1\n' "$tmp" > "$tmp/lab-pg8.conf"
+fpereset; env FLASHPRO_SYSFS="$tmp/usb-efp6" "$PY" "$HW/program.py" "$STP" --workdir "$PGW" --lab "$tmp/lab-pg8.conf" --yes >/dev/null 2>&1
+{ [ "$(fpescripts)" = 3 ] && fpelog_has "-programmer {FAKEPRG01}" && ! fpelog_has "S2EFP6A1"; } \
+  && pass "program: an embedded FlashPro6 gets no prefix: FlashPro Express finds its name" || fail "program: an embedded FlashPro6 gets no prefix"
+printf 'FPEXPRESS=%s/pg/FPExpress\nOCD_PORT=1\nFLASHPRO_SERIAL=X1\nFLASHPRO_TYPE=fp5\n' "$tmp" > "$tmp/lab-pg9.conf"
+fpereset; env FLASHPRO_SYSFS="$tmp/no-sysfs" FAKE_FPE_PROGRAMMERS=S2X1 "$PY" "$HW/program.py" "$STP" --workdir "$PGW" --lab "$tmp/lab-pg9.conf" --yes >/dev/null 2>&1
+fpelog_has "-programmer {S2X1}" && pass "program: FLASHPRO_TYPE=fp5 gives the model without the USB descriptors" || fail "program: FLASHPRO_TYPE=fp5 gives the model without the USB descriptors"
+printf 'FPEXPRESS=%s/pg/FPExpress\nOCD_PORT=1\nFLASHPRO_SERIAL=S2X1\nFLASHPRO_TYPE=fp5\n' "$tmp" > "$tmp/lab-pg10.conf"
+fpereset; env FLASHPRO_SYSFS="$tmp/no-sysfs" FAKE_FPE_PROGRAMMERS=S2X1 "$PY" "$HW/program.py" "$STP" --workdir "$PGW" --lab "$tmp/lab-pg10.conf" --yes >/dev/null 2>&1
+{ fpelog_has "-programmer {S2X1}" && ! fpelog_has "S2S2X1"; } && pass "program: a serial that has the prefix already is not prefixed twice" || fail "program: a serial that has the prefix already is not prefixed twice"
+# bootmode names the programmer in the project of fpgenprog, with the element FlashPro Express writes
+printf 'FPGENPROG=%s/bm/fpgenprog\nFPEXPRESS=%s/pg/FPExpress\nOCD_PORT=1\n' "$tmp" "$tmp" > "$tmp/lab-bmx.conf"
+BMX="$tmp/lab-bmx.conf"
+bmx () { env FAKE_FP_HONOUR=1 ${BMXENV:+"$BMXENV"} "$PY" "$HW/bootmode.py" 1 "$BME" --workdir "$BMW" --yes "$@"; }   # BMXENV: one NAME=value
+fpereset; fpreset
+expect_rc  "bootmode: one programmer that FlashPro Express sees is taken and programs" 0 bmx --lab "$BMX"
+expect_out "bootmode: ... and fpgenprog used it" "FlashPro used: FAKEPRG01" bmx --lab "$BMX"
+fpereset; fpreset; bmx --lab "$BMX" >/dev/null 2>&1
+grep -q 'type="FlashPro6Lite" revision="UndefRev" connection="usb1.1"><name>FAKEPRG01</name>' "$BMW/bootmode1/fpgenprogProject/proj_fp/proj_fp.pro" \
+  && pass "bootmode: the project names the programmer with the element of FlashPro Express (type and connection)" || fail "bootmode: the project names the programmer with the element of FlashPro Express"
+BMXENV=FAKE_FPE_PROGRAMMERS=PRGA,PRGB expect_rc "bootmode: several programmers and none named exits 2" 2 bmx --lab "$BMX"
+BMXENV=FAKE_FPE_PROGRAMMERS=PRGA,PRGB expect_out "bootmode: ... and lists them" "PRGA (Embedded FlashPro6), PRGB" bmx --lab "$BMX"
+fpreset; BMXENV=FAKE_FPE_PROGRAMMERS=PRGA,PRGB bmx --lab "$BMX" >/dev/null 2>&1
+[ ! -e "$FAKE_FP_LOG" ] && pass "bootmode: ... before fpgenprog runs" || fail "bootmode: ... before fpgenprog runs"
+BMXENV=FAKE_FPE_PROGRAMMERS=PRGA,PRGB expect_out "bootmode: with several programmers --flashpro picks one" "FlashPro used: PRGB" bmx --flashpro PRGB --lab "$BMX"
+BMXENV=FAKE_FPE_PROGRAMMERS=PRGA,PRGB expect_rc "bootmode: a programmer that FlashPro Express does not see exits 2" 2 bmx --flashpro NOPE --lab "$BMX"
+BMXENV=FAKE_FPE_PROGRAMMERS=PRGA,PRGB expect_out "bootmode: ... and names it and those it sees" "'NOPE' is not among the programmers FlashPro Express sees: PRGA" bmx --flashpro NOPE --lab "$BMX"
+printf 'FLASHPRO_ID=PRGA\n' | cat "$BMX" - > "$tmp/lab-bmx2.conf"
+BMXENV=FAKE_FPE_PROGRAMMERS=PRGA,PRGB expect_out "bootmode: FLASHPRO_ID of lab.conf picks one of several" "FlashPro used: PRGA" bmx --lab "$tmp/lab-bmx2.conf"
+fpereset; bootmode 1 --prepare-only --lab "$BMX" >/dev/null 2>&1; bootmode 1 --dry-run --lab "$BMX" >/dev/null 2>&1
+[ ! -e "$FAKE_FPE_LOG" ] && pass "bootmode: --prepare-only and --dry-run do not run FlashPro Express" || fail "bootmode: --prepare-only and --dry-run do not run FlashPro Express"
+expect_out "bootmode: without FlashPro Express it says so and goes on as before" "FlashPro Express not found" bootmode 1 --yes --lab "$LB"
+fpereset; "${pgcmd[@]}" --yes --action ERASE >/dev/null 2>&1
+fpelog_has "-action {ERASE}" && pass "program: --action names the action" || fail "program: --action names the action"
+# more than one, or none
+fpereset
+expect_rc  "program: two devices exit 2" 2 env FAKE_FPE_DEVICES=MPF500T,MPFS250T "${pgcmd[@]}" --yes
+expect_out "program: two devices are listed and --device is named" "more than one device found: MPF500T, MPFS250T; name one with --device" env FAKE_FPE_DEVICES=MPF500T,MPFS250T "${pgcmd[@]}" --yes
+fpereset; FAKE_FPE_DEVICES=MPF500T,MPFS250T "${pgcmd[@]}" --yes >/dev/null 2>&1
+fpelog_has "set_programming_action" && fail "program: two devices program nothing" || pass "program: two devices program nothing"
+expect_rc  "program: --device picks one of two" 0 env FAKE_FPE_DEVICES=MPF500T,MPFS250T "${pgcmd[@]}" --yes --device MPFS250T
+expect_rc  "program: two programmers exit 2" 2 env FAKE_FPE_PROGRAMMERS=PRG1,PRG2 "${pgcmd[@]}" --yes
+expect_out "program: two programmers are listed and --programmer is named" "more than one programmer found: PRG1, PRG2; name one with --programmer" env FAKE_FPE_PROGRAMMERS=PRG1,PRG2 "${pgcmd[@]}" --yes
+expect_rc  "program: no programmer found exits 2" 2 env FAKE_FPE_PROGRAMMERS= "${pgcmd[@]}" --yes
+expect_out "program: no programmer found shows the last lines of the output" "FlashPro Express printed no programmer" env FAKE_FPE_PROGRAMMERS= "${pgcmd[@]}" --yes
+expect_rc  "program: no device found exits 2" 2 env FAKE_FPE_DEVICES= "${pgcmd[@]}" --yes
+# failures of FlashPro Express
+expect_rc  "program: a failing action exits 1" 1 env FAKE_FPE_RC=3 "${pgcmd[@]}" --yes
+expect_out "program: a failing action is named, with the status" "FlashPro Express ended with status 3" env FAKE_FPE_RC=3 "${pgcmd[@]}" --yes
+# a crash: FlashPro Express ended with a segmentation fault on a board. Run on a pipe, a program loses what it printed
+# last (it buffers in blocks); on a pseudo-terminal the lines are there.
+expect_rc  "program: a crashing FlashPro Express exits 1" 1 env FAKE_FPE_CRASH=1 "${pgcmd[@]}" --yes
+expect_out "program: a crash is named as the signal" "killed by signal 11 (SIGSEGV)" env FAKE_FPE_CRASH=1 "${pgcmd[@]}" --yes
+expect_out "program: what FlashPro Express printed before the crash is shown" "fake FPExpress: PROGRAM MPF500T on FAKEPRG01" env FAKE_FPE_CRASH=1 "${pgcmd[@]}" --yes
+FAKE_FPE_CRASH=1 "${pgcmd[@]}" --yes >/dev/null 2>&1
+grep -q "fake FPExpress: PROGRAM MPF500T on FAKEPRG01" "$PGW/program.log" && grep -q "killed by signal 11 (SIGSEGV)" "$PGW/program.log" \
+  && pass "program: program.log has the last lines before the crash and the signal" || fail "program: program.log has the last lines before the crash and the signal"
+grep -q "s)$" "$PGW/program.log" && pass "program: program.log has the duration of each run" || fail "program: program.log has the duration of each run"
+expect_out "program: a shell that reports a signal as 128+N (the snap wrapper: 139) is read as the signal" "killed by signal 11 (SIGSEGV), as a shell reports it" env FAKE_FPE_RC=139 "${pgcmd[@]}" --yes
+expect_out "program: status 1 is a script in which a command failed" "the Tcl script failed (a command printed an Error: line)" env FAKE_FPE_RC=1 "${pgcmd[@]}" --yes
+# the Tcl command exit crashed FlashPro Express 2024.2.0.13 with a segmentation fault, after a failed and after a successful
+# action: the script ends with run_selected_actions, and FlashPro Express ends it with its own message and status
+fpereset; "${pgcmd[@]}" --yes >/dev/null 2>&1
+{ [ "$(tail -n 1 "$PGW/program.tcl")" = "run_selected_actions" ] && ! grep -q -E '(^|[[:space:]])(exit|catch|puts)([[:space:]]|$)' "$PGW/program.tcl"; } \
+  && pass "program: the programming script ends with run_selected_actions and has no exit, catch or puts" || fail "program: the programming script ends with run_selected_actions and has no exit, catch or puts"
+# FlashPro Express 2026.1 failed on a scan_chain_prg right after auto_construct_job_project (with a FlashPro5 and a FlashPro6); the
+# project is closed and opened again in between, which works with 2026.1 and with 2024.2 (the stand-in fails without it)
+tclorder () { local f="$1" prev=0 n c; shift; for c in "$@"; do n="$(grep -n -m1 "^$c" "$f" | cut -d: -f1)"; [ -n "$n" ] && [ "$n" -gt "$prev" ] || return 1; prev=$n; done; }
+fpereset; "${pgcmd[@]}" --yes --tck 2 >/dev/null 2>&1
+tclorder "$PGW/program.tcl" auto_construct_job_project close_project open_project configure_flashpro6_prg scan_chain_prg enable_device set_programming_file set_programming_action run_selected_actions \
+  && pass "program: the programming script closes and opens the project after auto_construct_job_project, before the clock and the scan" || fail "program: the programming script closes and opens the project after auto_construct_job_project, before the clock and the scan"
+tclorder "$PGW/detect_device.tcl" auto_construct_job_project close_project open_project configure_flashpro6_prg scan_chain_prg \
+  && pass "program: the scan script closes and opens the project after auto_construct_job_project, before the clock and the scan" || fail "program: the scan script closes and opens the project after auto_construct_job_project, before the clock and the scan"
+grep -q "^open_project -project {$PGW/job/PolarfireProg/PolarfireProg.pro}\$" "$PGW/program.tcl" \
+  && pass "program: it opens the project that auto_construct_job_project made, <workdir>/job/PolarfireProg/PolarfireProg.pro" || fail "program: it opens the project that auto_construct_job_project made"
+grep -q -E '^(close_project|open_project)' "$PGW/detect_programmer.tcl" \
+  && fail "program: the script that only looks for the programmers does not close or open a project" || pass "program: the script that only looks for the programmers does not close or open a project"
+mkdir -p "$tmp/pg/direct/job"
+printf '# Microsemi Tcl Script\nset_fpexpress_mode -mode {developer_mode}\nauto_construct_job_project \\\n  -job_project_location {%s} \\\n  -job_name {PolarfireProg} \\\n  -programmer {FAKEPRG01} \\\n  -overwrite 1\nscan_chain_prg -name {FAKEPRG01}\n' "$tmp/pg/direct/job" > "$tmp/pg/direct.tcl"
+expect_rc  "program: the stand-in fails a scan right after auto_construct_job_project, as FlashPro Express 2026.1 did" 1 env FAKE_FPE_LOG="$tmp/pg/direct.log" "$tmp/pg/FPExpress" "script:$tmp/pg/direct.tcl"
+printf '# Microsemi Tcl Script\nset_fpexpress_mode -mode {developer_mode}\nauto_construct_job_project \\\n  -job_project_location {%s} \\\n  -job_name {PolarfireProg} \\\n  -programmer {FAKEPRG01} \\\n  -overwrite 1\nclose_project\nopen_project -project {%s/PolarfireProg/PolarfireProg.pro}\nscan_chain_prg -name {FAKEPRG01}\n' "$tmp/pg/direct/job" "$tmp/pg/direct/job" > "$tmp/pg/reopen.tcl"
+expect_rc  "program: ... and takes it with close_project and open_project in between" 0 env FAKE_FPE_LOG="$tmp/pg/direct.log" "$tmp/pg/FPExpress" "script:$tmp/pg/reopen.tcl"
+expect_rc  "program: status 0 without 'The Execute Script command succeeded' exits 1" 1 env FAKE_FPE_NO_OK=1 "${pgcmd[@]}" --yes
+expect_out "program: ... and says it is not trusted" "did not print 'The Execute Script command succeeded'" env FAKE_FPE_NO_OK=1 "${pgcmd[@]}" --yes
+# a programming file for another device (the guardian file is for MPF300TS_ES, the board has an MPFS250): FlashPro Express
+# fails the check of the chain before the action starts, and nothing is written
+expect_rc  "program: a file for another device exits 1" 1 env FAKE_FPE_FILE_DEVICE=MPF300TS_ES "${pgcmd[@]}" --yes
+expect_out "program: ... and names the device the file is for" "the programming file is for MPF300TS_ES devices and the chain has MPF500T" env FAKE_FPE_FILE_DEVICE=MPF300TS_ES "${pgcmd[@]}" --yes
+expect_out "program: ... and says nothing was written, as the action did not start" "the action did not start, so nothing was written" env FAKE_FPE_FILE_DEVICE=MPF300TS_ES "${pgcmd[@]}" --yes
+expect_out "program: a failing PROGRAM that started says the FPGA may be half programmed" "the FPGA may be half programmed" env FAKE_FPE_RC=1 "${pgcmd[@]}" --yes
+expect_rc  "program: a programmer that FlashPro Express does not know exits 1" 1 "${pgcmd[@]}" --yes --programmer NOSUCH --device MPF500T
+expect_rc  "program: ... and exits 2 if the chain cannot be scanned for the device" 2 "${pgcmd[@]}" --yes --programmer NOSUCH
+expect_rc  "program: no output exits 1" 1 env FAKE_FPE_SILENT=1 "${pgcmd[@]}" --yes
+expect_out "program: no output is named" "printed nothing" env FAKE_FPE_SILENT=1 "${pgcmd[@]}" --yes
+# --dry-run and the refusal
+fpereset
+expect_rc  "program: --dry-run exits 0" 0 "${pgcmd[@]}" --dry-run </dev/null
+expect_out "program: --dry-run prints the programming script with the file" "set_programming_file -name {<device>} -file {$STP}" "${pgcmd[@]}" --dry-run
+expect_out "program: --dry-run prints the detections too" "detect_device.tcl" "${pgcmd[@]}" --dry-run
+[ ! -e "$FAKE_FPE_LOG" ] && [ ! -e "$PGW" ] && pass "program: --dry-run runs nothing and writes nothing" || fail "program: --dry-run runs nothing and writes nothing"
+# the file types that were used on a board (.stp, .ppd) go through silently, another one with a warning
+: > "$tmp/pg/design.ppd"; : > "$tmp/pg/design.dat"
+case "$("$PY" "$HW/program.py" "$tmp/pg/design.ppd" --workdir "$PGW" --lab "$PL" --dry-run 2>&1)" in *neither*) fail "program: a .ppd file is taken without a warning" ;; *) pass "program: a .ppd file is taken without a warning" ;; esac
+case "$("${pgcmd[@]}" --dry-run 2>&1)" in *neither*) fail "program: a .stp file is taken without a warning" ;; *) pass "program: a .stp file is taken without a warning" ;; esac
+expect_out "program: another file type is tried with a warning" "is neither a .stp nor a .ppd file" "$PY" "$HW/program.py" "$tmp/pg/design.dat" --workdir "$PGW" --lab "$PL" --dry-run
+expect_out "program: a .ppd file is put into the script as the file" "set_programming_file -name {<device>} -file {$tmp/pg/design.ppd}" "$PY" "$HW/program.py" "$tmp/pg/design.ppd" --workdir "$PGW" --lab "$PL" --dry-run
+expect_out "program: --dry-run with the names given prints the programming script" "set_programming_action -name {D1} -action {VERIFY}" "${pgcmd[@]}" --dry-run --programmer P1 --device D1 --action VERIFY
+case "$("${pgcmd[@]}" --dry-run --programmer P1 --device D1 2>&1)" in *detect_*) fail "program: --dry-run with the names given prints no detection" ;; *) pass "program: --dry-run with the names given prints no detection" ;; esac
+expect_rc  "program: without --yes and without a terminal exits 2" 2 "${pgcmd[@]}" </dev/null
+expect_out "program: the refusal says nothing was done" "nothing was done" "${pgcmd[@]}" </dev/null
+[ ! -e "$FAKE_FPE_LOG" ] && [ ! -e "$PGW" ] && pass "program: the refusal runs nothing and writes nothing" || fail "program: the refusal runs nothing and writes nothing"
+# the prompt, on a pseudo terminal
+ptyprog () { PTY_SCRIPT=program.py ptyrun "$@"; }
+fpereset
+expect_rc  "program: the answer 'no' exits 1" 1 ptyprog no "$STP" --workdir "$PGW" --lab "$PL"
+fpelog_has "set_programming_action" && fail "program: the answer 'no' does not program" || pass "program: the answer 'no' does not program"
+fpereset
+expect_rc  "program: the answer 'yes' programs and exits 0" 0 ptyprog yes "$STP" --workdir "$PGW" --lab "$PL"
+fpelog_has "set_programming_action" && pass "program: the answer 'yes' programmed" || fail "program: the answer 'yes' programmed"
+# --scan: the programmers and the devices of their chains, read only
+pgbase=("$PY" "$HW/program.py" --workdir "$PGW" --lab "$PL")   # no FILE
+fpereset
+expect_rc  "program: --scan exits 0 and needs neither --yes nor a terminal" 0 "${pgbase[@]}" --scan </dev/null
+expect_out "program: --scan lists the programmer with its model" "programmer FAKEPRG01: Embedded FlashPro6" "${pgbase[@]}" --scan
+expect_out "program: --scan lists the device of the chain with IDCODE and manufacturer" "device 1: MPF500T, IDCODE F81A1CF, Microsemi" "${pgbase[@]}" --scan
+fpereset; "${pgbase[@]}" --scan >/dev/null 2>&1
+{ [ "$(fpescripts)" = 2 ] && ! fpelog_has "set_programming_action" && ! fpelog_has "run_selected_actions"; } \
+  && pass "program: --scan runs the detection and one scan and no action" || fail "program: --scan runs the detection and one scan and no action (got $(fpescripts) scripts)"
+fpereset; env FAKE_FPE_PROGRAMMERS=PRG1,PRG2 "${pgbase[@]}" --scan > "$tmp/pg/scan2.out" 2>&1
+{ [ "$(fpescripts)" = 3 ] && grep -q "programmer PRG1:" "$tmp/pg/scan2.out" && grep -q "programmer PRG2:" "$tmp/pg/scan2.out"; } \
+  && pass "program: --scan scans the chain of every programmer it finds" || fail "program: --scan scans the chain of every programmer it finds"
+fpereset; env FAKE_FPE_PROGRAMMERS=PRG1,PRG2 "${pgbase[@]}" --scan --programmer PRG2 > "$tmp/pg/scan3.out" 2>&1
+{ [ "$(fpescripts)" = 2 ] && grep -q "programmer PRG2:" "$tmp/pg/scan3.out" && ! grep -q "programmer PRG1:" "$tmp/pg/scan3.out"; } \
+  && pass "program: --scan --programmer scans only that one" || fail "program: --scan --programmer scans only that one"
+expect_out "program: --scan lists the part of an MPFS250 as the scan printed it" "device 1: MPFS250(T_ES|TS_ES), IDCODE F81A1CF, Microsemi" env 'FAKE_FPE_DEVICES=MPFS250(T_ES|TS_ES)' "${pgbase[@]}" --scan
+expect_rc  "program: --scan with an empty chain exits 1" 1 env FAKE_FPE_DEVICES= "${pgbase[@]}" --scan
+expect_out "program: ... and says no device was found" "no device found" env FAKE_FPE_DEVICES= "${pgbase[@]}" --scan
+expect_rc  "program: --scan without a programmer exits 2" 2 env FAKE_FPE_PROGRAMMERS= "${pgbase[@]}" --scan
+expect_rc  "program: --scan of a programmer that is not there exits 2" 2 "${pgbase[@]}" --scan --programmer NOSUCH
+expect_rc  "program: --scan with a FILE exits 2" 2 "${pgcmd[@]}" --scan
+expect_rc  "program: no FILE and no --scan exits 2" 2 "${pgbase[@]}" </dev/null
+fpereset
+expect_rc  "program: --scan --dry-run exits 0" 0 "${pgbase[@]}" --scan --dry-run
+expect_out "program: --scan --dry-run prints the scan script" "scan_<programmer>.tcl" "${pgbase[@]}" --scan --dry-run
+[ ! -e "$FAKE_FPE_LOG" ] && [ ! -e "$PGW" ] && pass "program: --scan --dry-run runs nothing and writes nothing" || fail "program: --scan --dry-run runs nothing and writes nothing"
+# actions that only read: no prompt, no --yes. Every action needs a FILE: FlashPro Express stops without a loaded programming
+# file ("A programming file must be loaded before running the command 'set_programming_action'", seen with DEVICE_INFO)
+fpereset
+expect_rc  "program: DEVICE_INFO needs no --yes and no terminal" 0 "${pgcmd[@]}" --action DEVICE_INFO </dev/null
+{ fpelog_has "set_programming_file -name {MPF500T}" && fpelog_has "set_programming_action -name {MPF500T} -action {DEVICE_INFO}"; } \
+  && pass "program: DEVICE_INFO loads the file and sets the action" || fail "program: DEVICE_INFO loads the file and sets the action"
+expect_rc  "program: DEVICE_INFO without a FILE exits 2" 2 "${pgbase[@]}" --action DEVICE_INFO </dev/null
+expect_rc  "program: READ_IDCODE without a FILE exits 2" 2 "${pgbase[@]}" --action READ_IDCODE </dev/null
+expect_rc  "program: READ_IDCODE with a FILE needs no --yes either" 0 "${pgcmd[@]}" --action READ_IDCODE </dev/null
+expect_rc  "program: VERIFY needs no --yes and no terminal" 0 "${pgcmd[@]}" --action VERIFY </dev/null
+expect_rc  "program: VERIFY without a FILE exits 2" 2 "${pgbase[@]}" --action VERIFY </dev/null
+expect_rc  "program: ERASE still needs --yes or a terminal" 2 "${pgcmd[@]}" --action ERASE </dev/null
+expect_rc  "program: PROGRAM without a FILE exits 2" 2 "${pgbase[@]}" --yes </dev/null
+expect_out "program: a failing action that only reads says nothing was written" "it only reads, so nothing was written" env FAKE_FPE_RC=3 "${pgcmd[@]}" --action DEVICE_INFO </dev/null
+expect_out "program: a failing PROGRAM still says the FPGA may be half programmed" "the FPGA may be half programmed" env FAKE_FPE_RC=3 "${pgcmd[@]}" --yes
+# --tck and TCK_MHZ: the frequency goes into the scripts that scan and program, in Hz (FlashPro Express wants Hz in whole
+# MHz, 1 to 20 MHz for a FlashPro6: on a board it rejected 10 with "expecting 1000000, 2000000, ... 20000000"), by the
+# model of the programmer
+fpereset; "${pgcmd[@]}" --yes >/dev/null 2>&1
+fpelog_has "configure_flashpro" && fail "program: without a frequency no configure command is put into a script" || pass "program: without a frequency no configure command is put into a script"
+fpereset; "${pgcmd[@]}" --yes --tck 2 >/dev/null 2>&1
+{ [ "$(fpescripts)" = 3 ] && [ "$(fpelog | grep -c 'configure_flashpro6_prg -force_freq {ON} -freq {2000000}')" = 2 ]; } \
+  && pass "program: --tck 2 is 2000000 Hz in the scan and in the programming script (FlashPro6)" || fail "program: --tck 2 is 2000000 Hz in the scan and in the programming script (got $(fpelog | grep -c configure_flashpro6_prg))"
+fpereset; "${pgcmd[@]}" --yes --programmer FAKEPRG01 --device MPF500T --tck 10 >/dev/null 2>&1
+{ [ "$(fpescripts)" = 2 ] && fpelog_has "configure_flashpro6_prg -force_freq {ON} -freq {10000000}"; } \
+  && pass "program: --tck 10 is 10000000 Hz, and the programmers are looked for even when one is named (the model decides the command)" || fail "program: --tck 10 is 10000000 Hz (got $(fpescripts) scripts)"
+expect_rc  "program: a FlashPro6 takes up to 20 MHz" 0 "${pgcmd[@]}" --yes --tck 20
+expect_rc  "program: a FlashPro6 does not take 21 MHz" 2 "${pgcmd[@]}" --yes --tck 21
+expect_out "program: ... and says 1 to 20 MHz" "a FlashPro6 takes 1 to 20 MHz" "${pgcmd[@]}" --yes --tck 21
+expect_rc  "program: a frequency with a fraction exits 2 (whole MHz)" 2 "${pgcmd[@]}" --yes --tck 2.5
+fpereset; FAKE_FPE_MODEL=FlashPro5 "${pgcmd[@]}" --yes --tck 3 >/dev/null 2>&1
+fpelog_has "configure_flashpro5_prg -force_freq {ON} -freq {3000000}" && pass "program: a FlashPro5 gets configure_flashpro5_prg" || fail "program: a FlashPro5 gets configure_flashpro5_prg"
+expect_rc  "program: a FlashPro5 is not held to the 20 MHz of the FlashPro6 (its steps are not known: FlashPro Express decides)" 0 env FAKE_FPE_MODEL=FlashPro5 "${pgcmd[@]}" --yes --tck 21
+expect_rc  "program: a model without a known command exits 2" 2 env 'FAKE_FPE_MODEL=FlashPro Lite' "${pgcmd[@]}" --yes --tck 3
+expect_out "program: ... and says so" "no command to set the TCK frequency is known" env 'FAKE_FPE_MODEL=FlashPro Lite' "${pgcmd[@]}" --yes --tck 3
+expect_rc  "program: a named programmer that is not found exits 2 with a frequency" 2 "${pgcmd[@]}" --yes --programmer NOSUCH --device MPF500T --tck 2
+printf 'FPEXPRESS=%s/pg/FPExpress\nOCD_PORT=1\nTCK_MHZ=3\n' "$tmp" > "$tmp/lab-pg6.conf"
+fpereset; "$PY" "$HW/program.py" "$STP" --workdir "$PGW" --lab "$tmp/lab-pg6.conf" --yes >/dev/null 2>&1
+fpelog_has "-freq {3000000}" && pass "program: TCK_MHZ of lab.conf sets the frequency" || fail "program: TCK_MHZ of lab.conf sets the frequency"
+fpereset; "$PY" "$HW/program.py" "$STP" --workdir "$PGW" --lab "$tmp/lab-pg6.conf" --yes --tck 1 >/dev/null 2>&1
+{ fpelog_has "-freq {1000000}" && ! fpelog_has "-freq {3000000}"; } && pass "program: --tck wins over TCK_MHZ" || fail "program: --tck wins over TCK_MHZ"
+expect_rc  "program: --tck that is not a number exits 2" 2 "${pgcmd[@]}" --yes --tck abc
+expect_rc  "program: --tck 0 exits 2" 2 "${pgcmd[@]}" --yes --tck 0
+expect_rc  "program: a negative --tck exits 2" 2 "${pgcmd[@]}" --yes --tck=-1
+expect_out "program: --dry-run with a frequency leaves the command of the family open" "configure_flashpro<5 or 6>_prg -force_freq {ON} -freq {2000000}" "${pgcmd[@]}" --dry-run --tck 2
+fpereset; "${pgbase[@]}" --scan --tck 2 >/dev/null 2>&1
+fpelog_has "configure_flashpro6_prg -force_freq {ON} -freq {2000000}" && pass "program: --scan takes --tck too" || fail "program: --scan takes --tck too"
+# a command of the scan script fails and FlashPro Express says why: the errors are shown, not "name it with --device"
+expect_rc  "program: a failing scan exits 2" 2 env FAKE_FPE_SCAN_ERROR=1 "${pgcmd[@]}" --yes
+expect_out "program: ... and shows the errors FlashPro Express printed" "reported errors" env FAKE_FPE_SCAN_ERROR=1 "${pgcmd[@]}" --yes
+case "$(FAKE_FPE_SCAN_ERROR=1 "${pgcmd[@]}" --yes 2>&1)" in *"name it with"*) fail "program: ... and does not say to name the device" ;; *) pass "program: ... and does not say to name the device" ;; esac
+# set-up errors
+expect_rc  "program: a file that does not exist exits 2" 2 "$PY" "$HW/program.py" "$tmp/pg/none.stp" --workdir "$PGW" --lab "$PL" --yes
+mkdir -p "$tmp/pg/odd{dir}"; : > "$tmp/pg/odd{dir}/d.stp"
+fpereset
+expect_rc  "program: a path with a brace exits 2" 2 "$PY" "$HW/program.py" "$tmp/pg/odd{dir}/d.stp" --workdir "$PGW" --lab "$PL" --yes
+[ ! -e "$FAKE_FPE_LOG" ] && pass "program: a path with a brace is found before anything runs" || fail "program: a path with a brace is found before anything runs"
+expect_rc  "program: a device name with a space exits 2" 2 "${pgcmd[@]}" --yes --device 'a b'
+# the part of an MPFS250 is printed as MPFS250(T_ES|TS_ES): the Tcl script gets the name as the scan printed it (splitting it
+# into MPFS250T_ES and MPFS250TS_ES was tried and taken out again: it did not work as hoped on a board)
+fpereset
+expect_rc  "program: an MPFS250(T_ES|TS_ES) device is detected and programmed" 0 env 'FAKE_FPE_DEVICES=MPFS250(T_ES|TS_ES)' "${pgcmd[@]}" --yes
+{ fpelog_has "enable_device -name {MPFS250(T_ES|TS_ES)} -enable 1" && fpelog_has "set_programming_file -name {MPFS250(T_ES|TS_ES)}"; } \
+  && pass "program: the device name goes into the script as the scan printed it, with parentheses and bar" || fail "program: the device name goes into the script as the scan printed it"
+expect_rc  "program: --device takes the name as the scan prints it" 0 env 'FAKE_FPE_DEVICES=MPFS250(T_ES|TS_ES)' "${pgcmd[@]}" --yes --device 'MPFS250(T_ES|TS_ES)'
+expect_rc  "program: a detected name with a brace exits 2" 2 env 'FAKE_FPE_DEVICES=MPF{1}' "${pgcmd[@]}" --yes
+printf 'FPEXPRESS=%s/pg/none\nOCD_PORT=1\n' "$tmp" > "$tmp/lab-pg3.conf"
+expect_rc  "program: a missing FPEXPRESS exits 2" 2 "$PY" "$HW/program.py" "$STP" --workdir "$PGW" --lab "$tmp/lab-pg3.conf" --yes
+expect_out "program: a missing FPEXPRESS is named" "FPEXPRESS '$tmp/pg/none'" "$PY" "$HW/program.py" "$STP" --workdir "$PGW" --lab "$tmp/lab-pg3.conf" --yes
+printf 'FPGENPROG=%s/pg/fpgenprog\nFPEXPRESS=\nOCD_PORT=1\n' "$tmp" > "$tmp/lab-pg4.conf"
+expect_out "program: an empty FPEXPRESS is the FPExpress next to FPGENPROG" "FPExpress: $tmp/pg/FPExpress" "$PY" "$HW/program.py" "$STP" --workdir "$PGW" --lab "$tmp/lab-pg4.conf" --dry-run
+fpereset
+printf 'FPEXPRESS=%s/pg/FPExpress\nOCD_PORT=%s\n' "$tmp" "$(cat "$tmp/hello.port")" > "$tmp/lab-pg5.conf"
+expect_rc  "program: a running OpenOCD exits 2" 2 "$PY" "$HW/program.py" "$STP" --workdir "$PGW" --lab "$tmp/lab-pg5.conf" --yes
+expect_out "program: a running OpenOCD is named" "OpenOCD is running" "$PY" "$HW/program.py" "$STP" --workdir "$PGW" --lab "$tmp/lab-pg5.conf" --yes
+[ ! -e "$FAKE_FPE_LOG" ] && pass "program: a running OpenOCD stops it before anything runs" || fail "program: a running OpenOCD stops it before anything runs"
+expect_rc  "program: --dry-run does not mind a running OpenOCD" 0 "$PY" "$HW/program.py" "$STP" --workdir "$PGW" --lab "$tmp/lab-pg5.conf" --dry-run
+fpereset
+expect_rc  "program: --scan stops for a running OpenOCD too (the FlashPro is shared)" 2 "$PY" "$HW/program.py" --scan --workdir "$PGW" --lab "$tmp/lab-pg5.conf"
+[ ! -e "$FAKE_FPE_LOG" ] && pass "program: --scan with a running OpenOCD runs nothing" || fail "program: --scan with a running OpenOCD runs nothing"
 
 echo "summary: $fails failure(s)"
 [ $fails -eq 0 ]

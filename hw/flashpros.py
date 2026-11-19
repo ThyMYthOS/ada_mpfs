@@ -21,6 +21,7 @@ board); bootmode.py checks which programmer fpgenprog used and prints its serial
 Exit status: 0 at least one adapter listed, 1 none found, 2 sysfs is not there or a bad option.
 """
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -60,6 +61,30 @@ def list_devices(sysfs: Path, vendor: str | None) -> list[tuple[str, str, str, s
         name = attribute(device, "product")
         found.append((serial, f"{vid}:{pid}", name or "(no name)", model_of(vid.lower(), pid.lower(), name)))
     return found
+
+
+# The assumption, for now: the programming tools of Microchip (FlashPro Express, fpgenprog) name a FlashPro5 "S2" and the serial
+# number that OpenOCD shows (S200BM0VJ was seen for an adapter that OpenOCD showed as 00BM80VJ: one character differs, so a
+# name derived this way has to be checked against what the tool finds)
+FP5_PREFIX = "S2"
+
+
+def flashpro5_id(lab_conf: dict[str, str]) -> str | None:
+    """The name the programming tools of Microchip are assumed to give the FlashPro5 that FLASHPRO_SERIAL names: FP5_PREFIX and
+    the serial number (not again if it has the prefix). The model is FLASHPRO_TYPE (fp5 or efp5), else the one the USB
+    descriptors of that serial number show (FLASHPRO_SYSFS names another sysfs, for the tests). None for another model, an
+    unknown serial number or no serial number."""
+    serial = lab_conf.get("FLASHPRO_SERIAL", "")
+    if not serial:
+        return None
+    model = lab_conf.get("FLASHPRO_TYPE", "")
+    if not model:
+        sysfs = Path(os.environ.get("FLASHPRO_SYSFS", SYSFS_USB))
+        found = list_devices(sysfs, MICROCHIP_VENDOR) if sysfs.is_dir() else []
+        model = next((d[3] for d in found if d[0] == serial), "")
+    if model not in ("fp5", "efp5"):
+        return None
+    return serial if serial.startswith(FP5_PREFIX) else FP5_PREFIX + serial
 
 
 def main(argv=None) -> int:

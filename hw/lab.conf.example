@@ -24,9 +24,30 @@
 #   FPGENPROG     the fpgenprog executable of Libero SoC or of the Program Debug Tool: the full path
 #                 including the file name (a name on PATH is not enough); hw/bootmode.py runs it. The
 #                 other tools of hw/bootmode.py (objcopy, readelf) come from the pinned GNAT cross toolchain
-#   FLASHPRO_SERIAL  serial number of the FlashPro that hw/bootmode.py programs through, for a lab with
-#                 more than one FlashPro connected; empty: the one fpgenprog picks. --flashpro overrides it.
-#                 Not proven to select (see hw/bootmode.py --help); a run prints the serial of the FlashPro used
+#   FPEXPRESS     the FPExpress executable (FlashPro Express) that hw/program.py runs, and hw/bootmode.py to name the
+#                 programmer in the project of fpgenprog: the full path including the file
+#                 name. Empty: the FPExpress in the directory of FPGENPROG (the Program Debug Tool and Libero SoC keep
+#                 both in one bin directory)
+#   TCK_MHZ       JTAG clock in whole MHz (such as 4), for OpenOCD and for FP_Express (hw/program.py).
+#                 Empty: both use their own default (OpenOCD 6 MHz; FP_Express 4 MHz or the programming file's).
+#   FLASHPRO_TYPE model of the FlashPro that hw/start_openocd.sh starts OpenOCD for: efp6 (embedded FlashPro6),
+#                 fp6, efp5 or fp5. Empty: told from the USB product ID (./x hw flashpros shows it)
+#   FLASHPRO_ID   the FlashPro as the programming tools of Microchip name it: FP_Express in hw/program.py (--programmer),
+#                 fpgenprog in hw/bootmode.py (--flashpro). ./x hw program --scan lists the names with the models. It is not
+#                 in general the serial number that OpenOCD and ./x hw flashpros show (S200BM0VJ against 00BM80VJ on one
+#                 FlashPro5), and a FlashPro whose USB descriptor has no serial number has only this name. Empty: for a
+#                 FlashPro5 that FLASHPRO_SERIAL names, S2 and that serial number (an assumption, checked: hw/program.py looks
+#                 for the programmers, and hw/bootmode.py has fpgenprog verify before it programs); else hw/program.py takes
+#                 the one FlashPro Express finds, and so does hw/bootmode.py (several: it stops and lists them); without
+#                 FlashPro Express bootmode takes FLASHPRO_SERIAL as it is, or the one fpgenprog picks
+#   FLASHPRO_SERIAL  serial number of the FlashPro, for a lab with more than one connected (./x hw flashpros lists
+#                 them); empty: the one that is found. hw/start_openocd.sh gives it to OpenOCD. hw/bootmode.py takes it for
+#                 fpgenprog only when FLASHPRO_ID is empty (with S2 in front for a FlashPro5); for fpgenprog it is not proven
+#                 to select (see hw/bootmode.py --help); a run prints the FlashPro used
+#   FLASHPRO_USB_LOCATION  USB location of the FlashPro (such as 1-2.3, the name of its directory in
+#                 /sys/bus/usb/devices that ./x hw flashpros lists), for one whose USB descriptor has no serial number and
+#                 so cannot be chosen by FLASHPRO_SERIAL. hw/start_openocd.sh gives it to OpenOCD as adapter usb location;
+#                 whether the driver of the FlashPro honours that was not tried on a board. It changes with the USB port
 #   BOOTMODE_DIE  --die of hw/bootmode.py: MPFS250T_ES is the engineering sample that most Icicle Kits carry;
 #                 series silicon uses another die name
 #   BOOTMODE_PACKAGE  --package of hw/bootmode.py
@@ -55,6 +76,10 @@ OCD_ROOT=
 UART_PATTERN=/dev/serial/by-id/usb-Silicon_Labs_CP2108_*-if0{n}-port0
 UART_COUNT=4
 FPGENPROG=/opt/Microchip/Libero_SoC/Libero/bin/fpgenprog
+FPEXPRESS=
+FLASHPRO_ID=
+TCK_MHZ=
+FLASHPRO_TYPE=
 FLASHPRO_SERIAL=
 BOOTMODE_DIE=MPFS250T_ES
 BOOTMODE_PACKAGE=FCVG484
