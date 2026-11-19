@@ -107,6 +107,12 @@ jobs:
       - name: Host tests of the reader of the MSS Configurator XML
         run: tests/host/xml_reader/run.sh
 
+      # The derivations from the reference systems and the reference XMLs: the clocks recomputed from the
+      # MSS PLL, the L2, the placement of the windows, the PLIC and the peripheral bits, and a negative case
+      # for every code of the derivations.
+      - name: Host tests of the derivations of the configuration generator
+        run: tests/host/derive/run.sh
+
       # The same reader against Microchip's configuration generator: the suite fetches the generator
       # at the commit of tools/mchp_diff/oracle.env (one commit, one directory, from github.com) and
       # compares every LIBERO_SETTING_* value of the reference XMLs. A new format version of the XML
