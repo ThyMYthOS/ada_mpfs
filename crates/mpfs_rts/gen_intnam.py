@@ -34,7 +34,6 @@ missing or violates a rule (the message names it).
 """
 import argparse
 import re
-import subprocess
 import sys
 from pathlib import Path
 
@@ -43,7 +42,6 @@ from gen_ada import ada, cli, errors, spdx, svdread, yamlio  # noqa: E402
 from gen_ada.errors import InputError  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-DEFAULT_SVD = ROOT / "build" / "svd" / "PolarfireSoC.svd"
 DEFAULT_LOCAL = ROOT / "svd" / "additions" / "local_interrupts.yaml"
 DEFAULT_PARAMETERS = ROOT / "crates" / "bb-runtimes" / "src" / "s-bbpara__polarfiresoc.ads"
 DEFAULT_OUTPUT = ROOT / "crates" / "mpfs_rts" / "mpfs" / "gnarl" / "a-intnam.ads"
@@ -192,14 +190,6 @@ def render(plic: list[tuple[int, str, str]], harts: dict[str, int], local: list[
     return "\n".join(out)
 
 
-def ensure_svd() -> Path:
-    """build/svd/PolarfireSoC.svd with the recorded hash (tools/svd.py ensure)."""
-    result = subprocess.run([sys.executable, str(ROOT / "tools" / "svd.py"), "ensure"], capture_output=True, text=True)
-    if result.returncode != 0:
-        raise InputError("tools/svd.py ensure failed:\n" + (result.stdout + result.stderr).rstrip())
-    return DEFAULT_SVD
-
-
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     cli.add_check(parser)
@@ -208,7 +198,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--parameters", type=Path, default=DEFAULT_PARAMETERS)
     cli.add_output(parser, DEFAULT_OUTPUT)
     args = parser.parse_args(argv)
-    svd = args.svd if args.svd else ensure_svd()
+    svd = args.svd if args.svd else svdread.ensure(ROOT)
     plic = read_plic(svd)
     harts, local = read_local(args.local, {name: value for value, name, _ in plic})
     check_parameters(args.parameters, plic[0][0], plic[-1][0])

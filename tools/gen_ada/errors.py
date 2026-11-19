@@ -40,7 +40,7 @@ class InputError(GenError):
     status = INPUT_ERROR
 
 
-def run(main: Callable[..., int | None], prog: str, *args) -> int:
+def run(main: Callable[..., int | None], prog: str, *args: object) -> int:
     """Call main(*args) and return its status (None is 0); a GenError becomes `prog: message` on stderr
     and its status."""
     try:

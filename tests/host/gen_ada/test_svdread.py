@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
-"""tools/gen_ada/svdread.py: peripherals, groups, readActions and interrupts of a small SVD."""
+"""tools/gen_ada/svdread.py: peripherals, groups, readActions, interrupts and the layout of registers of small SVDs;
+ensure."""
 import sys
 import tempfile
 from pathlib import Path
@@ -76,6 +77,54 @@ def _():
     with tempfile.TemporaryDirectory() as t:
         root = svd_root(t, "<device/>")
     assert svdread.peripherals(root) == [] and svdread.interrupts(root) == []
+
+
+LAYOUT = """<?xml version="1.0"?>
+<device><size>32</size><peripherals>
+  <peripheral><name>PHY</name>
+    <registers>
+      <register><name>MODE</name><fields>
+        <field><name>A</name><bitOffset>0</bitOffset><bitWidth>3</bitWidth></field>
+        <field><name>B</name><lsb>4</lsb><msb>7</msb></field>
+        <field><name>C</name><bitRange>[15:8]</bitRange></field>
+        <field><name>D</name><bitOffset>x</bitOffset></field>
+        <field><name>E</name></field>
+      </fields></register>
+      <register><name>WIDE</name><size>0x40</size><fields>
+        <field><name>ADDR</name><bitOffset>0</bitOffset><bitWidth>36</bitWidth></field>
+      </fields></register>
+    </registers></peripheral>
+  <peripheral derivedFrom="PHY"><name>PHY2</name></peripheral>
+  <peripheral><name>NARROW</name><size>16</size>
+    <registers><register><name>R</name></register></registers></peripheral>
+</peripherals></device>
+"""
+
+
+@case("registers: the size and the fields in the three forms of bits; a derived peripheral has its base's")
+def _():
+    with tempfile.TemporaryDirectory() as t:
+        regs = svdread.registers(svd_root(t, LAYOUT))
+    mode = regs[("PHY", "MODE")]
+    assert mode.size == 32 and mode.fields == {"A": svdread.Field(0, 3), "B": svdread.Field(4, 4),
+                                               "C": svdread.Field(8, 8)}, mode
+    assert regs[("PHY", "WIDE")].size == 64 and regs[("PHY", "WIDE")].fields["ADDR"] == svdread.Field(0, 36)
+    assert regs[("PHY2", "MODE")] == mode
+    assert regs[("NARROW", "R")] == svdread.Register(16, {})
+    assert sorted(regs) == [("NARROW", "R"), ("PHY", "MODE"), ("PHY", "WIDE"), ("PHY2", "MODE"), ("PHY2", "WIDE")]
+
+
+@case("ensure: a failing tools/svd.py raises the error of the caller with its output")
+def _():
+    class Mine(errors.GenError):
+        pass
+    with tempfile.TemporaryDirectory() as t:
+        tools = Path(t) / "tools"
+        tools.mkdir()
+        (tools / "svd.py").write_text("import sys\nprint('no svdtools')\nsys.exit(3)\n")
+        raises(Mine, lambda: svdread.ensure(Path(t), error=Mine), "no svdtools")
+        (tools / "svd.py").write_text("")
+        assert svdread.ensure(Path(t)) == Path(t) / "build" / "svd" / "PolarfireSoC.svd"
 
 
 @case("load: a missing file and a file that is no XML raise the error of the caller, naming the file")
