@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
-"""How the serial text of the Icicle Kit is shown: shared by run_image.py and monitor.py.
+"""How the serial text of the board is shown: shared by run_image.py and monitor.py.
 
 A view gets the bytes of every port as they arrive (feed), is told about a port that ended (note) and
 redraws (tick) while ocd.Serial.pump reads; close ends it. Three views:

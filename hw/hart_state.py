@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
-"""State that a reset of the Icicle Kit leaves behind and a test must not inherit.
+"""State that a reset of the board leaves behind and a test must not inherit.
 
 `reset halt` does not clear the enables of the PLIC (a source enabled for another hart's context takes the
 interrupt away from the hart that runs) and the silicon does not reset fcsr of the U54 (an invalid frm makes the

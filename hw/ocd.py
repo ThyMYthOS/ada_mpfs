@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
-"""OpenOCD telnet client and serial capture for the Icicle Kit.
+"""OpenOCD telnet client and serial capture for a PolarFire SoC board.
 
 The host, the port and the serial ports (devices or TCP ports) come from lab.conf (see lab.py).
 """

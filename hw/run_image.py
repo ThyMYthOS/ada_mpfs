@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
-"""Load an ELF onto one hart of an Icicle Kit over JTAG, run it, capture the serial ports and report the first trap.
+"""Load an ELF onto one hart of a PolarFire SoC board over JTAG, run it, capture the serial ports and report the first trap.
 
     run_image.py ELF HART [--secs N] [--expect REGEX] [--expect-port N] [--uart-clocks | --uart-standin] [--div D]
                  [--view MODE] [--color WHEN] [--lab FILE]

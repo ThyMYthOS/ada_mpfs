@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
-"""Switch the boot mode (0..3) of the Icicle Kit with fpgenprog, through the FlashPro.
+"""Switch the boot mode (0..3) of a PolarFire SoC board with fpgenprog, through the FlashPro.
 
     bootmode.py N [ELF] [--yes] [--dry-run] [--prepare-only] [--workdir DIR] [--lab FILE]
                 [--die DIE] [--package PKG] [--flashpro ID] [--verify]

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
-"""Show what the serial ports of the Icicle Kit print.
+"""Show what the serial ports of the board print.
 
     monitor.py [--secs N] [--port N] [--expect REGEX] [--view MODE] [--color WHEN] [--lab FILE]
 

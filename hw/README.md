@@ -1,6 +1,6 @@
 # `hw/`
 
-- **Purpose:** Host-side tools that talk to an Icicle Kit through OpenOCD and its serial ports.
+- **Purpose:** Host-side tools that talk to a PolarFire SoC (MPFS) board through OpenOCD, its FlashPro and its serial ports. They are not tied to the Icicle Kit, which the defaults of `lab.conf.example` and the register values of `initialize` are those of.
 - **License:** Apache-2.0
 
 | File | Content |

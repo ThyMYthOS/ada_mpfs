@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
-"""Reset the Icicle Kit to its power-on state through OpenOCD, also after a hung debug module.
+"""Reset the board to its power-on state through OpenOCD, also after a hung debug module.
 
     reset.py [--svd FILE] [--target T] [--lab FILE]
 

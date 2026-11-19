@@ -2,8 +2,8 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# Start Microchip's OpenOCD against the embedded FlashPro6 of an Icicle Kit. The distribution's own
-# OpenOCD (0.12) lacks the driver for it.
+# Start Microchip's OpenOCD against the FlashPro of a PolarFire SoC board (embedded FlashPro6 by
+# default, see FLASHPRO_TYPE). The distribution's own OpenOCD (0.12) lacks the driver for it.
 #
 #   start_openocd.sh [--lab FILE] [openocd arguments]
 #
