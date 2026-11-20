@@ -120,13 +120,13 @@ def cli(*args):
 # --- positive cases -------------------------------------------------------------------------------------------
 
 @case("the clocks of every reference XML recomputed from the MSS PLL equal those of the XML (at most 1 ppm); the "
-      "PMP demo has its VCO at 4800 MHz")
+      "PMP demo and amp_c have their VCO at 4800 MHz")
 def _():
-    assert sorted(CONFIGS) == ["icicle", "icicle_es", "icicle_es_pmp_demo", "video_kit"]
+    assert sorted(CONFIGS) == ["icicle", "icicle_amp_c", "icicle_es", "icicle_es_pmp_demo", "video_kit"]
     for board, config in CONFIGS.items():
         c, found = clocks.derive(config)
         assert found == [], (board, found)
-        vco = 4800 if board == "icicle_es_pmp_demo" else 2400
+        vco = 4800 if board in ("icicle_es_pmp_demo", "icicle_amp_c") else 2400
         assert (c.reference, c.vco, c.system, c.cpu, c.axi, c.ahb) == (
             125 * MHZ, vco * MHZ, 600 * MHZ, 600 * MHZ, 300 * MHZ, 150 * MHZ), board
         assert (c.rtc_toggle, c.rtc_period) == (1 * MHZ, 125), board
@@ -171,9 +171,15 @@ def _():
         assert derive.derive(system(name), ICICLE, SVD) == derive.derive(system(name), ICICLE, SVD)
 
 
-@case("the L2 of the reference XMLs: 8 cache, 4 scratchpad (the upper enabled ways 8 to 11), 4 LIM ways")
+@case("the L2 of the reference XMLs: 8 cache, 4 scratchpad (the upper enabled ways 8 to 11), 4 LIM ways; the XML "
+      "of amp_c: 1 cache way, 15 LIM ways")
 def _():
+    l2 = derive.derive(text(ONE), CONFIGS["icicle_amp_c"], SVD).l2
+    assert (l2.ways.cache, l2.ways.lim, l2.ways.scratchpad) == (1, 15, 0) and not l2.override, l2
+    assert l2.way_enable == 0 and l2.lim_length == 1920 * 1024, l2
     for board, config in CONFIGS.items():
+        if board == "icicle_amp_c":
+            continue
         l2 = derive.derive(text(ONE), config if board != "video_kit" else ICICLE, SVD).l2
         assert (l2.ways.cache, l2.ways.lim, l2.ways.scratchpad) == (8, 4, 4) and not l2.override, board
         assert l2.way_enable == 11 and l2.cache_ways == tuple(range(8)), board

@@ -495,12 +495,14 @@ file (`GEN-E041`), so no entity is expanded.
 
 ### Reference XMLs
 
-Each board directory has the XML of its design, unchanged; where it comes from is in
-[`PROVENANCE.md`](../PROVENANCE.md).
+Each board directory has the XML of its design, unchanged; where an imported one comes from is in
+[`PROVENANCE.md`](../PROVENANCE.md). `icicle_amp_c` is the project owner's own Icicle design, exported with
+pfsoc_mss from the `.cfg` next to it.
 
 | Board | File | Format | Libero | Part |
 |---|---|---|---|---|
 | [`icicle`](boards/icicle/README.md) | `ICICLE_MSS_mss_cfg.xml` | 0.6.8 | 2024.2 | MPFS250T |
+| [`icicle_amp_c`](boards/icicle_amp_c/README.md) | `amp_c_mss_cfg.xml` | 0.6.8 | 2026.1 | MPFS250T_ES |
 | [`icicle_es`](boards/icicle_es/README.md) | `ICICLE_MSS_mss_cfg.xml` | 0.6.5 | 2022.2 | MPFS250T_ES |
 | [`icicle_es_pmp_demo`](boards/icicle_es_pmp_demo/README.md) | `ICICLE_MSS_mss_cfg.xml` | 0.5.3 | 2021.1 | MPFS250T_ES |
 | [`video_kit`](boards/video_kit/README.md) | `MSS_video-kit_mss_cfg.xml` | 0.6.8 | 2023.2 | MPFS250TS |
