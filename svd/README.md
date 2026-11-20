@@ -7,7 +7,7 @@
 |---|---|
 | `base/` | One svdtools fragment (`<family>.yaml`) per peripheral family, adding the peripheral and its instances, plus the device head `device.svd`. Imported once from the Microchip register map and maintained by hand from there on. |
 | `patches/` | svdtools patches, one file per peripheral. |
-| `additions/` | Blocks without register documentation: `plic.yaml`, `clint.yaml`, `pdma.yaml`, `interrupts.yaml`; `local_interrupts.yaml` (own schema, not merged into the SVD). |
+| `additions/` | Blocks without register documentation: `plic.yaml`, `clint.yaml`, `pdma.yaml`, `l2_cache.yaml`, `interrupts.yaml`; `local_interrupts.yaml` (own schema, not merged into the SVD). |
 | `device.yaml` | Root of the svdtools run: the assembled base plus the ordered includes. |
 | `schema/` | CMSIS-SVD XSD used for validation. |
 | `PolarfireSoC.sha256` | Hash of the merged SVD, which is the input of the register package generator. |

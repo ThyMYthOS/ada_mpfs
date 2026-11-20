@@ -1,0 +1,282 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+# source: Microchip platform mpfs_hal/common/mss_l2_cache.h (MIT, copyright 2019 Microchip FPGA Embedded Systems Solutions; read in the Zephyr hal_microchip mirror): CACHE_CTRL_BASE 0x02010000, the struct CACHE_CTRL_typedef (CONFIG, WAY_ENABLE, ECC_INJECT_ERROR, the ECC_*_ADDR and _COUNT registers, FLUSH64, FLUSH32 and the 15 WAY_MASK_* registers with their order and widths), MAX_WAY_ENABLE 15, NB_BANKS 4, NB_SETS 512, CACHE_BLOCK_BYTE_LENGTH 64, and the comments of the WAY_MASK_* settings (bit n of a mask allows the master to evict way n; the ways used as scratchpad are masked for every master)
+# source: Linux drivers/soc/sifive/sifive_l2_cache.c (SPDX GPL-2.0, copyright 2018-2019 SiFive; facts only, no code taken): the offsets 0x00 CONFIG, 0x08 WAYENABLE, 0x40 ECCINJECTERR, 0x100 DirECCFix address and 0x108 its count, 0x140 and 0x148 DatECCFix, 0x160 and 0x168 DatECCFail; the fields of CONFIG (banks in bits 7:0, ways per bank in 15:8, log2 of the sets per bank in 23:16, log2 of the bytes per block in 31:24); WAYENABLE holds the index of the largest enabled way; reading a count register clears the interrupt signal of that error; the debug interface writes values below 0xFF or from 0x10000 to 0x100FE to ECCINJECTERR
+# source: Microchip documentation of the MSS L2 cache ("Way Enable and the L2 LIM", "Way Mask Registers (WayMaskX)"; read only as search result snippets, the pages were not reachable): after a reset only way 0 is enabled, an enabled way cannot be disabled before a reset of the core complex, the highest numbered way maps to the lowest L2-LIM address
+# source: Icicle Kit measurement, boot mode 0 (docs/lab/results/p1.md, hw/l2_scratchpad.py): after a reset WayEnable is 0 and each of the 15 WayMask registers reads 0xFFFF; the controller counts ECC events without any set-up: DatECCFixAddr/Count at 0x140/0x148 rise by one per read of a never-written line, DatECCFailAddr/Count at 0x160/0x168 count the double-bit events, the directory registers stay 0; the offsets and the address registers match the SiFive controller
+# status: unverified
+# owner: Manuel Stahl
+
+# L2 cache controller of the core complex (the SiFive composable cache): 16 ways of 128 KB. The ways are shared by the
+# cache and the LIM: WAY_ENABLE selects how many ways act as cache (or scratchpad), the others stay LIM; the WAY_MASK_*
+# registers say which ways each bus master may allocate into. The error interrupts are the PLIC sources 1 to 4
+# (L2_Cache_Metadata_Correction, L2_Cache_Metadata_uncorrectable, L2_Cache_Data_Correction, L2_Cache_Data_uncorrectable).
+# Not read yet: the reset value of CONFIG (the constants of the Microchip header, 4 banks, 512 sets, 64-byte blocks,
+# 16 ways, would give banks 4, ways 16, log2 sets 9, log2 block 6), the bit layout of ECC_INJECT_ERROR and the encoding
+# of the flush registers.
+_add:
+  L2_CACHE:
+    description: L2 cache controller of the core complex
+    groupName: L2_CACHE
+    baseAddress: 0x02010000
+    addressBlock:
+      offset: 0x0
+      size: 0x1000
+      usage: registers
+    registers:
+      CONFIG:
+        description: Configuration of the cache (read-only)
+        addressOffset: 0x0
+        size: 32
+        access: read-only
+        fields:
+          BANKS:
+            description: Number of banks
+            bitOffset: 0
+            bitWidth: 8
+          WAYS:
+            description: Number of ways per bank
+            bitOffset: 8
+            bitWidth: 8
+          LG_SETS:
+            description: Base-2 logarithm of the number of sets per bank
+            bitOffset: 16
+            bitWidth: 8
+          LG_BLOCK_BYTES:
+            description: Base-2 logarithm of the number of bytes per cache block
+            bitOffset: 24
+            bitWidth: 8
+      WAY_ENABLE:
+        description: Index of the largest way that is enabled as cache or scratchpad; the LIM keeps the ways above it (15 minus this value). After a reset it is 0 (measured), and an enabled way cannot be disabled again before a reset of the core complex. The vendor driver writes it with a byte store, and the register is eight bits wide.
+        addressOffset: 0x8
+        size: 8
+        access: read-write
+        resetValue: 0x0
+      ECC_INJECT_ERROR:
+        description: Injects ECC errors for tests. The bit layout is not given in the sources read; the Linux debug interface writes values from 0 to 0xFE and from 0x10000 to 0x100FE.
+        addressOffset: 0x40
+        size: 32
+        access: read-write
+      ECC_DIR_FIX_ADDR:
+        description: Address of the last directory (metadata) error that was corrected (read-only)
+        addressOffset: 0x100
+        size: 64
+        access: read-only
+      ECC_DIR_FIX_COUNT:
+        description: Number of corrected directory errors (read-only). Reading it clears the interrupt signal of the error (Linux driver).
+        addressOffset: 0x108
+        size: 32
+        access: read-only
+        fields:
+          COUNT:
+            description: Number of events
+            bitOffset: 0
+            bitWidth: 32
+            readAction: clear
+      ECC_DATA_FIX_ADDR:
+        description: Address of the last data error that was corrected (read-only). Measured to follow the address of the last read of a never-written line.
+        addressOffset: 0x140
+        size: 64
+        access: read-only
+      ECC_DATA_FIX_COUNT:
+        description: Number of corrected data errors (read-only). It rises by one per read of a never-written line, also for a repeated read of the same address (measured). Reading it clears the interrupt signal of the error (Linux driver).
+        addressOffset: 0x148
+        size: 32
+        access: read-only
+        fields:
+          COUNT:
+            description: Number of events
+            bitOffset: 0
+            bitWidth: 32
+            readAction: clear
+      ECC_DATA_FAIL_ADDR:
+        description: Address of the last data error that could not be corrected (read-only). It holds garbage while the count is 0 (measured).
+        addressOffset: 0x160
+        size: 64
+        access: read-only
+      ECC_DATA_FAIL_COUNT:
+        description: Number of uncorrectable data errors (read-only). Reading it clears the interrupt signal of the error (Linux driver).
+        addressOffset: 0x168
+        size: 32
+        access: read-only
+        fields:
+          COUNT:
+            description: Number of events
+            bitOffset: 0
+            bitWidth: 32
+            readAction: clear
+      FLUSH64:
+        description: Cache flush by address through a 64-bit write (write-only). The encoding of the value is not given in the sources read.
+        addressOffset: 0x200
+        size: 64
+        access: write-only
+      FLUSH32:
+        description: Cache flush by address through a 32-bit write (write-only). The encoding of the value is not given in the sources read.
+        addressOffset: 0x240
+        size: 32
+        access: write-only
+      WAY_MASK_DMA:
+        description: "Ways that the DMA engine (PDMA) may allocate into: bit n set allows eviction from way n. Ways used as scratchpad must be 0 for every master. Reads 0xFFFF after a reset (measured)."
+        addressOffset: 0x800
+        size: 64
+        access: read-write
+        resetValue: 0xFFFF
+        fields:
+          WAYS:
+            description: Bit n allows the master to evict from way n
+            bitOffset: 0
+            bitWidth: 16
+      WAY_MASK_AXI4_SLAVE_PORT_0:
+        description: "Ways that AXI4 slave port 0 (fabric master) may allocate into: bit n set allows eviction from way n. Ways used as scratchpad must be 0 for every master. Reads 0xFFFF after a reset (measured)."
+        addressOffset: 0x808
+        size: 64
+        access: read-write
+        resetValue: 0xFFFF
+        fields:
+          WAYS:
+            description: Bit n allows the master to evict from way n
+            bitOffset: 0
+            bitWidth: 16
+      WAY_MASK_AXI4_SLAVE_PORT_1:
+        description: "Ways that AXI4 slave port 1 (fabric master) may allocate into: bit n set allows eviction from way n. Ways used as scratchpad must be 0 for every master. Reads 0xFFFF after a reset (measured)."
+        addressOffset: 0x810
+        size: 64
+        access: read-write
+        resetValue: 0xFFFF
+        fields:
+          WAYS:
+            description: Bit n allows the master to evict from way n
+            bitOffset: 0
+            bitWidth: 16
+      WAY_MASK_AXI4_SLAVE_PORT_2:
+        description: "Ways that AXI4 slave port 2 (fabric master) may allocate into: bit n set allows eviction from way n. Ways used as scratchpad must be 0 for every master. Reads 0xFFFF after a reset (measured)."
+        addressOffset: 0x818
+        size: 64
+        access: read-write
+        resetValue: 0xFFFF
+        fields:
+          WAYS:
+            description: Bit n allows the master to evict from way n
+            bitOffset: 0
+            bitWidth: 16
+      WAY_MASK_AXI4_SLAVE_PORT_3:
+        description: "Ways that AXI4 slave port 3 (fabric master) may allocate into: bit n set allows eviction from way n. Ways used as scratchpad must be 0 for every master. Reads 0xFFFF after a reset (measured)."
+        addressOffset: 0x820
+        size: 64
+        access: read-write
+        resetValue: 0xFFFF
+        fields:
+          WAYS:
+            description: Bit n allows the master to evict from way n
+            bitOffset: 0
+            bitWidth: 16
+      WAY_MASK_E51_DCACHE:
+        description: "Ways that the data cache of the E51 (hart 0) may allocate into: bit n set allows eviction from way n. Ways used as scratchpad must be 0 for every master. Reads 0xFFFF after a reset (measured)."
+        addressOffset: 0x828
+        size: 64
+        access: read-write
+        resetValue: 0xFFFF
+        fields:
+          WAYS:
+            description: Bit n allows the master to evict from way n
+            bitOffset: 0
+            bitWidth: 16
+      WAY_MASK_E51_ICACHE:
+        description: "Ways that the instruction cache of the E51 (hart 0) may allocate into: bit n set allows eviction from way n. Ways used as scratchpad must be 0 for every master. Reads 0xFFFF after a reset (measured)."
+        addressOffset: 0x830
+        size: 64
+        access: read-write
+        resetValue: 0xFFFF
+        fields:
+          WAYS:
+            description: Bit n allows the master to evict from way n
+            bitOffset: 0
+            bitWidth: 16
+      WAY_MASK_U54_1_DCACHE:
+        description: "Ways that the data cache of U54 hart 1 may allocate into: bit n set allows eviction from way n. Ways used as scratchpad must be 0 for every master. Reads 0xFFFF after a reset (measured)."
+        addressOffset: 0x838
+        size: 64
+        access: read-write
+        resetValue: 0xFFFF
+        fields:
+          WAYS:
+            description: Bit n allows the master to evict from way n
+            bitOffset: 0
+            bitWidth: 16
+      WAY_MASK_U54_1_ICACHE:
+        description: "Ways that the instruction cache of U54 hart 1 may allocate into: bit n set allows eviction from way n. Ways used as scratchpad must be 0 for every master. Reads 0xFFFF after a reset (measured)."
+        addressOffset: 0x840
+        size: 64
+        access: read-write
+        resetValue: 0xFFFF
+        fields:
+          WAYS:
+            description: Bit n allows the master to evict from way n
+            bitOffset: 0
+            bitWidth: 16
+      WAY_MASK_U54_2_DCACHE:
+        description: "Ways that the data cache of U54 hart 2 may allocate into: bit n set allows eviction from way n. Ways used as scratchpad must be 0 for every master. Reads 0xFFFF after a reset (measured)."
+        addressOffset: 0x848
+        size: 64
+        access: read-write
+        resetValue: 0xFFFF
+        fields:
+          WAYS:
+            description: Bit n allows the master to evict from way n
+            bitOffset: 0
+            bitWidth: 16
+      WAY_MASK_U54_2_ICACHE:
+        description: "Ways that the instruction cache of U54 hart 2 may allocate into: bit n set allows eviction from way n. Ways used as scratchpad must be 0 for every master. Reads 0xFFFF after a reset (measured)."
+        addressOffset: 0x850
+        size: 64
+        access: read-write
+        resetValue: 0xFFFF
+        fields:
+          WAYS:
+            description: Bit n allows the master to evict from way n
+            bitOffset: 0
+            bitWidth: 16
+      WAY_MASK_U54_3_DCACHE:
+        description: "Ways that the data cache of U54 hart 3 may allocate into: bit n set allows eviction from way n. Ways used as scratchpad must be 0 for every master. Reads 0xFFFF after a reset (measured)."
+        addressOffset: 0x858
+        size: 64
+        access: read-write
+        resetValue: 0xFFFF
+        fields:
+          WAYS:
+            description: Bit n allows the master to evict from way n
+            bitOffset: 0
+            bitWidth: 16
+      WAY_MASK_U54_3_ICACHE:
+        description: "Ways that the instruction cache of U54 hart 3 may allocate into: bit n set allows eviction from way n. Ways used as scratchpad must be 0 for every master. Reads 0xFFFF after a reset (measured)."
+        addressOffset: 0x860
+        size: 64
+        access: read-write
+        resetValue: 0xFFFF
+        fields:
+          WAYS:
+            description: Bit n allows the master to evict from way n
+            bitOffset: 0
+            bitWidth: 16
+      WAY_MASK_U54_4_DCACHE:
+        description: "Ways that the data cache of U54 hart 4 may allocate into: bit n set allows eviction from way n. Ways used as scratchpad must be 0 for every master. Reads 0xFFFF after a reset (measured)."
+        addressOffset: 0x868
+        size: 64
+        access: read-write
+        resetValue: 0xFFFF
+        fields:
+          WAYS:
+            description: Bit n allows the master to evict from way n
+            bitOffset: 0
+            bitWidth: 16
+      WAY_MASK_U54_4_ICACHE:
+        description: "Ways that the instruction cache of U54 hart 4 may allocate into: bit n set allows eviction from way n. Ways used as scratchpad must be 0 for every master. Reads 0xFFFF after a reset (measured)."
+        addressOffset: 0x870
+        size: 64
+        access: read-write
+        resetValue: 0xFFFF
+        fields:
+          WAYS:
+            description: Bit n allows the master to evict from way n
+            bitOffset: 0
+            bitWidth: 16

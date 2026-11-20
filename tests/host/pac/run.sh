@@ -269,7 +269,7 @@ def _():
     all_text = "\n".join(texts.values())
     instances = all_text.count("_Periph : aliased ")
     assert all_text.count("Async_Readers, Async_Writers, Effective_Writes") == instances
-    assert all_text.count("Effective_Reads => True") == 27
+    assert all_text.count("Effective_Reads => True") == 28
     for name, text in texts.items():
         if "System." not in text.replace("with System;", ""):
             assert "with System;" not in text, name

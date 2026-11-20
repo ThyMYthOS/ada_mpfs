@@ -13,7 +13,7 @@ svd/base/device.svd and applies the includes of svd/device.yaml in this fixed or
 
   1. svd/base/*.yaml      one fragment per peripheral family, adding its peripherals
   2. svd/patches/*.yaml   corrections, one file per peripheral
-  3. svd/additions/*.yaml blocks without register documentation (PLIC, CLINT, PDMA, interrupts)
+  3. svd/additions/*.yaml blocks without register documentation (PLIC, CLINT, PDMA, L2 cache controller, interrupts)
 
 The result is validated against svd/schema/CMSIS-SVD.xsd. Every file in patches/
 and additions/ starts with the mandatory header

@@ -77,4 +77,5 @@ _include:
   - additions/plic.yaml
   - additions/clint.yaml
   - additions/pdma.yaml
+  - additions/l2_cache.yaml
   - additions/interrupts.yaml
