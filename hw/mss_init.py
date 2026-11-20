@@ -27,6 +27,10 @@ Two sequences:
                   the GEM blocks (the vendor header addresses them at 0x20110008, a read-only register, so they have
                   no effect there). `./x hw initialize` runs it.
 
+phases(values) is full() in the five phases it is made of (refclk, io, mssio, sgmii, pll); full() is those steps in
+order. run() takes an optional on_timeout for a poll that runs out of time. config/gen/mss_init_table.py writes the
+phases as an Ada table for the image examples/mss_init_spike, which runs the same steps on the target.
+
 The sequence does not change what the examples see of the clocks: the CPU stays on the boot clock, so the UART
 divisor of --uart-standin stays right.
 """
@@ -72,6 +76,8 @@ RTC_ENABLE = 1 << 16              # SYSREG.RTC_CLOCK_CR.ENABLE; the XML value is
 REG_CDR_MOVE_STEP = 1 << 22       # CFG_DDR_SGMII_PHY.SGMII_MODE
 TX_RX_CH_EN = 0xF << 4            # CFG_DDR_SGMII_PHY.SGMII_MODE: the TX and RX channels (mss_sgmii.h)
 REG_POWERDOWN_B = 1 << 0          # PLL_CTRL of the MSS PLL
+PLL_CTRL_LOCK = 1 << 25           # PLL_CTRL of the MSS PLL: locked
+MTIME = 0x0200BFF8                # CLINT.MTIME
 
 # The registers of the MSS Configurator XML that the sequences write, as section/name.
 XML_RTC = "mss_clocks/mss_sys/RTC_CLOCK_CR"
@@ -335,21 +341,39 @@ def _pll(values: Values) -> list[Step]:
               _xml(values, MUX_MSS + 0x14, f"{XML_CFM}/FMETER_ADDR", "FMETER_ADDR"),
               _xml(values, MUX_MSS + 0x18, f"{XML_CFM}/FMETER_DATAW", "FMETER_DATAW"),
               Write(PLL_MSS + 0x04, values[ctrl] | REG_POWERDOWN_B, "PLL_CTRL, powered up (bit 0 set)", ctrl),
-              Poll(PLL_MSS + 0x04, 1 << 25, 1 << 25, "PLL_CTRL.LOCK: MSS PLL locked", 5.0)]
+              Poll(PLL_MSS + 0x04, PLL_CTRL_LOCK, PLL_CTRL_LOCK, "PLL_CTRL.LOCK: MSS PLL locked", 5.0)]
     return steps
+
+
+@dataclass(frozen=True)
+class Phase:
+    """A named run of steps of the sequence: <name> is a short key, <what> says what the phase does."""
+    name: str
+    what: str
+    steps: tuple[Step, ...]
+
+
+def phases(values: Values, io: bool = True) -> tuple[Phase, ...]:
+    """The sequence of mss_nwc_init without the clock switch, in the phases that it is made of; <io> False leaves
+    out the phase of the IO mux and bank set-up. CLINT.MTIME starts counting in the phase "sgmii", with the write
+    of CLK_CNTL (the sixth write of refclk), because MSSIO_CONTROL_CR gets its MSS_IO_EN in the phase before."""
+    result = [Phase("refclk", "RTC divisor, SCB access timing, DFI/APB clock and the dynamic enables of the PHY",
+                    (*_rtc(values, "(first)"),
+                     Write(IOSCBCFG_TIMER, SCB_ACCESS_CONFIG, "IOSCBCFG.TIMER: SCB access timing"),
+                     Write(DFIAPB_CR, 0x1, "SYSREG.DFIAPB_CR: DFI/APB clock on, reset released"),
+                     Write(DDRPHY_STARTUP, 0x003F1F00, "DDRPHY_STARTUP: dynamic enables"),
+                     Write(DYN_CNTL, 0x047F, "DYN_CNTL: dynamic enables")))]
+    if io:
+        result.append(Phase("io", "IO mux and bank set-up", tuple(_io_setup(values))))
+    result += [Phase("mssio", "MSSIO handshake", tuple(_mssio_handshake())),
+               Phase("sgmii", "SGMII channel set-up (reset, calibration, PLL and DLL lock)", tuple(_sgmii(values))),
+               Phase("pll", "MSS PLL up to its lock", tuple(_pll(values)))]
+    return tuple(result)
 
 
 def full(values: Values, io: bool = True) -> tuple[Step, ...]:
     """The sequence of mss_nwc_init without the clock switch; <io> False leaves out the IO mux and bank set-up."""
-    steps = [*_rtc(values, "(first)"),
-             Write(IOSCBCFG_TIMER, SCB_ACCESS_CONFIG, "IOSCBCFG.TIMER: SCB access timing"),
-             Write(DFIAPB_CR, 0x1, "SYSREG.DFIAPB_CR: DFI/APB clock on, reset released"),
-             Write(DDRPHY_STARTUP, 0x003F1F00, "DDRPHY_STARTUP: dynamic enables"),
-             Write(DYN_CNTL, 0x047F, "DYN_CNTL: dynamic enables")]
-    if io:
-        steps += _io_setup(values)
-    steps += _mssio_handshake() + _sgmii(values) + _pll(values)
-    return tuple(steps)
+    return tuple(step for phase in phases(values, io) for step in phase.steps)
 
 
 def describe(step: Step) -> str:
@@ -368,8 +392,10 @@ def describe(step: Step) -> str:
 
 def run(steps: Iterable[Step], write: Callable[[int, int, str], None], read: Callable[[int], int],
         log: Callable[[str], None] = lambda text: None, sleep: Callable[[float], None] = time.sleep,
-        monotonic: Callable[[], float] = time.monotonic) -> None:
-    """Run <steps>: <write>(address, value, what), <read>(address) -> 32-bit value; <log> gets one line per step."""
+        monotonic: Callable[[], float] = time.monotonic, on_timeout: Callable[[Poll], None] | None = None) -> None:
+    """Run <steps>: <write>(address, value, what), <read>(address) -> 32-bit value; <log> gets one line per step.
+    A poll that runs out of time raises MssInitError, or, if <on_timeout> is given, is passed to it and the sequence
+    goes on (the model of an image that reports a timeout and continues, where the registers read 0)."""
     for step in steps:
         log(describe(step))
         if isinstance(step, Write):
@@ -381,9 +407,12 @@ def run(steps: Iterable[Step], write: Callable[[int, int, str], None], read: Cal
             deadline = monotonic() + step.timeout
             while (read(step.address) & step.mask) != step.want:
                 if monotonic() > deadline:
+                    if on_timeout is not None:
+                        on_timeout(step)
+                        break
                     raise MssInitError(f"{step.what}: 0x{step.address:08X} & 0x{step.mask:08X} is not 0x{step.want:08X} after {step.timeout:g} s")
                 sleep(0.01)
         elif isinstance(step, Delay):
             sleep(step.seconds)
         elif isinstance(step, IfSet) and read(step.address) & step.mask:
-            run(step.then, write, read, log, sleep, monotonic)
+            run(step.then, write, read, log, sleep, monotonic, on_timeout)

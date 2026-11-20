@@ -15,6 +15,8 @@ works with the configuration generator.
 of two images that run on the same board, so the LIM regions of such images must be kept apart by hand. The
 configuration generator places and checks the windows of the partitions of a system description
 ([derived system](#derived-system)); its emitters, which will hand the origins to the images, do not exist yet.
+The one emitter that exists writes the register values of an MSS Configurator XML as a table for an Ada interpreter
+(`gen/mss_init_table.py`, the spike `examples/mss_init_spike`); it takes the order of the steps from `hw/mss_init.py`.
 
 ### The two files
 

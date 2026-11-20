@@ -36,6 +36,24 @@ def _():
     assert ada.identifier("ENDS", "w") == "ENDS"
 
 
+@case("hex_literal: digit groups of four, upper case, at least <width> digits")
+def _():
+    assert ada.hex_literal(0) == "16#0#"
+    assert ada.hex_literal(0x7D) == "16#7D#"
+    assert ada.hex_literal(0x7D, 8) == "16#0000_007D#"
+    assert ada.hex_literal(0x2000200C) == "16#2000_200C#"
+    assert ada.hex_literal(0x12345) == "16#0001_2345#"
+
+
+@case("string_literal: split at the width, quotes doubled, non-ASCII refused")
+def _():
+    assert ada.string_literal("ab", 60) == ['"ab"']
+    assert ada.string_literal("abcde", 2) == ['"ab"', '"cd"', '"e"']
+    assert ada.string_literal('a"b') == ['"a""b"']
+    assert ada.string_literal("") == ['""']
+    raises(errors.InputError, lambda: ada.string_literal("caf\u00e9"), "not printable ASCII")
+
+
 @case("identifier: the error class is the caller's")
 def _():
     raises(Mine, lambda: ada.identifier("bad", "w", Mine), "not an upper-case")

@@ -182,6 +182,8 @@ What the script keeps and what comes from the XML:
 | MSS PLL: `PLL_CTRL` (first with `REG_POWERDOWN_B` cleared, as `mss_pll.c` does), `PLL_REF_FB`, `PLL_DIV_0_1`, `PLL_DIV_2_3`, `PLL_CTRL2`, `PLL_FRACN`, `SSCG_REG_0` to `3`, `PLL_PHADJ` | `mss_clocks/mss_pll` |
 | `PLL_CKMUX`, `BCLKMUX`, `FMETER_ADDR`, `FMETER_DATAW`; `CLK_XCVR` | `mss_clocks/mss_cfm`; `mss_clocks/sgmii_cfm` |
 
+The steps are also the source of the Ada image `examples/mss_init_spike`, which sets the MSS up itself from a table that `config/gen/mss_init_table.py` makes from them (`mss_init.phases()`); `tests/host/mss_init_spike` compares the writes of that image under QEMU with this sequence.
+
 `--dry-run` shows where each value comes from. The first line names the XML and its SHA-256, the second its design; a register with a known defect of the configurator that the sequence writes gets a note (`PLL_PHADJ`: the reader gives 0x4003, see `config/README.md`); each write of a value of the XML names its register:
 
     # MSS Configurator XML config/boards/icicle_es/ICICLE_MSS_mss_cfg.xml sha256 8e3f849a...
