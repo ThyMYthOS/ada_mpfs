@@ -5,14 +5,27 @@
 
   regmap2svd.py <regmap-dir> <out-dir>
 
-<regmap-dir> is the MSS directory of the unpacked "PolarFire SoC Register Map"
-(PF_SoC_RegMap/MSS), holding one UTF-16 HTML file per peripheral family. One
-svdtools patch fragment <out-dir>/<family>.yaml is written per page; it adds the
-peripheral and its derived instances (all instances of MMUART go to mmuart.yaml).
-The "Release Notes.htm" next to the MSS directory gives the register map version;
-it is written to <out-dir>/device.svd, the device head (name, CPU, widths, the
-revision history) that svdtools starts from. The instance table of
-"pfsoc_regmap.htm" supplies the base addresses that some pages lack.
+<regmap-dir> is one of the two directories of the unpacked "PolarFire SoC Register
+Map" (PF_SoC_RegMap), each holding one UTF-16 HTML file per peripheral family:
+
+  MSS/   the blocks of the microprocessor subsystem. One svdtools patch fragment
+         <out-dir>/<family>.yaml is written per page; it adds the peripheral and its
+         derived instances (all instances of MMUART go to mmuart.yaml). The
+         "Release Notes.htm" next to the directory gives the register map version; it
+         is written to <out-dir>/device.svd, the device head (name, CPU, widths, the
+         revision history) that svdtools starts from. The instance table of
+         "pfsoc_regmap.htm" supplies the base addresses that some pages lack.
+  MPFS/  the blocks of the system controller side: the SCB control block and its
+         mailbox, the IOSCB blocks (PLLs, clock multiplexers, IO calibration, bank
+         controllers, DLLs, lane and ICB blocks) and the SerDes and PCIe blocks. The
+         addresses of these pages are offsets on the IOSCB bus, which the MSS sees at
+         0x30000000, so that bus base is added to them. Pages that list several
+         instances give each instance its own section; the first one becomes the
+         base peripheral and the others are derived from it. The page
+         "mpfs_ioscb_memmap_dri.htm" lists every instance with its address; the
+         import fails if a page disagrees with it. Pages that describe a block that
+         the MSS directory already has (QSPIXIP and the SCB registers) get the
+         suffix _SCB: they are the view over the SCB bus. No device head is written.
 
 The register map has many typos and is probably not going to be updated by Microchip.
 The generated fragments are the starting point of an SVD that is maintained by
@@ -43,6 +56,13 @@ MISSING_BASE = {
 # Fragment names that differ from the lower-case page name (after dropping pfsoc_mss_top_).
 FRAGMENT_NAMES = {"gem_gxlmicrosemi": "gem"}
 SUMMARY = " Register Summary"
+# Offset of the IOSCB bus in the address map of the MSS, added to the addresses of the pages of a directory.
+BUS_BASE = {"MPFS": 0x30000000}
+# Blocks of the MPFS directory that the MSS directory describes at their MSS address, with the name of
+# the view over the SCB bus.
+SCB_VIEWS = {"QSPIXIP": "QSPIXIP_SCB", "PF_MSS_TOP_SCB_REGS": "SCB_REGS_SCB"}
+# The page of the MPFS directory with the address of every instance (not a peripheral).
+MEMORY_MAP_PAGE = "mpfs_ioscb_memmap_dri"
 
 
 @dataclass(slots=True)
@@ -106,6 +126,7 @@ class Peripheral:
     registers: list[Register]
     instances: list[Instance] = field(default_factory=list)
     group: str | None = None  # groupName: the family of a page that lists several instances
+    listed: list[tuple[str, str]] = field(default_factory=list)  # (instance name, address) of every section of the page
 
 
 def access(kind: str, *, default: str) -> str:
@@ -185,15 +206,31 @@ def heading(soup: BeautifulSoup, tag: str, suffix: str) -> Tag:
     return next(h for h in soup.find_all(tag) if clean_text(h.get_text()).endswith(suffix))
 
 
-def parse_peripheral(soup: BeautifulSoup) -> Peripheral:
+def section_name(heading_tag: Tag) -> str:
+    """Instance name of a "Register Summary" heading: the text after "FAMILY : ", in upper case."""
+    return clean_text(heading_tag.get_text()).removesuffix(SUMMARY).split(" : ")[-1].upper()
+
+
+def section_address(heading_tag: Tag) -> str | None:
+    """Physical address of the first row of the summary table below a "Register Summary" heading."""
+    table = heading_tag.find_next_sibling("table")
+    try:
+        return remove_whitespace(parse_summary(table)[0]["physical address"])
+    except (AttributeError, IndexError, KeyError):
+        return None
+
+
+def parse_peripheral(soup: BeautifulSoup, bus_base: int = 0) -> Peripheral:
     """Parse the HTML page of one peripheral.
 
     A page that lists several instances names the first one as the base
     instance; the others become instances derived from it. The base instance
     gets the family of the page as groupName, so that svd2ada shares one
-    register type between the instances of the family.
+    register type between the instances of the family. <bus_base> is added to
+    every address of the page.
     """
-    name = clean_text(soup.find("h2").get_text()).replace("pfsoc_mss_top_", "").upper()
+    name = re.sub(r" register mapping summary$", "", clean_text(soup.find("h2").get_text()), flags=re.I)
+    name = name.replace("pfsoc_mss_top_", "").upper()
     family = name
     summary = {r["register name"].upper(): r
                for r in parse_summary(heading(soup, "h2", "Register Mapping Summary").find_next_sibling("table"))}
@@ -215,18 +252,24 @@ def parse_peripheral(soup: BeautifulSoup) -> Peripheral:
 
     # Several instances: the first "Register Summary" names the base instance.
     sections = [h for h in soup.find_all("h3") if clean_text(h.get_text()).endswith(SUMMARY)]
+    listed = [(section_name(h), section_address(h)) for h in sections]
     instances = []
     group = None
-    if len(sections) > 1:
-        name = clean_text(sections[0].find_all("a")[-1].get_text()).removesuffix(SUMMARY)
-        instances = [
-            Instance(clean_text(h.find_all("a")[-1].get_text()).removesuffix(SUMMARY),
-                     remove_whitespace(parse_summary(h.find_next_sibling("table"))[0]["physical address"]))
-            for h in sections[1:]
-        ]
-        group = family
     base = registers[0].info.get("physical address") if registers else None
-    return Peripheral(name, remove_whitespace(base) if base else None, registers, instances, group)
+    base = remove_whitespace(base) if base else None
+    if len(sections) > 1:
+        # The address of the first section, not that of the first register: some pages list the register
+        # addresses of another instance.
+        name, base = listed[0][0], listed[0][1] or base
+        instances = [Instance(n, a) for n, a in listed[1:]]
+        group = family
+
+    def moved(address: str | None) -> str | None:
+        return f"0x{int(address, 0) + bus_base:08X}" if address and bus_base else address
+
+    for i in instances:
+        i.base_address = moved(i.base_address)
+    return Peripheral(name, moved(base), registers, instances, group, listed)
 
 
 class Hex(int):
@@ -327,6 +370,27 @@ def apply_instance_table(p: Peripheral, table: dict[str, str]) -> None:
     p.instances = [Instance(n, table[n]) for n in others]
 
 
+def parse_memory_map(soup: BeautifulSoup) -> dict[str, str]:
+    """Instance name (upper case) -> address, from the instance summary of the memory map page."""
+    memory_map: dict[str, str] = {}
+    for cols in rows(soup):
+        if len(cols) < 5 or not remove_whitespace(cols[3].get_text()).lower().startswith("0x"):
+            continue
+        name, address = clean_text(cols[1].get_text()).upper(), remove_whitespace(cols[3].get_text())
+        if memory_map.setdefault(name, address) != address:
+            raise errors.InputError(f"memory map: {name} is listed at two addresses")
+    return memory_map
+
+
+def check_memory_map(p: Peripheral, memory_map: dict[str, str], page: str) -> None:
+    """Fail if an instance that the page <page> lists is missing from the memory map or has another address."""
+    for name, address in p.listed:
+        if name not in memory_map:
+            raise errors.InputError(f"{page}: {name} is not in the memory map")
+        if address is None or int(address, 0) != int(memory_map[name], 0):
+            raise errors.InputError(f"{page}: {name} is at {address}, the memory map says {memory_map[name]}")
+
+
 def text(parent: ET.Element, tag: str, value: str | None) -> ET.Element:
     """Append <tag>value</tag> to <parent> and return the new element."""
     el = ET.SubElement(parent, tag)
@@ -382,19 +446,33 @@ def main(argv: list[str]) -> int:
     if len(argv) != 3:
         print(__doc__, file=sys.stderr)
         return 2
-    out = Path(argv[2])
+    directory, out = Path(argv[1]), Path(argv[2])
     out.mkdir(parents=True, exist_ok=True)
-    index = Path(argv[1]).parent / "pfsoc_regmap.htm"
-    table = parse_instance_table(BeautifulSoup(index.read_text(encoding="utf-16", errors="replace"), "html.parser"))
-    for path in sorted(Path(argv[1]).glob("*.htm*")):
-        p = parse_peripheral(BeautifulSoup(path.read_text(encoding="utf-16"), "html.parser"))
-        apply_instance_table(p, table)
-        stem = path.stem.lower().removeprefix("pfsoc_mss_top_")
+    bus_base = BUS_BASE.get(directory.name, 0)
+    if bus_base:
+        memory_map_page = directory / f"{MEMORY_MAP_PAGE}.htm"
+        memory_map = parse_memory_map(BeautifulSoup(memory_map_page.read_text(encoding="utf-16"), "html.parser"))
+    else:
+        index = directory.parent / "pfsoc_regmap.htm"
+        table = parse_instance_table(BeautifulSoup(index.read_text(encoding="utf-16", errors="replace"), "html.parser"))
+    for path in sorted(directory.glob("*.htm*")):
+        if path.stem == MEMORY_MAP_PAGE:
+            continue
+        p = parse_peripheral(BeautifulSoup(path.read_text(encoding="utf-16"), "html.parser"), bus_base)
+        if bus_base:
+            check_memory_map(p, memory_map, path.name)
+            renamed = SCB_VIEWS.get(p.name)
+            p.name = renamed or p.name
+            stem = renamed.lower() if renamed else path.stem.lower()
+        else:
+            apply_instance_table(p, table)
+            stem = path.stem.lower().removeprefix("pfsoc_mss_top_")
         write_fragment(p, out / f"{FRAGMENT_NAMES.get(stem, stem)}.yaml")
-    notes = Path(argv[1]).parent / "Release Notes.htm"
-    # The release notes are plain Windows-1252 HTML, unlike the register pages.
-    write_device(parse_release_notes(BeautifulSoup(notes.read_text(encoding="cp1252"), "html.parser")),
-                 out / "device.svd")
+    if not bus_base:
+        notes = directory.parent / "Release Notes.htm"
+        # The release notes are plain Windows-1252 HTML, unlike the register pages.
+        write_device(parse_release_notes(BeautifulSoup(notes.read_text(encoding="cp1252"), "html.parser")),
+                     out / "device.svd")
     return 0
 
 
