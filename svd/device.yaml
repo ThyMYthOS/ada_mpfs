@@ -14,18 +14,50 @@ _include:
   - base/ddr_csr_apb.yaml
   - base/emmc_sd.yaml
   - base/envm.yaml
+  - base/extpll.yaml
   - base/frqmeter.yaml
   - base/gem.yaml
   - base/gpio.yaml
+  - base/gpss_main.yaml
   - base/h2fint.yaml
   - base/i2c.yaml
+  - base/ioscb_analogblock2.yaml
+  - base/ioscb_bank_ctlr.yaml
+  - base/ioscb_bank_ctrl_ddr.yaml
+  - base/ioscb_bank_ctrl_sgmii.yaml
+  - base/ioscb_cfm.yaml
+  - base/ioscb_cfm_mss.yaml
+  - base/ioscb_cfm_sgmii.yaml
+  - base/ioscb_dll.yaml
+  - base/ioscb_dll_sgmii.yaml
+  - base/ioscb_icb.yaml
+  - base/ioscb_io_calib.yaml
+  - base/ioscb_io_calib_ddr.yaml
+  - base/ioscb_io_calib_sgmii.yaml
+  - base/ioscb_lane.yaml
+  - base/ioscb_pll.yaml
+  - base/ioscb_pll_ddr.yaml
+  - base/ioscb_pll_mss.yaml
+  - base/ioscb_pll_sgmii.yaml
   - base/ioscbcfg.yaml
   - base/mmuart.yaml
   - base/mpucfg.yaml
   - base/msrtc.yaml
   - base/mstimer.yaml
+  - base/pcie_ctrl.yaml
+  - base/pciess_main.yaml
+  - base/pcscmn.yaml
+  - base/pcslane.yaml
+  - base/pf_pcie_bridge.yaml
+  - base/pf_us_crypto_top.yaml
+  - base/pfsoc_control_scb.yaml
+  - base/pma_cmn.yaml
+  - base/pma_lane.yaml
   - base/qspixip.yaml
+  - base/qspixip_scb.yaml
+  - base/scb_mailbox.yaml
   - base/scb_regs.yaml
+  - base/scb_regs_scb.yaml
   - base/spi.yaml
   - base/sysreg.yaml
   - base/trace.yaml

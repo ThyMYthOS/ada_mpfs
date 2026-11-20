@@ -1,0 +1,468 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  IOSCB_PLL_SGMII:
+    description: IOSCB_PLL_SGMII Controller
+    baseAddress: 0x3E080000
+    registers:
+      SOFT_RESET:
+        description: This is a compulsory register for all SCB slaves and must be at the same offset in all slaves to facilitate global soft reset of all SCB registers with a single broadcast write from the SCB master.
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID:
+            description: This returns the block type and chip location. (IO SCB bus only) Read 0x0000
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH:
+            description: This asserts the functional reset of the block. It is asserted at power up. When written is stays asserted until written to 0. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP:
+            description: This when asserted resets all the register bits apart from the non-volatile registers, the bit self clears. i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP:
+            description: This when asserted resets all the non-volatile register bits e.g. RW-P bits, the bit self clears i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PLL_CTRL:
+        description: PLL control register
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x10C6
+        fields:
+          LOCK_B:
+            description: Status of PLL lock_b
+            bitOffset: 31
+            bitWidth: 1
+            access: read-only
+          UNLOCK_INT:
+            description: pll unlock interrupt signal
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          LOCK_INT:
+            description: pll lock interrupt signal
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          UNLOCK_INT_EN:
+            description: Enable pll unlock interrupt
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          LOCK_INT_EN:
+            description: Enable pll lock interrupt
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          LOCK:
+            description: Status of PLL lock
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          LP_REQUIRES_LOCK:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          REG_BYPASSPOST:
+            description: ''
+            bitOffset: 20
+            bitWidth: 4
+            access: read-write
+          REG_BYPASSPRE:
+            description: ''
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          REG_BYPASS_GO_B:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          BYPCK_SEL:
+            description: ''
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          RESETONLOCK:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          REG_RFCLK_SEL:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          REG_DIVQ3_EN:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          REG_DIVQ2_EN:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          REG_DIVQ1_EN:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          REG_DIVQ0_EN:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          REG_RFDIV_EN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          REG_POWERDOWN_B:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PLL_REF_FB:
+        description: PLL reference and feedback registers
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RFDIV:
+            description: ''
+            bitOffset: 8
+            bitWidth: 6
+            access: read-write
+          FOUTFB_SELMUX_EN:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          FBCK_SEL:
+            description: ''
+            bitOffset: 1
+            bitWidth: 2
+            access: read-write
+          FSE_B:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PLL_FRACN:
+        description: PLL fractional register
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FRACN_DAC_EN:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          FRACN_EN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PLL_DIV_0_1:
+        description: PLL 0/1 division registers
+        addressOffset: 0x10
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          POST1DIV:
+            description: ''
+            bitOffset: 24
+            bitWidth: 7
+            access: read-write
+          DIV1_START:
+            description: ''
+            bitOffset: 19
+            bitWidth: 3
+            access: read-write
+          VCO1PH_SEL:
+            description: ''
+            bitOffset: 16
+            bitWidth: 3
+            access: read-only
+          POST0DIV:
+            description: ''
+            bitOffset: 8
+            bitWidth: 7
+            access: read-write
+          DIV0_START:
+            description: ''
+            bitOffset: 3
+            bitWidth: 3
+            access: read-write
+          VCO0PH_SEL:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-only
+      PLL_DIV_2_3:
+        description: PLL 2/3 division registers
+        addressOffset: 0x14
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CKPOST3_SEL:
+            description: ''
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          POST3DIV:
+            description: ''
+            bitOffset: 24
+            bitWidth: 7
+            access: read-write
+          DIV3_START:
+            description: ''
+            bitOffset: 19
+            bitWidth: 3
+            access: read-write
+          VCO3PH_SEL:
+            description: ''
+            bitOffset: 16
+            bitWidth: 3
+            access: read-only
+          POST2DIV:
+            description: ''
+            bitOffset: 8
+            bitWidth: 7
+            access: read-write
+          DIV2_START:
+            description: ''
+            bitOffset: 3
+            bitWidth: 3
+            access: read-write
+          VCO2PH_SEL:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-only
+      PLL_CTRL2:
+        description: PLL control register
+        addressOffset: 0x18
+        size: 32
+        access: read-write
+        resetValue: 0x1006
+        fields:
+          ATEST_SEL:
+            description: ''
+            bitOffset: 18
+            bitWidth: 3
+            access: read-write
+          ATEST_EN:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          LOCKCNT:
+            description: ''
+            bitOffset: 9
+            bitWidth: 4
+            access: read-write
+          IREF_TOGGLE:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          IREF_EN:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          BWP:
+            description: ''
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          BWI:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      PLL_CAL:
+        description: PLL calibration register
+        addressOffset: 0x1C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DSKEWCALOUT:
+            description: ''
+            bitOffset: 16
+            bitWidth: 7
+            access: read-only
+          DSKEWCALIN:
+            description: ''
+            bitOffset: 8
+            bitWidth: 7
+            access: read-write
+          DSKEWCALBYP:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          DSKEWCAL_EN:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          DSKEWCALCNT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      PLL_PHADJ:
+        description: PLL phase registers
+        addressOffset: 0x20
+        size: 32
+        access: read-write
+        resetValue: 0x4001
+        fields:
+          REG_LOADPHS_B:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          REG_OUT3_PHSINIT:
+            description: ''
+            bitOffset: 11
+            bitWidth: 3
+            access: read-write
+          REG_OUT2_PHSINIT:
+            description: ''
+            bitOffset: 8
+            bitWidth: 3
+            access: read-write
+          REG_OUT1_PHSINIT:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          REG_OUT0_PHSINIT:
+            description: ''
+            bitOffset: 2
+            bitWidth: 3
+            access: read-write
+          PLL_REG_ENABLE_SYNCREFDIV:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          PLL_REG_SYNCREFDIV_EN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SSCG_REG_0:
+        description: SSCG registers 0
+        addressOffset: 0x24
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FRACIN:
+            description: ''
+            bitOffset: 6
+            bitWidth: 24
+            access: read-write
+          DIVVAL:
+            description: ''
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      SSCG_REG_1:
+        description: SSCG registers 1
+        addressOffset: 0x28
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FRACMOD:
+            description: ''
+            bitOffset: 6
+            bitWidth: 24
+            access: read-only
+          SSMD:
+            description: ''
+            bitOffset: 1
+            bitWidth: 5
+            access: read-write
+          DOWNSPREAD:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SSCG_REG_2:
+        description: SSCG registers 2
+        addressOffset: 0x2C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          INTMOD:
+            description: ''
+            bitOffset: 12
+            bitWidth: 12
+            access: read-only
+          INTIN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      SSCG_REG_3:
+        description: SSCG registers 3
+        addressOffset: 0x30
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RANDOM_SEL:
+            description: ''
+            bitOffset: 20
+            bitWidth: 2
+            access: read-write
+          RANDOM_FILTER:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          TBLADDR:
+            description: ''
+            bitOffset: 11
+            bitWidth: 8
+            access: read-only
+          EXT_MAXADDR:
+            description: ''
+            bitOffset: 3
+            bitWidth: 8
+            access: read-write
+          SEL_EXTWAVE:
+            description: ''
+            bitOffset: 1
+            bitWidth: 2
+            access: read-write
+          SSE_B:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write

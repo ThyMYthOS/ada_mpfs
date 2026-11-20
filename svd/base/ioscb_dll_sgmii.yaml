@@ -1,0 +1,329 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  IOSCB_DLL_SGMII:
+    description: IOSCB_DLL_SGMII Controller
+    baseAddress: 0x3E100000
+    registers:
+      SOFT_RESET:
+        description: This is a compulsory register for all SCB slaves and must be at the same offset in all slaves to facilitate global soft reset of all SCB registers with a single broadcast write from the SCB master.
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID:
+            description: This returns the block type and chip location. (IO SCB bus only) Read 0x0000
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH:
+            description: This asserts the functional reset of the block. It is asserted at power up. When written is stays asserted until written to 0. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP:
+            description: This when asserted resets all the register bits apart from the non-volatile registers, the bit self clears. i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP:
+            description: This when asserted resets all the non-volatile register bits e.g. RW-P bits, the bit self clears i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DLL_CTRL0:
+        description: DLL control register 0
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x42000
+        fields:
+          REG_LOCK_LOW:
+            description: accumulating 3~15 cycles of phase detector lock low, 00xx=3 cycles
+            bitOffset: 28
+            bitWidth: 4
+            access: read-write
+          REG_LOCK_HIGH:
+            description: accumulating 3~15 cycles of phase detector lock high, 00xx=3 cycles
+            bitOffset: 24
+            bitWidth: 4
+            access: read-write
+          REG_LOCK_DBG:
+            description: ''
+            bitOffset: 22
+            bitWidth: 2
+            access: read-write
+          REG_LOCK_FLT:
+            description: 'Phase lock tolerance: 00 (Default) +/- 50~130ps, 01 +/- 110~270ps, 10 +/- 200~470ps, 11 +/- 280~680ps'
+            bitOffset: 20
+            bitWidth: 2
+            access: read-write
+          REG_LOCK_FRC:
+            description: force lock high for debugging purpose
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          REG_FPHASE_CODE:
+            description: ''
+            bitOffset: 16
+            bitWidth: 3
+            access: read-write
+          REG_ALU_UPD:
+            description: 00=ALU update after 16 accumulated cycles of add or subtract; 01=8 cycles; 10=32 cycles; 11=4 cycles
+            bitOffset: 14
+            bitWidth: 2
+            access: read-write
+          REG_FPHASE_CLK:
+            description: ''
+            bitOffset: 11
+            bitWidth: 3
+            access: read-write
+          REG_DIV_SEL:
+            description: 'divided feedback clock select in clock injection removal mode: 0=M4/M5 selects 0/1; 1=M4/M5 selects 2/3'
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          REG_FB_SEL:
+            description: 'feedback clock selection: 0=direct feedback or through dummy delay to match divider on reference; 1=2*pi shift for clock phase reference mode or feedback through dummy delay inversion'
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          REG_REF_SEL:
+            description: 'reference clock selection: 0=/1 or /2 0 shift; 1=pi shift for delay match mode or /4 0 shift'
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          REG_SEL_S:
+            description: 'secondary clock output selection: 00=normal; 01=/2; 10=/4; 11=duty 50 when ref_sel=0 and fb_sel=1 for clock phase reference mode (reg_div_sel=0)'
+            bitOffset: 6
+            bitWidth: 2
+            access: read-write
+          REG_SEL_P:
+            description: 'primary clock output selection: 00=normal; 01=normal through dummy delay to match divider on clko_s; 10=duty 50 when ref_sel=0 and fb_sel=1 for clock phase reference mode (reg_div_sel=0); 11=duty 50 inversion'
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          REG_PHASE_S:
+            description: 'secondary clock phase selection: 00=pi/2 shift; 01=pi shift; 10=3*pi/2 shift; 11=2*pi shift'
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          REG_PHASE_P:
+            description: 'primary clock phase selection: 00=0 shift; 01=pi/2 shift; 10=pi shift; 11=2*pi shift'
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      DLL_CTRL1:
+        description: DLL control register 1
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          REG_POWERDOWN_EN:
+            description: ''
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          REG_RELOCK_FAST:
+            description: At unlock, keep locking without counting down to 0 first in clock injection removal mode
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          REG_INIT_CODE:
+            description: force ALU to count to the minimum initial delay in each delay cell from 0 (00000) to 63 (11111) taps
+            bitOffset: 24
+            bitWidth: 6
+            access: read-write
+          REG_TEST_RING:
+            description: enable ring oscillator test mode
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          REG_ADJ_CODE:
+            description: ''
+            bitOffset: 16
+            bitWidth: 7
+            access: read-write
+          REG_TEST_S:
+            description: select clko_s to drive ring oscillator in test mode
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          REG_ADJ_DEL4:
+            description: ''
+            bitOffset: 8
+            bitWidth: 7
+            access: read-write
+          REG_SET_ALU:
+            description: when reg_set_alu[7]=1, manual set ALU to reg_set_alu[6:0]
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      DLL_STAT0:
+        description: DLL status register 0
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x301D
+        fields:
+          SRO_ADJ_CODE:
+            description: ''
+            bitOffset: 24
+            bitWidth: 8
+            access: read-only
+          SRO_DELAY_CODE:
+            description: ''
+            bitOffset: 16
+            bitWidth: 8
+            access: read-only
+          REG_PHASE_MOVE_CODE:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          REG_PHASE_MOVE_CLK:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          REG_UNLOCK_INT:
+            description: unlock interrupt
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          REG_LOCK_INT:
+            description: lock interrupt
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          REG_UNLOCK_INT_EN:
+            description: enable unlock interrupt
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          REG_LOCK_INT_EN:
+            description: enable lock interrupt
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          REG_DIFF_RANGE:
+            description: ''
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          REG_PHASE_DIRECTION:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          REG_PHASE_LOAD:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          REG_CODE_UPD:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          REG_ALU_HOLD:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          REG_RESET:
+            description: active high reset of DLL
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DLL_STAT1:
+        description: DLL status register 1
+        addressOffset: 0x10
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SRO_DEL3:
+            description: ''
+            bitOffset: 30
+            bitWidth: 2
+            access: read-only
+          SRO_DEL2:
+            description: ''
+            bitOffset: 28
+            bitWidth: 2
+            access: read-only
+          SRO_DEL1:
+            description: ''
+            bitOffset: 26
+            bitWidth: 2
+            access: read-only
+          SRO_INC:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          SRO_ALU_CNT:
+            description: ALU counter value, upper 7-bits are DEL0 setting
+            bitOffset: 16
+            bitWidth: 9
+            access: read-only
+          SRO_ADJ_DEL4:
+            description: ''
+            bitOffset: 8
+            bitWidth: 8
+            access: read-only
+          SRO_PHASE_DONE_CLK:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-only
+          SRO_DEL4:
+            description: same as delay_code output
+            bitOffset: 0
+            bitWidth: 7
+            access: read-only
+      DLL_STAT2:
+        description: DLL status register 2
+        addressOffset: 0x14
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SRO_UP:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-only
+          SRO_UPDN:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-only
+          SRO_DN:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-only
+          SRO_DELAY_DIFF:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          SRO_LOCK:
+            description: same as lock output
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          SRO_PHASE_DONE_CODE:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          SRO_RING_OSC:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only

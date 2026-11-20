@@ -1,0 +1,2035 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  SERDES_0_PMA_LANE0:
+    description: SERDES_0_PMA_LANE0 Controller
+    groupName: PMA_LANE
+    baseAddress: 0x31041000
+    registers:
+      SOFT_RESET:
+        description: Compulsory register for all SCB slaves, facilitating global soft reset.
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID:
+            description: 'This returns the block type and chip location. The value of BLOCKID depends on the block type and instance of Serial block containing this page and upon the page (lane) instance number as follows: {4''h0, SLVTYPE, CHIPID, SUBID}. The SLVTPE value is 4''h1 for PMA. The CHIPID is determined by integration via constant applied to tieoff_chipid[3:0] . The SUBID is the identity of the lane instance copy of this register page (lane 0 has SUBID=0, lane 1 has SUBID=1, lane 2, lane 3 has SUBID=3). Read 0x0000'
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH:
+            description: This asserts functional reset of the peripheral block. It is asserted and left asserted at power-up. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP:
+            description: Resets all the volatile register bits. Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP:
+            description: Resets all the non-volatile register bits (e.g. RW-P bits). Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DES_CDR_CTRL_1:
+        description: Desirializer CDR control configuration (ATE TRIM)
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CMRTRIM_CDR:
+            description: Trim for common mode restore circuit 0x0 0x1 0x7
+            bitOffset: 29
+            bitWidth: 3
+            access: read-write
+          H0CDR3:
+            description: DC offset calibration of CDR sampler 3
+            bitOffset: 24
+            bitWidth: 5
+            access: read-write
+          H0CDR2:
+            description: DC offset calibration of CDR sampler 2
+            bitOffset: 16
+            bitWidth: 5
+            access: read-write
+          H0CDR1:
+            description: DC offset calibration of CDR sampler 1
+            bitOffset: 8
+            bitWidth: 5
+            access: read-write
+          H0CDR0:
+            description: DC offset calibration of CDR sampler 0
+            bitOffset: 1
+            bitWidth: 5
+            access: read-write
+          DCFBEN_CDR:
+            description: Enable DC offset cancellation of the first two CTLE stages (CDR) 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DES_CDR_CTRL_2:
+        description: Desirializer CDR control configuration (Characterization TRIM)
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x15
+        fields:
+          CALOUT_CDR:
+            description: Subsampled CDR output for DC feedback correction Data is sub-sampled with deserializer clock RESETDES must be low during calibration Calibration only valid when RXPLL_LOCK is low RCVEN should be de-asserted during calibration HSLPBKEN should be de-asserted during calibration
+            bitOffset: 8
+            bitWidth: 4
+            access: read-only
+          CSENT3_CDR:
+            description: CTLE Current Source Trim 0x0 0x3
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          CSENT2_CDR:
+            description: CTLE Current Source Trim 0x0 0x3
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          CSENT1_CDR:
+            description: CTLE Current Source Trim 0x0 0x3
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      DES_CDR_CTRL_3:
+        description: Desirializer CDR control configuration
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SLIP_DES_CDR_STATUS:
+            description: De-serializer CDR Slip bit status
+            bitOffset: 19
+            bitWidth: 1
+            access: read-only
+          SLIP_DES_CDR_EN:
+            description: De-serializer CDR Slip function enable 0 1
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          SLIP_DES_CDR_SEL:
+            description: Select de-serializer CDR slip controller 0 1
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          SLIP_DES_CDR:
+            description: 'Slip de-serializer output alignment by 1 bit A bit slip occurs on every state change of SLIP_DES In 8b, 16b, and 32b de-serialization, bits slip forward (ex: 101,01x,1xx) In 10b, 20b, and 40b de-serialization, bits slip backward (ex: 101,x10,xx1) 0 1'
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RXDRV_CDR:
+            description: RX CLTLE BW control for CDR path 0x0 0x1 0x3
+            bitOffset: 8
+            bitWidth: 2
+            access: read-write
+          RST2_CDR:
+            description: CTLE source resistor trim, second CTLE stage 0x0 0x3
+            bitOffset: 6
+            bitWidth: 2
+            access: read-write
+          RST1_CDR:
+            description: CTLE source resistor trim, second CTLE stage 0x0 0x3
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          CST2_CDR:
+            description: CTLE shunt capacitor trim for first stage 0x0 0x3
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          CST1_CDR:
+            description: CTLE shunt capacitor trim for second stage 0x0 0x3
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      DES_DFEEM_CTRL_1:
+        description: Desirializer DFEEM control configuration (Characterization TRIM)
+        addressOffset: 0x10
+        size: 32
+        access: read-write
+        resetValue: 0x15
+        fields:
+          CMRTRIM_DFEEM:
+            description: For DFE/Eye Monitor Trim for common mode restore circuit 0x0 0x1 0x7
+            bitOffset: 8
+            bitWidth: 3
+            access: read-write
+          CSENT3_DFEEM:
+            description: CTLE Current Source Trim 0x0 0x3
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          CSENT2_DFEEM:
+            description: CTLE Current Source Trim 0x0 0x3
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          CSENT1_DFEEM:
+            description: CTLE Current Source Trim 0x0 0x3
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      DES_DFEEM_CTRL_2:
+        description: Desirializer DFEEM control configuration
+        addressOffset: 0x14
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          H4:
+            description: DFE, eye monitor tap 4
+            bitOffset: 24
+            bitWidth: 5
+            access: read-write
+          H3:
+            description: DFE, eye monitor tap 3
+            bitOffset: 16
+            bitWidth: 5
+            access: read-write
+          H2:
+            description: DFE, eye monitor tap 2
+            bitOffset: 8
+            bitWidth: 5
+            access: read-write
+          H1:
+            description: DFE, eye monitor tap 1
+            bitOffset: 0
+            bitWidth: 5
+            access: read-write
+      DES_DFEEM_CTRL_3:
+        description: Desirializer DFEEM control configuration
+        addressOffset: 0x18
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RST2_DFEEM:
+            description: CTLE source resistor trim, first CTLE stage 0x0 0x3
+            bitOffset: 14
+            bitWidth: 2
+            access: read-write
+          RST1_DFEEM:
+            description: CTLE source resistor trim, first CTLE stage 0x0 0x3
+            bitOffset: 12
+            bitWidth: 2
+            access: read-write
+          CST2_DFEEM:
+            description: CTLE shunt capacitor trim for first stage 0x0 0x3
+            bitOffset: 10
+            bitWidth: 2
+            access: read-write
+          CST1_DFEEM:
+            description: CTLE shunt capacitor trim for first stage 0x0 0x3
+            bitOffset: 8
+            bitWidth: 2
+            access: read-write
+          H5:
+            description: DFE, eye monitor tap 5
+            bitOffset: 0
+            bitWidth: 5
+            access: read-write
+      DES_DFE_CTRL_1:
+        description: Desirializer DFE control configuration (DFE Algorithm Calibration)
+        addressOffset: 0x20
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CALOUT_DFE:
+            description: Subsampled DFE output for DC feedback correction Data is sub-sampled with deserializer clock RESETDES must be low during calibration Calibration only valid when RXPLL_LOCK is low RCVEN should be de-asserted during calibration HSLPBKEN should be de-asserted during calibration
+            bitOffset: 16
+            bitWidth: 2
+            access: read-only
+          H0DFE1:
+            description: DFE tap1 and DC offset calibration for DFE sampler 1
+            bitOffset: 8
+            bitWidth: 5
+            access: read-write
+          H0DFE0:
+            description: DFE tap1 and DC offset calibration for DFE sampler 0
+            bitOffset: 1
+            bitWidth: 5
+            access: read-write
+          DCFBEN_DFE:
+            description: Enable DC offset cancellation of the first two CTLE stages (DFE) 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DES_DFE_CTRL_2:
+        description: Desirializer DFE control configuration
+        addressOffset: 0x24
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SLIP_DES_DFE_STATUS:
+            description: De-serializer DFE Slip bit status
+            bitOffset: 27
+            bitWidth: 1
+            access: read-only
+          SLIP_DES_DFE_EN:
+            description: De-serializer DFE Slip function enable 0 1
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          SLIP_DES_DFE_SEL:
+            description: Select de-serializer DFE slip controller 0 1
+            bitOffset: 25
+            bitWidth: 1
+            access: read-write
+          SLIP_DES_DFE:
+            description: 'Slip de-serializer output alignment by 1 bit A bit slip occurs on every state change of SLIP_DES In 8b, 16b, and 32b de-serialization, bits slip forward (ex: 101,01x,1xx) In 10b, 20b, and 40b de-serialization, bits slip backward (ex: 101,x10,xx1) 0 1'
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          PHICTRL_GRAY_DFE:
+            description: Gray Coded Phase control for DFE Sets phase of DFE versus the CDR Steps 1/4th UI (2UI total range)
+            bitOffset: 16
+            bitWidth: 3
+            access: read-write
+          PHICTRL_TH_DFE:
+            description: Thermometer Coded Phase control for DFE Sets phase of DFE versus the CDR Steps 1/32nd UI (1/4th UI total range) to interpolate between gray codes This should be fully stepped before transitioning gray codes to avoid glitching
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          CTLEEN_DFE:
+            description: CTLE Enable For the DFE Path 0 1
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RXDRV_DFE:
+            description: RX CLTLE BW control for DFE path 0x0 0x1 0x3
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      DES_EM_CTRL_1:
+        description: Desirializer EM control configuration (EM Algorithm Calibration)
+        addressOffset: 0x28
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CALOUT_EM:
+            description: Subsampled DFE output for DC feedback correction Data is sub-sampled with deserializer clock RESETDES must be low during calibration Calibration only valid when RXPLL_LOCK is low RCVEN should be de-asserted during calibration HSLPBKEN should be de-asserted during calibration
+            bitOffset: 24
+            bitWidth: 2
+            access: read-only
+          CALIBRATION_CLK_EN:
+            description: Enable de-serializer DC calibration clock 0 1
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          H0EM1:
+            description: EM tap1 and DC offset calibration for Eye monitor sampler 1
+            bitOffset: 8
+            bitWidth: 5
+            access: read-write
+          H0EM0:
+            description: EM tap1 and DC offset calibration for Eye monitor sampler 0
+            bitOffset: 1
+            bitWidth: 5
+            access: read-write
+          DCFBEN_EM:
+            description: Enable DC offset cancellation of the first two CTLE stages (Eye Monitor) 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DES_EM_CTRL_2:
+        description: Desirializer EM control configuration
+        addressOffset: 0x2C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SLIP_DES_EM_STATUS:
+            description: De-serializer Eye Monitor Slip bit status
+            bitOffset: 27
+            bitWidth: 1
+            access: read-only
+          SLIP_DES_EM_EN:
+            description: De-serializer Eye Monitor Slip function enable 0 1
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          SLIP_DES_EM_SEL:
+            description: Select de-serializer eye monitor slip controller 0 1
+            bitOffset: 25
+            bitWidth: 1
+            access: read-write
+          SLIP_DES_EM:
+            description: 'Slip de-serializer output alignment by 1 bit A bit slip occurs on every state change of SLIP_DES In 8b, 16b, and 32b de-serialization, bits slip forward (ex: 101,01x,1xx) In 10b, 20b, and 40b de-serialization, bits slip backward (ex: 101,x10,xx1) 0 1'
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          PHICTRL_GRAY_EM:
+            description: Gray Coded Phase control for Eye Monitor Sets phase of Eye Monitor versus the CDR Steps 1/4th UI (2UI total range)
+            bitOffset: 16
+            bitWidth: 3
+            access: read-write
+          PHICTRL_TH_EM:
+            description: Thermometer Coded Phase control for Eye Monitor Sets phase of Eye Monitor versus the CDR Steps 1/32nd UI (1/4th UI total range) to interpolate between gray codes This should be fully stepped before transitioning gray codes to avoid glitching
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          CTLEEN_EM:
+            description: CTLE Enable For the Eye Monitor Path 0 1
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RXDRV_EM:
+            description: RX CLTLE BW control for EM path 0x0 0x1 0x3
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      DES_IN_TERM:
+        description: Desirializer input termination configuration
+        addressOffset: 0x30
+        size: 32
+        access: read-write
+        resetValue: 0xA7
+        fields:
+          ACCOUPLE_RXVCM_EN:
+            description: Select AC couple mode (external AC coupling cap) or DC couple mode for receiver 0 1
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          RXRTRIM_SEL:
+            description: Select RX resistor trim 0x0 0x1 0x2 0x3
+            bitOffset: 5
+            bitWidth: 2
+            access: read-write
+          RXTEN:
+            description: RX Vtt termination select 0 1
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RXRTRIM:
+            description: RX termination trim 4'b1000 is nom RXRTRIM[3:0] Output -------------------- 0000 -> 76 Ohms ... 0111 -> 102 Ohms ... 1111 -> 171 Ohms 0x0 0xF
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      DES_PKDET:
+        description: Desirializer PKDET
+        addressOffset: 0x34
+        size: 32
+        access: read-write
+        resetValue: 0xAC
+        fields:
+          RXPKDETOUT:
+            description: Thermometer Coded Peak Detector Output Gain is set by RXPKDETRANGE 7'b0000000 -> minimum level 7'b0000001 7'b0000011 ... 7'11111111 -> maximum level
+            bitOffset: 8
+            bitWidth: 7
+            access: read-only
+          RXPKDET_HIGH_THRESHOLD:
+            description: RX Peak Detector HIGH threshold RX_IDLE goes LOW when the bit of the RXPKDETOUT[RXPKDET_HIGH_THRESHOLD] is HIGH. The register value 3'b111 is an invalid setting since the RXPKDETOUT is only 7 bits wide with valid indexes from 6 to 0.
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          RXPKDET_LOW_THRESHOLD:
+            description: RX Peak Detector LOW threshold RX_IDLE goes HIGH when the bit of the RXPKDETOUT[RXPKDET_LOW_THRESHOLD] is LOW. The register value 3'b111 is an invalid setting since the RXPKDETOUT is only 7 bits wide with valid indexes from 6 to 0.
+            bitOffset: 2
+            bitWidth: 3
+            access: read-write
+          RXPKDETRANGE:
+            description: Setting RX peak detector range 0 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RXPKDETEN:
+            description: Enable the receiver peak detector 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DES_RTL_EM:
+        description: Desirializer RTL Eyemonitor
+        addressOffset: 0x38
+        size: 32
+        access: read-write
+        resetValue: 0xC8
+        fields:
+          EYEMONITOR_COMPARISON_OUT:
+            description: Eye Monitor comparison error count
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          EYEMONITOR_COMPARISON_DONE:
+            description: Eye Monitor Done Signal
+            bitOffset: 13
+            bitWidth: 1
+            access: read-only
+          EYEMONITOR_SAMPLE_COUNT:
+            description: Eye Monitor comparison sample count Error rate is EYEMONITOR_COMPARISON_OUT / (10*EYEMONITOR_SAMPLE_COUNT) There are 10 samples taken for every clock period Eye monitor error counter will not restart until ENABLE_EYEMONITOR is de-asserted and re-asserted again.
+            bitOffset: 1
+            bitWidth: 12
+            access: read-write
+          RUN_EYEMONITOR_COMPARISON:
+            description: Eye Monitor Comparison RTL starts on a 0->1 transition of RUN_EYEMONITOR_COMPARISON Eye monitor will accumulate EYEMONITOR_COMPARISON_SAMPLES and then assert EYEMONITOR_COMPARISON_DONE and present output on EYEMONITOR_SAMPLE_COUNT 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DES_RTL_LOCK_CTRL:
+        description: Desirializer RTL LOCK Control
+        addressOffset: 0x3C
+        size: 32
+        access: read-write
+        resetValue: 0x8
+        fields:
+          LOCK_OVERRIDE_FROMFAB:
+            description: Select between LOCK_OVERRIDE and FAB_LOCK_OVERRIDE for RXPLL lock override functionality 0 1
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          RXPLL_FLOCK:
+            description: RX PLL frequency lock indication for CDR
+            bitOffset: 23
+            bitWidth: 1
+            access: read-only
+          RXPLL_LOCK:
+            description: RX PLL lock indication input for CDR RX data is valid after lock is asserted
+            bitOffset: 22
+            bitWidth: 1
+            access: read-only
+          FDET_VALID:
+            description: Frequency output is valid
+            bitOffset: 21
+            bitWidth: 1
+            access: read-only
+          FDET_CURRENT_SAMPLE:
+            description: Frequency detector current sample
+            bitOffset: 16
+            bitWidth: 5
+            access: read-only
+          FDET_COUNT:
+            description: Frequency detector count Frequency detector 'error' may be calculated FDET_COUNT / (256*FDET_CURRENT_SAMPLE)
+            bitOffset: 8
+            bitWidth: 8
+            access: read-only
+          FDET_SAMPLE_PERIODS:
+            description: Frequency detector Number of periods to sample Resolution increases with number of periods
+            bitOffset: 3
+            bitWidth: 5
+            access: read-write
+          LOCK_OVERRIDE:
+            description: Override control for lock signal Lock detector will need to re-acquire lock from 2'b10 state 0x0 0x1 0x2 0x3
+            bitOffset: 1
+            bitWidth: 2
+            access: read-write
+          LOCK_MODE:
+            description: Set Number of Loss-Of-Lock events for LOCK to go low 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DES_RXPLL_DIV:
+        description: Desirializer RXPLL Dividers
+        addressOffset: 0x40
+        size: 32
+        access: read-write
+        resetValue: 0x2219
+        fields:
+          CDR_GAIN:
+            description: Set CDR Gain 0 1
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          RXPLL_RANGE:
+            description: RX PLL Range Bit for CDR 0x0 0x1 0x2 0x3
+            bitOffset: 13
+            bitWidth: 2
+            access: read-write
+          RXPLL_REFDIV:
+            description: RX PLL reference reference divide 5'b00000 -> /1 5'b00001 -> /1 5'b00010 -> /2 5'b00011 -> /3 .... 5'b11111 -> /31 For PLL programming, see RXPLL_FBDIV notes
+            bitOffset: 8
+            bitWidth: 5
+            access: read-write
+          RXPLL_FBDIV:
+            description: 'RX PLL reference feedback divide (min 16) The VCO frequency is given by (f_ref * RXPLL_FBDIV / RXPLL_REFDIV), where f_ref is the reference frequency The bit rate is given by (2 * f_ref * RXPLL_FBDIV / RXPLL_REFDIV) The VCO frequency should be programmed to half the bit rate Example : for 10Gb/s, the VCO should be programmed to 5GHz'
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      DES_TEST_BUS:
+        description: Desirializer Test Bus
+        addressOffset: 0x44
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXDTESTOUT:
+            description: Digital test bus output
+            bitOffset: 24
+            bitWidth: 1
+            access: read-only
+          RXDTESTSEL:
+            description: Digital test bus select for RX channel RXDTESTSEL[2:0] Output 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7
+            bitOffset: 17
+            bitWidth: 3
+            access: read-write
+          RXDTESTEN:
+            description: Digital test bus enable for RX channel 0 1
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RXATESTSEL:
+            description: Analog test bus select for RX channel RXATESTSEL[2:0] Output (Hide from Customers) 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7
+            bitOffset: 8
+            bitWidth: 3
+            access: read-write
+          RXATESTEN:
+            description: Analog test bus enable for RX channel See TXPLL_CLKBUF_EN_APAD for programming of this signal (Hide from Customers) 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DES_CLK_CTRL:
+        description: Desirializer Clock Control
+        addressOffset: 0x48
+        size: 32
+        access: read-write
+        resetValue: 0x3C
+        fields:
+          RXBYPASSEN:
+            description: Enable RXP/RXN to RXSEOUT path 0 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          DATALOCKDIVEN:
+            description: Enable divide-by-32 path from Rx data to CDR reference clock when in "DATALOCKEN" mode. 0 1
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          DATALOCKEN:
+            description: Enables the mode where the Reference Clock is embedded within the Rx data stream during training 0 1
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          DESMODE:
+            description: De-Serializer Mode Control 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7
+            bitOffset: 3
+            bitWidth: 3
+            access: read-write
+          RXREFCLK_SEL:
+            description: RX PLL Reference Clock Select 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      DES_RSTPD:
+        description: Deserializer RESET & PD
+        addressOffset: 0x4C
+        size: 32
+        access: read-write
+        resetValue: 0x2F
+        fields:
+          RESET_FIFO:
+            description: Reset FIFO 0 1
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RCVEN:
+            description: Receiver Enable 0 1
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          PDEM:
+            description: Powerdown control for the Eye Monitor 0 1
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          PDDFE:
+            description: Powerdown control for the DFE 0 1
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RESETDES:
+            description: Reset all deserializers for the channel. Acti ve High. 0 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RXPD:
+            description: Receiver Power down / reset PD should be asserted for programming 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DES_RTL_ERR_CHK:
+        description: Deserializer RTL Error Check
+        addressOffset: 0x50
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PRBSERR_COUNT:
+            description: PRBS error count
+            bitOffset: 8
+            bitWidth: 8
+            access: read-only
+          PRBSMON_RXPLL_LOCK:
+            description: RX PLL lock indication input for CDR RX data is valid after lock is asserted
+            bitOffset: 4
+            bitWidth: 1
+            access: read-only
+          ERROROUT:
+            description: PRBS raw error information
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          READ_ERROR:
+            description: Read PRBS errors 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DES_PCIE1_2_RXPLL_DIV:
+        description: Deserializer RXPLL Dividers for PCIE 1 & 2 mode
+        addressOffset: 0x54
+        size: 32
+        access: read-write
+        resetValue: 0x2322219
+        fields:
+          PCIE2_RXPLL_RANGE:
+            description: For PCIE Gen2 (5.0 GT/s) Range Bit for CDR 0x0 0x1 0x2 0x3
+            bitOffset: 29
+            bitWidth: 2
+            access: read-write
+          PCIE2_RXPLL_REFDIV:
+            description: For PCIE Gen2 (5.0 GT/s) RX PLL reference reference divide 5'b00000 -> /1 5'b00001 -> /1 5'b00010 -> /2 5'b00011 -> /3 .... 5'b11111 -> /31 For PLL programming, see RXPLL_FBDIV notes
+            bitOffset: 24
+            bitWidth: 5
+            access: read-write
+          PCIE2_RXPLL_FBDIV:
+            description: 'For PCIE Gen2 (5.0 GT/s) RX PLL reference feedback divide (min 16) The VCO frequency is given by (f_ref * RXPLL_FBDIV / RXPLL_REFDIV), where f_ref is the reference frequency The bit rate is given by (2 * f_ref * RXPLL_FBDIV / RXPLL_REFDIV) The VCO frequency should be programmed to half the bit rate Example : for 10Gb/s, the VCO should be programmed to 5GHz'
+            bitOffset: 16
+            bitWidth: 8
+            access: read-write
+          PCIE1_RXPLL_RANGE:
+            description: For PCIE Gen1 (2.5 GT/s) Range Bit for CDR 0x0 0x1 0x2 0x3
+            bitOffset: 13
+            bitWidth: 2
+            access: read-write
+          PCIE1_RXPLL_REFDIV:
+            description: For PCIE Gen1 (2.5 GT/s) RX PLL reference reference divide 5'b00000 -> /1 5'b00001 -> /1 5'b00010 -> /2 5'b00011 -> /3 .... 5'b11111 -> /31 For PLL programming, see RXPLL_FBDIV notes
+            bitOffset: 8
+            bitWidth: 5
+            access: read-write
+          PCIE1_RXPLL_FBDIV:
+            description: 'For PCIE Gen1 (2.5 GT/s) RX PLL reference feedback divide (min 16) The VCO frequency is given by (f_ref * RXPLL_FBDIV / RXPLL_REFDIV), where f_ref is the reference frequency The bit rate is given by (2 * f_ref * RXPLL_FBDIV / RXPLL_REFDIV) The VCO frequency should be programmed to half the bit rate Example : for 10Gb/s, the VCO should be programmed to 5GHz'
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      DES_SATA1_2_RXPLL_DIV:
+        description: Deserializer RXPLL Dividers for SATA 1 & 2 mode
+        addressOffset: 0x58
+        size: 32
+        access: read-write
+        resetValue: 0x22184418
+        fields:
+          SATA2_RXPLL_RANGE:
+            description: For SATA 2.0 Mode (3.0 Gb/s) Range Bit for CDR 0x0 0x1 0x2 0x3
+            bitOffset: 29
+            bitWidth: 2
+            access: read-write
+          SATA2_RXPLL_REFDIV:
+            description: For SATA 2.0 Mode (3.0 Gb/s) RX PLL reference reference divide 5'b00000 -> /1 5'b00001 -> /1 5'b00010 -> /2 5'b00011 -> /3 .... 5'b11111 -> /31 For PLL programming, see RXPLL_FBDIV notes
+            bitOffset: 24
+            bitWidth: 5
+            access: read-write
+          SATA2_RXPLL_FBDIV:
+            description: 'For SATA 2.0 Mode (3.0 Gb/s) RX PLL reference feedback divide (min 16) The VCO frequency is given by (f_ref * RXPLL_FBDIV / RXPLL_REFDIV), where f_ref is the reference frequency The bit rate is given by (2 * f_ref * RXPLL_FBDIV / RXPLL_REFDIV) The VCO frequency should be programmed to half the bit rate Example : for 10Gb/s, the VCO should be programmed to 5GHz'
+            bitOffset: 16
+            bitWidth: 8
+            access: read-write
+          SATA1_RXPLL_RANGE:
+            description: For SATA 1.0 Mode (1.5 Gb/s) Range Bit for CDR 0x0 0x1 0x2 0x3
+            bitOffset: 13
+            bitWidth: 2
+            access: read-write
+          SATA1_RXPLL_REFDIV:
+            description: For SATA 1.0 Mode (1.5 Gb/s) RX PLL reference reference divide 5'b00000 -> /1 5'b00001 -> /1 5'b00010 -> /2 5'b00011 -> /3 .... 5'b11111 -> /31 For PLL programming, see RXPLL_FBDIV notes
+            bitOffset: 8
+            bitWidth: 5
+            access: read-write
+          SATA1_RXPLL_FBDIV:
+            description: 'For SATA 1.0 Mode (1.5 Gb/s) RX PLL reference feedback divide (min 16) The VCO frequency is given by (f_ref * RXPLL_FBDIV / RXPLL_REFDIV), where f_ref is the reference frequency The bit rate is given by (2 * f_ref * RXPLL_FBDIV / RXPLL_REFDIV) The VCO frequency should be programmed to half the bit rate Example : for 10Gb/s, the VCO should be programmed to 5GHz'
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      DES_SATA3_RXPLL_DIV:
+        description: Deserializer RXPLL Dividers for SATA 3 mode
+        addressOffset: 0x5C
+        size: 32
+        access: read-write
+        resetValue: 0x230
+        fields:
+          SATA3_RXPLL_RANGE:
+            description: For SATA 3.0 Mode (6.0 Gb/s) Range Bit for CDR 0x0 0x1 0x2 0x3
+            bitOffset: 13
+            bitWidth: 2
+            access: read-write
+          SATA3_RXPLL_REFDIV:
+            description: For SATA 3.0 Mode (6.0 Gb/s) RX PLL reference reference divide 5'b00000 -> /1 5'b00001 -> /1 5'b00010 -> /2 5'b00011 -> /3 .... 5'b11111 -> /31 For PLL programming, see RXPLL_FBDIV notes
+            bitOffset: 8
+            bitWidth: 5
+            access: read-write
+          SATA3_RXPLL_FBDIV:
+            description: 'For SATA 3.0 Mode (6.0 Gb/s) RX PLL reference feedback divide (min 16) The VCO frequency is given by (f_ref * RXPLL_FBDIV / RXPLL_REFDIV), where f_ref is the reference frequency The bit rate is given by (2 * f_ref * RXPLL_FBDIV / RXPLL_REFDIV) The VCO frequency should be programmed to half the bit rate Example : for 10Gb/s, the VCO should be programmed to 5GHz'
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      SER_CTRL:
+        description: Serializer Control
+        addressOffset: 0x70
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          HSLPBK_SEL:
+            description: High speed internal loopback serializer unit select
+            bitOffset: 12
+            bitWidth: 3
+            access: read-write
+          HSLPBKEN:
+            description: Near-End High Speed loopback enable 0 1
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          NLPBK_EN:
+            description: Near-End T-gate Loopback enable 0 1
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          CMSTEP:
+            description: Step the common mode of TX to VDD 0 1
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          CMSTEP_VALUE:
+            description: Voltage to step to when CMSTEP is asserted 0 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          TXVBGREF_SEL:
+            description: Select VBG Reference for PLL voltage regulator 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SER_CLK_CTRL:
+        description: Serializer Clock Control
+        addressOffset: 0x74
+        size: 32
+        access: read-write
+        resetValue: 0x70
+        fields:
+          SERMODE:
+            description: Serializer Mode Control 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7
+            bitOffset: 4
+            bitWidth: 3
+            access: read-write
+          TXBITCLKSEL:
+            description: 'Transmitter bit clock select Chooses post-divided output clock from the following PLL: 1''b0 --> Serializer Bit Rate Clock <= Internal TXPLL FOUT 1''b1 --> Serializer Bit Rate Clock <= Bit Clk From Adjacent extpll For txbitclksel_ln3, txbitclksel_ln2, select extplln For txbitclksel_ln1, txbitclksel_ln0, select extplls Also selects RESETSER, REFCLK, and LOCK from the appropriate source 0 1'
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          TXPOSTDIV:
+            description: Serializer Per-Channel Division For PLL programming, see FBDIV notes 0x0 0x1 0x2 0x3
+            bitOffset: 1
+            bitWidth: 2
+            access: read-write
+          TXPOSTDIVEN:
+            description: Serializer post-divider enable 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SER_RSTPD:
+        description: Serializer Reset & PD
+        addressOffset: 0x78
+        size: 32
+        access: read-write
+        resetValue: 0x6
+        fields:
+          TXPD:
+            description: Power down / reset for serializer channels TXPD should be asserted for programming 0 1
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RESETSER:
+            description: Serializer Reset 0 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RESETSEREN:
+            description: Enable for RESETSER logic 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SER_DRV_BYP:
+        description: Serializer Driver Bypass
+        addressOffset: 0x7C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BYPASSSER:
+            description: Bypass enable for output driver 0 1
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          TX_BYPASS_SELECT:
+            description: Hard Macro BYPASS_VALUE Input Select 0 1
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          TX_BYPASS_SELECT_RTL:
+            description: RTL BYPASS_VALUE Input Select 0x0 0x1 0x2 0x3
+            bitOffset: 8
+            bitWidth: 2
+            access: read-write
+          BYPASS_VALUE:
+            description: Bypass value for each output driver segment (of 8)
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      SER_RXDET_CTRL:
+        description: Serializer RXDetect Control
+        addressOffset: 0x80
+        size: 32
+        access: read-write
+        resetValue: 0x8A10
+        fields:
+          RXDETECT_START:
+            description: Receiver detection start signal Begins the receiver detection RTL state machine 0 1
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RX_DETECT_EN:
+            description: TX detect of RX enable Enable for clocked RXDETOUT sensor 0 1
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          RXDETECT_COUNT_THRESHOLD:
+            description: TX detect RX counter threshold for Deserializer
+            bitOffset: 8
+            bitWidth: 14
+            access: read-write
+          RXDETECT_STEP_WAIT_COUNT:
+            description: Set wait duration after CMSTEP is asserted to ignore RXDETOUT
+            bitOffset: 0
+            bitWidth: 5
+            access: read-write
+      SER_RXDET_OUT:
+        description: Serializer RXDetect Output
+        addressOffset: 0x84
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          RXDETECT_DONE:
+            description: Receiver detection RTL done signal
+            bitOffset: 15
+            bitWidth: 1
+            access: read-only
+          RXDETOUT:
+            description: Output of clocked receiver detect sensor Receiver detect sensor is Enables with RX_DETECT_EN Receiver detect sensor is clocked with TXREFCLK This signal may also be accessed in the digital test bus
+            bitOffset: 14
+            bitWidth: 1
+            access: read-only
+          RXDETECT_COUNT:
+            description: Receiver detect RTL duration count in TXPLL reference periods TXPLL selected by TXBITCLKIND
+            bitOffset: 0
+            bitWidth: 14
+            access: read-only
+      SER_STATIC_LSB:
+        description: Serializer Static Pattern Data
+        addressOffset: 0x88
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          STATIC_PATTERN_LSB:
+            description: 'Transmitter Static Pattern MSB Control See TX_DATA_SELECT to send data to serializer Serialized Pattern is: In 40 bit mode, STATIC_PATTERN_MSBA[19:0], STATIC_PATTERN_LSBA[19:0] In 32 bit mode, STATIC_PATTERN_MSBA[15:0], STATIC_PATTERN_LSBA[15:0] In 20 bit mode, STATIC_PATTERN_MSB[19:0], STATIC_PATTERN_LSB[19:0] In 16 bit mode, STATIC_PATTERN_MSB[15:0], STATIC_PATTERN_LSB[15:0] In 10 bit mode, STATIC_PATTERN_MSB[19:10], STATIC_PATTERN_MSB[9:0], STATIC_PATTERN_LSB[19:10], STATIC_PATTERN_LSB[9:0] In 8 bit mode, STATIC_PATTERN_MSB[15:8], STATIC_PATTERN_MSB[7:0], STATIC_PATTERN_LSB[15:8], STATIC_PATTERN_LSB[7:0]'
+            bitOffset: 0
+            bitWidth: 20
+            access: read-write
+      SER_STATIC_MSB:
+        description: Serializer Static Pattern Data
+        addressOffset: 0x8C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          STATIC_PATTERN_MSB:
+            description: 'Transmitter Static Pattern MSB Control See TX_DATA_SELECT to send data to serializer Serialized Pattern is: In 40 bit mode, STATIC_PATTERN_MSB[19:0], STATIC_PATTERN_LSB[19:0] In 32 bit mode, STATIC_PATTERN_MSB[15:0], STATIC_PATTERN_LSB[15:0] In 20 bit mode, STATIC_PATTERN_MSB[19:0], STATIC_PATTERN_LSB[19:0] In 16 bit mode, STATIC_PATTERN_MSB[15:0], STATIC_PATTERN_LSB[15:0] In 10 bit mode, STATIC_PATTERN_MSB[19:10], STATIC_PATTERN_MSB[9:0], STATIC_PATTERN_LSB[19:10], STATIC_PATTERN_LSB[9:0] In 8 bit mode, STATIC_PATTERN_MSB[15:8], STATIC_PATTERN_MSB[7:0], STATIC_PATTERN_LSB[15:8], STATIC_PATTERN_LSB[7:0]'
+            bitOffset: 0
+            bitWidth: 20
+            access: read-write
+      SER_TERM_CTRL:
+        description: Serializer Termination Control
+        addressOffset: 0x90
+        size: 32
+        access: read-write
+        resetValue: 0x7200
+        fields:
+          TXRTRIM:
+            description: 'TX resistor trim When TXTEN = 0, high-Z When TXTEN = 1: 4''b0000 -> 76 Ohms .... 4''b0111 -> 102 Ohms .... 4''b1111 -> 171 Ohms 0x0 0xF'
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          TXRTRIM_SEL:
+            description: Select TX resistor trim 0x0 0x1 0x2 0x3
+            bitOffset: 9
+            bitWidth: 2
+            access: read-write
+          TXTEN:
+            description: TX back termination enable 0 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          TXCM_LEVEL:
+            description: Transmitter DC Level 0x0 0x1 0x2 0x3
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      SER_TEST_BUS:
+        description: Serializer Test Bus
+        addressOffset: 0x94
+        size: 32
+        access: read-write
+        resetValue: 0xE0000000
+        fields:
+          RXPKDETOUT_TO_DTEST_SEL:
+            description: Select Receiver Peak Detector Output to Digital Test Mux 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7
+            bitOffset: 29
+            bitWidth: 3
+            access: read-write
+          PRBSERR_TO_DTEST_SEL:
+            description: Select PRBS Error Source to Digital Test Mux 0x0 0x1 0x2 0x3
+            bitOffset: 27
+            bitWidth: 2
+            access: read-write
+          JTAG_TO_DTEST_SEL:
+            description: Select JTAG_OUT_LATCHED, JTAG_SET, and JTAG_CLEAR to the DTESTSEL_RTLA Mux 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7
+            bitOffset: 24
+            bitWidth: 3
+            access: read-write
+          DTESTSEL_RTL:
+            description: 'RTL Digital Test Bus Select Neighboring channels are: LANE 3 receives PRBSERR and CMSTEP from LANE 2 LANE 2 receives PRBSERR and CMSTEP from LANE 3 LANE 1 receives PRBSERR and CMSTEP from LANE 0 LANE 0 receives PRBSERR and CMSTEP from LANE1 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7 0x8 0x9 0xA 0xB 0xC 0xD 0xE 0xF'
+            bitOffset: 17
+            bitWidth: 4
+            access: read-write
+          DTESTEN_RTL:
+            description: RTL Digital Test Bus Enable 0 1
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          TXATESTSEL:
+            description: Serializer Analog Test Bus Select (Hide from Customers) 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7
+            bitOffset: 8
+            bitWidth: 3
+            access: read-write
+          TXATESTEN:
+            description: Analog test bus enable for TX channel See TXPLL_CLKBUF_EN_APAD for programming of this signal (Hide from Customers) 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SER_DRV_DATA_CTRL:
+        description: Serializer Driver Data Control
+        addressOffset: 0x98
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXDATA_INV:
+            description: Invert data for each output driver segment (of 8) Used for pre-emphasis / de-emphasis
+            bitOffset: 16
+            bitWidth: 8
+            access: read-write
+          TXDEL:
+            description: 'Delay data for each output driver segment (of 8) Used for pre-emphasis / de-emphasis [1:0] -> Delay control for segment 1 of 8 [3:2] -> Delay control for segment 2 of 8 [5:4] -> Delay control for segment 3 of 8 [7:6] -> Delay control for segment 4 of 8 [9:8] -> Delay control for segment 5 of 8 [11:10] -> Delay control for segment 6 of 8 [13:12] -> Delay control for segment 7 of 8 [15:14] -> Delay control for segment 8 of 8 For each segment: 2''b0x -> no delay 2''b10 -> 1b of delay 2''b11 -> 2b of delay'
+            bitOffset: 0
+            bitWidth: 16
+            access: read-write
+      SER_DRV_CTRL:
+        description: Serializer Driver Control
+        addressOffset: 0x9C
+        size: 32
+        access: read-write
+        resetValue: 0x1000000
+        fields:
+          TXODRV:
+            description: Transmitter Overdrive Control 0x0 0x1 0x2 0x3
+            bitOffset: 29
+            bitWidth: 2
+            access: read-write
+          TXITRIM:
+            description: Overall current scaling for TX Driver 0x0 0x1 0x2 0x3
+            bitOffset: 27
+            bitWidth: 2
+            access: read-write
+          TXDRV:
+            description: 'Enable for driver segments 2 to 8 (of 8) Note : segment 1 is Enables with TXPD=0 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7'
+            bitOffset: 24
+            bitWidth: 3
+            access: read-write
+          TXDRVTRIM:
+            description: 'Each enabled TX driver segment swing level [2:0] -> Drive trim for segment 1 of 8 [5:3] -> Drive trim for segment 2 of 8 [8:6] -> Drive trim for segment 3 of 8 [11:9] -> Drive trim for segment 4 of 8 [14:12] -> Drive trim for segment 5 of 8 [17:15] -> Drive trim for segment 6 of 8 [20:18] -> Drive trim for segment 7 of 8 [23:21] -> Drive trim for segment 8 of 8 For each segment: 3''b000 -> I_segment = I_segment_max*1/8 3''b001 -> I_segment = I_segment_max*2/8 3''b010 -> I_segment = I_segment_max*3/8 3''b011 -> I_segment = I_segment_max*4/8 3''b100 -> I_segment = I_segment_max*5/8 3''b101 -> I_segment = I_segment_max*6/8 3''b110 -> I_segment = I_segment_max*7/8 3''b111 -> I_segment = I_segment_max*8/8'
+            bitOffset: 0
+            bitWidth: 24
+            access: read-write
+      SER_DRV_CTRL_SEL:
+        description: Serializer Driver Control Select
+        addressOffset: 0xA0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXDEEMPHASIS_BEACON:
+            description: TX De-emphasis for BEACON 0 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          TXDEEMPHASIS:
+            description: TX De-emphasis 0 1
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          TXSWING:
+            description: TX Swing 0 1
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          TXMARGIN:
+            description: TX margin select 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7
+            bitOffset: 2
+            bitWidth: 3
+            access: read-write
+          TXODRV_BOOSTER:
+            description: TX Overdrive Control Booster 0 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          TXDRV_CTRL_SEL:
+            description: TX Drive Control signals select between the SER_DRV_CTRL_M* register inputs (programmed by TXMARGIN, TXSWING and TXDEEMHASIS) and user's defined SER_DRV_CTRL and SER_DRV_DATA_CTRL registers. 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SER_DRV_CTRL_M0:
+        description: Serializer Driver Control
+        addressOffset: 0xA4
+        size: 32
+        access: read-write
+        resetValue: 0x1B3423
+        fields:
+          TXDRVTRIM_HS_0DB_M0:
+            description: 'TX Drive Trim for Half Swing and 0dB de-emphasis and TXmargin = 000 [2:0] -> Drive trim for segment 1 of 8 [5:3] -> Drive trim for segment 2 of 8 For each segment: 3''b000 -> I_segment = I_segment_max*1/8 3''b001 -> I_segment = I_segment_max*2/8 3''b010 -> I_segment = I_segment_max*3/8 3''b011 -> I_segment = I_segment_max*4/8 3''b100 -> I_segment = I_segment_max*5/8 3''b101 -> I_segment = I_segment_max*6/8 3''b110 -> I_segment = I_segment_max*7/8 3''b111 -> I_segment = I_segment_max*8/8'
+            bitOffset: 16
+            bitWidth: 6
+            access: read-write
+          TXDRVTRIM_FS_6P0DB_M0:
+            description: 'TX Drive Trim for Full Swing and -6.0dB de-emphasis and TXmargin = 000 [2:0] -> Drive trim for segment 1 of 8 [5:3] -> Drive trim for segment 2 of 8 For each segment: 3''b000 -> I_segment = I_segment_max*1/8 3''b001 -> I_segment = I_segment_max*2/8 3''b010 -> I_segment = I_segment_max*3/8 3''b011 -> I_segment = I_segment_max*4/8 3''b100 -> I_segment = I_segment_max*5/8 3''b101 -> I_segment = I_segment_max*6/8 3''b110 -> I_segment = I_segment_max*7/8 3''b111 -> I_segment = I_segment_max*8/8'
+            bitOffset: 8
+            bitWidth: 6
+            access: read-write
+          TXDRVTRIM_FS_3P5DB_M0:
+            description: 'TX Drive Trim for Full Swing and -3.5dB de-emphasis and TXmargin = 000 [2:0] -> Drive trim for segment 1 of 8 [5:3] -> Drive trim for segment 2 of 8 For each segment: 3''b000 -> I_segment = I_segment_max*1/8 3''b001 -> I_segment = I_segment_max*2/8 3''b010 -> I_segment = I_segment_max*3/8 3''b011 -> I_segment = I_segment_max*4/8 3''b100 -> I_segment = I_segment_max*5/8 3''b101 -> I_segment = I_segment_max*6/8 3''b110 -> I_segment = I_segment_max*7/8 3''b111 -> I_segment = I_segment_max*8/8'
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      SER_DRV_CTRL_M1:
+        description: Serializer Driver Control
+        addressOffset: 0xA8
+        size: 32
+        access: read-write
+        resetValue: 0x232C27
+        fields:
+          TXDRVTRIM_HS_0DB_M1:
+            description: 'TX Drive Trim for Half Swing and 0dB de-emphasis and TXmargin = 001 [2:0] -> Drive trim for segment 1 of 8 [5:3] -> Drive trim for segment 2 of 8 For each segment: 3''b000 -> I_segment = I_segment_max*1/8 3''b001 -> I_segment = I_segment_max*2/8 3''b010 -> I_segment = I_segment_max*3/8 3''b011 -> I_segment = I_segment_max*4/8 3''b100 -> I_segment = I_segment_max*5/8 3''b101 -> I_segment = I_segment_max*6/8 3''b110 -> I_segment = I_segment_max*7/8 3''b111 -> I_segment = I_segment_max*8/8'
+            bitOffset: 16
+            bitWidth: 6
+            access: read-write
+          TXDRVTRIM_FS_6P0DB_M1:
+            description: 'TX Drive Trim for Full Swing and -6.0dB de-emphasis and TXmargin = 001 [2:0] -> Drive trim for segment 1 of 8 [5:3] -> Drive trim for segment 2 of 8 For each segment: 3''b000 -> I_segment = I_segment_max*1/8 3''b001 -> I_segment = I_segment_max*2/8 3''b010 -> I_segment = I_segment_max*3/8 3''b011 -> I_segment = I_segment_max*4/8 3''b100 -> I_segment = I_segment_max*5/8 3''b101 -> I_segment = I_segment_max*6/8 3''b110 -> I_segment = I_segment_max*7/8 3''b111 -> I_segment = I_segment_max*8/8'
+            bitOffset: 8
+            bitWidth: 6
+            access: read-write
+          TXDRVTRIM_FS_3P5DB_M1:
+            description: 'TX Drive Trim for Full Swing and -3.5dB de-emphasis and TXmargin = 001 [2:0] -> Drive trim for segment 1 of 8 [5:3] -> Drive trim for segment 2 of 8 For each segment: 3''b000 -> I_segment = I_segment_max*1/8 3''b001 -> I_segment = I_segment_max*2/8 3''b010 -> I_segment = I_segment_max*3/8 3''b011 -> I_segment = I_segment_max*4/8 3''b100 -> I_segment = I_segment_max*5/8 3''b101 -> I_segment = I_segment_max*6/8 3''b110 -> I_segment = I_segment_max*7/8 3''b111 -> I_segment = I_segment_max*8/8'
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      SER_DRV_CTRL_M2:
+        description: Serializer Driver Control
+        addressOffset: 0xAC
+        size: 32
+        access: read-write
+        resetValue: 0x1B1B1B
+        fields:
+          TXDRVTRIM_HS_0DB_M2:
+            description: 'TX Drive Trim for Half Swing and 0dB de-emphasis and TXmargin = 010 [2:0] -> Drive trim for segment 1 of 8 [5:3] -> Drive trim for segment 2 of 8 For each segment: 3''b000 -> I_segment = I_segment_max*1/8 3''b001 -> I_segment = I_segment_max*2/8 3''b010 -> I_segment = I_segment_max*3/8 3''b011 -> I_segment = I_segment_max*4/8 3''b100 -> I_segment = I_segment_max*5/8 3''b101 -> I_segment = I_segment_max*6/8 3''b110 -> I_segment = I_segment_max*7/8 3''b111 -> I_segment = I_segment_max*8/8'
+            bitOffset: 16
+            bitWidth: 6
+            access: read-write
+          TXDRVTRIM_FS_6P0DB_M2:
+            description: 'TX Drive Trim for Full Swing and -6.0dB de-emphasis and TXmargin = 010 [2:0] -> Drive trim for segment 1 of 8 [5:3] -> Drive trim for segment 2 of 8 For each segment: 3''b000 -> I_segment = I_segment_max*1/8 3''b001 -> I_segment = I_segment_max*2/8 3''b010 -> I_segment = I_segment_max*3/8 3''b011 -> I_segment = I_segment_max*4/8 3''b100 -> I_segment = I_segment_max*5/8 3''b101 -> I_segment = I_segment_max*6/8 3''b110 -> I_segment = I_segment_max*7/8 3''b111 -> I_segment = I_segment_max*8/8'
+            bitOffset: 8
+            bitWidth: 6
+            access: read-write
+          TXDRVTRIM_FS_3P5DB_M2:
+            description: 'TX Drive Trim for Full Swing and -3.5dB de-emphasis and TXmargin = 010 [2:0] -> Drive trim for segment 1 of 8 [5:3] -> Drive trim for segment 2 of 8 For each segment: 3''b000 -> I_segment = I_segment_max*1/8 3''b001 -> I_segment = I_segment_max*2/8 3''b010 -> I_segment = I_segment_max*3/8 3''b011 -> I_segment = I_segment_max*4/8 3''b100 -> I_segment = I_segment_max*5/8 3''b101 -> I_segment = I_segment_max*6/8 3''b110 -> I_segment = I_segment_max*7/8 3''b111 -> I_segment = I_segment_max*8/8'
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      SER_DRV_CTRL_M3:
+        description: Serializer Driver Control
+        addressOffset: 0xB0
+        size: 32
+        access: read-write
+        resetValue: 0x1B1B14
+        fields:
+          TXDRVTRIM_HS_0DB_M3:
+            description: 'TX Drive Trim for Half Swing and 0dB de-emphasis and TXmargin = 011 [2:0] -> Drive trim for segment 1 of 8 [5:3] -> Drive trim for segment 2 of 8 For each segment: 3''b000 -> I_segment = I_segment_max*1/8 3''b001 -> I_segment = I_segment_max*2/8 3''b010 -> I_segment = I_segment_max*3/8 3''b011 -> I_segment = I_segment_max*4/8 3''b100 -> I_segment = I_segment_max*5/8 3''b101 -> I_segment = I_segment_max*6/8 3''b110 -> I_segment = I_segment_max*7/8 3''b111 -> I_segment = I_segment_max*8/8'
+            bitOffset: 16
+            bitWidth: 6
+            access: read-write
+          TXDRVTRIM_FS_6P0DB_M3:
+            description: 'TX Drive Trim for Full Swing and -6.0dB de-emphasis and TXmargin = 011 [2:0] -> Drive trim for segment 1 of 8 [5:3] -> Drive trim for segment 2 of 8 For each segment: 3''b000 -> I_segment = I_segment_max*1/8 3''b001 -> I_segment = I_segment_max*2/8 3''b010 -> I_segment = I_segment_max*3/8 3''b011 -> I_segment = I_segment_max*4/8 3''b100 -> I_segment = I_segment_max*5/8 3''b101 -> I_segment = I_segment_max*6/8 3''b110 -> I_segment = I_segment_max*7/8 3''b111 -> I_segment = I_segment_max*8/8'
+            bitOffset: 8
+            bitWidth: 6
+            access: read-write
+          TXDRVTRIM_FS_3P5DB_M3:
+            description: 'TX Drive Trim for Full Swing and -3.5dB de-emphasis and TXmargin = 011 [2:0] -> Drive trim for segment 1 of 8 [5:3] -> Drive trim for segment 2 of 8 For each segment: 3''b000 -> I_segment = I_segment_max*1/8 3''b001 -> I_segment = I_segment_max*2/8 3''b010 -> I_segment = I_segment_max*3/8 3''b011 -> I_segment = I_segment_max*4/8 3''b100 -> I_segment = I_segment_max*5/8 3''b101 -> I_segment = I_segment_max*6/8 3''b110 -> I_segment = I_segment_max*7/8 3''b111 -> I_segment = I_segment_max*8/8'
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      SER_DRV_CTRL_M4:
+        description: Serializer Driver Control
+        addressOffset: 0xB4
+        size: 32
+        access: read-write
+        resetValue: 0x240C0A
+        fields:
+          TXDRVTRIM_HS_0DB_M4:
+            description: 'TX Drive Trim for Half Swing and 0dB de-emphasis and TXmargin = 100 [2:0] -> Drive trim for segment 1 of 8 [5:3] -> Drive trim for segment 2 of 8 For each segment: 3''b000 -> I_segment = I_segment_max*1/8 3''b001 -> I_segment = I_segment_max*2/8 3''b010 -> I_segment = I_segment_max*3/8 3''b011 -> I_segment = I_segment_max*4/8 3''b100 -> I_segment = I_segment_max*5/8 3''b101 -> I_segment = I_segment_max*6/8 3''b110 -> I_segment = I_segment_max*7/8 3''b111 -> I_segment = I_segment_max*8/8'
+            bitOffset: 16
+            bitWidth: 6
+            access: read-write
+          TXDRVTRIM_FS_6P0DB_M4:
+            description: 'TX Drive Trim for Full Swing and -6.0dB de-emphasis and TXmargin = 100 [2:0] -> Drive trim for segment 1 of 8 [5:3] -> Drive trim for segment 2 of 8 For each segment: 3''b000 -> I_segment = I_segment_max*1/8 3''b001 -> I_segment = I_segment_max*2/8 3''b010 -> I_segment = I_segment_max*3/8 3''b011 -> I_segment = I_segment_max*4/8 3''b100 -> I_segment = I_segment_max*5/8 3''b101 -> I_segment = I_segment_max*6/8 3''b110 -> I_segment = I_segment_max*7/8 3''b111 -> I_segment = I_segment_max*8/8'
+            bitOffset: 8
+            bitWidth: 6
+            access: read-write
+          TXDRVTRIM_FS_3P5DB_M4:
+            description: 'TX Drive Trim for Full Swing and -3.5dB de-emphasis and TXmargin = 100 [2:0] -> Drive trim for segment 1 of 8 [5:3] -> Drive trim for segment 2 of 8 For each segment: 3''b000 -> I_segment = I_segment_max*1/8 3''b001 -> I_segment = I_segment_max*2/8 3''b010 -> I_segment = I_segment_max*3/8 3''b011 -> I_segment = I_segment_max*4/8 3''b100 -> I_segment = I_segment_max*5/8 3''b101 -> I_segment = I_segment_max*6/8 3''b110 -> I_segment = I_segment_max*7/8 3''b111 -> I_segment = I_segment_max*8/8'
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      SER_DRV_CTRL_M5:
+        description: Serializer Driver Control
+        addressOffset: 0xB8
+        size: 32
+        access: read-write
+        resetValue: 0x1B383B38
+        fields:
+          TXDRVTRIM_BEACON_6P0DB_1:
+            description: 'TX Drive Trim for TX Beacon and -6.0dB de-emphasis [2:0] -> Drive trim for segment 1 of 8 [5:3] -> Drive trim for segment 2 of 8 For each segment: 3''b000 -> I_segment = I_segment_max*1/8 3''b001 -> I_segment = I_segment_max*2/8 3''b010 -> I_segment = I_segment_max*3/8 3''b011 -> I_segment = I_segment_max*4/8 3''b100 -> I_segment = I_segment_max*5/8 3''b101 -> I_segment = I_segment_max*6/8 3''b110 -> I_segment = I_segment_max*7/8 3''b111 -> I_segment = I_segment_max*8/8'
+            bitOffset: 24
+            bitWidth: 6
+            access: read-write
+          TXDRVTRIM_BEACON_6P0DB_0:
+            description: 'TX Drive Trim for TX Beacon and -6.0dB de-emphasis [2:0] -> Drive trim for segment 1 of 8 [5:3] -> Drive trim for segment 2 of 8 For each segment: 3''b000 -> I_segment = I_segment_max*1/8 3''b001 -> I_segment = I_segment_max*2/8 3''b010 -> I_segment = I_segment_max*3/8 3''b011 -> I_segment = I_segment_max*4/8 3''b100 -> I_segment = I_segment_max*5/8 3''b101 -> I_segment = I_segment_max*6/8 3''b110 -> I_segment = I_segment_max*7/8 3''b111 -> I_segment = I_segment_max*8/8'
+            bitOffset: 16
+            bitWidth: 6
+            access: read-write
+          TXDRVTRIM_BEACON_3P5DB_1:
+            description: 'TX Drive Trim for TX Beacon and -3.5dB de-emphasis [2:0] -> Drive trim for segment 1 of 8 [5:3] -> Drive trim for segment 2 of 8 For each segment: 3''b000 -> I_segment = I_segment_max*1/8 3''b001 -> I_segment = I_segment_max*2/8 3''b010 -> I_segment = I_segment_max*3/8 3''b011 -> I_segment = I_segment_max*4/8 3''b100 -> I_segment = I_segment_max*5/8 3''b101 -> I_segment = I_segment_max*6/8 3''b110 -> I_segment = I_segment_max*7/8 3''b111 -> I_segment = I_segment_max*8/8'
+            bitOffset: 8
+            bitWidth: 6
+            access: read-write
+          TXDRVTRIM_BEACON_3P5DB_0:
+            description: 'TX Drive Trim for TX Beacon and -3.5dB de-emphasis [2:0] -> Drive trim for segment 1 of 8 [5:3] -> Drive trim for segment 2 of 8 For each segment: 3''b000 -> I_segment = I_segment_max*1/8 3''b001 -> I_segment = I_segment_max*2/8 3''b010 -> I_segment = I_segment_max*3/8 3''b011 -> I_segment = I_segment_max*4/8 3''b100 -> I_segment = I_segment_max*5/8 3''b101 -> I_segment = I_segment_max*6/8 3''b110 -> I_segment = I_segment_max*7/8 3''b111 -> I_segment = I_segment_max*8/8'
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      SERDES_RTL_CTRL:
+        description: SERDES RTL Control
+        addressOffset: 0xC0
+        size: 32
+        access: read-write
+        resetValue: 0x100
+        fields:
+          RX_EYEMONITOR_COMPARISON_DATA_SEL:
+            description: Send 40 bit eye monitor comparison result to RX_DATA_TO_CORE40 0 1
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RX_FIFO_INPUT_SELECT_NEIGHBOR:
+            description: select data and clock to RX FIFO from deserializer TX_DATA_SELECT should be set to 3'b001 to pass FIFO data to the Serializer RX_FIFO_INPUT_SELECT Mux LANE 3 will receive FIFO data/clock from LANE 2 LANE 2 will receive FIFO data/clock from LANE 3 LANE 1 will receive FIFO data/clock from LANE 0 LANE 0 will receive FIFO data/clock from LANE 1 0 1
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          RX_DATA_SELECT:
+            description: select data and clock to core from deserializer 0x0 0x1 0x2 0x3
+            bitOffset: 16
+            bitWidth: 2
+            access: read-write
+          TX_DATA_SELECT:
+            description: Serializer Data Mux Select 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7
+            bitOffset: 12
+            bitWidth: 3
+            access: read-write
+          TX_PRBSMODE:
+            description: Serializer PRBS Pattern Select 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7
+            bitOffset: 9
+            bitWidth: 3
+            access: read-write
+          RESET_RTL:
+            description: Reset all RTL for the channel. 0 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          TX_HALF_RATE10BIT:
+            description: Passes each bit from TXDATA10[n] to TXDATA20[2*n] and TXDATA20[(2*n)+1]. 0 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RX_HALF_RATE10BIT:
+            description: Passes every other bit (19,17,15...etc) from RX_DATA_TO_CORE20 to RX_DATA_TO_CORE10 and the clock from RXCLK_TO_CORE20 to RXCLK_TO_CORE10 This requires operation in 20 bit de-serialization mode and repeating data passed to the de-serializer 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DES_DFE_CAL_CTRL_0:
+        description: Desirializer DFE Calibration
+        addressOffset: 0xD0
+        size: 32
+        access: read-write
+        resetValue: 0x64100702
+        fields:
+          NUM_SAMPLES_GOOD_LOCK:
+            description: Number of clock cycles the RX PLL lock signal will be observed and is expected to stay high to assume the PLL is properly locked.
+            bitOffset: 24
+            bitWidth: 8
+            access: read-write
+          NUM_SAMPLES_CTLE_OFFSET_CAL:
+            description: Number of samples to collect from the CTLE outputs to determine if its output is in average logic high or low. Used during CTLE DC-offset calibration.
+            bitOffset: 16
+            bitWidth: 6
+            access: read-write
+          WAIT_PERIOD_GOOD_LOCK:
+            description: Number of clock cycles to wait after a change in settings before starting to monitor the RX PLL lock signal. I.e. how long it takes to settle to logic high.
+            bitOffset: 8
+            bitWidth: 3
+            access: read-write
+          EN_OFFSET_CAL:
+            description: Enable CTLE Offset Calibration 0 1
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          EN_DFE_CAL:
+            description: Enable DFE Calibration 0 1
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          EN_FE_CAL:
+            description: Enable Front-End Calibration 0 1
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          DFE_CAL_RESET:
+            description: Reset DFE Calibration 0 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          DFE_CAL_CEN:
+            description: Enable control for DFE Calibration 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DES_DFE_CAL_CTRL_1:
+        description: Deserializer DFE Calibration
+        addressOffset: 0xD4
+        size: 32
+        access: read-write
+        resetValue: 0x1034018
+        fields:
+          MAX_AREA_CYCLES:
+            description: Maximum number of iterations used to refine the center of the eye opening during area computation.
+            bitOffset: 24
+            bitWidth: 2
+            access: read-write
+          MAX_DFE_CYCLES:
+            description: Maximum number of cycles without improvement before the DFE calibration quits. Do not set to 0x00.
+            bitOffset: 16
+            bitWidth: 5
+            access: read-write
+          DFE_CAL_NUM_COEFFS:
+            description: Number of coefficients to use during DFE calibration. For DFE_CAL_NUM_COEFFS = n, then coefficients H1 to H(n+1) are used.
+            bitOffset: 12
+            bitWidth: 3
+            access: read-write
+          DFE_CAL_FORCE_CDR_COEFFS:
+            description: Forces the CTLE coefficients for the CDR to be the same as the CTLE coefficients for the DFE when calibration is running. 0 1
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          DFE_CAL_FREQUENCY:
+            description: Frequency of operation. Used to determine RX CTLE emphasis.
+            bitOffset: 8
+            bitWidth: 3
+            access: read-write
+          DFE_CAL_CLKDIV:
+            description: DFE Calibration input clock divider Input clock is the 1/40th Rate DFE clock
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          PHASE_DIRECTION_USER:
+            description: Sets the direction of the phase stepper 0 1
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          DFE_CAL_FORCEH:
+            description: Forces the alternative DFE coefficients to be the the only option for FE calibration and initial coefficients for DFE calibration. 0 1
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          DFE_CAL_EM_ONLY:
+            description: Perform eye area calculation using eye monitor only 0 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          BYPASS_DFECAL_USER:
+            description: Bypass DFE Coefficients 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DES_DFE_CAL_CTRL_2:
+        description: Desirializer DFE Calibration
+        addressOffset: 0xD8
+        size: 32
+        access: read-write
+        resetValue: 0x800000
+        fields:
+          ERROR_THR_CHANNEL_ALIGN:
+            description: Number of eye-monitor errors (in multiples of 16) above which the DFE and EM receivers are assumed to be misaligned.
+            bitOffset: 16
+            bitWidth: 12
+            access: read-write
+          SET_DFE_COEFFS_USER:
+            description: Use preset DFE coefficients as a starting point for calibration
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          SETALT_OFFSET_EM1:
+            description: By asserting a low-to-high transition switched the CTLE DC-offset correction set by calibration to those specified by the user in offset_XXX_alt.
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          SETALT_OFFSET_EM0:
+            description: By asserting a low-to-high transition switched the CTLE DC-offset correction set by calibration to those specified by the user in offset_XXX_alt.
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          SETALT_OFFSET_DFE1:
+            description: By asserting a low-to-high transition switched the CTLE DC-offset correction set by calibration to those specified by the user in offset_XXX_alt.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          SETALT_OFFSET_DFE0:
+            description: By asserting a low-to-high transition switched the CTLE DC-offset correction set by calibration to those specified by the user in offset_XXX_alt.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DES_DFE_CAL_CMD:
+        description: Desirializer DFE Calibration
+        addressOffset: 0xDC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RUN_STEP_PHASE_EM_USER:
+            description: Changes the sampling clock phase of the EM receiver on positive transition. PHASE_DIRECTION_USER controls the step direction. 0 1
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          RUN_STEP_PHASE_DFE_USER:
+            description: Changes the sampling clock phase of the DFE receiver on positive transition. PHASE_DIRECTION_USER controls the step direction. 0 1
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          RUN_GOOD_LOCK_USER:
+            description: Starts a Good-lock test on positive transition 0 1
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          RUN_FULL_CAL_USER:
+            description: Starts a Full Calibration on positive transition. 0 1
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          RUN_FE_CALIBRATION_USER:
+            description: Starts Front-End (FE) Calibration on positive transition. 0 1
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          RUN_DFECAL_USER:
+            description: Starts DFE Calibration on positive transition. 0 1
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RUN_VERTICAL_USER:
+            description: Starts a Vertical Scan on positive transition. 0 1
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          RUN_VERTICAL_EM_USER:
+            description: Starts an EM-Only Vertical Scan on positive transition. 0 1
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          RUN_HORIZONTAL_USER:
+            description: Starts a Horizontal Scan on positive transition. 0 1
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          RUN_HORIZONTAL_EM_USER:
+            description: Starts an EM-Only Horizontal Scan on positive transition. 0 1
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          RUN_CENTER_HORIZONTAL_USER:
+            description: Starts Phase Centering on positive transition. 0 1
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          RUN_CENTER_HORIZONTAL_EM_USER:
+            description: Starts Phase Centering (EMOnly) on positive transition. 0 1
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          RUN_CHANNEL_ALIGN_USER:
+            description: Starts Channel Alignment on positive transition. 0 1
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          RUN_AREA_COMPUTE_USER:
+            description: Starts Eye-Area Computation on positive transition. 0 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RUN_CTLE_OFFSET_CAL7_USER:
+            description: Starts CTLE DC-Offset calibration on positive transition. 0 1
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          RUN_CTLE_OFFSET_CAL6_USER:
+            description: Starts CTLE DC-Offset calibration on positive transition. 0 1
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RUN_CTLE_OFFSET_CAL5_USER:
+            description: Starts CTLE DC-Offset calibration on positive transition. 0 1
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          RUN_CTLE_OFFSET_CAL4_USER:
+            description: Starts CTLE DC-Offset calibration on positive transition. 0 1
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RUN_CTLE_OFFSET_CAL3_USER:
+            description: Starts CTLE DC-Offset calibration on positive transition. 0 1
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          RUN_CTLE_OFFSET_CAL2_USER:
+            description: Starts CTLE DC-Offset calibration on positive transition. 0 1
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RUN_CTLE_OFFSET_CAL1_USER:
+            description: Starts CTLE DC-Offset calibration on positive transition. 0 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RUN_CTLE_OFFSET_CAL0_USER:
+            description: Starts CTLE DC-Offset calibration on positive transition. 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DES_DFE_CAL_BYPASS:
+        description: Desirializer DFE Calibration
+        addressOffset: 0xE0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SEL_LOCK_OVERRIDE:
+            description: Select LOCK_OVERRIDE register value. 0 1
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          SEL_SLIP_DES_EM:
+            description: Select SLIP_DES_EM register value. 0 1
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          SEL_RUN_EYEMONITOR_COMPARISON:
+            description: Select RUN_EYEMONITOR_COMPARISON reigster value. 0 1
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          SEL_RST2_DFEEM:
+            description: Select RST2_DFEEM register value. 0 1
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          SEL_RST1_DFEEM:
+            description: Select RST1_DFEEM register value. 0 1
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          SEL_RCVEN:
+            description: Select RCVEN register value. 0 1
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          SEL_PHICTRL_EM:
+            description: Select register values of PHICTRL_GRAY_EM and PHICTRL_TH_EM. 0 1
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          SEL_PHICTRL_DFE:
+            description: Select register values of PHICTRL_GRAY_DFE and PHICTRL_EM_DFE. 0 1
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          SEL_CTLEEN_EM:
+            description: Select CTLEEN_EM register value. 0 1
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          SEL_CTLEEN_DFE:
+            description: Select CTLEEN_DFE register value. 0 1
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          SEL_CST2_DFEEM:
+            description: Select CST2_DFEEM register value. 0 1
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          SEL_CST1_DFEEM:
+            description: Select CST1_DFEEM register value. 0 1
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          SEL_CDRCTLE:
+            description: Select register values of CST1_CDR, CST2_CDR, RST1_CDR and RST2_CDR. 0 1
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          SEL_CALIBRATION_CLK_EN:
+            description: Select CALIBRATION_CLK_EN register value. 0 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          SEL_H5:
+            description: Select H5 register value. 0 1
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          SEL_H4:
+            description: Select H4 register value. 0 1
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          SEL_H3:
+            description: Select H3 register value. 0 1
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          SEL_H2:
+            description: Select H2 register value. 0 1
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          SEL_H1:
+            description: Select H1 register value. 0 1
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          SEL_H0EM:
+            description: Select H0EM register value. 0 1
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          SEL_H0DFE:
+            description: Select H0DFE register value. 0 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          SEL_H0CDR:
+            description: Select H0CDR register value. 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DES_DFE_CAL_EYE_DATA:
+        description: Desirializer DFE Calibration
+        addressOffset: 0xE4
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          EYE_HEIGHT:
+            description: Height of Eye openning.
+            bitOffset: 24
+            bitWidth: 5
+            access: read-only
+          EYE_WIDTH:
+            description: Width of Eye openning.
+            bitOffset: 16
+            bitWidth: 6
+            access: read-only
+          EYE_CENTER_VERTICAL:
+            description: Vertical (DC-offset) center of the Eye openning.
+            bitOffset: 8
+            bitWidth: 5
+            access: read-only
+          EYE_CENTER_HORIZONTAL:
+            description: Horizontal (Phase) center of the Eye openning.
+            bitOffset: 0
+            bitWidth: 6
+            access: read-only
+      DES_DFE_CDRH0_MON:
+        description: Desirializer DFE Calibration
+        addressOffset: 0xE8
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          H0CDR3_MON:
+            description: Monitor output of H0CDR3
+            bitOffset: 24
+            bitWidth: 5
+            access: read-only
+          H0CDR2_MON:
+            description: Monitor output of H0CDR2
+            bitOffset: 16
+            bitWidth: 5
+            access: read-only
+          H0CDR1_MON:
+            description: Monitor output of H0CDR1
+            bitOffset: 8
+            bitWidth: 5
+            access: read-only
+          H0CDR0_MON:
+            description: Monitor output of H0CDR0
+            bitOffset: 0
+            bitWidth: 5
+            access: read-only
+      DES_DFE_COEFF_MON_0:
+        description: Desirializer DFE Calibration
+        addressOffset: 0xEC
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          H4_MON:
+            description: Monitor output of H4
+            bitOffset: 24
+            bitWidth: 5
+            access: read-only
+          H3_MON:
+            description: Monitor output of H3
+            bitOffset: 16
+            bitWidth: 5
+            access: read-only
+          H2_MON:
+            description: Monitor output of H2
+            bitOffset: 8
+            bitWidth: 5
+            access: read-only
+          H1_MON:
+            description: Monitor output of H1
+            bitOffset: 0
+            bitWidth: 5
+            access: read-only
+      DES_DFE_COEFF_MON_1:
+        description: Desirializer DFE Calibration
+        addressOffset: 0xF0
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          H5_MON:
+            description: Monitor output of H5
+            bitOffset: 0
+            bitWidth: 5
+            access: read-only
+      DES_DFE_CAL_OS_MON:
+        description: Desirializer DFE Calibration
+        addressOffset: 0xF4
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          OFFSET_EM1:
+            description: DC Calibration offset for the EM CTLE.
+            bitOffset: 24
+            bitWidth: 5
+            access: read-only
+          OFFSET_EM0:
+            description: DC Calibration offset for the EM CTLE.
+            bitOffset: 16
+            bitWidth: 5
+            access: read-only
+          OFFSET_DFE1:
+            description: DC Calibration offset for the DFE CTLE.
+            bitOffset: 8
+            bitWidth: 5
+            access: read-only
+          OFFSET_DFE0:
+            description: DC Calibration offset for the DFE CTLE.
+            bitOffset: 0
+            bitWidth: 5
+            access: read-only
+      DES_DFE_CAL_ST_0:
+        description: Desirializer DFE Calibration
+        addressOffset: 0xF8
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          CHOICE_DFECOEFF:
+            description: Look-up table index for the DFE Coefficients chosen by FE Calibration.
+            bitOffset: 8
+            bitWidth: 1
+            access: read-only
+          CHOICE_DFEEM:
+            description: Look-up table index for the CDR CTLE setting chosen by FE Calibration.
+            bitOffset: 4
+            bitWidth: 3
+            access: read-only
+          CHOICE_CDR:
+            description: Look-up table index for the CDR CTLE setting chosen by FE Calibration.
+            bitOffset: 0
+            bitWidth: 3
+            access: read-only
+      DES_DFE_CAL_ST_1:
+        description: Desirializer DFE Calibration
+        addressOffset: 0xFC
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          EYE_AREA:
+            description: Area of the Eye openning.
+            bitOffset: 16
+            bitWidth: 10
+            access: read-only
+          PHASE_EM:
+            description: Phase of the sampling clock in the EM receiver.
+            bitOffset: 8
+            bitWidth: 6
+            access: read-only
+          PHASE_DFE:
+            description: Phase of the sampling clock in the DFE receiver.
+            bitOffset: 0
+            bitWidth: 6
+            access: read-only
+      DES_DFE_CAL_FLAG:
+        description: Desirializer DFE Calibration
+        addressOffset: 0x100
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          LOCK_IS_GOOD:
+            description: Flag set by the Good-lock test after completion.
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          DFE_CAL_SUCCESS_ALIGN:
+            description: Flag set by the Channel Alignment process after completion.
+            bitOffset: 24
+            bitWidth: 1
+            access: read-only
+          DONE_PHASE_EM:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 23
+            bitWidth: 1
+            access: read-only
+          DONE_PHASE_DFE:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 22
+            bitWidth: 1
+            access: read-only
+          DONE_GOOD_LOCK:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 21
+            bitWidth: 1
+            access: read-only
+          DONE_FULL_CAL:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 20
+            bitWidth: 1
+            access: read-only
+          DONE_FE_CALIBRATION:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 19
+            bitWidth: 1
+            access: read-only
+          DONE_DFECAL:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 18
+            bitWidth: 1
+            access: read-only
+          DONE_ROTATE_EM_EM:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 17
+            bitWidth: 1
+            access: read-only
+          DONE_ROTATE_EM_DFE:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 16
+            bitWidth: 1
+            access: read-only
+          DONE_ROTATE_EM_AREA_COMPUTE:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 15
+            bitWidth: 1
+            access: read-only
+          DONE_ROTATE_DFE_AREA_COMPUTE:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 14
+            bitWidth: 1
+            access: read-only
+          DONE_VERTICAL_COMB:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 13
+            bitWidth: 1
+            access: read-only
+          DONE_VERTICAL_EM:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 12
+            bitWidth: 1
+            access: read-only
+          DONE_HORIZONTAL_COMB:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 11
+            bitWidth: 1
+            access: read-only
+          DONE_HORIZONTAL_EM:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 10
+            bitWidth: 1
+            access: read-only
+          DONE_CHANNEL_ALIGN:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 9
+            bitWidth: 1
+            access: read-only
+          DONE_AREA_COMPUTE:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 8
+            bitWidth: 1
+            access: read-only
+          DONE_CTLE_OFFSET_CAL7:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 7
+            bitWidth: 1
+            access: read-only
+          DONE_CTLE_OFFSET_CAL6:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 6
+            bitWidth: 1
+            access: read-only
+          DONE_CTLE_OFFSET_CAL5:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 5
+            bitWidth: 1
+            access: read-only
+          DONE_CTLE_OFFSET_CAL4:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 4
+            bitWidth: 1
+            access: read-only
+          DONE_CTLE_OFFSET_CAL3:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          DONE_CTLE_OFFSET_CAL2:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          DONE_CTLE_OFFSET_CAL1:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          DONE_CTLE_OFFSET_CAL0:
+            description: Done flag indicating that a process is inactive or has completed its task.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+  SERDES_0_PMA_LANE1:
+    derivedFrom: SERDES_0_PMA_LANE0
+    description: SERDES_0_PMA_LANE1 Controller
+    baseAddress: 0x31042000
+  SERDES_0_PMA_LANE2:
+    derivedFrom: SERDES_0_PMA_LANE0
+    description: SERDES_0_PMA_LANE2 Controller
+    baseAddress: 0x31044000
+  SERDES_0_PMA_LANE3:
+    derivedFrom: SERDES_0_PMA_LANE0
+    description: SERDES_0_PMA_LANE3 Controller
+    baseAddress: 0x31048000
+  SERDES_1_PMA_LANE0:
+    derivedFrom: SERDES_0_PMA_LANE0
+    description: SERDES_1_PMA_LANE0 Controller
+    baseAddress: 0x31081000
+  SERDES_1_PMA_LANE1:
+    derivedFrom: SERDES_0_PMA_LANE0
+    description: SERDES_1_PMA_LANE1 Controller
+    baseAddress: 0x31082000
+  SERDES_1_PMA_LANE2:
+    derivedFrom: SERDES_0_PMA_LANE0
+    description: SERDES_1_PMA_LANE2 Controller
+    baseAddress: 0x31084000
+  SERDES_1_PMA_LANE3:
+    derivedFrom: SERDES_0_PMA_LANE0
+    description: SERDES_1_PMA_LANE3 Controller
+    baseAddress: 0x31088000
+  SERDES_2_PMA_LANE0:
+    derivedFrom: SERDES_0_PMA_LANE0
+    description: SERDES_2_PMA_LANE0 Controller
+    baseAddress: 0x31101000
+  SERDES_2_PMA_LANE1:
+    derivedFrom: SERDES_0_PMA_LANE0
+    description: SERDES_2_PMA_LANE1 Controller
+    baseAddress: 0x31102000
+  SERDES_2_PMA_LANE2:
+    derivedFrom: SERDES_0_PMA_LANE0
+    description: SERDES_2_PMA_LANE2 Controller
+    baseAddress: 0x31104000
+  SERDES_2_PMA_LANE3:
+    derivedFrom: SERDES_0_PMA_LANE0
+    description: SERDES_2_PMA_LANE3 Controller
+    baseAddress: 0x31108000
+  SERDES_3_PMA_LANE0:
+    derivedFrom: SERDES_0_PMA_LANE0
+    description: SERDES_3_PMA_LANE0 Controller
+    baseAddress: 0x31201000
+  SERDES_3_PMA_LANE1:
+    derivedFrom: SERDES_0_PMA_LANE0
+    description: SERDES_3_PMA_LANE1 Controller
+    baseAddress: 0x31202000
+  SERDES_3_PMA_LANE2:
+    derivedFrom: SERDES_0_PMA_LANE0
+    description: SERDES_3_PMA_LANE2 Controller
+    baseAddress: 0x31204000
+  SERDES_3_PMA_LANE3:
+    derivedFrom: SERDES_0_PMA_LANE0
+    description: SERDES_3_PMA_LANE3 Controller
+    baseAddress: 0x31208000

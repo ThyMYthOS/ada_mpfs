@@ -1,0 +1,564 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  PFSOC_CONTROL_SCB:
+    description: PFSOC_CONTROL_SCB Controller
+    baseAddress: 0x37020000
+    registers:
+      SOFT_RESET:
+        description: System Reset Register.
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x7100100
+        fields:
+          BLOCKID:
+            description: This returns the block type and chip location. (IO SCB bus only) Read 0x0000
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH:
+            description: This asserts the functional reset of the block. It is asserted and left asserted at power up. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP:
+            description: This when asserted resets all the register bits apart from the non-volatile registers Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP:
+            description: This when asserted resets all the non-volatile register bits e.g. RW-P bits Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      VDETECTOR:
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x7
+        fields:
+          ENABLE_2P5:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          ENABLE_1P8:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          ENABLE_1P05:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      TVS_CONTROL:
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          OVER_TEMP:
+            description: Indicates temperature is below the set value
+            bitOffset: 21
+            bitWidth: 1
+            access: read-only
+          UNDER_TEMP:
+            description: Indicates temperature is over the set value
+            bitOffset: 20
+            bitWidth: 1
+            access: read-only
+          VALID:
+            description: Indicates Channel value is valid, once set will stay set until channel is disabled.
+            bitOffset: 16
+            bitWidth: 4
+            access: read-only
+          RATE:
+            description: Time to wait once all enabled channels converted time=value*32us 255= Do single set of transfers when scoverride set
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          RUNNING:
+            description: FSM is doing a conversion
+            bitOffset: 6
+            bitWidth: 1
+            access: read-only
+          POWEROFF:
+            description: Between conversions power the TVS down, adds 50us to the overall conversion rate
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          ABORT:
+            description: Abort operation, and restart if enables are nonzero
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          ENABLE:
+            description: Enables each of the channels. 0=1p05, 1=1p8, 2=2p5, 3=Temp
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      TVS_TEMP_A:
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SIGN:
+            description: Sets the y=ax2+bx+c Temperature correction
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          INTEG:
+            description: Sets the y=ax2+bx+c Temperature correction
+            bitOffset: 20
+            bitWidth: 11
+            access: read-write
+          FRACT:
+            description: Sets the y=ax2+bx+c Temperature correction
+            bitOffset: 0
+            bitWidth: 20
+            access: read-write
+      TVS_TEMP_B:
+        addressOffset: 0x10
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SIGN:
+            description: Sets the y=ax2+bx+c Temperature correction
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          INTEG:
+            description: Sets the y=ax2+bx+c Temperature correction
+            bitOffset: 20
+            bitWidth: 11
+            access: read-write
+          FRACT:
+            description: Sets the y=ax2+bx+c Temperature correction
+            bitOffset: 0
+            bitWidth: 20
+            access: read-write
+      TVS_TEMP_C:
+        addressOffset: 0x14
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SIGN:
+            description: Sets the y=ax2+bx+c Temperature correction, only applies to 1.05 conversion
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          INTEG:
+            description: Sets the y=ax2+bx+c Temperature correction, only applies to 1.05 conversion
+            bitOffset: 20
+            bitWidth: 11
+            access: read-write
+          FRACT:
+            description: Sets the y=ax2+bx+c Temperature correction, only applies to 1.05 conversion
+            bitOffset: 15
+            bitWidth: 5
+            access: read-write
+      TVS_VOLT_A:
+        addressOffset: 0x18
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SIGN:
+            description: Sets the y=ax2+bx+c Voltage correction
+            bitOffset: 31
+            bitWidth: 1
+            access: read-only
+          INTEG:
+            description: Sets the y=ax2+bx+c Voltage correction
+            bitOffset: 20
+            bitWidth: 11
+            access: read-only
+          FRACT:
+            description: Sets the y=ax2+bx+c Voltage correction
+            bitOffset: 0
+            bitWidth: 20
+            access: read-only
+      TVS_VOLT_B:
+        addressOffset: 0x1C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SIGN:
+            description: Sets the y=ax2+bx+c Voltage correction
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          INTEG:
+            description: Sets the y=ax2+bx+c Voltage correction
+            bitOffset: 20
+            bitWidth: 11
+            access: read-write
+          FRACT:
+            description: Sets the y=ax2+bx+c Voltage correction
+            bitOffset: 0
+            bitWidth: 20
+            access: read-write
+      TVS_VOLT_C:
+        addressOffset: 0x20
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SIGN:
+            description: Sets the y=ax2+bx+c Voltage correction
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          INTEG:
+            description: Sets the y=ax2+bx+c Voltage correction
+            bitOffset: 20
+            bitWidth: 11
+            access: read-write
+          FRACT:
+            description: Sets the y=ax2+bx+c Voltage correction
+            bitOffset: 15
+            bitWidth: 5
+            access: read-write
+      TVS_OUTPUT0:
+        addressOffset: 0x24
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          VOLT1P8:
+            description: ''
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          VOLT1P05:
+            description: ''
+            bitOffset: 0
+            bitWidth: 16
+            access: read-only
+      TVS_OUTPUT1:
+        addressOffset: 0x28
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          TEMP:
+            description: ''
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          VOLT2P5:
+            description: ''
+            bitOffset: 0
+            bitWidth: 16
+            access: read-only
+      TVS_TRIGGER:
+        description: temperature trigger levels
+        addressOffset: 0x2C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          HIGH:
+            description: ''
+            bitOffset: 16
+            bitWidth: 16
+            access: read-write
+          LOW:
+            description: ''
+            bitOffset: 0
+            bitWidth: 16
+            access: read-write
+      TRIM_VDET1P05:
+        addressOffset: 0x30
+        size: 32
+        access: read-write
+        resetValue: 0x4040
+        fields:
+          PROGL:
+            description: ''
+            bitOffset: 8
+            bitWidth: 7
+            access: read-write
+          PROGH:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      TRIM_VDET1P8:
+        addressOffset: 0x34
+        size: 32
+        access: read-write
+        resetValue: 0xD10
+        fields:
+          PROGL:
+            description: ''
+            bitOffset: 8
+            bitWidth: 5
+            access: read-write
+          PROGH:
+            description: ''
+            bitOffset: 0
+            bitWidth: 5
+            access: read-write
+      TRIM_VDET2P5:
+        addressOffset: 0x38
+        size: 32
+        access: read-write
+        resetValue: 0x1010
+        fields:
+          PROGL:
+            description: ''
+            bitOffset: 8
+            bitWidth: 5
+            access: read-write
+          PROGH:
+            description: ''
+            bitOffset: 0
+            bitWidth: 5
+            access: read-write
+      TRIM_TVS:
+        addressOffset: 0x3C
+        size: 32
+        access: read-write
+        resetValue: 0x10
+        fields:
+          DELTAVBE:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          CALTRIM:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      TRIM_GDET1P05:
+        addressOffset: 0x40
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RATE:
+            description: ''
+            bitOffset: 8
+            bitWidth: 2
+            access: read-write
+          WIDTH:
+            description: ''
+            bitOffset: 6
+            bitWidth: 2
+            access: read-write
+          THRESHOLD:
+            description: ''
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          NEGTRIM:
+            description: ''
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          POSTRIM:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      SERVICES_CR:
+        addressOffset: 0x50
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          COMMAND:
+            description: The 16-bit command value
+            bitOffset: 16
+            bitWidth: 16
+            access: read-write
+          NOTIFY:
+            description: Tells G5C to notify the MSS via a MSS interrupt when complete
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          ABORT:
+            description: When written to '1' requests a system service is aborted.
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          BUSY:
+            description: Is set whist a the system service is being processed
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          REQUEST:
+            description: When written to '1' requests a system servide as specified in the command field. Will stay set until G5C starts processing the command
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SERVICES_SR:
+        addressOffset: 0x54
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          STATUS:
+            description: returned services status, is valid when BUSY=0;
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          NOTIFY:
+            description: read of services control register
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          ABORT:
+            description: read of services control register
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          BUSY:
+            description: read of services control register
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          REQUEST:
+            description: read of services control register
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      USER_DETECTOR_SR:
+        description: Indicates that an alarm condition has happened. Register is intended for MSS use. Is cleared by writing a '1'
+        addressOffset: 0x58
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TEMP_LOW_FALL:
+            description: Latched value from TVS block, writing 1 clears
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          TEMP_LOW_RISE:
+            description: Latched value from TVS block, writing 1 clears
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          TEMP_HIGH_FALL:
+            description: Latched value from TVS block, writing 1 clears
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          TEMP_HIGH_RISE:
+            description: Latched value from TVS block, writing 1 clears
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          HIGH_P5:
+            description: Latched value from user detector, writing 1 clears
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          LOW_P5:
+            description: Latched value from user detector, writing 1 clears
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          HIGH_P8:
+            description: Latched value from user detector, writing 1 clears
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          LOW_P8:
+            description: Latched value from user detector, writing 1 clears
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          HIGH_P05:
+            description: Latched value from user detector, writing 1 clears
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          LOW_P05:
+            description: Latched value from user detector, writing 1 clears
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      USER_DETECTOR_CR:
+        description: Enables the detector to set the MSS alarm signal routed from G5C to the MSS.
+        addressOffset: 0x5C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TEMP_LOW_FALL:
+            description: Enables the generation of the MSS user alarm on this event
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          TEMP_LOW_RISE:
+            description: Enables the generation of the MSS user alarm on this event
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          TEMP_HIGH_FALL:
+            description: Enables the generation of the MSS user alarm on this event
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          TEMP_HIGH_RISE:
+            description: Enables the generation of the MSS user alarm on this event
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          HIGH_P5:
+            description: Enables the generation of the MSS user alarm on this event
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          LOW_P5:
+            description: Enables the generation of the MSS user alarm on this event
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          HIGH_P8:
+            description: Enables the generation of the MSS user alarm on this event
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          LOW_P8:
+            description: Enables the generation of the MSS user alarm on this event
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          HIGH_P05:
+            description: Enables the generation of the MSS user alarm on this event
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          LOW_P05:
+            description: Enables the generation of the MSS user alarm on this event
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MSS_SPI_CR:
+        description: Reset Controls for the MSS SPI Core
+        addressOffset: 0x60
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MASK_AUTO_RESET:
+            description: When asserted prevents the MSS reset request from resetting the MSS SCB SPI Core
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          RESET:
+            description: When asserted holds the MSS SCB SPI Core in reset.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write

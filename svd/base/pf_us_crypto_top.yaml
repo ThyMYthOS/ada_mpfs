@@ -1,0 +1,416 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  PF_US_CRYPTO_TOP:
+    description: PF_US_CRYPTO_TOP Controller
+    baseAddress: 0x37010000
+    registers:
+      SOFT_RESET:
+        description: System Reset Register.
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x100
+        fields:
+          BLOCKID:
+            description: This returns the block type and chip location. Read 0x0000
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH:
+            description: This asserts the functional reset of the block. It is asserted at power up. When written is stays asserted until written to 0. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP:
+            description: This when asserted resets all the register bits apart from the non-volatile registers, the bit self clears i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP:
+            description: This when asserted resets all the non-volatile register bits e.g. RW-P bits, the bit self clears i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DLL_CTRL0:
+        description: DLL control register 0
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x8800000F
+        fields:
+          LOCK_LOW:
+            description: ''
+            bitOffset: 28
+            bitWidth: 4
+            access: read-write
+          LOCK_HIGH:
+            description: ''
+            bitOffset: 24
+            bitWidth: 4
+            access: read-write
+          LOCK_FLT:
+            description: ''
+            bitOffset: 20
+            bitWidth: 2
+            access: read-write
+          LOCK_FRC:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          ALU_UPD:
+            description: ''
+            bitOffset: 14
+            bitWidth: 2
+            access: read-write
+          DIV_SEL:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          FB_SEL:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          REF_SEL:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          SEL_S:
+            description: ''
+            bitOffset: 6
+            bitWidth: 2
+            access: read-write
+          SEL_P:
+            description: ''
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          PHASE_S:
+            description: ''
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          PHASE_P:
+            description: All thes eregisters follow the standard allocation for DLL blocks used in G5. Please refer to the DLL SAC specification for details of register functions.
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      DLL_CTRL1:
+        description: DLL control register 1
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RELOCK_FAST:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          INIT_CODE:
+            description: ''
+            bitOffset: 24
+            bitWidth: 6
+            access: read-write
+          TEST_RING:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          TEST_S:
+            description: ''
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          ADJ_DEL4:
+            description: ''
+            bitOffset: 8
+            bitWidth: 7
+            access: read-write
+          SET_ALU:
+            description: ''
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      DLL_STAT0:
+        description: DLL status register 0
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x1801
+        fields:
+          PHASE_MOVE_CLK:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          UNLOCK_INT:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          LOCK_INT:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          UNLOCK_INT_EN:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          LOCK_INT_EN:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RESET:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DLL_STAT1:
+        description: DLL status register 1
+        addressOffset: 0x10
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SRO_ALU_CNT:
+            description: ''
+            bitOffset: 16
+            bitWidth: 9
+            access: read-only
+          SRO_DEL4:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-only
+      DLL_STAT2:
+        description: DLL status register 2
+        addressOffset: 0x14
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SRO_LOCK:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+      DLL_TEST:
+        description: Enables test modes on the DLL
+        addressOffset: 0x18
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          REF_SELECT:
+            description: When '1' the sb clock input is fed to the DLL reference
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          CFM_SELECT:
+            description: Feeds the MBIST clock rather than DLL clock to the CFM block
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          CFM_ENABLE:
+            description: When set enables the DLL output to the frequency meter inside the PF-Controller for test use
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONTROL_USER:
+        description: User Accessible Register for controlling Athena core via SCB bus
+        addressOffset: 0x40
+        size: 32
+        access: read-write
+        resetValue: 0x6
+        fields:
+          GO:
+            description: When '1' sets the Athena GO input
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          PURGE:
+            description: When '1' sets the Athena PURGE input
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RING_OSC_ON:
+            description: Enables the internal Athena ring oscillators. When '0' the oscillators are stopped lowering power consumption. Must be '1' for the Athena core to operate
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          DLL_ON:
+            description: Enables the DLL. When '0' the DLL internal activity is stopped lowering power consumption.
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RAMS_ON:
+            description: Enable the internal RAMS. When '0' the RAMS are powered down lowering power consumption.
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          CLOCK_SELECT:
+            description: 'Selects the Athena clcok source 00: No clock selected 01:Fabric clock with DLL enabled 10: SCB clock 11: Chip 160MHz Oscillator'
+            bitOffset: 3
+            bitWidth: 2
+            access: read-write
+          CLOCK_ENABLE:
+            description: When '1' the clock to the Athena core is enabled.
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RESET:
+            description: When '1' hold the Athena core in reset
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          SCB_CONTROL:
+            description: When '1' this register directly controls the Athena GO and PURGE bits. When '0' the Athena Go and PURGE pins are under fabric control. Note the Sysyem Controller can override this register
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CONTROL_PFC:
+        description: Registers only accesible to PF-Control for it to override the the user and gain control of the Athena core. PFC control does not have access to the internals of the Athena core, but can initiate purge cycles.
+        addressOffset: 0x44
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DLLEVENT:
+            description: Enable SCB interrupt on a DLL event
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          BUSERROR:
+            description: Enables SCB interrupt on bus error
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          ALARM:
+            description: Enable SCB interrupt on alarm
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          COMPLETE:
+            description: Enable SCB interrupt on complete
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          GO:
+            description: ''
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          PURGE:
+            description: ''
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RING_OSC_ON:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          DLL_ON:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          RAMS_ON:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          CLOCK_SELECT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 2
+            access: read-write
+          CLOCK_ENABLE:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RESET:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          OVERRIDE:
+            description: When override is set inthis register conrols all the Athena non AHB inputs as well as clock selection and various power downs.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      STATUS:
+        description: Athena Status
+        addressOffset: 0x48
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          BUSY:
+            description: Read off Athena BUSY output
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          BUSERROR:
+            description: Set when a HRESP response is detected by the Athena AHB master. Once set a reset is required to clear.
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          ALARM:
+            description: Read off Athena ALARM output
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          COMPLETE:
+            description: Read off Athena COMPLETE output
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      INTERRUPT_ENABLE:
+        description: Enables Interrupt events to Fabric
+        addressOffset: 0x4C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BUSERROR:
+            description: Enables interrupt to fabric
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          ALARM:
+            description: Enables interrupt to fabric
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          COMPLETE:
+            description: Enables interrtpt to fabric
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      MARGIN:
+        description: Allows RAM access speed to be tuned for different operating voltages.
+        addressOffset: 0x60
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ROM:
+            description: ''
+            bitOffset: 3
+            bitWidth: 3
+            access: read-write
+          RAM:
+            description: Provided direct control of RAM/ROM margining inputs. Should be set to 3'b000 for normal opearting conditions. Should not be documented for customer and should be forced non-dynamic by Libero
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write

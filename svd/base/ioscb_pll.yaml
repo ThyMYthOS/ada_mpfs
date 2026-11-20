@@ -1,0 +1,497 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  PLL_SE_0:
+    description: PLL_SE_0 Controller
+    groupName: IOSCB_PLL
+    baseAddress: 0x38010000
+    registers:
+      SOFT_RESET:
+        description: This is a compulsory register for all SCB slaves and must be at the same offset in all slaves to facilitate global soft reset of all SCB registers with a single broadcast write from the SCB master.
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID:
+            description: This returns the block type and chip location. (IO SCB bus only) Read 0x0000
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH:
+            description: This asserts the functional reset of the block. It is asserted at power up. When written is stays asserted until written to 0. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP:
+            description: This when asserted resets all the register bits apart from the non-volatile registers, the bit self clears. i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP:
+            description: This when asserted resets all the non-volatile register bits e.g. RW-P bits, the bit self clears i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PLL_CTRL:
+        description: PLL control register
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x107C
+        fields:
+          LOCK_B:
+            description: Status of PLL lock_b
+            bitOffset: 31
+            bitWidth: 1
+            access: read-only
+          UNLOCK_INT:
+            description: pll unlock interrupt signal
+            bitOffset: 29
+            bitWidth: 1
+            access: read-write
+          LOCK_INT:
+            description: pll lock interrupt signal
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          UNLOCK_INT_EN:
+            description: Enable pll unlock interrupt
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          LOCK_INT_EN:
+            description: Enable pll lock interrupt
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          LOCK:
+            description: Status of PLL lock
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          LP_REQUIRES_LOCK:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          REG_BYPASSPOST:
+            description: Bypass mux control for post divider output One-hot mux selection for each post divider 1'b0 = Select post divider output to drive PLL_OUT 1'b1 = Select RFCLK or FBCLK (depending on BYPCKSEL) to drive PLL_OUT
+            bitOffset: 20
+            bitWidth: 4
+            access: read-write
+          REG_BYPASSPRE:
+            description: Bypass mux control for input to post divider One-hot mux selection for each post divider 1'b0 = Select VCO output as input to post divider 1'b1 = Select RFCLK or FBCLK (depending on BYPCKSEL) as input to post divider
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          REG_BYPASS_GO_B:
+            description: Enable BYPASSPRE and BYAPSSPOST signals (active low)
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          BYPCK_SEL:
+            description: MUX to select RFCLK or FBCLK for bypass mode One-hot mux selection for each post divider 1'b0 = Select RFCLK for bypass mode 1'b1 = Select FBCLK for bypass mode
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          RESETONLOCK:
+            description: Control signal to force a post divide reset on the rising edge of LOCK 1'b0 - Outputs are enabled based only on POSTDIVEN 1'b1 - Outputs are held low if LOCK is low, and reset on the rising edge of LOCK
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          REG_RFCLK_SEL:
+            description: Reference clock select 1'b0 - Selects RFCKL[0] as reference clock for PLL 1'b1 - Selects RFCLK[1] as reference clock for PLL
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          REG_DIVQ3_EN:
+            description: Post divider 3 enable (glitchless start/stop)
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          REG_DIVQ2_EN:
+            description: Post divider 2 enable (glitchless start/stop)
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          REG_DIVQ1_EN:
+            description: Post divider 1 enable (glitchless start/stop)
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          REG_DIVQ0_EN:
+            description: Post divider 0 enable (glitchless start/stop)
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          REG_RFDIV_EN:
+            description: Reference divide enable (active low reset) 1'b0 - Reference divide is reset, reference clock is divided by 1 1'b1 - Reference divider is active The reference divide value is loaded on the rising edge of RFCLK, so REFDIV_EN should change on the falling edge of RFCLK.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          REG_POWERDOWN_B:
+            description: PLL Core (PFD+CP+VCO+LF+FBDIV) enable signal. 1'b0 - low current power down state. VCO output will be zero unless IREF is input and IREF_EN=1'b1. 1'b1 - PLL core is enabled
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PLL_REF_FB:
+        description: PLL reference and feedback registers
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RFDIV:
+            description: Reference divide value (1 to 63) Frequency into PFD is RFCLK/REFDIV
+            bitOffset: 8
+            bitWidth: 6
+            access: read-write
+          FOUTFB_SELMUX_EN:
+            description: FOUT Feedback clock select enable 1'b0 - Selects feedback directly from 4X VCO 1'b1 - Selects feedback from FBCK_SEL mux output
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          FBCK_SEL:
+            description: Feedback clock select Selects the feedback clock form one of the post divider outputs (before the BYPASSPOST mux) 2'b00 - Selects feedback clock from post divide 0 output 2'b01 - Selects feedback clock from post divide 1 output 2'b10 - Selects feedback clock from post divide 2 output 2'b11 - Selects feedback clock from post divide 3 output
+            bitOffset: 1
+            bitWidth: 2
+            access: read-write
+          FSE_B:
+            description: PLL Deskew (external feedback) mode select 1'b0 - Internal (full-rate VCO) feedback mode to select output of VCO for feedback clock 1'b1 - External feedback mode to select FBCLK for feedback clock
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PLL_FRACN:
+        description: PLL fractional register
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FRACN_DAC_EN:
+            description: Fractional noise cancellation DAC enable 1'b0 - Fractional noise cancellation DAC is disabled. Fractional quantization noise is attenuated only by passive loop filter. 1'b1 - Fractional noise cancellation DAC is enabled. DAC actively cancels fractional quantization noise.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          FRACN_EN:
+            description: Delta Sigma Modulator enable 1'b0 - Integer mode 1'b1 - Fractional mode
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PLL_DIV_0_1:
+        description: PLL 0/1 division registers
+        addressOffset: 0x10
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          POST1DIV:
+            description: 'Post divide value for post divider 1 (PLL_OUT[1]) From: (1 to 127)'
+            bitOffset: 24
+            bitWidth: 7
+            access: read-write
+          DIV1_START:
+            description: VCO cycle delays after reset for post divider 1 (PLL_OUT[1])
+            bitOffset: 19
+            bitWidth: 3
+            access: read-write
+          VCO1PH_SEL:
+            description: Selects one of eight VCO phases for post divider 1 (PLL_OUT[1])
+            bitOffset: 16
+            bitWidth: 3
+            access: read-only
+          POST0DIV:
+            description: 'Post divide value for post divider 1 (PLL_OUT[1]) From: (1 to 127)'
+            bitOffset: 8
+            bitWidth: 7
+            access: read-write
+          DIV0_START:
+            description: VCO cycle delays after reset for post divider 0 (PLL_OUT[0])
+            bitOffset: 3
+            bitWidth: 3
+            access: read-write
+          VCO0PH_SEL:
+            description: Selects one of eight VCO phases for post divider 0 (PLL_OUT[0])
+            bitOffset: 0
+            bitWidth: 3
+            access: read-only
+      PLL_DIV_2_3:
+        description: PLL 2/3 division registers
+        addressOffset: 0x14
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CKPOST3_SEL:
+            description: Selects input clock for post divide 3 (to PLL_OUT[3]) 1'b0 - Selects 8-phase output or RFCLK, depending on BYPASSPRE setting 1'b1 - Selects PLL_OUT[2] as input to post divide 3 (cascaded dividers)
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          POST3DIV:
+            description: 'Post divide value for post divider 3 (PLL_OUT[3]) From: (1 to 127)'
+            bitOffset: 24
+            bitWidth: 7
+            access: read-write
+          DIV3_START:
+            description: VCO cycle delays after reset for post divider 3 (PLL_OUT[3])
+            bitOffset: 19
+            bitWidth: 3
+            access: read-write
+          VCO3PH_SEL:
+            description: Selects one of eight VCO phases for post divider 3 (PLL_OUT[3])
+            bitOffset: 16
+            bitWidth: 3
+            access: read-only
+          POST2DIV:
+            description: 'Post divide value for post divider 2 (PLL_OUT[2]) From: (1 to 127)'
+            bitOffset: 8
+            bitWidth: 7
+            access: read-write
+          DIV2_START:
+            description: VCO cycle delays after reset for post divider 2 (PLL_OUT[2])
+            bitOffset: 3
+            bitWidth: 3
+            access: read-write
+          VCO2PH_SEL:
+            description: Selects one of eight VCO phases for post divider 2 (PLL_OUT[2])
+            bitOffset: 0
+            bitWidth: 3
+            access: read-only
+      PLL_CTRL2:
+        description: PLL control register
+        addressOffset: 0x18
+        size: 32
+        access: read-write
+        resetValue: 0x1006
+        fields:
+          ATEST_SEL:
+            description: Analog test mux select 3'd7 - ATESTOUT = VDDPOST, or HighZ if ATESTEN=1'b0 3'd6 - ATESTOUT = VDDREF, or HighZ if ATESTEN=1'b0 3'd5 - ATESTOUT = VDDHV, or HighZ if ATESTEN=1'b0 3'd4 - ATESTOUT = psub, or HighZ if ATESTEN=1'b0 3'd3 - ATESTOUT = VSSREF, or HighZ if ATESTEN=1'b0 3'd2 - ATESTOUT = VSSHV, or HighZ if ATESTEN=1'b0 3'd1 - ATESTOUT = PLL proportional path tuning voltage, or HighZ if ATESTEN=1'b0 3'd0 - ATESTOUT = PLL integral path tuning voltage replica if ATESTEN=1'b1, or HighZ if ATESTEN=1'b0
+            bitOffset: 18
+            bitWidth: 3
+            access: read-write
+          ATEST_EN:
+            description: Analog test mux enable 1'b0 - ATESTOUT = HighZ 1'b1 - ATESTOUT = Local supply voltages, PLL integral path tuning voltage replica, or PLL proportional path tuning voltage
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          LOCKCOUNTSEL:
+            description: Lock count select Selects the number of PFD edges after the last cycle slip before the lock signal goes high Count is defined as 2^LOCKCOUNTSEL (e.g. with LOCKCOUNTSEL=4'd8, LOCK will go high 256 PFD periods after the last cycle slip)
+            bitOffset: 9
+            bitWidth: 4
+            access: read-write
+          IREF_TOGGLE:
+            description: IREF_TOGGLE is an option to force the PLL clock output to toggle even if the reference clock stops. IREF_TOGGLE=1 will usually be coupled with IREF_EN=1. See Ch 12 for complete details.
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          IREF_EN:
+            description: Enables IREF to pass to the VCO 1'b0 - IREF is gated o and not used by the VCO 1'b1 - IREF passes to the VCO to guarantee a minimum oscillation frequency
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          BWP:
+            description: 'Proportional Path loop bandwidth control For Integer mode: 2''b00=FPFD/55, 2''b01=FPFD/44, 2''b10=FPFD/36, 2''b11=FPFD/30 For Fractional mode: 2''b00=FPFD/91, 2''b01=FPFD/77, 2''b10=FPFD/65, 2''b11=FPFD/56'
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          BWI:
+            description: Integral Path loop bandwidth control 2'b00=Slowest integral path 2'b01=4X integral path by enabling all four elements charge pump elements instead of rotating 2'b10=4X integral path by increasing each element by 4X (still rotates) (recommended for deskew) 2'b11=16X integral path by enabling all four elements and increasing each element by 4X
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      PLL_CAL:
+        description: PLL calibration register
+        addressOffset: 0x1C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DSKEWCALOUT:
+            description: This is the output of either the skew calibration block (if DSKEWCALBYP=0) or a buffered version of DSKEWCALIN[6:0] (if DSKEWCALBYP=1). It can be used to read out the phase calibration state to use as an override value so that skew calibration can be bypassed for faster locking. The value changes on the rising edge of RFCLK, so it can be clocked out on teh falling edge of RFCLK.
+            bitOffset: 16
+            bitWidth: 7
+            access: read-only
+          DSKEWCALIN:
+            description: Override value for deskew calibration. It is a signed integer with positive values delaying the reset of the faster path, and negative values delaying the reset of the slower path. 5'b0 is the minimum value, with each count increasing the reset time by one bu er delay. For normal operation this should be set to 5'b0. If DSKEWCALEN=1 and DSKEWCALBYP=1, this can be used to force a skew correction value based on a previous readout of DSKEWCALOUT[6:0] so that skew calibration can be bypassed.
+            bitOffset: 8
+            bitWidth: 7
+            access: read-write
+          DSKEWCALBYP:
+            description: Deskew calibration bypass 1'b0 - use the skew calibration output (when DSKEWCALEN=1) to set the phase correction 1'b1 - use the DSKEWCALIN[6:0] value (when DSKEWCALEN=1) to set the phase correction
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          DSKEWCAL_EN:
+            description: Deskew calibration enable to actively adjust for input skew 1'b0 - skew calibration is disabled. Static phase o set is determined by analog matching only. 1'b1 - skew calibration is enabled. Static phase o set is adjusted by sensing phase at the input.
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          DSKEWCALCNT:
+            description: Programmable counter for deskew calibration loop Selects the number of PFD edges to wait after each deskew calibration step Count is de ned as 2DSKEWCALCNT+4 (e.g. if DSKEWCALCNT=3'd6, the loop will wait 1024 PFD periods before trying a new setting) Recommended setting is 4'd10 if PLLBWI=2'b01 and 4'd12 if PLLBWI=2'b00
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      PLL_PHADJ:
+        description: PLL phase registers
+        addressOffset: 0x20
+        size: 32
+        access: read-write
+        resetValue: 0x4001
+        fields:
+          REG_LOADPHS_B:
+            description: Load the originally programmed phase for the PLL
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          REG_OUT3_PHSINIT:
+            description: Initial phase value for output 3
+            bitOffset: 11
+            bitWidth: 3
+            access: read-write
+          REG_OUT2_PHSINIT:
+            description: Initial phase value for output 2
+            bitOffset: 8
+            bitWidth: 3
+            access: read-write
+          REG_OUT1_PHSINIT:
+            description: Initial phase value for output 1
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          REG_OUT0_PHSINIT:
+            description: Initial phase value for output 0
+            bitOffset: 2
+            bitWidth: 3
+            access: read-write
+          PLL_REG_ENABLE_SYNCREFDIV:
+            description: Register to enable synchronous reset of refernce dividers
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          PLL_REG_SYNCREFDIV_EN:
+            description: Enable synchronizing the reference dividers for the two PLLs in the given corner of the device.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SSCG_REG_0:
+        description: SSCG registers 0
+        addressOffset: 0x24
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FRACIN:
+            description: Input fractional divide value
+            bitOffset: 6
+            bitWidth: 24
+            access: read-write
+          DIVVAL:
+            description: Divider required to set the modulation frequency
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      SSCG_REG_1:
+        description: SSCG registers 1
+        addressOffset: 0x28
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FRACMOD:
+            description: Modulated fractional divide value to PLL
+            bitOffset: 6
+            bitWidth: 24
+            access: read-only
+          SSMD:
+            description: Sets modulation depth Modulation Depth = SPREAD * 0.1% ie. SPREAD=5'b5 = Modulation Depth of 0.5%
+            bitOffset: 1
+            bitWidth: 5
+            access: read-write
+          DOWNSPREAD:
+            description: Selects center spread or downspread 1'b0 -> Center spread 1'b1 -> Downspread
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SSCG_REG_2:
+        description: SSCG registers 2
+        addressOffset: 0x2C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          INTMOD:
+            description: Modulated integer divide value to PLL
+            bitOffset: 12
+            bitWidth: 12
+            access: read-only
+          INTIN:
+            description: Input integer divide value
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      SSCG_REG_3:
+        description: SSCG registers 3
+        addressOffset: 0x30
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RANDOM_SEL:
+            description: Selects between 3 different pseudo-noise patterns. 2'b00 -> Pattern 0 2'b01 -> Pattern 1 2'b1X -> Pattern 2
+            bitOffset: 20
+            bitWidth: 2
+            access: read-write
+          RANDOM_FILTER:
+            description: Active high enables high-pass filtering of pseudo-noise source.
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          TBLADDR:
+            description: Outputs address to external wave table
+            bitOffset: 11
+            bitWidth: 8
+            access: read-only
+          EXT_MAXADDR:
+            description: External wave table maximum address value input
+            bitOffset: 3
+            bitWidth: 8
+            access: read-write
+          SEL_EXTWAVE:
+            description: Selects between EXTWAVEVAL data input, Pseudo-random Noise, and internal lookup table 2'b00 -> Internal 128 point triangular wave table 2'b01 -> External wave table 2'b1X -> Pseudo-random Noise
+            bitOffset: 1
+            bitWidth: 2
+            access: read-write
+          SSE_B:
+            description: Bypass the modulator 1'b0 -> Normal Operation 1'b1 -> Bypass SSMOD
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+  PLL_SE_1:
+    derivedFrom: PLL_SE_0
+    description: PLL_SE_1 Controller
+    baseAddress: 0x38020000
+  PLL_NE_0:
+    derivedFrom: PLL_SE_0
+    description: PLL_NE_0 Controller
+    baseAddress: 0x38040000
+  PLL_NE_1:
+    derivedFrom: PLL_SE_0
+    description: PLL_NE_1 Controller
+    baseAddress: 0x38080000
+  PLL_NW_0:
+    derivedFrom: PLL_SE_0
+    description: PLL_NW_0 Controller
+    baseAddress: 0x38100000
+  PLL_NW_1:
+    derivedFrom: PLL_SE_0
+    description: PLL_NW_1 Controller
+    baseAddress: 0x38200000
+  PLL_SW_0:
+    derivedFrom: PLL_SE_0
+    description: PLL_SW_0 Controller
+    baseAddress: 0x38400000
+  PLL_SW_1:
+    derivedFrom: PLL_SE_0
+    description: PLL_SW_1 Controller
+    baseAddress: 0x38800000

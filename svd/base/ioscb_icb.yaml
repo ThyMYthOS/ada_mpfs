@@ -1,0 +1,292 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  ICB_CLOCK_MUX_SW:
+    description: ICB_CLOCK_MUX_SW Controller
+    groupName: IOSCB_ICB
+    baseAddress: 0x35010000
+    registers:
+      SOFT_RESET:
+        description: This is a compulsory register for all SCB slaves and must be at the same offset in all slaves to facilitate global soft reset of all SCB registers with a single broadcast write from the SCB master.
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID:
+            description: This returns the block type and chip location. (IO SCB bus only) Read 0x0000
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH:
+            description: This asserts the functional reset of the block. It is asserted at power up. When written is stays asserted until written to 0. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP:
+            description: This when asserted resets all the register bits apart from the non-volatile registers, the bit self clears. i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP:
+            description: This when asserted resets all the non-volatile register bits e.g. RW-P bits, the bit self clears i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      INMUX_3_0_SEL:
+        description: Input Clk Mux selection (4 mux<3:0>)
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0xFFFFFF
+        fields:
+          DPC_NMUX_SEL0:
+            description: 'Input Clk Mux selection. 4 muxes in this group. 6 bits per mux to select input clock: bocw<1:0>, boccw<1:0>, crnfdrcw<7:0>, crnfdrccw<7:0>, pio<5:0>, gb<1:0>,eip<1:0>,tieoff'
+            bitOffset: 0
+            bitWidth: 24
+            access: read-write
+      INMUX_7_4_SEL:
+        description: Input Clk Mux selection (4 mux<7:4>)
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0xFFFFFF
+        fields:
+          DPC_NMUX_SEL1:
+            description: 'Input Clk Mux selection. 4 muxes in this group. 6 bits per mux to select input clock: bocw<1:0>, boccw<1:0>, crnfdrcw<7:0>, crnfdrccw<7:0>, pio<5:0>, gb<1:0>,eip<1:0>,tieoff'
+            bitOffset: 0
+            bitWidth: 24
+            access: read-write
+      INMUX_11_8_SEL:
+        description: Input Clk Mux selection (4 mux<11:8>)
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0xFFFFFF
+        fields:
+          DPC_NMUX_SEL2:
+            description: 'Input Clk Mux selection. 4 muxes in this group. 6 bits per mux to select input clock: bocw<1:0>, boccw<1:0>, crnfdrcw<7:0>, crnfdrccw<7:0>, pio<5:0>, gb<1:0>,eip<1:0>,tieoff'
+            bitOffset: 0
+            bitWidth: 24
+            access: read-write
+      OUTMUX_5_0_SEL:
+        description: Output Clk Mux selection (6 mux<5:0>)
+        addressOffset: 0x10
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DPC_GB_SEL0:
+            description: Output Clk Mux selection. 6 muxes in this group. 5 bits per mux to select gmx<1:0>, dv<3:0>, nclk<11:0>
+            bitOffset: 0
+            bitWidth: 30
+            access: read-write
+      OUTMUX_11_6_SEL:
+        description: Output Clk Mux selection (6 mux<11:6>)
+        addressOffset: 0x14
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DPC_GB_SEL1:
+            description: Output Clk Mux selection. 6 muxes in this group. 5 bits per mux to select gmx<1:0>, dv<3:0>, nclk<11:0>
+            bitOffset: 0
+            bitWidth: 30
+            access: read-write
+      OUTCLK_STOP_SEL:
+        description: Mux selection for 12 clock outputs stop feature
+        addressOffset: 0x18
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DPC_STOP_SEL:
+            description: Mux selection for 12 clock outputs stop feature. 12 muxes. 2 bits per mux to select on, off, stop1, stop2.
+            bitOffset: 0
+            bitWidth: 24
+            access: read-write
+      BCLK_SEL:
+        description: Input Bank Clk Mux selection
+        addressOffset: 0x1C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DPC_BO_CW_SEL:
+            description: Input Bank Clk Mux selection. 2 muxes. 3 bits per mux to select bclk<5:0> from clk wise(cw), tieoff
+            bitOffset: 6
+            bitWidth: 6
+            access: read-write
+          DPC_BO_CCW_SEL:
+            description: Input Bank Clk Mux selection. 2 muxes. 3 bits per mux to select bclk<5:0> from counter clk wise(ccw), tieoff
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      FBMUX_SEL:
+        description: Bank Clk Feedback selection
+        addressOffset: 0x20
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DPC_FB_CW_SEL:
+            description: Bank Clk Feedback selection. 4 muxes. 2 bits per mux to select div1 (del ir non-del), divn or nclk for Bank Clock Bridge clk wise (cw)
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          DPC_FB_CCW_SEL:
+            description: Bank Clk Feedback selection. 4 muxes. 2 bits per mux to select div1 (del ir non-del), divn or nclk for Bank Clock Bridge counter clk wise (ccw)
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      GMUX_SEL:
+        description: Glitchless mux Related
+        addressOffset: 0x24
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DPC_GM_MODE:
+            description: Select glitchless mode simple for running clocks or complex for unknown state of clock. 2 glitchless muxes. 1 bit per mux.
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          DPC_GM_SELB:
+            description: Glitchless mux input b selection. 2 muxes. 1 bit per mux to select dv<3:2>, nclk<3:2>
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          DPC_GM_SELA:
+            description: Glitchless mux input a selection. 2 muxes. 1 bit per mux to select dv<1:0>, nclk<1:0>
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      DIV_SEL:
+        description: Divider Related
+        addressOffset: 0x28
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DPC_DIVONE_SEL:
+            description: Select delay or no-delay for bclk feedback bridging. 4 muxes. 1 bit per mux
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          DPC_DIV:
+            description: Select divide ratio (2,3.5,4,5) of nclk<7:4>. 4 dividers. 3 bits per divider
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      DLY_SEL:
+        description: Delay Cell Related
+        addressOffset: 0x2C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DPC_DLY_WIDE:
+            description: Delay setting fo wide range mode. 4 delay cells. 1 bit per block
+            bitOffset: 28
+            bitWidth: 4
+            access: read-write
+          DPC_DLY_SEL:
+            description: Delay setting for 4 delay cells. 7 bits per delay chain.
+            bitOffset: 0
+            bitWidth: 28
+            access: read-write
+      BIM_CCW_SEL:
+        description: CCW bank mux input selection
+        addressOffset: 0x30
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DPC_BI2_SEL:
+            description: CCW bank mux input selection. 6 muxes. 5 bits per mux
+            bitOffset: 0
+            bitWidth: 30
+            access: read-write
+      BIM_CW_SEL:
+        description: CW bank mux input selection
+        addressOffset: 0x34
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DPC_BI1_SEL:
+            description: CW bank mux input selection. 6 muxes. 5 bits per mux
+            bitOffset: 0
+            bitWidth: 30
+            access: read-write
+      SPARE:
+        description: spare pc bits
+        addressOffset: 0x38
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SPARE_ICB:
+            description: spare pc bits
+            bitOffset: 0
+            bitWidth: 10
+            access: read-write
+      DFT_REG1:
+        description: DFT write registers
+        addressOffset: 0x3C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCB_DFT_SPARE_RW:
+            description: DFT spare bits
+            bitOffset: 1
+            bitWidth: 24
+            access: read-write
+          SCB_DFT_DLYTST_EN:
+            description: enable delay test
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DFT_REG2:
+        description: DFT read registers
+        addressOffset: 0x40
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SCB_DFT_SPARE_RO:
+            description: DFT spare bits
+            bitOffset: 4
+            bitWidth: 12
+            access: read-only
+          SCB_DFT_DLYTSTB:
+            description: delay compare
+            bitOffset: 2
+            bitWidth: 2
+            access: read-only
+          SCB_DFT_DLYTST:
+            description: delay compare
+            bitOffset: 0
+            bitWidth: 2
+            access: read-only
+  ICB_CLOCK_MUX_SE:
+    derivedFrom: ICB_CLOCK_MUX_SW
+    description: ICB_CLOCK_MUX_SE Controller
+    baseAddress: 0x35020000
+  ICB_CLOCK_MUX_E:
+    derivedFrom: ICB_CLOCK_MUX_SW
+    description: ICB_CLOCK_MUX_E Controller
+    baseAddress: 0x35040000
+  ICB_CLOCK_MUX_NW:
+    derivedFrom: ICB_CLOCK_MUX_SW
+    description: ICB_CLOCK_MUX_NW Controller
+    baseAddress: 0x35100000
+  ICB_CLOCK_MUX_NE:
+    derivedFrom: ICB_CLOCK_MUX_SW
+    description: ICB_CLOCK_MUX_NE Controller
+    baseAddress: 0x35200000
+  ICB_CLOCK_MUX_W:
+    derivedFrom: ICB_CLOCK_MUX_SW
+    description: ICB_CLOCK_MUX_W Controller
+    baseAddress: 0x35400000

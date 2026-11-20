@@ -1,0 +1,60 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  SERDES_1_GPSS_MAIN:
+    description: SERDES_1_GPSS_MAIN Controller
+    groupName: GPSS_MAIN
+    baseAddress: 0x32090000
+    registers:
+      SOFT_RESET:
+        description: Compulsory register for all SCB slaves, facilitating global soft reset.
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID:
+            description: This returns the block type and chip location. Read 0x0000
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH:
+            description: This asserts functional reset of the peripheral block. It is asserted and left asserted at power-up. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP:
+            description: Resets all the volatile register bits. Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP:
+            description: Resets all the non-volatile register bits (e.g. RW-P bits). Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SPARE:
+        description: Spare reg for scratch-pad and repair purposes.
+        addressOffset: 0x190
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SPARE_CTRL:
+            description: Spare control for future use.
+            bitOffset: 8
+            bitWidth: 24
+            access: read-write
+          SCRATCHPAD:
+            description: Scratch-pad within GPSS address space.
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+  SERDES_2_GPSS_MAIN:
+    derivedFrom: SERDES_1_GPSS_MAIN
+    description: SERDES_2_GPSS_MAIN Controller
+    baseAddress: 0x32110000
+  SERDES_3_GPSS_MAIN:
+    derivedFrom: SERDES_1_GPSS_MAIN
+    description: SERDES_3_GPSS_MAIN Controller
+    baseAddress: 0x32210000

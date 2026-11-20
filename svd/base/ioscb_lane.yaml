@@ -1,0 +1,985 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  LANE_N_5:
+    description: LANE_N_5 Controller
+    groupName: IOSCB_LANE
+    baseAddress: 0x36000000
+    registers:
+      SOFT_RESET:
+        description: This is a compulsory register for all SCB slaves and must be at the same offset in all slaves to facilitate global soft reset of all SCB registers with a single broadcast write from the SCB master.
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID:
+            description: This returns the block type and chip location. (IO SCB bus only) Read 0x0000
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH:
+            description: This asserts the functional reset of the block. It is asserted at power up. When written is stays asserted until written to 0. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP:
+            description: This when asserted resets all the register bits apart from the non-volatile registers, the bit self clears. i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP:
+            description: This when asserted resets all the non-volatile register bits e.g. RW-P bits, the bit self clears i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      BNK_CLK_SEL:
+        description: Bnk Clock Selections
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BCLK_SEL:
+            description: bclk mux select bits. 3 bits per mux
+            bitOffset: 0
+            bitWidth: 9
+            access: read-write
+      CDR_CLK_SEL:
+        description: CDR Clock Selections
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CLK_SEL:
+            description: cdr clock selctions. 4 muxes. (3 bits each)
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      CODE_SEL:
+        description: DLL Code selections
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CODE_SEL:
+            description: Select 1 of 4 DLL code buses.
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      DQS_MODE:
+        description: dqs mode selection
+        addressOffset: 0x10
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DQS_MD:
+            description: DQS mode selection.(ddr1/2/3/4)
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      CDR_MODE:
+        description: CDR mode selection (number of pll phases)
+        addressOffset: 0x14
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CDR_MD:
+            description: CDR mode. (select number of pll phases used)
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      QDR_MODE:
+        description: QDR mode selection
+        addressOffset: 0x18
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          QDR:
+            description: QDR mode. Use 2 bank clock select muses
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      FIFO:
+        description: FIFO controls
+        addressOffset: 0x1C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXPTR:
+            description: Fifo read pointer starting position
+            bitOffset: 16
+            bitWidth: 3
+            access: read-write
+          FIFO_RUN:
+            description: Enable fifo free run mode
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          FIFO_EN:
+            description: Enable fifo
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DIVCLK:
+        description: DIVCLK contorls
+        addressOffset: 0x20
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DIVCLK_SEL:
+            description: Select divclk output port source. (divider or bclk1 or dqsi or dqsi_b)
+            bitOffset: 8
+            bitWidth: 2
+            access: read-write
+          DIV:
+            description: Clock divider settings. (off or Divide by 1, 2, 3p5, 4 or 5)
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      RX_DELAY_CNTL:
+        description: RX delay controls
+        addressOffset: 0x24
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXMVDLY_EN:
+            description: Enable RX dynamic delay controls
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          RXDLY_DIR:
+            description: RX dynamic delay move direction. (up or down)
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          RXDLY_EN:
+            description: Enable RX delay
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      RX_DELAY_OFFSET:
+        description: RX delay offset from DLL codes
+        addressOffset: 0x28
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXDLY_OFFSET:
+            description: RX delay offset code
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      TX_DELAY_CNTL:
+        description: TX delay controls
+        addressOffset: 0x2C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXMVDLY_EN:
+            description: Enable TX dynamic delay controls
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          TXDLY_DIR:
+            description: TX dynamic delay move direction. (up or down)
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          TXDLY_EN:
+            description: Enable TX delay
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      TX_DELAY_OFFSET:
+        description: TX delay offset from DLL codes
+        addressOffset: 0x30
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXDLY_OFFSET:
+            description: TX delay offset code
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      LANE_CONTROLS:
+        description: Misc. Lane control signals
+        addressOffset: 0x34
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RANK2:
+            description: enables eip control of rank 2 delay offsets
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          STOP_SEL:
+            description: select stop clock for cdr
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          ODT_DYN_SEL:
+            description: Select lane base odt control
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          GSR_DISABLE:
+            description: Disable gsr function
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          RST_INV:
+            description: Invert reset
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          PAUSE_EN:
+            description: Stop clocks
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      IOA_REG0:
+        description: IO buffer control Registers
+        addressOffset: 0x38
+        size: 32
+        access: read-write
+        resetValue: 0xA
+        fields:
+          HYST:
+            description: Enable ratio receiver hysteresis
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          CLAMP:
+            description: Enable pad clamp
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          COMP:
+            description: Complementary output mode
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          DRV:
+            description: Output buffer drive strength
+            bitOffset: 1
+            bitWidth: 4
+            access: read-write
+          ENDIFF:
+            description: Enable differential output mode
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      IOA_REG1:
+        description: IO buffer control Registers
+        addressOffset: 0x3C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LP_PERSIST:
+            description: persist mode
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          LP_BYPASS:
+            description: Low power bypass mode
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          IBUFMX:
+            description: Receiver mixed mode settings
+            bitOffset: 8
+            bitWidth: 2
+            access: read-write
+          IBUFMD:
+            description: Define receiver input mode
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      IOA_REG2:
+        description: IO buffer control Registers
+        addressOffset: 0x40
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ODT_STATIC:
+            description: On Die Termination direction configuration
+            bitOffset: 4
+            bitWidth: 3
+            access: read-write
+          ODT:
+            description: On Die Termination magnitude setting
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      IOA_REG3:
+        description: IO buffer control Registers
+        addressOffset: 0x44
+        size: 32
+        access: read-write
+        resetValue: 0x3C
+        fields:
+          LOCKDN_EN:
+            description: Enable security lock down capability
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          WPD:
+            description: Enable weak pull down
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          WPU:
+            description: Enable weak pull up
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          SPIO_SEL_DI:
+            description: Enable ibuf special IO function
+            bitOffset: 3
+            bitWidth: 2
+            access: read-write
+          SPIO_SEL:
+            description: Enable obuf special IO function
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          SLEW:
+            description: Obuf slew rate control
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      IOA_REG4:
+        description: IO buffer control Registers
+        addressOffset: 0x48
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LANE_PVT:
+            description: select local lane pvt control comp
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          ATP_EN:
+            description: analog test port enable
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      IOG_REG0:
+        description: IO Gearing control Registers
+        addressOffset: 0x4C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ESD:
+            description: Enable SLE register synch. Data_b
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          OSD:
+            description: Output SLE register synch. Data_b
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          ISD:
+            description: Input SLE register synch. Data_b
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          ECE_INV:
+            description: Enable SLE register clock enable
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          OCE_INV:
+            description: Output SLE register clock enable
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          ICE_INV:
+            description: Input SLE register clock enable
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          GSR_DISABLE:
+            description: Disable gsr function
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      IOG_REG1:
+        description: IO Gearing control Registers
+        addressOffset: 0x50
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DLY_MD:
+            description: IOG delay mode. (input, output or both)
+            bitOffset: 6
+            bitWidth: 2
+            access: read-write
+          EAD:
+            description: Enable SLE register asynch. Data_b
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          OAD:
+            description: Output SLE register asynch. Data_b
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          IAD:
+            description: Input SLE register asynch. Data_b
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          ELAT:
+            description: Enable SLE register latch mode
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          OLAT:
+            description: Output SLE register latch mode
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          ILAT:
+            description: Input SLE register latch mode
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      IOG_REG2:
+        description: IO Gearing control Registers
+        addressOffset: 0x54
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          EYEWIDTH:
+            description: Eyewidth setting (size of eye opening)
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          EYE_SDR:
+            description: Eye monitor Singel Data Rate mode
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          EYE_EN:
+            description: Enable eye monitor mode
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          INDLY_SEL:
+            description: Enable eye delay mode
+            bitOffset: 1
+            bitWidth: 2
+            access: read-write
+          EDGEDET:
+            description: Edge detect mode for dleay change
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      IOG_REG3:
+        description: IO Gearing control Registers
+        addressOffset: 0x58
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RX_MD:
+            description: Receiver mode. (sd/dd/1/2/3/4)
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          FIFOWE:
+            description: Enable fifo write
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          BCLK_SEL:
+            description: Select bclk<5:0> or cdrclk or nxtclk (8:1 mux)
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      IOG_REG4:
+        description: IO Gearing control Registers
+        addressOffset: 0x5C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RXDLY:
+            description: Receiver delay tap setting
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      IOG_REG5:
+        description: IO Gearing control Registers
+        addressOffset: 0x60
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXDLY:
+            description: Transmitter delay tap setting
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      IOG_REG6:
+        description: IO Gearing control Registers
+        addressOffset: 0x64
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          OE_MD:
+            description: Enable logic mode. (x1/2/4, etc.)
+            bitOffset: 5
+            bitWidth: 3
+            access: read-write
+          MVDLY_EN:
+            description: Enalbe dynamic dleay adjustments
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          SCLK1_INV:
+            description: System clock Invert. (for transmitter logic)
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          SCLK1_EN:
+            description: System clock enable. (for transmitter logic)
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          SCLK0_INV:
+            description: System clock Invert. (for receiver logic)
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          SCLK0_EN:
+            description: System clock enable. (for receiver logic)
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      IOG_REG7:
+        description: IO Gearing control Registers
+        addressOffset: 0x68
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TX_MD:
+            description: Transmitter logic mode (x1/2/4, etc.)
+            bitOffset: 0
+            bitWidth: 7
+            access: read-write
+      IOG_REG8:
+        description: IO Gearing control Registers
+        addressOffset: 0x6C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          OECLK_INV:
+            description: Invert clock to OE gear registers
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RXDLY_WIDE:
+            description: Receiver delay wide range setting. (2x tap delay)
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          QDR_MD:
+            description: QDR mode
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          TXCLK_SEL:
+            description: Select Transmit clock
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      IOG_REG9:
+        description: IO Gearing control Registers
+        addressOffset: 0x70
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SPARE:
+            description: Spare pc bits
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          LSR_DISABLE:
+            description: disable lsr function
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          EYEWIDTH_SEL:
+            description: selects lane based eyewidth control
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PVT_CODES:
+        description: PVT Code Registers
+        addressOffset: 0x74
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          LANE_SLEWR:
+            description: PVT slew control
+            bitOffset: 23
+            bitWidth: 6
+            access: read-only
+          LANE_SLEWF:
+            description: PVT slew control
+            bitOffset: 17
+            bitWidth: 6
+            access: read-only
+          PVT_COMPLETE:
+            description: pvt_complete
+            bitOffset: 16
+            bitWidth: 1
+            access: read-only
+          LANE_DIFFR:
+            description: PVT code for diff resistor
+            bitOffset: 12
+            bitWidth: 4
+            access: read-only
+          LANE_NCODE:
+            description: PVT code for N
+            bitOffset: 6
+            bitWidth: 6
+            access: read-only
+          LANE_PCODE:
+            description: PVT code for P
+            bitOffset: 0
+            bitWidth: 6
+            access: read-only
+      DFT_REG0:
+        description: DFT spare register
+        addressOffset: 0x78
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SCB_DFT_SPARE:
+            description: spare dft register
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      DFT_REG1:
+        description: DFT read registers
+        addressOffset: 0x7C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SCB_DFT_PRBS:
+            description: prbs read value
+            bitOffset: 0
+            bitWidth: 10
+            access: read-only
+      DFT_REG2:
+        description: DFT write registers
+        addressOffset: 0x80
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TBCLK_EN:
+            description: tsclk1 enable
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          TSCLK1_EN:
+            description: tsclk0 enable
+            bitOffset: 25
+            bitWidth: 1
+            access: read-write
+          TSCLK0_EN:
+            description: enable output dll delay test
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          SCB_DFT_PRBS_RD:
+            description: enable input dll delay test
+            bitOffset: 12
+            bitWidth: 12
+            access: read-write
+          SCB_DFT_PRBS_EN:
+            description: prbs enable
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      DFT_REG3:
+        description: DFT write registers
+        addressOffset: 0x84
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCB_DFT_TXDLYTST_EN:
+            description: rx delay test enable
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          SCB_DFT_RXDLYTST_EN:
+            description: rx delay test enable
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          SCB_DFT_ODLYTST_EN:
+            description: o delay test enable
+            bitOffset: 6
+            bitWidth: 6
+            access: read-write
+          SCB_DFT_IDLYTST_EN:
+            description: I delay test enable
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      DFT_REG4:
+        description: DFT read registers
+        addressOffset: 0x88
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SCB_DFT_TXDLYTSTB:
+            description: tx delay test b results
+            bitOffset: 27
+            bitWidth: 1
+            access: read-only
+          SCB_DFT_TXDLYTSTA:
+            description: tx delay test a results
+            bitOffset: 26
+            bitWidth: 1
+            access: read-only
+          SCB_DFT_RXDLYTSTB:
+            description: rx delay test b results
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          SCB_DFT_RXDLYTSTA:
+            description: rx delay test a results
+            bitOffset: 24
+            bitWidth: 1
+            access: read-only
+          SCB_DFT_ODLYTSTB:
+            description: output dll delay test
+            bitOffset: 18
+            bitWidth: 6
+            access: read-only
+          SCB_DFT_ODLYTSTA:
+            description: output dll delay test
+            bitOffset: 12
+            bitWidth: 6
+            access: read-only
+          SCB_DFT_IDLYTSTB:
+            description: input dll delay test
+            bitOffset: 6
+            bitWidth: 6
+            access: read-only
+          SCB_DFT_IDLYTSTA:
+            description: input dll delay test
+            bitOffset: 0
+            bitWidth: 6
+            access: read-only
+      SPARE_REG:
+        description: Spare registers
+        addressOffset: 0x8C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SCB_SPARE_RO:
+            description: spare ro bits
+            bitOffset: 10
+            bitWidth: 10
+            access: read-only
+          SCB_SPARE_RW:
+            description: spare rw bits
+            bitOffset: 0
+            bitWidth: 10
+            access: read-write
+  LANE_N_6:
+    derivedFrom: LANE_N_5
+    description: LANE_N_6 Controller
+    baseAddress: 0x36010000
+  LANE_N_7:
+    derivedFrom: LANE_N_5
+    description: LANE_N_7 Controller
+    baseAddress: 0x36020000
+  LANE_N_8:
+    derivedFrom: LANE_N_5
+    description: LANE_N_8 Controller
+    baseAddress: 0x36030000
+  LANE_N_9:
+    derivedFrom: LANE_N_5
+    description: LANE_N_9 Controller
+    baseAddress: 0x36040000
+  LANE_N_10:
+    derivedFrom: LANE_N_5
+    description: LANE_N_10 Controller
+    baseAddress: 0x36050000
+  LANE_N_11:
+    derivedFrom: LANE_N_5
+    description: LANE_N_11 Controller
+    baseAddress: 0x36060000
+  LANE_S_0:
+    derivedFrom: LANE_N_5
+    description: LANE_S_0 Controller
+    baseAddress: 0x36100000
+  LANE_S_1:
+    derivedFrom: LANE_N_5
+    description: LANE_S_1 Controller
+    baseAddress: 0x36110000
+  LANE_S_2:
+    derivedFrom: LANE_N_5
+    description: LANE_S_2 Controller
+    baseAddress: 0x36120000
+  LANE_S_3:
+    derivedFrom: LANE_N_5
+    description: LANE_S_3 Controller
+    baseAddress: 0x36130000
+  LANE_S_4:
+    derivedFrom: LANE_N_5
+    description: LANE_S_4 Controller
+    baseAddress: 0x36140000
+  LANE_S_5:
+    derivedFrom: LANE_N_5
+    description: LANE_S_5 Controller
+    baseAddress: 0x36150000
+  LANE_N_0:
+    derivedFrom: LANE_N_5
+    description: LANE_N_0 Controller
+    baseAddress: 0x36200000
+  LANE_N_1:
+    derivedFrom: LANE_N_5
+    description: LANE_N_1 Controller
+    baseAddress: 0x36210000
+  LANE_N_2:
+    derivedFrom: LANE_N_5
+    description: LANE_N_2 Controller
+    baseAddress: 0x36220000
+  LANE_N_3:
+    derivedFrom: LANE_N_5
+    description: LANE_N_3 Controller
+    baseAddress: 0x36230000
+  LANE_N_4:
+    derivedFrom: LANE_N_5
+    description: LANE_N_4 Controller
+    baseAddress: 0x36240000
+  LANE_S_6:
+    derivedFrom: LANE_N_5
+    description: LANE_S_6 Controller
+    baseAddress: 0x36400000
+  LANE_S_7:
+    derivedFrom: LANE_N_5
+    description: LANE_S_7 Controller
+    baseAddress: 0x36410000
+  LANE_S_8:
+    derivedFrom: LANE_N_5
+    description: LANE_S_8 Controller
+    baseAddress: 0x36420000
+  LANE_S_9:
+    derivedFrom: LANE_N_5
+    description: LANE_S_9 Controller
+    baseAddress: 0x36430000
+  LANE_S_10:
+    derivedFrom: LANE_N_5
+    description: LANE_S_10 Controller
+    baseAddress: 0x36440000
+  LANE_S_11:
+    derivedFrom: LANE_N_5
+    description: LANE_S_11 Controller
+    baseAddress: 0x36450000
+  LANE_S_12:
+    derivedFrom: LANE_N_5
+    description: LANE_S_12 Controller
+    baseAddress: 0x36460000
+  LANE_S_13:
+    derivedFrom: LANE_N_5
+    description: LANE_S_13 Controller
+    baseAddress: 0x36470000
+  SGMIIPHY_LANE01:
+    derivedFrom: LANE_N_5
+    description: SGMIIPHY_LANE01 Controller
+    baseAddress: 0x36500000
+  SGMIIPHY_LANE23:
+    derivedFrom: LANE_N_5
+    description: SGMIIPHY_LANE23 Controller
+    baseAddress: 0x36510000
+  DDRPHY_ADDCMD0:
+    derivedFrom: LANE_N_5
+    description: DDRPHY_ADDCMD0 Controller
+    baseAddress: 0x36600000
+  DDRPHY_ADDCMD1:
+    derivedFrom: LANE_N_5
+    description: DDRPHY_ADDCMD1 Controller
+    baseAddress: 0x36610000
+  DDRPHY_ADDCMD2:
+    derivedFrom: LANE_N_5
+    description: DDRPHY_ADDCMD2 Controller
+    baseAddress: 0x36620000
+  DDRPHY_LANE_ECC:
+    derivedFrom: LANE_N_5
+    description: DDRPHY_LANE_ECC Controller
+    baseAddress: 0x36630000
+  DDRPHY_DATA_LANE0:
+    derivedFrom: LANE_N_5
+    description: DDRPHY_DATA_LANE0 Controller
+    baseAddress: 0x36640000
+  DDRPHY_DATA_LANE1:
+    derivedFrom: LANE_N_5
+    description: DDRPHY_DATA_LANE1 Controller
+    baseAddress: 0x36650000
+  DDRPHY_DATA_LANE2:
+    derivedFrom: LANE_N_5
+    description: DDRPHY_DATA_LANE2 Controller
+    baseAddress: 0x36660000
+  DDRPHY_DATA_LANE3:
+    derivedFrom: LANE_N_5
+    description: DDRPHY_DATA_LANE3 Controller
+    baseAddress: 0x36670000
+  LANE_W_0:
+    derivedFrom: LANE_N_5
+    description: LANE_W_0 Controller
+    baseAddress: 0x36700000
+  LANE_W_1:
+    derivedFrom: LANE_N_5
+    description: LANE_W_1 Controller
+    baseAddress: 0x36710000
+  LANE_W_2:
+    derivedFrom: LANE_N_5
+    description: LANE_W_2 Controller
+    baseAddress: 0x36720000
+  LANE_W_3:
+    derivedFrom: LANE_N_5
+    description: LANE_W_3 Controller
+    baseAddress: 0x36730000
+  LANE_W_4:
+    derivedFrom: LANE_N_5
+    description: LANE_W_4 Controller
+    baseAddress: 0x36740000

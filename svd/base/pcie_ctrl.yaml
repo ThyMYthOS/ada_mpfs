@@ -1,0 +1,1141 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  PCIE_TOP_0_PCIE_CTRL:
+    description: PCIE_TOP_0_PCIE_CTRL Controller
+    groupName: PCIE_CTRL
+    baseAddress: 0x33006000
+    registers:
+      SOFT_RESET:
+        description: Compulsory register for all SCB slaves, facilitating global soft reset.
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID:
+            description: This returns the block type and chip location. Read 0x0000
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH:
+            description: This asserts functional reset of the peripheral block. It is asserted and left asserted at power-up. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP:
+            description: Resets all the volatile register bits. Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP:
+            description: Resets all the non-volatile register bits (e.g. RW-P bits). Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DEV_CONTROL:
+        description: Controls the device configuration.
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x19110
+        fields:
+          ENABLE_NULLIFY_TLP_ON_TXBUF_ECC_ERR:
+            description: When asserted; nullfy TLP when TX BUF ECC errors encountered is supported (k_gen); When cleared; nullify TLP when TX BUF ECC errors encountered is not supported; 0 1
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          USE_RXELECIDLE_TO_DETECT_ELECIDLE_ENTRY:
+            description: When asserted; treat fall edge of rxelecidle as rcvd EIOS, see AppD of PCIE Ref Manual (k_gen); When cleared; do as per PCIe Specification 0 1
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          LANE_REVERSAL_SUPPORT:
+            description: When asserted; lane reversal is supported (k_gen); When cleared; lane reversal is not supported; 0 1
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          LINK_SPEED_5GBPS_SUPPORT:
+            description: When asserted; 5.0 Gbps link-speed is supported (k_gen); When cleared; 5.0 Gbps link-speed is not supported; 0 1
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          LINK_WIDTH_X4_SUPPORT:
+            description: When asserted; x4 lane link-width mode is supported (k_gen); When cleared; x4 lane link-width mode is not supported; 0 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          LINK_WIDTH_X2_SUPPORT:
+            description: When asserted; x2 lane link-width mode is supported (k_gen); When cleared; x2 lane link-width mode is not supported; 0 1
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          ROOT_PORT_NEP:
+            description: When asserted; the PCIE controller is in root port (k_gen); When cleared; the controller is in endpoint mode. 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      CLOCK_CONTROL:
+        description: Register for clock control
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x1FC00000
+        fields:
+          TL_CLOCK_FREQ:
+            description: The 10 bit value specifies the frequency of transaction layer clock. It is used in Latency tolerating state machine
+            bitOffset: 22
+            bitWidth: 10
+            access: read-write
+      SOFT_RESET_DEBUG_INFO:
+        description: Soft Reset Logic Debug Information
+        addressOffset: 0x10
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          RST_DBG_PIPE_RSTN:
+            description: Captures the state of signal - pipe_rstn (input to PIPE logic)
+            bitOffset: 29
+            bitWidth: 1
+            access: read-only
+          RST_DBG_AXI4_SLVL_RSTN:
+            description: Captures the state of signal - axi4_slvl_rstn (input to PCIE Core)
+            bitOffset: 28
+            bitWidth: 1
+            access: read-only
+          RST_DBG_AXI4_SLV_RSTN:
+            description: Captures the state of signal - axi4_slv_rstn (input to PCIE Core)
+            bitOffset: 27
+            bitWidth: 1
+            access: read-only
+          RST_DBG_AXI4_MST_RSTN:
+            description: Captures the state of signal - axi4_mst_rstn (input to PCIE Core)
+            bitOffset: 26
+            bitWidth: 1
+            access: read-only
+          RST_DBG_BR_RSTN:
+            description: Captures the state of signal - br_rstn (input to PCIE Core)
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          RST_DBG_TL_CRSTN:
+            description: Captures the state of signal - tl_crstn (input to PCIE Core)
+            bitOffset: 24
+            bitWidth: 1
+            access: read-only
+          RST_DBG_TL_RSTN:
+            description: Captures the state of signal - tl_rstn (input to PCIE Core)
+            bitOffset: 23
+            bitWidth: 1
+            access: read-only
+          RST_DBG_TL_NPOR:
+            description: Captures the state of signal - tl_npor (input to PCIE Core)
+            bitOffset: 22
+            bitWidth: 1
+            access: read-only
+          RST_DBG_PL_RSTN:
+            description: Captures the state of signal - pl_rstn (input to PCIE Core)
+            bitOffset: 21
+            bitWidth: 1
+            access: read-only
+          RST_DBG_PL_NPOR:
+            description: Captures the state of signal - pl_npor (input to PCIE Core)
+            bitOffset: 20
+            bitWidth: 1
+            access: read-only
+          RST_DBG_WAKE_REQ:
+            description: Captures the state of signal - wake_req
+            bitOffset: 12
+            bitWidth: 1
+            access: read-only
+          RST_DBG_PIPE_POWERDOWN:
+            description: Captures the state of signal - powerdown[1:0] (output from PIPE logic)
+            bitOffset: 8
+            bitWidth: 2
+            access: read-only
+          RST_DBG_PIPE_PHYSTATUS:
+            description: Captures the state of signal - pipe_phystatus[3:0] (output from PIPE logic)
+            bitOffset: 4
+            bitWidth: 4
+            access: read-only
+          RST_DBG_PERIPH_RESET_B:
+            description: Captures the state of signal - periph_reset_b
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          RST_DBG_MPERST_B:
+            description: Captures the state of signal - mperst_b
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          RST_DBG_CORE_UP:
+            description: Captures the state of signal - coreup
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      SOFT_RESET_CTLR:
+        description: PCIe Controller Resets
+        addressOffset: 0x14
+        size: 32
+        access: read-write
+        resetValue: 0x100002
+        fields:
+          CFG_PCIE_CFGRESET_REL:
+            description: When de-asserted, the PCIe Controller resets (PL, TL) are held under reset when pl_exit[2:0] conditions are detected; the reset releases are gated by the assertion of this register bit 0 1
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          CFG_BRGMAP_SOFTRST:
+            description: When asserted, resets the bridge internal registers. 0 1
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          CFG_IGNORE_INBAND_RST_EVENT_4_CTRL_RST:
+            description: When asserted, ignore the effect of DLUp|HotRst|L2Exit events by not resetting PCIe controller 0 1
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          CFG_IGNORE_MPERST:
+            description: When asserted, ignore external PERST# pin and use internal periph_reset_b as fundamental reset 0 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          CFG_IGNORE_BRGAXI_SOFTRST_4_CTRL_RST:
+            description: When asserted, do not reset PL and TL logic when CFG_BRGAXI_SOFTRST=1 0 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          CFG_BRGAXI_SOFTRST:
+            description: The register resets the Bridge and AXI layers in the PCIe controller. Internal FSM conditionally resets PL and TL Logic (see bit1 and bit2 settings) 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SEC_ERROR_EVENT_CNT:
+        description: Indicates a single correctible error event occurred in the RAMS
+        addressOffset: 0x20
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          AXI2PCIE_RAM_SEC_ERR_CNT:
+            description: This is a 8 bit counter valuefor single-correctible error in AXI to PCIe buffer. The counter will not roll back and will stay at its max value.
+            bitOffset: 24
+            bitWidth: 8
+            access: read-write
+          PCIE2AXI_RAM_SEC_ERR_CNT:
+            description: This is a 8 bit counter valuefor single-correctible error in PCIe-to-AXI buffer. The counter will not roll back and will stay at its max value.
+            bitOffset: 16
+            bitWidth: 8
+            access: read-write
+          RX_RAM_SEC_ERR_CNT:
+            description: This is a 8 bit counter value for single-correctible error in PCIe RX buffer. The counter will not roll back and will stay at its max value.
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          TX_RAM_SEC_ERR_CNT:
+            description: This is a 8 bit counter value for single-correctible error in PCIe TX buffer. The counter will not roll back and will stay at its max value.
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      DED_ERROR_EVENT_CNT:
+        description: Indicates a uncorrectible error event occurred in the RAMS
+        addressOffset: 0x24
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          AXI2PCIE_RAM_DED_ERR_CNT:
+            description: This is a 4 bit counter value for uncorrectible errors in AXI to PCIe buffer. The counter will not roll back and will stay at its max value.
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          PCIE2AXI_RAM_DED_ERR_CNT:
+            description: This is a 4 bit counter value for uncorrectible errors in PCIe-to-AXI buffer. The counter will not roll back and will stay at its max value.
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          RX_RAM_DED_ERR_CNT:
+            description: This is a 4 bit counter value for uncorrectible errors in PCIe RX buffer. The counter will not roll back and will stay at its max value.
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          TX_RAM_DED_ERR_CNT:
+            description: This is a 4 bit counter value for uncorrectible errors in PCIe TX buffer. The counter will not roll back and will stay at its max value.
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      SEC_ERROR_INT:
+        description: Interrupt contributor registers for SEC Errors
+        addressOffset: 0x28
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          AXI2PCIE_RAM_SEC_ERR_INT:
+            description: Indicates a SEC_RAM_ERR occurred in the appropriate AXI2PCIe Buffer 0x0 0x1
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          PCIE2AXI_RAM_SEC_ERR_INT:
+            description: Indicates a SEC_RAM_ERR occurred in appropriate PCIe2AXI Buffer 0x0 0x1
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          RX_RAM_SEC_ERR_INT:
+            description: Indicates a SEC_RAM_ERR occurred in appropriate RX Buffer 0x0 0x1
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          TX_RAM_SEC_ERR_INT:
+            description: Indicates a SEC_RAM_ERR occurred in the appropriate TX Buffer 0x0 0x1
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      SEC_ERROR_INT_MASK:
+        description: Indicates the SEC error contributors to ram_err_int
+        addressOffset: 0x2C
+        size: 32
+        access: read-write
+        resetValue: 0x1111
+        fields:
+          AXI2PCIE_RAM_SEC_ERR_INT_MASK:
+            description: Indicates whether SEC error in AXI2PCIe buffer should contribute ram_err_int signal 0x0 0x1
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          PCIE2AXI_RAM_SEC_ERR_INT_MASK:
+            description: Indicates whether SEC error in PCIe2AXI buffer should contribute ram_err_int signal 0x0 0x1
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          RX_RAM_SEC_ERR_INT_MASK:
+            description: Indicates whether SEC error in RX buffer should contribute ram_err_int signal 0x0 0x1
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          TX_RAM_SEC_ERR_INT_MASK:
+            description: Indicates whether SEC error in TX buffer should contribute ram_err_int signal 0x0 0x1
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      DED_ERROR_INT:
+        description: Interrupt contributor registers for DED Errors
+        addressOffset: 0x30
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          AXI2PCIE_RAM_DED_ERR_INT:
+            description: Indicates a DED_RAM_ERR occurred in AXI2PCIe Buffer 0x0 0x1
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          PCIE2AXI_RAM_DED_ERR_INT:
+            description: Indicates a SEC_RAM_ERR occurred in PCIe2AXI Buffer 0x0 0x1
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          RX_RAM_DED_ERR_INT:
+            description: Indicates a DED_RAM_ERR occurred in RX Buffer 0x0 0x1
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          TX_RAM_DED_ERR_INT:
+            description: Indicates a DED_RAM_ERR occurred in TX Buffer 0x0 0x1
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      DED_ERROR_INT_MASK:
+        description: Indicates the DED error contributors to ram_err_int
+        addressOffset: 0x34
+        size: 32
+        access: read-write
+        resetValue: 0x1111
+        fields:
+          AXI2PCIE_RAM_DED_ERR_INT_MASK:
+            description: Indicates whether DED error in AXI2PCIe buffer should contribute ram_err_int signal 0x0 0x1
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          PCIE2AXI_RAM_DED_ERR_INT_MASK:
+            description: Indicates whether DED error in PCIe2AXI buffer should contribute ram_err_int signal 0x0 0x1
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          RX_RAM_DED_ERR_INT_MASK:
+            description: Indicates whether DED error in RX buffer should contribute ram_err_int signal 0x0 0x1
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          TX_RAM_DED_ERR_INT_MASK:
+            description: Indicates whether DED error in TX buffer should contribute ram_err_int signal 0x0 0x1
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      ECC_CONTROL:
+        description: Manually injects ECC error or bypasses ECC.
+        addressOffset: 0x38
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          AXI2PCIE_RAM_ECC_BYPASS:
+            description: ECC Generation and check is bypassed in AXI2PCIE RAM 0 1
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          PCIE2AXI_RAM_ECC_BYPASS:
+            description: ECC Generation and check is bypassed in PCIE2AXI RAM 0 1
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          RX_RAM_ECC_BYPASS:
+            description: ECC Generation and check is bypassed in RX RAM 0 1
+            bitOffset: 25
+            bitWidth: 1
+            access: read-write
+          TX_RAM_ECC_BYPASS:
+            description: ECC Generation and check is bypassed in TX RAM 0 1
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          AXI2PCIE_RAM_INJ_ERR:
+            description: Injects a ECC_RAM_ERR occurred in AXI2PCIe Buffer 0x0 0x1
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          PCIE2AXI_RAM_INJ_ERR:
+            description: Injects a ECC_RAM_ERR occurred in PCIe2AXI Buffer 0x0 0x1
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          RX_RAM_INJ_ERR:
+            description: Injects a ECC_RAM_ERR occurred in RX Buffer 0x0 0x1
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          TX_RAM_INJ_ERR:
+            description: Injects a ECC_RAM_ERR occurred in TX Buffer 0x0 0x1
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      ECC_ERR_LOC:
+        description: Manually injects ECC error as specified in the address and data location.
+        addressOffset: 0x3C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ENABLE_ECC_ERR_BYTE_LOC:
+            description: When a bit is '1', the error is inserted in the corresponding byte. The error inserted is specified by the appropriate ENABLE_ECC_ERR_BIT_LOC
+            bitOffset: 16
+            bitWidth: 10
+            access: read-write
+          ENABLE_ECC_ERR_BIT_LOC:
+            description: Enables error on bits specified by the byte. When there is a '1' the error is inserted in the location.
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          INJECT_ECC_ERR_ADDR:
+            description: Injects ECC ERROR as specified at the adress specified by INJECT_ECC_ERR_ADDR[7:0]
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      RAM_MARGIN_1:
+        description: Registers for RAM Read Margin control
+        addressOffset: 0x40
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TX_BUF_MARGIN:
+            description: Controls the read margin for the TX Buffer RAM. RAM[2:0] -> RAM_INST_0, RAM[5:3]-> RAM_INST_1.
+            bitOffset: 16
+            bitWidth: 12
+            access: read-write
+          RX_BUF_MARGIN:
+            description: Controls the read margin for the RX Buffer RAM. RAM[2:0] -> RAM_INST_0, RAM[5:3]-> RAM_INST_1.
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      RAM_MARGIN_2:
+        description: Registers for RAM Read Margin control
+        addressOffset: 0x44
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          A2P_BUF_MARGIN:
+            description: Controls the read margin for the AXI2PCIE Buffer RAM. RAM[2:0] -> RAM_INST_0, RAM[5:3]-> RAM_INST_1.
+            bitOffset: 16
+            bitWidth: 12
+            access: read-write
+          P2A_BUF_MARGIN:
+            description: Controls the read margin for the PCIE2AXI Buffer RAM. RAM[2:0] -> RAM_INST_0, RAM[5:3]-> RAM_INST_1.
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      RAM_POWER_CONTROL:
+        description: Registers for controlling power in RAMs
+        addressOffset: 0x48
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          A2P_BUF_PWR_CTRL:
+            description: Controls the power for AXI2PCIE Buffer. 0x0 0x1 0x2 0x4
+            bitOffset: 24
+            bitWidth: 3
+            access: read-write
+          P2A_BUF_PWR_CTRL:
+            description: Controls the power for PCIE2AXI Buffer. 0x0 0x1 0x2 0x4
+            bitOffset: 16
+            bitWidth: 3
+            access: read-write
+          TX_BUF_PWR_CTRL:
+            description: Controls the power for TX Buffer. 0x0 0x1 0x2 0x4
+            bitOffset: 8
+            bitWidth: 3
+            access: read-write
+          RX_BUF_PWR_CTRL:
+            description: Controls the power for RX Buffer. 0x0 0x1 0x2 0x4
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      DEBUG_SEL:
+        description: PCIe Controller fab_debug[31:0] select
+        addressOffset: 0x50
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          FAB_DEBUG_SEL:
+            description: Controls debug select mux logic
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      LTSSM_STATE:
+        description: Captures the LTSSM state fromPCIE core
+        addressOffset: 0x5C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          PL_LTSSM_OUT:
+            description: Captures the LTSSM state Detect.Quiet= 5’h0 Detect.Active= 5’h1 Polling.Active= 5’h2 Polling.Compliance= 5’h3 Polling.Configuration= 5’h4 Configuration.Linkwidth.Start= 5’h5 Configuration.Linkwidth.Accept= 5’h6 Configuration.Lanenum.Wait= 5’h7 Configuration.Lanenum.Accept= 5’h8 Configuration.Complete= 5’h9 Configuration.Idle= 5’hA Recovery.RcvrLock= 5’hB Recovery.Equalization= 5’hC Recovery.Speed= 5’hD Recovery.RcvrCfg= 5’hE Recovery.Idle= 5’hF L0= 5’h10 L0s= 5’h11 L1.Entry= 5’h12 L1.Idle= 5’h13 L2.Idle= 5’h14 L2.TransmitWake= 5’h15 Disabled= 5’h16 Loopback.Entry= 5’h17 Loopback.Active= 5’h18 Loopback.Exit= 5’h19 Hot Reset= 5’h1A
+            bitOffset: 0
+            bitWidth: 5
+            access: read-only
+      PHY_COMMON_INTERFACE:
+        description: Captures the state pf PCIE PHY signal which are common to al lanes
+        addressOffset: 0x60
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          PL_TXDEMPH:
+            description: Captures the TX demphasis
+            bitOffset: 13
+            bitWidth: 1
+            access: read-only
+          PL_TXSWING:
+            description: Captures the TX swing
+            bitOffset: 12
+            bitWidth: 1
+            access: read-only
+          PL_TXMARGIN:
+            description: Captures the TX margin
+            bitOffset: 8
+            bitWidth: 3
+            access: read-only
+          PL_RATE:
+            description: Captures the link signaling rate
+            bitOffset: 4
+            bitWidth: 2
+            access: read-only
+          PL_POWERDOWN:
+            description: Determines the power state (L0,L1,L2..)
+            bitOffset: 0
+            bitWidth: 2
+            access: read-only
+      PL_TX_LANEIF_0:
+        description: Captures the per-lane interface signals between the PCIE and Pipe
+        addressOffset: 0x64
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          PL_TXCOMPLAINCE:
+            description: Captures the state of TX compliance per lane
+            bitOffset: 8
+            bitWidth: 4
+            access: read-only
+          PL_TXELECIDLE:
+            description: Captures the state of Tx ElecIdle per lane
+            bitOffset: 4
+            bitWidth: 4
+            access: read-only
+          PL_TXDETRX:
+            description: Captures the state of TX Detect RX per lane
+            bitOffset: 0
+            bitWidth: 4
+            access: read-only
+      PL_RX_LANEIF_0:
+        description: Captures the per-lane interface signals between the PCIe and Pipe
+        addressOffset: 0x68
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          PL_RXVALID:
+            description: Captures the state of RxValid per lane
+            bitOffset: 24
+            bitWidth: 4
+            access: read-only
+          PL_RXSTATUS:
+            description: Captures the three bit RX status per lane
+            bitOffset: 12
+            bitWidth: 12
+            access: read-only
+          PL_RXELECIDLE:
+            description: Captures the state of Rx Elec Idle per lane
+            bitOffset: 8
+            bitWidth: 4
+            access: read-only
+          PL_PHYSTATUS:
+            description: Captures the state of phystatus[3:0] per lane
+            bitOffset: 4
+            bitWidth: 4
+            access: read-only
+          PL_RXPOL:
+            description: Captures the state of RX Polarity per lane
+            bitOffset: 0
+            bitWidth: 4
+            access: read-only
+      PL_WAKECLKREQ:
+        description: Captures the state of Wake Management
+        addressOffset: 0x6C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PL_WAKE_OVERRIDE:
+            description: Overrides the value of WAKE_IN input 0 1
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          PL_WAKEIN:
+            description: Captures the state of WAKE_IN Read 0 Read 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          PL_WAKEOEN:
+            description: Captures the state of Wake_OEN Read 0 Read 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      PCICONF_PCI_IDS_OVERRIDE:
+        description: PCI Configuration Override Enable
+        addressOffset: 0x80
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PCICONF_OVERRIDE_EN:
+            description: PC BIT override enable for PCIE Bridge Config registers 0x98, 0x9C, 0xA0 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PCICONF_PCI_IDS_31_0:
+        description: PCIe PCI Standard Configuration Identification Settings 31 to 0
+        addressOffset: 0x84
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PCI_DEVICE_ID:
+            description: PC BIT override value for PCIE Bridge Config register PCIE_PCI_IDS offset 0x98, bit field Device ID
+            bitOffset: 16
+            bitWidth: 16
+            access: read-write
+          PCI_VENDOR_ID:
+            description: PC BIT override value for PCIE Bridge Config register PCIE_PCI_IDS offset 0x98, bit field Vendor ID
+            bitOffset: 0
+            bitWidth: 16
+            access: read-write
+      PCICONF_PCI_IDS_63_32:
+        description: PCIe PCI Standard Configuration Identification Settings 63 to 32
+        addressOffset: 0x88
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PCI_CLASS_CODE:
+            description: PC BIT override value for PCIE Bridge Config register PCIE_PCI_IDS offset 0x9C, bit field Class Code
+            bitOffset: 8
+            bitWidth: 24
+            access: read-write
+          PCI_REVISION_ID:
+            description: PC BIT override value for PCIE Bridge Config register PCIE_PCI_IDS offset 0x9C, bit field Revision ID
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      PCICONF_PCI_IDS_95_64:
+        description: PCIe PCI Standard Configuration Identification Settings 95 to 64
+        addressOffset: 0x8C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PCI_SUBSYSTEM_DEVICE_ID:
+            description: PC BIT override value for PCIE Bridge Config register PCIE_PCI_IDS offset 0xA0, bit field Sub-system Device ID
+            bitOffset: 16
+            bitWidth: 16
+            access: read-write
+          PCI_SUBSYSTEM_VENDOR_ID:
+            description: PC BIT override value for PCIE Bridge Config register PCIE_PCI_IDS offset 0xA0, bit field Sub-system Vendor ID
+            bitOffset: 0
+            bitWidth: 16
+            access: read-write
+      PCIE_PEX_DEV_LINK_SPC2:
+        description: PCie Device, Link and Specific2 Capabilities Settings Override
+        addressOffset: 0xA0
+        size: 32
+        access: read-write
+        resetValue: 0x200
+        fields:
+          L1_ACC_LATENCY:
+            description: PC BIT override value for PCIE Bridge Config register PCIE_PEX_DEV offset 0xC0, bit field ASPM L1 exit latency (Max of 1us/2us/4us/8us/16us/32us/64us/noLimit)
+            bitOffset: 24
+            bitWidth: 3
+            access: read-write
+          L1_EXIT_DELAY:
+            description: PC BIT override value for PCIE Bridge Config register PCIE_PEX_LINK offset 0xC8, bit field ASPM L1 exit latency
+            bitOffset: 21
+            bitWidth: 3
+            access: read-write
+          L1_ENTRY_DELAY:
+            description: PC BIT override value for PCIE Bridge Config register PCIE_PEX_SPC2 offset 0xD8, bit field ASPM L1 entry delay (in steps of 256ns)
+            bitOffset: 16
+            bitWidth: 5
+            access: read-write
+          L0S_ACC_LATENCY:
+            description: PC BIT override value for PCIE Bridge Config register PCIE_PEX_DEV offset 0xC0, bit field ASPM L0s acceptable latency (Max of 64ns/128ns/256ns/512ns/1us/2us/4us/noLimit)
+            bitOffset: 12
+            bitWidth: 3
+            access: read-write
+          L0S_EXIT_DELAY:
+            description: PC BIT override value for PCIE Bridge Config register PCIE_PEX_LINK offset 0xC8, bit field ASPM L0s exit latency
+            bitOffset: 9
+            bitWidth: 3
+            access: read-write
+          L0S_ENTRY_DELAY:
+            description: PC BIT override value for PCIE Bridge Config register PCIE_PEX_SPC2 offset 0xD8, bit field ASPM L0s entry delay (in steps of 256ns)
+            bitOffset: 4
+            bitWidth: 5
+            access: read-write
+          PEX_DEV_LINK_SPC2_OVERRIDE_EN:
+            description: PC BIT override enable for PCIE Bridge Config registers 0xC0, 0xC8 and 0xD8 (bit fields related to L0s, L1 Entry/Exit Delays and Acceptable Latencies) 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PCIE_PEX_SPC:
+        description: PCIe Specific Cababilities Settings Override
+        addressOffset: 0xA4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PCIE_DE_EMPH_LVL:
+            description: PC BIT override value for PCIE Bridge Config register PCIE_PEX_SPC offset 0xD4, bit field Link Selectable De-emphasis
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          PCIE_SLOT_CLK_CONF:
+            description: PC BIT override value for PCIE Bridge Config register PCIE_PEX_SPC offset 0xD4, bit field Slot Clock Configuration
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          PEX_SPC_OVERRIDE_EN:
+            description: PC BIT override enable for PCIE Bridge Config registers 0xD4, bit fields Slot Clock, Link Selectable De-emphasis 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PCIE_AXI_MASTER_ATR_CFG0:
+        description: PCIe Address to AXI Master Address Translation Override Config0
+        addressOffset: 0x100
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PCIE_AXI_MASTER_ATR_TRSL_ADDR_L:
+            description: PC BIT override value for PCIE Bridge Config register 0x608, bit field TRSL_ADDR[31:12]
+            bitOffset: 12
+            bitWidth: 20
+            access: read-write
+          PCIE_AXI_MASTER_ATR_SIZE:
+            description: PC BIT override value for PCIE Bridge Config register 0x600, bit field ATR_SIZE
+            bitOffset: 4
+            bitWidth: 6
+            access: read-write
+          PCIE_AXI_MASTER_ATR_IMPL:
+            description: PC BIT override value for PCIE Bridge Config register 0x600, bit field ATR_IMPL
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          PCIE_AXI_MASTER_ATR_OVERRIDE_EN:
+            description: PC BIT override enable for PCIE Bridge Config registers 0x0600 to 0x0610 - ATR Config 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PCIE_AXI_MASTER_ATR_CFG1:
+        description: PCIe Address to AXI Master Address Translation Override Config1
+        addressOffset: 0x104
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PCIE_AXI_MASTER_ATR_TRSL_ADDR_U:
+            description: PC BIT override value for PCIE Bridge Config register 0x60c, bit field TRSL_ADDR[63:32]
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      PCIE_AXI_MASTER_ATR_CFG2:
+        description: PCIe Address to AXI Master Address Translation Override Config2
+        addressOffset: 0x108
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PCIE_AXI_MASTER_ATR_TRSF_PARAM:
+            description: PC BIT override value for PCIE Bridge Config register 0x610, bit field TRSF_PARAM
+            bitOffset: 4
+            bitWidth: 12
+            access: read-write
+          PCIE_AXI_MASTER_ATR_TRSL_ID:
+            description: PC BIT override value for PCIE Bridge Config register 0x610, bit field TRSL_ID
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      AXI_SLAVE_PCIE_ATR_CFG0:
+        description: AXI Slave Address to PCIe Address Translation Override Config0
+        addressOffset: 0x120
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          AXI_SLAVE_PCIE_ATR_TRSL_ADDR_L:
+            description: PC BIT override value for PCIE Bridge Config register 0x808, bit field TRSL_ADDR[31:12]
+            bitOffset: 12
+            bitWidth: 20
+            access: read-write
+          AXI_SLAVE_PCIE_ATR_SIZE:
+            description: PC BIT override value for PCIE Bridge Config register 0x800, bit field ATR_SIZE
+            bitOffset: 4
+            bitWidth: 6
+            access: read-write
+          AXI_SLAVE_PCIE_ATR_IMPL:
+            description: PC BIT override value for PCIE Bridge Config register 0x800, bit field ATR_IMPL
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          AXI_SLAVE_PCIE_ATR_OVERRIDE_EN:
+            description: PC BIT override enable for PCIE Bridge Config registers 0x0800 to 0x810 - ATR Config 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      AXI_SLAVE_PCIE_ATR_CFG1:
+        description: AXI Slave Address to PCIe Address Translation Override Config1
+        addressOffset: 0x124
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          AXI_SLAVE_PCIE_ATR_TRSL_ADDR_U:
+            description: PC BIT override value for PCIE Bridge Config register 0x80c, bit field TRSL_ADDR[63:32]
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      AXI_SLAVE_PCIE_ATR_CFG2:
+        description: AXI Slave Address to PCIe Address Translation Override Config2
+        addressOffset: 0x128
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          AXI_SLAVE_PCIE_ATR_TRSF_PARAM:
+            description: PC BIT override value for PCIE Bridge Config register 0x810, bit field TRSF_PARAM
+            bitOffset: 4
+            bitWidth: 12
+            access: read-write
+          AXI_SLAVE_PCIE_ATR_TRSL_ID:
+            description: PC BIT override value for PCIE Bridge Config register 0x810, bit field TRSL_ID
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      PCIE_BAR_01:
+        description: PCIe BAR 0 and 1 Settings Override
+        addressOffset: 0x140
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PEX_BAR1_SIZE:
+            description: BAR 1 Size
+            bitOffset: 20
+            bitWidth: 5
+            access: read-write
+          PEX_BAR1_CTRL:
+            description: BAR 1 Control
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          PEX_BAR0_SIZE:
+            description: BAR 0 Size
+            bitOffset: 8
+            bitWidth: 5
+            access: read-write
+          PEX_BAR0_CTRL:
+            description: BAR 0 Control
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          PEX_BAR01_OVERRIDE_EN:
+            description: PC BIT override enable for PCIE Bridge Config registers 0xE4, 0xE8 BAR 0/1 Settings 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PCIE_BAR_23:
+        description: PCIe BAR 2 and 3 Settings Override
+        addressOffset: 0x144
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PEX_BAR3_SIZE:
+            description: BAR 3 Size
+            bitOffset: 20
+            bitWidth: 5
+            access: read-write
+          PEX_BAR3_CTRL:
+            description: BAR 3 Control
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          PEX_BAR2_SIZE:
+            description: BAR 2 Size
+            bitOffset: 8
+            bitWidth: 5
+            access: read-write
+          PEX_BAR2_CTRL:
+            description: BAR 2 Control
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          PEX_BAR23_OVERRIDE_EN:
+            description: PC BIT override enable for PCIE Bridge Config registers 0xEC, 0xF0 BAR 2/3 Settings 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PCIE_BAR_45:
+        description: PCIe BAR 4 and 5 Settings Override
+        addressOffset: 0x148
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PEX_BAR5_SIZE:
+            description: BAR 5 Size
+            bitOffset: 20
+            bitWidth: 5
+            access: read-write
+          PEX_BAR5_CTRL:
+            description: BAR 5 Control
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          PEX_BAR4_SIZE:
+            description: BAR 4 Size
+            bitOffset: 8
+            bitWidth: 5
+            access: read-write
+          PEX_BAR4_CTRL:
+            description: BAR 4 Control
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          PEX_BAR45_OVERRIDE_EN:
+            description: PC BIT override enable for PCIE Bridge Config registers 0xF4, 0xF8 BAR 4/5 Settings 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PCIE_EVENT_INT:
+        description: L2 Exit, Hot reset exit and DLUp exit interrupt
+        addressOffset: 0x14C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DLUP_EXIT_INT_MASK:
+            description: Indicates whether Dlup exit from PCIe should contribute to pcie interrupt or not 0 1
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          HOTRST_EXIT_INT_MASK:
+            description: Indicates whether Hot reset exit from PCIe should contribute to pcie interrupt or not 0 1
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          L2_EXIT_INT_MASK:
+            description: Indicates whether L2 exit from PCIe should contribute to pcie interrupt or not 0 1
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          DLUP_EXIT_INT:
+            description: Indicates Dlup exit event occurred 0 1
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          HOTRST_EXIT_INT:
+            description: Indicates Hot Reset exit event occurred 0 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          L2_EXIT_INT:
+            description: Indicates L2 exit event occurred 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SPARE:
+        description: Spare register for scratch-pad and repair purposes
+        addressOffset: 0x150
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SPARE_CTRL:
+            description: Spare Control for future Use
+            bitOffset: 8
+            bitWidth: 24
+            access: read-write
+          SCRATCHPAD:
+            description: Scratch-pad within PCIE ctrl register space Bit-0 Dynamic control of PERSTn port. Bit-0 of these registers drives PERSTn and it's reset/default value will be ‘1’ in this case. Root port RTL passes all APB transactions to PCIe controller through link interface with respect to PERSTN
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      PCIE_BAR_WIN:
+        description: PCIe Rootport Windows Settings Override
+        addressOffset: 0x180
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          PEX_BAR_WIN_CTRL:
+            description: BAR Window Control
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          PEX_BAR_WIN_OVERRIDE_EN:
+            description: PC BIT override enable for PCIE Bridge Config registers 0xFC BAR Win Settings 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      TEST_BUS_IN_31_0:
+        description: Controls the test_bus_in (31:0) of PCIE core
+        addressOffset: 0xC80
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TEST_BUS_IN_BIT21_DISABLE_SKP_PARITY:
+            description: test_in[21] = Disable SKP Parity in Scrambler block
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          TEST_BUS_IN_BIT20_CHECK_DCBALANCE:
+            description: test_in[20] = This is a simulation only feature to check DC Balance in RX Mode; This is not in PCIE Doc; but found in pcie3_coreconfig_h.v
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          TEST_BUS_IN_BIT19_EXT_SIM_MODE:
+            description: test_in[19] = Extended simulation mode (see Section 14.2 of PCIE PCIe Ref Manual)
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          TEST_BUS_IN_BIT18_NULLIFIED_WRTX:
+            description: test_in[18] = Do not write nullified TLP to TX Buffer when value is 0; This is not in PCIE Doc; but found in pcie3_coreconfig_h.v
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          TEST_BUS_IN_BIT14_DIS_PHY_STATUS_TO:
+            description: test_in[14] = Disable PHY status timeout
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          TEST_BUS_IN_BIT10_FORCE_PLL_CMPL_ENTRY:
+            description: test_in[10] = Force entry in Polling.Compliance from Polling.active
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          TEST_BUS_IN_BIT9_DIS_POLL_CMPL_ENTRY:
+            description: test_in[9] = Disable entry in Polling.Compliance from Polling.active (does not apply if the compliance receive bit is set).
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          TEST_BUS_IN_BIT8_TS2_DEEMPH_BIT_SEL:
+            description: test_in[8] = Set selectable deemphasis bit in transmitted TS2 ordered set (upstream devices only)
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          TEST_BUS_IN_BIT7_CMPL_RCV_BIT:
+            description: test_in[7] = Set compliance receive bit in transmitted TS1 ordered set
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          TEST_BUS_IN_BIT6_DIS_SCRAMBLING:
+            description: test_in[6] = Disable scrambling (Gen1/Gen2 modes only).
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          TEST_BUS_IN_BIT4_EN_INFO_ASSERT:
+            description: test_in[4] = Enable information assertions
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          TEST_BUS_IN_BIT3_EN_WARN_ASSERT:
+            description: test_in[3] = Enable warning assertions
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          TEST_BUS_IN_BIT2_LBACK_MST:
+            description: 'test_in[2] = Loopback Master: This signal must be set to 1 to direct the Link to loopbak (in Master mode)'
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          TEST_BUS_IN_BIT1_DIS_LPWR_STATE_NEG:
+            description: 'test_in[1] = Disable Low Power State Negotiation: When asserted, this signal disables all low power state negotiation'
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          TEST_BUS_IN_BIT0_SIM_MODE:
+            description: 'test_in[0] = Simulation Mode: This signal must be set to 1 to set simulation mode (see Section 14.2 in PCIE PCIe Ref Manual)'
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      TEST_BUS_IN_63_32:
+        description: Controls the test_bus_in (63:32) of PCIE core
+        addressOffset: 0xC84
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TEST_BUS_IN_BF_63_32:
+            description: Please refer to PCIE spec on controls for test_bus_in.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+  PCIE_TOP_1_PCIE_CTRL:
+    derivedFrom: PCIE_TOP_0_PCIE_CTRL
+    description: PCIE_TOP_1_PCIE_CTRL Controller
+    baseAddress: 0x3300A000

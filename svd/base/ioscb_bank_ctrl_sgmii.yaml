@@ -1,0 +1,78 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  IOSCB_BANK_CTRL_SGMII:
+    description: IOSCB_BANK_CTRL_SGMII Controller
+    baseAddress: 0x3E400000
+    registers:
+      SOFT_RESET:
+        description: This is a compulsory register for all SCB slaves and must be at the same offset in all slaves to facilitate global soft reset of all SCB registers with a single broadcast write from the SCB master.
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID:
+            description: This returns the block type and chip location. (IO SCB bus only) Read 0x0000
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH:
+            description: This asserts the functional reset of the block. It is asserted at power up. When written is stays asserted until written to 0. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP:
+            description: This when asserted resets all the register bits apart from the non-volatile registers, the bit self clears. i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP:
+            description: This when asserted resets all the non-volatile register bits e.g. RW-P bits, the bit self clears i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      DPC_BITS:
+        description: DPC Bits Register
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DPC_MOVE_EN:
+            description: enable dynamic control of vrgen circuit for DQ/DQS pins
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          DPC_VRGEN_EN:
+            description: enable vref generator for DQ/DQS pins
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          DPC_VRGEN:
+            description: reference voltage ratio setting for DQ/DQS pins
+            bitOffset: 4
+            bitWidth: 6
+            access: read-write
+          DPC_VS:
+            description: bank voltage select for pvt calibration
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      BANK_STATUS:
+        description: Bank Complete Registers
+        addressOffset: 0x8
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SRO_IOEN_BNK_B:
+            description: Bank power on complete (active low for polling)
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          SRO_CALIB_STATUS_B:
+            description: Bank calibration complete (active low for polling)
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only

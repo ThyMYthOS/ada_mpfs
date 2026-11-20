@@ -1,0 +1,118 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  SERDES_0_PCS_CMN:
+    description: SERDES_0_PCS_CMN Controller
+    groupName: PCSCMN
+    baseAddress: 0x30050000
+    registers:
+      SOFT_RESET:
+        description: Compulsory register for all SCB slaves, facilitating global soft reset.
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID:
+            description: 'This returns the block type and chip location. The value of BLOCKID depends on the block type and instance of Serial block containing this page and upon the page (lane) instance number as follows: {4''h0, SLVTYPE, CHIPID, SUBID}. The SLVTPE value is 4''h0 for PCS. The CHIPID is determined by integration via constant applied to tieoff_chipid[3:0] . The SUBID is 4''h4 for the common page. Read 0x0000'
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH:
+            description: This asserts functional reset of the peripheral block. It is asserted and left asserted at power-up. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP:
+            description: Resets all the volatile register bits. Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP:
+            description: Resets all the non-volatile register bits (e.g. RW-P bits). Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      GSSCLK_CTRL:
+        description: Selection of global clock outputs.
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MCLK_GSSCLK_2_SEL:
+            description: Selects source of global clock 2 output. 0x00 0x01 0x02 0x03 0x04 0x05 0x06 0x07 0x08 0x09 0x0A 0x0B 0x0C 0x0D 0x0E 0x0F 0x10 0x11 0x12 0x13 0x14 0x15 0x16 0x17 0x18 0x19 0x1A 0x1B 0x1C 0x1D 0x1E
+            bitOffset: 16
+            bitWidth: 5
+            access: read-write
+          MCLK_GSSCLK_1_SEL:
+            description: Selects source of global clock 1 output. 0x00 0x01 0x02 0x03 0x04 0x05 0x06 0x07 0x08 0x09 0x0A 0x0B 0x0C 0x0D 0x0E 0x0F 0x10 0x11 0x12 0x13 0x14 0x15 0x16 0x17 0x18 0x19 0x1A 0x1B 0x1C 0x1D 0x1E
+            bitOffset: 8
+            bitWidth: 5
+            access: read-write
+          MCLK_GSSCLK_0_SEL:
+            description: Selects source of global clock 0 output. 0x00 0x01 0x02 0x03 0x04 0x05 0x06 0x07 0x08 0x09 0x0A 0x0B 0x0C 0x0D 0x0E 0x0F 0x10 0x11 0x12 0x13 0x14 0x15 0x16 0x17 0x18 0x19 0x1A 0x1B 0x1C 0x1D 0x1E
+            bitOffset: 0
+            bitWidth: 5
+            access: read-write
+      QRST_R0:
+        description: Define quad_reset_0_b and quad_reset_1_b outputs of G5_PCSPMA.
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          QRST1_RST_SEL:
+            description: Selects source within selected lane for quad_reset_1_b. 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7 0x8 0x9 0xA 0xB
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          QRST1_LANE:
+            description: Selects lane driving quad_reset_1_b output of g5_pcspma. 0x0 0x1 0x2 0x3
+            bitOffset: 8
+            bitWidth: 2
+            access: read-write
+          QRST0_RST_SEL:
+            description: Selects source within selected lane for quad_reset_0_b. 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7 0x8 0x9 0xA 0xB
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          QRST0_LANE:
+            description: Selects lane driving quad_reset_0_b output of g5_pcspma. 0x0 0x1 0x2 0x3
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      QDBG_R0:
+        description: Define fab_pcs_debug[19:0] output bus from G5_PCSPMA.
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x1000
+        fields:
+          PCS_DBG_LANE_Y:
+            description: Selects identity of source lane, X, used in PCS_DBG_MODE. 0x0 0x1 0x2 0x3
+            bitOffset: 12
+            bitWidth: 2
+            access: read-write
+          PCS_DBG_LANE_X:
+            description: Selects identity of source lane, X, used in PCS_DBG_MODE. 0x0 0x1 0x2 0x3
+            bitOffset: 8
+            bitWidth: 2
+            access: read-write
+          PCS_DBG_MODE:
+            description: Selects PCS debug output mode. This sets up the output bus to hold either two lanes or four lanes of debug content. Also, selects which signal group is brought out per lane. 0x0 0x1 0x2 0x3 0x4 0x5
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+  SERDES_1_PCS_CMN:
+    derivedFrom: SERDES_0_PCS_CMN
+    description: SERDES_1_PCS_CMN Controller
+    baseAddress: 0x30090000
+  SERDES_2_PCS_CMN:
+    derivedFrom: SERDES_0_PCS_CMN
+    description: SERDES_2_PCS_CMN Controller
+    baseAddress: 0x30110000
+  SERDES_3_PCS_CMN:
+    derivedFrom: SERDES_0_PCS_CMN
+    description: SERDES_3_PCS_CMN Controller
+    baseAddress: 0x30210000

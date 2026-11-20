@@ -1,0 +1,615 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  SERDES_0_PMA_CMN:
+    description: SERDES_0_PMA_CMN Controller
+    groupName: PMA_CMN
+    baseAddress: 0x31050000
+    registers:
+      SOFT_RESET:
+        description: Compulsory register for all SCB slaves, facilitating global soft reset.
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID:
+            description: This returns the block type and chip location. Read 0x0000
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH:
+            description: This asserts functional reset of the peripheral block. It is asserted and left asserted at power-up. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP:
+            description: Resets all the volatile register bits. Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP:
+            description: Resets all the non-volatile register bits (e.g. RW-P bits). Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      TXPLL_CLKBUF:
+        description: TXPLL Clock Buffer Control
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXPLL_CLKBUF_EN_APAD:
+            description: 'This register is NOT for customers. Please mark this register as RESERVED. Allow DUALCLK1 input to be used as an analog output NOTE: The following settings must also be set when en_apad = 1 DUALCLK1_MODE = 2''b00 DUALCLK1_ENTERM = 2''b00 CLKBUF_EN_RDIFF = 1''b0 All TXATESTOUT# and RXATESTOUT# are connected to the APAD input to the clock buffer TXATESTEN# and RXATESTEN# should be set such that only 1 analog output is driven at a time. See TXATESTSEL# and RXATESTSEL# for possible output signals 0 1'
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          TXPLL_CLKBUF_EN_PULLUP:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          TXPLL_CLKBUF_EN_UDRIVE_N:
+            description: Enable Underdrive capability on CMOS receiver 0 1
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          TXPLL_CLKBUF_EN_UDRIVE_P:
+            description: Enable Underdrive capability on CMOS receiver 0 1
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          TXPLL_CLKBUF_EN_RDIFF:
+            description: enabled 100 Ohm Differential Termination (P to N) 0 1
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          TXPLL_DUALCLK0_EN_HYST:
+            description: enabled Hysteresis for DUALCLK0 0 1
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          TXPLL_DUALCLK1_EN_HYST:
+            description: enabled Hysteresis for DUALCLK1 0 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          TXPLL_DUALCLK0_ENTERM:
+            description: Determines Single Ended Termination for DUALCLK0 0x0 0x1 0x2 0x3
+            bitOffset: 6
+            bitWidth: 2
+            access: read-write
+          TXPLL_DUALCLK0_MODE:
+            description: Determines mode/negative input for DUALCLK0 0x0 0x1 0x2 0x3
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          TXPLL_DUALCLK1_ENTERM:
+            description: Determines Single Ended Termination for DUALCLK1 0x0 0x1 0x2 0x3
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          TXPLL_DUALCLK1_MODE:
+            description: Determines mode/negative input for DUALCLK1 0x0 0x1 0x2 0x3
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      TXPLL_CTRL:
+        description: TXPLL Control
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0xE60010
+        fields:
+          TXPLL_LOCK:
+            description: Transmit PLL lock output
+            bitOffset: 24
+            bitWidth: 1
+            access: read-only
+          TXPLL_FOUTAUXDIV2_SEL:
+            description: Select divided by 2 of auxilary clock output 0 1
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          RESET_RTL:
+            description: Reset all RTL (overrides all RESET_RTL signals) 0 1
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          RESET_RTL_TXPLL:
+            description: Reset all RTL for the TXPLL 0 1
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          TXPLL_CLKRESET:
+            description: Reset signal synchronized and sent to serializers Stop Serializer clock for 4 VCO periods when TXPLL_CLKRESET transitions from 0 to 1. 0 1
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          TXPLL_CLKRESETEN:
+            description: enabled for TXPLL_CLKRESET logic 0 1
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          TXPLL_AUXDIVPD:
+            description: Active High powerdown for auxilary clock output from TXPLL Auxilary divider is used for jitter attenuator 0 1
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          TXPLL_PD:
+            description: Transmit PLL Power Down Control 0 1
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          TXPLL_STEP_PHASE:
+            description: Step PLL Phase for one PFD period Step on every TXPLL_STEP_PHASE transition
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          TXPLL_PHASESTEPAMOUNT:
+            description: Signed fractional step for phase stepping (+/- 1/2 integer bit)
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          TXPLL_DSMPD:
+            description: Transmit PLL fractional modulator PD The PLL should be in integer mode (DSMPD=1) for lowest jitter 0 1
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          TXPLL_FBDIV_SEL:
+            description: TXPLL feedback divide control select Selects modulation for TXPLL 0x0 0x1 0x2 0x3
+            bitOffset: 2
+            bitWidth: 2
+            access: read-write
+          TXPLL_VBGREF_SEL:
+            description: Select VBG Reference for PLL voltage regulator 0 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          TXPLL_BWSEL:
+            description: Transmit PLL Bandwidth Control 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      TXPLL_CLK_SEL:
+        description: TXPLL Clock Select
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x3F3F1C00
+        fields:
+          CDRCLK_OUT_DN_SEL:
+            description: Select CDRCLK to send out of SERDES Quad Goes to South External PLL 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7
+            bitOffset: 27
+            bitWidth: 3
+            access: read-write
+          CDRCLK_OUT_UP_SEL:
+            description: Select CDRCLK to send UP out of the quad Goes to North External PLL 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7
+            bitOffset: 24
+            bitWidth: 3
+            access: read-write
+          CDRCLK_LN23_INT_SEL:
+            description: Select CDRCLK to send to TXPLL Mux See TXPLL_REFCLK_SEL_SM Logic for selection of this clock 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7
+            bitOffset: 19
+            bitWidth: 3
+            access: read-write
+          CDRCLK_LN01_INT_SEL:
+            description: Select CDRCLK to send to TXPLL Mux See TXPLL_REFCLK_SEL_SM Logic for selection of this clock 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7
+            bitOffset: 16
+            bitWidth: 3
+            access: read-write
+          TXPLL_JA_FREF_SEL:
+            description: Select Jitter Attenuator Input Reference 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7
+            bitOffset: 13
+            bitWidth: 3
+            access: read-write
+          CASCADE_CLK_SEL_SM:
+            description: For SerDes Quad Transmit PLL RTL Cascade clock select 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7
+            bitOffset: 10
+            bitWidth: 3
+            access: read-write
+          CASCADE_CLK_SEL_HM:
+            description: For SerDes Quad Transmit PLL Hard Macro Cascade Clock Select 0x0 0x1 0x2 0x3
+            bitOffset: 8
+            bitWidth: 2
+            access: read-write
+          TXPLL_REFCLK_SEL_SM:
+            description: Select clock to TX PLL Soft Macro Reference Clock input 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7
+            bitOffset: 2
+            bitWidth: 3
+            access: read-write
+          TXPLL_REFCLK_SEL_HM:
+            description: TXPLL Reference Clock Mux 0x0 0x1 0x2 0x3
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      TXPLL_DIV_1:
+        description: TXPLL Dividers
+        addressOffset: 0x10
+        size: 32
+        access: read-write
+        resetValue: 0x190019
+        fields:
+          TXPLL_FBDIV:
+            description: 'Transmit PLL feedback divide value from (16 in integer mode Supports any divide value of 8,9,10,12,13,15,16,... Must be at least 19 in fractional-N mode The VCO frequency is given by (f_ref * FBDIV / REFDIV / POSTDIV), where f_ref is the reference frequency The bit rate is given by (2 * f_ref * FBDIV / REFDIV / POSTDIV) See TXPOSTDIV# for post-divider settings The VCO frequency should be programmed to half the bit rate Example : for 10Gb/s, the VCO should be programmed to 5GHz'
+            bitOffset: 16
+            bitWidth: 12
+            access: read-write
+          TXPLL_AUXDIV:
+            description: Transmit PLL auxilary clock output FOUTAUXDIV= VCO Frequency / TXPLL_AUXDIV Supports any divide value of 8,9,10,12,13,15,16,... FOUTAUXDIV connected to Jitter Attenuator FFB port Auxilary divider is used for jitter attenuator
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      TXPLL_DIV_2:
+        description: TXPLL Dividers
+        addressOffset: 0x14
+        size: 32
+        access: read-write
+        resetValue: 0x1000001
+        fields:
+          TXPLL_REFDIV:
+            description: Transmit PLL reference divide value (1 to 63) For PLL programming, see FBDIV notes
+            bitOffset: 24
+            bitWidth: 6
+            access: read-write
+          TXPLL_FRAC:
+            description: PLL fractional part of feedback divide value
+            bitOffset: 0
+            bitWidth: 24
+            access: read-write
+      TXPLL_JA_1:
+        description: TXPLL JA Control
+        addressOffset: 0x18
+        size: 32
+        access: read-write
+        resetValue: 0x640064
+        fields:
+          TXPLL_JA_DIVFFB:
+            description: Jitter Attenuator PLL Integer divider for FFB
+            bitOffset: 16
+            bitWidth: 16
+            access: read-write
+          TXPLL_JA_DIVFIN:
+            description: Jitter Attenuator PLL Integer divider for FIN
+            bitOffset: 0
+            bitWidth: 16
+            access: read-write
+      TXPLL_JA_2:
+        description: TXPLL JA Control
+        addressOffset: 0x1C
+        size: 32
+        access: read-write
+        resetValue: 0x64
+        fields:
+          TXPLL_JA_SYNCCNTMAX:
+            description: Jitter Attenuator PLL FIN pulses will be counted for SYNCCNTMAX pulses to determine frequency match
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      TXPLL_JA_3:
+        description: TXPLL JA Control
+        addressOffset: 0x20
+        size: 32
+        access: read-write
+        resetValue: 0x640064
+        fields:
+          TXPLL_JA_TARGETCNT:
+            description: Jitter Attenuator PLL If number of pulse counts between FIN and FFB is less than TARGETCNT the frequency comparator will declare frequencies match (Set FLOCK=1'b1)
+            bitOffset: 16
+            bitWidth: 16
+            access: read-write
+          TXPLL_JA_CNTOFFSET:
+            description: Jitter Attenuator PLL Allows for frequency multiplication in the frequency control loop. By setting CNTOFFSET to SYNCCNTMAX / K, where K is the multiplication ratio, the frequency detector will output a zero frequency error when CNTOFFSET pulses have been counted from the reference and SYNCCNTMAX pulses have been counted from the feedback.
+            bitOffset: 0
+            bitWidth: 16
+            access: read-write
+      TXPLL_JA_4:
+        description: TXPLL JA Control
+        addressOffset: 0x24
+        size: 32
+        access: read-write
+        resetValue: 0x1010001
+        fields:
+          TXPLL_JA_FKI:
+            description: Jitter Attenuator PLL K Gain for integral frequency comparison loop Gain=$M\times 2^K$
+            bitOffset: 24
+            bitWidth: 5
+            access: read-write
+          TXPLL_JA_FMI:
+            description: Jitter Attenuator PLL M gain for integral frequency comparison loop Gain=$M\times 2^K$
+            bitOffset: 16
+            bitWidth: 8
+            access: read-write
+          TXPLL_JA_OTDLY:
+            description: Jitter Attenuator PLL Delay in FFB pulses from when FLOCK=1'b1 to when the ADPLL transfers control from the frequency comparison loop to the phase comparison loop -- allows additional settling and avoids glitches in FLOCK output
+            bitOffset: 0
+            bitWidth: 16
+            access: read-write
+      TXPLL_JA_5:
+        description: TXPLL JA Control
+        addressOffset: 0x28
+        size: 32
+        access: read-write
+        resetValue: 0x1010101
+        fields:
+          TXPLL_JA_PMI2:
+            description: Jitter Attenuator PLL Fine settling M gain for integral phase comparison loop Gain=$M\times 2^K$
+            bitOffset: 24
+            bitWidth: 8
+            access: read-write
+          TXPLL_JA_PMI1:
+            description: Jitter Attenuator PLL Course settling M gain for integral phase comparison loop Gain=$M\times 2^K$
+            bitOffset: 16
+            bitWidth: 8
+            access: read-write
+          TXPLL_JA_PMP2:
+            description: Jitter Attenuator PLL Fine settling M gain for proportional phase comparison loop Gain=$M\times 2^K$
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          TXPLL_JA_PMP1:
+            description: Jitter Attenuator PLL Course settling M gain for proportional phase comparison loop Gain=$M\times 2^K$
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      TXPLL_JA_6:
+        description: TXPLL JA Control
+        addressOffset: 0x2C
+        size: 32
+        access: read-write
+        resetValue: 0x1010101
+        fields:
+          TXPLL_JA_PKI2:
+            description: Jitter Attenuator PLL 2s Complement Fine settling K gain for integral phase comparison loop Gain=$M\times 2^K$
+            bitOffset: 24
+            bitWidth: 5
+            access: read-write
+          TXPLL_JA_PKI1:
+            description: Jitter Attenuator PLL 2s Copmplement Course settling K gain for integral phase comparison loop Gain=$M\times 2^K$
+            bitOffset: 16
+            bitWidth: 5
+            access: read-write
+          TXPLL_JA_PKP2:
+            description: Jitter Attenuator PLL 2s Complement Fine settling K gain for proportional phase comparison loop Gain=$M\times 2^K$
+            bitOffset: 8
+            bitWidth: 5
+            access: read-write
+          TXPLL_JA_PKP1:
+            description: Jitter Attenuator PLL 2s Complement Course settling K gain for proportional phase comparison loop Gain=$M\times 2^K$
+            bitOffset: 0
+            bitWidth: 5
+            access: read-write
+      TXPLL_JA_7:
+        description: TXPLL JA Control
+        addressOffset: 0x30
+        size: 32
+        access: read-write
+        resetValue: 0x7000001
+        fields:
+          TXPLL_JA_PROGRAM:
+            description: Jitter Attenuator PLL Diagnostic Control Signal 0 1
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          TXPLL_JA_ONTARGETOV:
+            description: Jitter Attenuator PLL Diagnostic Control Signal 0 1
+            bitOffset: 25
+            bitWidth: 1
+            access: read-write
+          TXPLL_JA_FDONLY:
+            description: Jitter Attenuator PLL Force Frequency Control 0 1
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          TXPLL_JA_DELAYK:
+            description: Jitter Attenuator PLL Phase comparison loop will settle initially using PKP1 and PKI1 (course settling) parameters, and switch over to PKP2 and PKI2 (fine settling) parameters DELAYK FFB pulses after phase comparison loop takes over (OTDLY + DELAYK FFB pulses after initial frequency lock)
+            bitOffset: 0
+            bitWidth: 24
+            access: read-write
+      TXPLL_JA_8:
+        description: TXPLL JA Control
+        addressOffset: 0x34
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXPLL_JA_HOLD:
+            description: Jitter Attenuator PLL Hold output state of the DPLL. 0 1
+            bitOffset: 25
+            bitWidth: 1
+            access: read-write
+          TXPLL_JA_PRESET_EN:
+            description: Jitter Attenuator PLL Load Preset INT and FRAC values into DPLL 0 1
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          TXPLL_JA_FRAC_PRESET:
+            description: Jitter Attenuator PLL Preset FRAC output, if PRESET_EN --> 1'b1, output is set to this value
+            bitOffset: 0
+            bitWidth: 24
+            access: read-write
+      TXPLL_JA_9:
+        description: TXPLL JA Control
+        addressOffset: 0x38
+        size: 32
+        access: read-write
+        resetValue: 0x180014
+        fields:
+          TXPLL_JA_INT_PD_OUT:
+            description: Jitter Attenuator PLL Integer bits of Phase Detector Integrator Output
+            bitOffset: 16
+            bitWidth: 12
+            access: read-only
+          TXPLL_JA_INT_PRESET:
+            description: Jitter Attenuator PLL Preset INT output, if PRESET_EN --> 1'b1, output is set to this value
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      TXPLL_JA_10:
+        description: TXPLL JA Control
+        addressOffset: 0x3C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          TXPLL_JA_PHASE_LOCK:
+            description: Jitter Attenuator PLL Indicates the DPLL is in fine tune phase tracking mode 1'b1 -- The PLL is in fine tune phase tracking mode 1'b0 -- The PLL is either in coarse tune tracking mode or (if FLOCK=1'b0) not frequency locked
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          TXPLL_JA_FLOCK:
+            description: Jitter Attenuator PLL Indicates the DPLL has achieved frequency lock 1'b1 -- Frequencies have maintained lock within TARGETCNT for OTDLY FFB pulses 1'b0 -- Frequency comparator has detected a mismatch in FIN and FFB pulse counts
+            bitOffset: 24
+            bitWidth: 1
+            access: read-only
+          TXPLL_JA_FRAC_PD_OUT:
+            description: Jitter Attenuator PLL Fractional bits of Phase Detector Integrator Output
+            bitOffset: 0
+            bitWidth: 24
+            access: read-only
+      TXPLL_JA_RST:
+        description: TXPLL JA RESETs
+        addressOffset: 0x40
+        size: 32
+        access: read-write
+        resetValue: 0x55
+        fields:
+          TXPLL_JA_RESET_CLKS_EXT:
+            description: Jitter Attenuator PLL RESET for PLL Sync Clock Domain when RESET_CLKS_OVERRIDE=1'b1 0 1
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          TXPLL_JA_RESET_CLKS_OVERRIDE:
+            description: Jitter Attenuator PLL Override Signal for PLL Sync Clock Domain Reset Signal 0 1
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          TXPLL_JA_RESET_FIN_EXT:
+            description: Jitter Attenuator PLL RESET for Input Clock Domain when RESET_FIN_OVERRIDE=1'b1 0 1
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          TXPLL_JA_RESET_FIN_OVERRIDE:
+            description: Jitter Attenuator PLL Override Signal for Input Clock Domain Reset Signal 0 1
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          TXPLL_JA_RESET_FFB_EXT:
+            description: Jitter Attenuator PLL RESET for Feedback Clock Domain when RESET_FFB_OVERRIDE=1'b1 0 1
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          TXPLL_JA_RESET_FFB_OVERRIDE:
+            description: Jitter Attenuator PLL Override Signal for Feedback Clock Domain Reset Signal 0 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          TXPLL_JA_RESET:
+            description: Jitter Attenuator PLL Resets all internal counters and registers to their default state INITINT, INITFRAC and INITDPLLSTATE are ignored 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SERDES_SSMOD:
+        description: SERDES QUAD Spread Spectrum
+        addressOffset: 0x44
+        size: 32
+        access: read-write
+        resetValue: 0x7F0102
+        fields:
+          RN_FILTER:
+            description: enableds High-Pass filtering of noise source 0 1
+            bitOffset: 28
+            bitWidth: 1
+            access: read-write
+          RN_SEL:
+            description: Selects between 3 different noise patterns. 0x0 0x1 0x2 0x3
+            bitOffset: 26
+            bitWidth: 2
+            access: read-write
+          SSMOD_SEL_EXTWAVE:
+            description: Select between EXTWAVEVAL data input, Pseudo-random Noise, and internal lookup table 0x0 0x1 0x2 0x3
+            bitOffset: 24
+            bitWidth: 2
+            access: read-write
+          SSMOD_EXT_MAXADDR:
+            description: Spread-Spectrum Modulator External wave table maximum address value input
+            bitOffset: 16
+            bitWidth: 8
+            access: read-write
+          SSMOD_DIVVAL:
+            description: Spread-Spectrum Modulator Divider required to set the modulation frequency
+            bitOffset: 8
+            bitWidth: 6
+            access: read-write
+          SSMOD_SPREAD:
+            description: Spread-Spectrum Modulator Sets modulation depth Modulation Depth = SPREAD * 0.1% ie. SPREAD=5'b5 = Modulation Depth of 0.5%
+            bitOffset: 2
+            bitWidth: 5
+            access: read-write
+          SSMOD_DISABLE_SSCG:
+            description: Spread-Spectrum Modulator Bypass the modulator 0 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          SSMOD_DOWNSPREAD:
+            description: Spread-Spectrum Modulator Selects center spread or downspread 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      SERDES_RTERM:
+        description: SERDES Resistor Termination Calibration (ATE TRIM)
+        addressOffset: 0x50
+        size: 32
+        access: read-write
+        resetValue: 0xD0703
+        fields:
+          RTERMCAL150:
+            description: 150 Ohms Termination Resistor Values
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          RTERMCAL100:
+            description: 100 Ohms Termination Resistor Values
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          RTERMCAL85:
+            description: 85 Ohms Termination Resistor Values
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      SERDES_RTT:
+        description: SERDES Resistor Termination Calibration
+        addressOffset: 0x54
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          RTT_NCOMP:
+            description: Resistor Termination Calibration comparator output
+            bitOffset: 16
+            bitWidth: 1
+            access: read-only
+          RTT_CURRENT_PROG:
+            description: Current Trim for RTT Comparison
+            bitOffset: 8
+            bitWidth: 2
+            access: read-write
+          RTT_CAL_TERM:
+            description: Resistor Termination Calibration Resistance Selection
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+  SERDES_1_PMA_CMN:
+    derivedFrom: SERDES_0_PMA_CMN
+    description: SERDES_1_PMA_CMN Controller
+    baseAddress: 0x31090000
+  SERDES_2_PMA_CMN:
+    derivedFrom: SERDES_0_PMA_CMN
+    description: SERDES_2_PMA_CMN Controller
+    baseAddress: 0x31110000
+  SERDES_3_PMA_CMN:
+    derivedFrom: SERDES_0_PMA_CMN
+    description: SERDES_3_PMA_CMN Controller
+    baseAddress: 0x31210000

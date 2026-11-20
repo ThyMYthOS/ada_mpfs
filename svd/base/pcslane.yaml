@@ -1,0 +1,920 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  SERDES_0_PCS_LANE0:
+    description: SERDES_0_PCS_LANE0 Controller
+    groupName: PCSLANE
+    baseAddress: 0x30041000
+    registers:
+      SOFT_RESET:
+        description: Compulsory register for all SCB slaves, facilitating global soft reset.
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID:
+            description: 'This returns the block type and chip location. The value of BLOCKID depends on the block type and instance of Serial block containing this page and upon the page (lane) instance number as follows: {4''h0, SLVTYPE, CHIPID, SUBID}. The SLVTPE value is 4''h0 for PCS. The CHIPID is determined by integration via constant applied to tieoff_chipid[3:0] . The SUBID is the identity of the lane instance copy of this register page (lane 0 has SUBID=0, lane 1 has SUBID=1, lane 2, lane 3 has SUBID=3). Read 0x0000'
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH:
+            description: This asserts functional reset of the peripheral block. It is asserted and left asserted at power-up. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP:
+            description: Resets all the volatile register bits. Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP:
+            description: Resets all the non-volatile register bits (e.g. RW-P bits). Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      LFWF_R0:
+        description: Fly-wheel FIFO configuration and status.
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXFWF_ERROR:
+            description: Diagnostic boolean about TxFWF status. If this is set, the Tx FWF clocks are configured incorrectly or these clocks may have stopped or changed frequency. A reset of the Tx FWF is indicated when this error is flagged. Read 0 Read 1
+            bitOffset: 7
+            bitWidth: 1
+            access: read-only
+          TXFWF_RATIO:
+            description: Ratio of write clock frequency to read clock frequency for the Tx FWF. Anything but 1:1 implies the fabric is using synchronous enable with a faster clock so that the fabric can operate with a narrower data path. 0x0 0x1 0x2 0x3
+            bitOffset: 5
+            bitWidth: 2
+            access: read-write
+          TXFWF_WMARK:
+            description: This bit controls the approximate depth of buffering done by the Tx FWF. 0 1
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          RXFWF_ERROR:
+            description: Diagnostic boolean about RxFWF status. If this is set, the Rx FWF clocks are configured incorrectly or these clocks may have stopped or changed frequency. A reset of the Rx FWF is indicated when this error is flagged. Read 0 Read 1
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          RXFWF_RATIO:
+            description: Ratio of read clock frequency to write clock frequency for the Rx FWF. Anything but 1:1 implies the fabric is using synchronous enable with a faster clock so that the fabric can operate with a narrower data path. 0x0 0x1 0x2 0x3
+            bitOffset: 1
+            bitWidth: 2
+            access: read-write
+          RXFWF_WMARK:
+            description: This bit controls the approximate depth of buffering done by the Rx FWF. 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      LOVR_R0:
+        description: Lane Overlay
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x10
+        fields:
+          PCSPMA_IFC_MODE:
+            description: Lane overlay control for PMA interfaces. 0x0 0x1 0x2 0x4 0x8
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          FAB_IFC_MODE:
+            description: Lane overlay control field for fabric interfaces. 0x0 0x1 0x2 0x4 0x8
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      LPIP_R0:
+        description: Configuration of PIPE lane logic.
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x5D
+        fields:
+          PIPE_OOB_IDLEBURST_TIMING:
+            description: Chooses how the the timing of bursts of data and electrical-idle for OOB signaling are controlled. 0x0 0x1 0x2
+            bitOffset: 5
+            bitWidth: 2
+            access: read-write
+          PIPE_INITIALIZATION_DONE:
+            description: This configuration bit must be written to 1 after the rest of the configuration bits affecting PIPE logic operation are stable.
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          PIPE_SHAREDPLL:
+            description: This field indicates that this PIPE lane shares a Tx PLL source and this lane's logic should not power-down the PLL in P2 power-state. 0 1
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          PIPE_PCIE_HC:
+            description: PIPE lane logic source context switch. 0 1
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          PIPEMODE:
+            description: Operational sub-mode of the PIPE lane logic. 0 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          PIPEENABLE:
+            description: PIPE function enable 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      L64_R0:
+        description: Configuration of 64b6xb logic.
+        addressOffset: 0x10
+        size: 32
+        access: read-write
+        resetValue: 0x1400000
+        fields:
+          L64_CFG_BER_1US_TIMER_VAL:
+            description: IEEE Clause 49 BER Monitor 1us timer value
+            bitOffset: 16
+            bitWidth: 11
+            access: read-write
+          L64_CFG_GRBX_SM_C82:
+            description: IEEE Clause 82 state machine enable. 0 1
+            bitOffset: 7
+            bitWidth: 1
+            access: read-write
+          L64_CFG_GRBX_SM_C49:
+            description: IEEE Clause 49 state machine enable. 0 1
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          L64_CFG_BYPASS_8B_MODE:
+            description: Selects width of 64b6xb fabric interface. 0 1
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          L64_CFG_BER_MON_EN:
+            description: Enable for bit error monitor state machine. 0 1
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          L64_CFG_GRBX_64B67B:
+            description: Enable for 64b67b gearbox function. 0 1
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          L64_CFG_BYPASS_GEARBOX:
+            description: Enable for 64b6xb gearbox function. 0 1
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          L64_CFG_BYPASS_DISPARITY:
+            description: Enable disparity calculation for Interlaken. 0 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          L64_CFG_BYPASS_SCRAMBLER:
+            description: Enable for 64b66b scrambler function. 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      L64_R1:
+        description: Test functions of 64b6xb logic.
+        addressOffset: 0x14
+        size: 32
+        access: read-write
+        resetValue: 0x1
+        fields:
+          L64_CFG_TEST_PATT_DATA_SEL:
+            description: Selects pattern when test_pattern_enabled. 0 1
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          L64_CFG_TEST_PRBS31_EN:
+            description: PRBS-31 test control 0 1
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          L64_CFG_TEST_PATT_TYPE_SEL:
+            description: Test pattern type selection. 0 1
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          L64_CFG_TEST_PATTERN_EN:
+            description: Test pattern control. 0 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          L64_BYPASS_TEST:
+            description: Bypass test for 64b6xb logic. 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      L64_R2:
+        description: Seed A, part 1
+        addressOffset: 0x18
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          L64_SEED_A_VALUE_LO32:
+            description: Lower 32 bits of 58-bit Seed A value. This is used when test_pattern_enabled and test_pattern_prbs are both set.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      L64_R3:
+        description: Seed A, part 2
+        addressOffset: 0x1C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          L64_SEED_A_VALUE_HI26:
+            description: Upper 26 bits of 58-bit Seed A value.
+            bitOffset: 0
+            bitWidth: 26
+            access: read-write
+      L64_R4:
+        description: Seed B, part 1
+        addressOffset: 0x20
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          L64_SEED_B_VALUE_LO32:
+            description: Lower 32 bits of 58-bit Seed B value. This is used when test_pattern_enabled and test_pattern_prbs are both set.
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      L64_R5:
+        description: Seed B, part 2
+        addressOffset: 0x24
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          L64_SEED_B_VALUE_HI26:
+            description: Upper 26 bits of 58-bit Seed B value.
+            bitOffset: 0
+            bitWidth: 26
+            access: read-write
+      L64_R6:
+        description: CPRI transmit delay reporting configuration.
+        addressOffset: 0x28
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          L64_TX_ADD_UI:
+            description: Additional UI for PMA Transmit.Used in CPRI applications only.
+            bitOffset: 16
+            bitWidth: 16
+            access: read-write
+          L64_TX_ADV_CYC_DLY:
+            description: Advance delay cycle value for transmit. Used in CPRI applications only.
+            bitOffset: 0
+            bitWidth: 5
+            access: read-write
+      L64_R7:
+        description: CPRI receive delay reporting configuration.
+        addressOffset: 0x2C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          L64_RX_ADD_UI:
+            description: Additional UI for PMA Receive.Used in CPRI applications only.
+            bitOffset: 16
+            bitWidth: 16
+            access: read-write
+          L64_RX_ADV_CYC_DLY:
+            description: Advance delay cycle value for receive. Used in CPRI applications only.
+            bitOffset: 0
+            bitWidth: 5
+            access: read-write
+      L64_R8:
+        description: Status for 64b6xb optional blocks.
+        addressOffset: 0x30
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          L64_BER_COUNT_AVAIL:
+            description: Boolean flag of L64_BER_COUNT validity.
+            bitOffset: 16
+            bitWidth: 1
+            access: read-only
+          L64_BER_COUNT:
+            description: Count of invalid block-sync headers.
+            bitOffset: 8
+            bitWidth: 8
+            access: read-only
+          L64_GRBX_RDY:
+            description: Boolean for gearbox ready.
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          L64_STATUS:
+            description: Boolean for HI_BER=FALSE and LOCK=TRUE. (LOCK can only occur with HI_BER=FALSE; is this meaningful?)
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          L64_LOCK:
+            description: Boolean for block-alignment status.
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          L64_HI_BER_STATUS:
+            description: Boolean for bit error rate exceeds 1e-4.
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      L64_R9:
+        description: Status of 64b6xb test blocks.
+        addressOffset: 0x34
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          L64_TEST_ERR_COUNT_AVAIL:
+            description: Boolean flag of L64_TEST_ERR_COUNT validity.
+            bitOffset: 8
+            bitWidth: 1
+            access: read-only
+          L64_TEST_ERR_COUNT:
+            description: Test error count.
+            bitOffset: 0
+            bitWidth: 8
+            access: read-only
+      L64_R10:
+        description: Delay of Transmit and Receive Paths
+        addressOffset: 0x38
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          L64_RX_DLY:
+            description: Total UI delay of 64b66b receive datapath for CPRI 7A, 8 and 9.
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          L64_TX_DLY:
+            description: Total UI delay of 64b66b transmit datapath for CPRI 7A, 8 and 9.
+            bitOffset: 0
+            bitWidth: 16
+            access: read-only
+      L8_R0:
+        description: Control for 8b10b blocks.
+        addressOffset: 0x40
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          L8_GEARMODE:
+            description: Sets gearing of Tx and Rx data of fabric relative to PMA. 0 := fabric width = PMA width, 4-octets 1 := fabric width = 2-octets, PMA = 4-octets 2 := fabric width = 8-octets, PMA = 4-octets 0x0 0x1 0x2
+            bitOffset: 16
+            bitWidth: 2
+            access: read-write
+          L8_TXENCSWAPSEL:
+            description: Transmit 8b10b encoder disparity octet-swapping mode select. 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      LNTV_R0:
+        description: Native mode options
+        addressOffset: 0x50
+        size: 32
+        access: read-write
+        resetValue: 0xE0E
+        fields:
+          LNTV_TX_MODE:
+            description: Boolean for selecting native transmit data path.
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          LNTV_TX_OUT_WIDTH:
+            description: Native transmit bus-width to PMA. 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7
+            bitOffset: 9
+            bitWidth: 3
+            access: read-write
+          LNTV_TX_GEAR:
+            description: Native transmit fabric interface configuration. 0 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          LNTV_RX_MODE:
+            description: Boolean for selecting native receive data path.
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          LNTV_RX_IN_WIDTH:
+            description: Native receive bus-width from PMA. 0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7
+            bitOffset: 1
+            bitWidth: 3
+            access: read-write
+          LNTV_RX_GEAR:
+            description: Native receive fabric interface configuration. 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      LCLK_R0:
+        addressOffset: 0x58
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LCLK_RXFWF_WCLK_PIPE:
+            description: Forces use of PIPE Tx clock for writing into Rx FWF. 0 1
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          LCLK_TXFWF_RCLK_SEL:
+            description: Source selection for Tx FWF read clock. 0x0 0x1 0x2 0x3
+            bitOffset: 18
+            bitWidth: 2
+            access: read-write
+          LCLK_RXFWF_WCLK_SEL:
+            description: Source selection for Rx FWF write clock. 0x0 0x1 0x2 0x3
+            bitOffset: 16
+            bitWidth: 2
+            access: read-write
+          LCLK_PCS_TX_CLK_SEL:
+            description: Source selection for internal transmitter clock, known as pcs_tx_clk. 0x0 0x1 0x2 0x3
+            bitOffset: 11
+            bitWidth: 2
+            access: read-write
+          LCLK_PCS_RX_CLK_SEL:
+            description: Source selection for internal receiver clock, known as pcs_rx_clk. 0x0 0x1 0x2 0x3
+            bitOffset: 9
+            bitWidth: 2
+            access: read-write
+          LCLK_TXFWF_TMG_MODE:
+            description: Fabric interface timing mode for the Tx FWF. 0 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          LCLK_EPCS_TX_CLK_ERR:
+            description: Boolean error flag regarding source selection of the tx_clk clock output to the fabric.
+            bitOffset: 6
+            bitWidth: 1
+            access: read-only
+          LCLK_EPCS_TX_CLK_SEL:
+            description: Transmit fabric output clock source selection. If selection is not possible, then the TX_CLK_ERR status bit flag will be raised. 0x0 0x1 0x2 0x3
+            bitOffset: 4
+            bitWidth: 2
+            access: read-write
+          LCLK_EPCS_RX_CLK_ERR:
+            description: Boolean error flag regarding source selection of the rx_clk clock output to the fabric.
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          LCLK_EPCS_RX_CLK_SEL:
+            description: Receive fabric output clock source selection. If selection is not possible, then the RX_CLK_ERR status bit flag will be raised. 0x0 0x1 0x2 0x3
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      LCLK_R1:
+        addressOffset: 0x5C
+        size: 32
+        access: read-write
+        resetValue: 0x3000000
+        fields:
+          LCLK_ENA_PIPE_OUT:
+            description: Enable for pipe_lane_clk_out to quad-level logic. 0 1
+            bitOffset: 25
+            bitWidth: 1
+            access: read-write
+          LCLK_ENA_PIPE_LCL:
+            description: Enable for pipe_rxclk and pipe_pclk_fab clocks. 0 1
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          LCLK_ENA_NATIVE_TXFWF_RCLK:
+            description: Clock enable for native mode Tx FWF read clock. 0 1
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          LCLK_ENA_NATIVE_TX_CLK:
+            description: Clock enable for native mode Tx data path. 0 1
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          LCLK_ENA_NATIVE_RXFWF_WCLK:
+            description: Clock enable for native mode Rx FWF write clock. 0 1
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          LCLK_ENA_NATIVE_RX_CLK:
+            description: Clock enable for native mode Rx data path. 0 1
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          LCLK_ENA_8B10B_TXFWF_RCLK:
+            description: Clock enable for 8b10b mode Tx FWF read clock. 0 1
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          LCLK_ENA_8B10B_TX_CLK:
+            description: Clock enable for 8b10b mode Tx data path clock. 0 1
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          LCLK_ENA_8B10B_RXFWF_WCLK:
+            description: Clock enable for 8b10b mode Rx FWF write clock. 0 1
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          LCLK_ENA_8B10B_RX_CLK:
+            description: Clock enable for 8b10b mode Rx data path clock. 0 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          LCLK_ENA_64B6XB_TX_CLK_DIV2:
+            description: Clock enable for 64b6xb mode Tx data path div2 clock. 0 1
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          LCLK_ENA_64B6XB_TX_CLK:
+            description: Clock enable for 64b6xb mode Tx data path clock. 0 1
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          LCLK_ENA_64B6XB_RX_CLK_DIV2:
+            description: Clock enable for 64b6xb mode Rx data path div2 clock. 0 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          LCLK_ENA_64B6XB_RX_CLK:
+            description: Clock enable for 64b6xb mode Rx data path clock. 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      LRST_R0:
+        addressOffset: 0x68
+        size: 32
+        access: read-write
+        resetValue: 0x4
+        fields:
+          LRST_SOFT_PIPE_RESET:
+            description: Soft reset for PIPE logic. 0 1
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          LRST_SOFT_TXFWF_RESET:
+            description: Soft reset for Tx Fly-Wheel FIFO. 0 1
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          LRST_ULCKD_PLL_RESETS_PCS_TX:
+            description: Unlocked PLL automatically resets PCS Tx domain logic. 0 1
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          LRST_SOFT_PCS_TX_DIV2_RESET:
+            description: Soft reset for PCS Tx clock divider. 0 1
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          LRST_SOFT_PCS_TX_RESET:
+            description: Soft reset for PCS Tx. 0 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          LRST_SOFT_RXFWF_RESET:
+            description: Soft reset for Rx Fly-Wheel FIFO. 0 1
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          LRST_ULCKD_CDR_RESETS_PCS_RX:
+            description: Unlocked CDR automatically resets PCS Rx domain logic. 0 1
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          LRST_SOFT_PCS_RX_DIV2_RESET:
+            description: Soft reset for PCS Rx clock divider. 0 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          LRST_SOFT_PCS_RX_RESET:
+            description: Soft reset for PCS Rx. 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      LRST_OPT:
+        addressOffset: 0x6C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LRST_DISABLE_FAB_PCS_RESET_FOR_TX:
+            description: Optional disable preventing PCS Tx logic reset from being activated by the fabric pcs_reset_n port. 0 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          LRST_DISABLE_FAB_PCS_RESET_FOR_RX:
+            description: Optional disable preventing PCS Rx logic reset from being activated by the fabric pcs_reset_n port. 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      OOB_R0:
+        addressOffset: 0x78
+        size: 32
+        access: read-write
+        resetValue: 0x110F110F
+        fields:
+          OOB_WAKE_MAX_CYCLE:
+            description: The maximum time allowed for COMWAKE Idle in terms of 10 UI (150MHz).
+            bitOffset: 24
+            bitWidth: 8
+            access: read-write
+          OOB_WAKE_MIN_CYCLE:
+            description: The minimum time allowed for COMWAKE Idle in terms of10 UI (150MHz).
+            bitOffset: 16
+            bitWidth: 8
+            access: read-write
+          OOB_BURST_MAX_CYCLE:
+            description: The maximum time allowed for OOB Burst in terms of 10 UI (150MHz).
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          OOB_BURST_MIN_CYCLE:
+            description: The minimum time allowed for OOB Burst in terms of 10 UI (150MHz).
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      OOB_R1:
+        addressOffset: 0x7C
+        size: 32
+        access: read-write
+        resetValue: 0x9888332D
+        fields:
+          OOB_SAS_MAX_CYCLE:
+            description: The maximum time allowed for COMSAS Idle in terms of 10 UI (150MHz).
+            bitOffset: 24
+            bitWidth: 8
+            access: read-write
+          OOB_SAS_MIN_CYCLE:
+            description: The minimum time allowed for COMSAS Idle in terms of 10 UI (150MHz).
+            bitOffset: 16
+            bitWidth: 8
+            access: read-write
+          OOB_RST_INIT_MAX_CYCLE:
+            description: The maximum time allowed for COMRESET / COMINIT Idle in terms of 10 UI (150MHz).
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          OOB_RST_INIT_MIN_CYCLE:
+            description: The minimum time allowed for COMRESET / COMINIT Idle in terms of 10 UI (150MHz).
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      OOB_R2:
+        addressOffset: 0x80
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXOOB_PROG_DATA_L32B:
+            description: Programmable TX OOB Burst Data[31:0]
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write
+      OOB_R3:
+        addressOffset: 0x84
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          TXOOB_PROG_DATA_H8B:
+            description: Programmable TX OOB Burst Data[39:32]
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      PMA_CTRL_R0:
+        addressOffset: 0x88
+        size: 32
+        access: read-write
+        resetValue: 0x3030347
+        fields:
+          PMA_TXPLL_LOCK_STATUS:
+            description: 'Status of PMA lane TX PLL lock state. 1 : PMA lane TX PLL is locked. 0 : PMA lane TX PLL is not locked. Read 0 Read 1'
+            bitOffset: 28
+            bitWidth: 1
+            access: read-only
+          PMA_TXPLL_UNLOCK_INT:
+            description: Interrupt signal for indication of PMA lane TX PLL unlock. 0 1
+            bitOffset: 27
+            bitWidth: 1
+            access: read-write
+          PMA_TXPLL_LOCK_INT:
+            description: Interrupt signal for indication of PMA lane TX PLL lock. 0 1
+            bitOffset: 26
+            bitWidth: 1
+            access: read-write
+          PMA_TXPLL_UNLOCK_INT_MASK:
+            description: Masking interrupt signal generation for indication of PMA lane TX PLL unlock. 0 1
+            bitOffset: 25
+            bitWidth: 1
+            access: read-write
+          PMA_TXPLL_LOCK_INT_MASK:
+            description: Masking interrupt signal generation for indication of PMA lane TX PLL lock. 0 1
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          PMA_RXPLL_LOCK_STATUS:
+            description: 'Status of PMA lane RX PLL lock state. 1 : PMA lane RX PLL is locked. 0 : PMA lane RX PLL is not locked. Read 0 Read 1'
+            bitOffset: 21
+            bitWidth: 1
+            access: read-only
+          PMA_RXPLL_FLOCK_SEL:
+            description: Select RXPLL LOCK status vs. RXPLL FLOCK status 0 1
+            bitOffset: 20
+            bitWidth: 1
+            access: read-write
+          PMA_RXPLL_UNLOCK_INT:
+            description: Interrupt signal for indication of PMA lane RX PLL unlock. 0 1
+            bitOffset: 19
+            bitWidth: 1
+            access: read-write
+          PMA_RXPLL_LOCK_INT:
+            description: Interrupt signal for indication of PMA lane RX PLL lock. 0 1
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          PMA_RXPLL_UNLOCK_INT_MASK:
+            description: Masking interrupt signal generation for indication of PMA lane RX PLL unlock. 0 1
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          PMA_RXPLL_LOCK_INT_MASK:
+            description: Masking interrupt signal generation for indication of PMA lane RX PLL lock. 0 1
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          PMA_P2_STATUS:
+            description: 'Status of PMA lane P2 state. 1 : PMA is in P2 state. 0 : PMA is not in P2 state. Read 0 Read 1'
+            bitOffset: 12
+            bitWidth: 1
+            access: read-only
+          PMA_P2_EXIT_INT:
+            description: Interrupt signal for indication of PMA lane exiting from P2 states. 0 1
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          PMA_P2_ENTER_INT:
+            description: Interrupt signal for indication of PMA lane entering into P2 states. 0 1
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          PMA_P2_EXIT_INT_MASK:
+            description: Masking interrupt signal generation for indication of PMA lane exiting from P2 state. 0 1
+            bitOffset: 9
+            bitWidth: 1
+            access: read-write
+          PMA_P2_ENTER_INT_MASK:
+            description: Masking interrupt signal generation for indication of PMA lane entering into P2 state. 0 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          FAB_EPCS_PMA_RESET_B_EN:
+            description: PMA active low reset from Fabric enable 0 1
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          FLASH_FREEZE_P2_EN:
+            description: Flash freeze P2 powerdown enable 0 1
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          FLASH_FREEZE_P1_EN:
+            description: Flash freeze P1 powerdown enable 0 1
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          FLASH_FREEZE_P0S_EN:
+            description: Flash freeze P0s powerdown enable 0 1
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          PIPE_P2_EN:
+            description: PIPE P2 powerdown enable 0 1
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          PIPE_P1_EN:
+            description: PIPE P1 powerdown enable 0 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          PIPE_P0S_EN:
+            description: PIPE P0s powerdown enable 0 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      PMA_CTRL_R1:
+        addressOffset: 0x8C
+        size: 32
+        access: read-write
+        resetValue: 0xA0640
+        fields:
+          TXBEACON_PULSE_WIDTH:
+            description: TX Beacon pulse width in terms of TX PLL reference clock cycles.
+            bitOffset: 16
+            bitWidth: 12
+            access: read-write
+          RXBEACON_MAX_PULSE_WIDTH:
+            description: The maximum pulse width (16 us) allowed for RX Beacon in terms of TX PLL reference clock cycles.
+            bitOffset: 0
+            bitWidth: 12
+            access: read-write
+      PMA_CTRL_R2:
+        addressOffset: 0x90
+        size: 32
+        access: read-write
+        resetValue: 0xA6
+        fields:
+          FAB_DRIVES_TXPADS:
+            description: Enables transmitting data from Fabric to PMA Serializer Output. 0 1
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          PIPE_RATE_INIT:
+            description: Initial PIPE rate setting 0x0 0x1 0x2 0x3
+            bitOffset: 8
+            bitWidth: 2
+            access: read-write
+          PD_PLL_CNT:
+            description: The minimum time (1 us) required for PMA PLL powerdown during PIPE rate change in terms of TX PLL reference clock cycles.
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      MSTR_CTRL:
+        description: Master source control for this lane.
+        addressOffset: 0x94
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          LANE_MSTR:
+            description: Determines the source master lane of a control wire in cases where lanes operate together in a multi-lane link. An example of a control wire which needs to be the same across multiple lanes is ratechange_req_quad_sync This is the rate-change captured onto the shared reference clock for a multi-lane PCI-Express application. 0x0 0x1 0x2 0x3
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+  SERDES_0_PCS_LANE1:
+    derivedFrom: SERDES_0_PCS_LANE0
+    description: SERDES_0_PCS_LANE1 Controller
+    baseAddress: 0x30042000
+  SERDES_0_PCS_LANE2:
+    derivedFrom: SERDES_0_PCS_LANE0
+    description: SERDES_0_PCS_LANE2 Controller
+    baseAddress: 0x30044000
+  SERDES_0_PCS_LANE3:
+    derivedFrom: SERDES_0_PCS_LANE0
+    description: SERDES_0_PCS_LANE3 Controller
+    baseAddress: 0x30048000
+  SERDES_1_PCS_LANE0:
+    derivedFrom: SERDES_0_PCS_LANE0
+    description: SERDES_1_PCS_LANE0 Controller
+    baseAddress: 0x30081000
+  SERDES_1_PCS_LANE1:
+    derivedFrom: SERDES_0_PCS_LANE0
+    description: SERDES_1_PCS_LANE1 Controller
+    baseAddress: 0x30082000
+  SERDES_1_PCS_LANE2:
+    derivedFrom: SERDES_0_PCS_LANE0
+    description: SERDES_1_PCS_LANE2 Controller
+    baseAddress: 0x30084000
+  SERDES_1_PCS_LANE3:
+    derivedFrom: SERDES_0_PCS_LANE0
+    description: SERDES_1_PCS_LANE3 Controller
+    baseAddress: 0x30088000
+  SERDES_2_PCS_LANE0:
+    derivedFrom: SERDES_0_PCS_LANE0
+    description: SERDES_2_PCS_LANE0 Controller
+    baseAddress: 0x30101000
+  SERDES_2_PCS_LANE1:
+    derivedFrom: SERDES_0_PCS_LANE0
+    description: SERDES_2_PCS_LANE1 Controller
+    baseAddress: 0x30102000
+  SERDES_2_PCS_LANE2:
+    derivedFrom: SERDES_0_PCS_LANE0
+    description: SERDES_2_PCS_LANE2 Controller
+    baseAddress: 0x30104000
+  SERDES_2_PCS_LANE3:
+    derivedFrom: SERDES_0_PCS_LANE0
+    description: SERDES_2_PCS_LANE3 Controller
+    baseAddress: 0x30108000
+  SERDES_3_PCS_LANE0:
+    derivedFrom: SERDES_0_PCS_LANE0
+    description: SERDES_3_PCS_LANE0 Controller
+    baseAddress: 0x30201000
+  SERDES_3_PCS_LANE1:
+    derivedFrom: SERDES_0_PCS_LANE0
+    description: SERDES_3_PCS_LANE1 Controller
+    baseAddress: 0x30202000
+  SERDES_3_PCS_LANE2:
+    derivedFrom: SERDES_0_PCS_LANE0
+    description: SERDES_3_PCS_LANE2 Controller
+    baseAddress: 0x30204000
+  SERDES_3_PCS_LANE3:
+    derivedFrom: SERDES_0_PCS_LANE0
+    description: SERDES_3_PCS_LANE3 Controller
+    baseAddress: 0x30208000

@@ -1,0 +1,291 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  IOSCB_IO_CALIB_SGMII:
+    description: IOSCB_IO_CALIB_SGMII Controller
+    baseAddress: 0x3E800000
+    registers:
+      SOFT_RESET:
+        description: This is a compulsory register for all SCB slaves and must be at the same offset in all slaves to facilitate global soft reset of all SCB registers with a single broadcast write from the SCB master.
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID:
+            description: This returns the block type and chip location. (IO SCB bus only) Read 0x0000
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH:
+            description: This asserts the functional reset of the block. It is asserted at power up. When written is stays asserted until written to 0. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP:
+            description: This when asserted resets all the register bits apart from the non-volatile registers, the bit self clears. i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP:
+            description: This when asserted resets all the non-volatile register bits e.g. RW-P bits, the bit self clears i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      IOC_REG0:
+        description: IO calib control register0
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          REG_DIFFR_VSEL:
+            description: ''
+            bitOffset: 24
+            bitWidth: 2
+            access: read-write
+          REG_CALIB_MOVE_DIFFR:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          REG_DIFFR:
+            description: ''
+            bitOffset: 19
+            bitWidth: 4
+            access: read-write
+          REG_CALIB_MOVE_NCODE:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          REG_CALIB_MOVE_PCODE:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-write
+          REG_CALIB_DIRECTION:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-write
+          REG_CALIB_LOAD:
+            description: ''
+            bitOffset: 15
+            bitWidth: 1
+            access: read-write
+          REG_CALIB_LOCK:
+            description: ''
+            bitOffset: 14
+            bitWidth: 1
+            access: read-write
+          REG_CALIB_START:
+            description: ''
+            bitOffset: 13
+            bitWidth: 1
+            access: read-write
+          REG_CALIB_TRIM:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-write
+          REG_NCODE:
+            description: ''
+            bitOffset: 6
+            bitWidth: 6
+            access: read-write
+          REG_PCODE:
+            description: ''
+            bitOffset: 0
+            bitWidth: 6
+            access: read-write
+      IOC_REG1:
+        description: IO calib control register1
+        addressOffset: 0x8
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SRO_DIFFR_CALIB_INTRPT:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-only
+          SRO_DIFFR_CALIB_STATUS:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-only
+          SRO_DIFFR_COMP_SEL:
+            description: ''
+            bitOffset: 20
+            bitWidth: 1
+            access: read-only
+          SRO_DIFFR_COMP_EN:
+            description: ''
+            bitOffset: 19
+            bitWidth: 1
+            access: read-only
+          SRO_DIFFR_COMP_OUT:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-only
+          SRO_DIFFR_IOEN_OUT:
+            description: ''
+            bitOffset: 17
+            bitWidth: 1
+            access: read-only
+          SRO_DIFFR_POWER_ON:
+            description: ''
+            bitOffset: 16
+            bitWidth: 1
+            access: read-only
+          SRO_REF_DIFFR:
+            description: ''
+            bitOffset: 12
+            bitWidth: 4
+            access: read-only
+          SRO_DIFFR:
+            description: ''
+            bitOffset: 8
+            bitWidth: 4
+            access: read-only
+          SRO_COMP_EN:
+            description: ''
+            bitOffset: 7
+            bitWidth: 1
+            access: read-only
+          SRO_COMP_SEL:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-only
+          SRO_POWER_ON:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-only
+          SRO_IOEN_OUT:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-only
+          SRO_CALIB_INTRPT:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-only
+          SRO_CALIB_STATUS:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          SRO_CODE_DONE_N:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          SRO_CODE_DONE_P:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      IOC_REG2:
+        description: IO calib control register2
+        addressOffset: 0xC
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SRO_COMP_OUT:
+            description: ''
+            bitOffset: 28
+            bitWidth: 1
+            access: read-only
+          SRO_REF_NCODE:
+            description: ''
+            bitOffset: 21
+            bitWidth: 7
+            access: read-only
+          SRO_REF_PCODE:
+            description: ''
+            bitOffset: 14
+            bitWidth: 7
+            access: read-only
+          SRO_NCODE:
+            description: ''
+            bitOffset: 7
+            bitWidth: 7
+            access: read-only
+          SRO_PCODE:
+            description: ''
+            bitOffset: 0
+            bitWidth: 7
+            access: read-only
+      IOC_REG3:
+        description: IO calib control register3
+        addressOffset: 0x10
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          REG_CALIB_NOFFSET_DIR:
+            description: ''
+            bitOffset: 18
+            bitWidth: 1
+            access: read-write
+          REG_CALIB_NOFFSET:
+            description: ''
+            bitOffset: 12
+            bitWidth: 6
+            access: read-write
+          REG_CALIB_POFFSET_DIR:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-write
+          REG_CALIB_POFFSET:
+            description: ''
+            bitOffset: 5
+            bitWidth: 6
+            access: read-write
+          REG_CALIB_DOFFSET_DIR:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          REG_CALIB_DOFFSET:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      IOC_REG4:
+        description: IO calib control register4
+        addressOffset: 0x14
+        size: 32
+        access: read-only
+        resetValue: 0x0
+      IOC_REG5:
+        description: IO calib control register5
+        addressOffset: 0x18
+        size: 32
+        access: read-only
+        resetValue: 0x0
+      IOC_REG6:
+        description: IO calibr control resgister6
+        addressOffset: 0x1C
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          REG_CALIB_CLKDIV:
+            description: ''
+            bitOffset: 1
+            bitWidth: 2
+            access: read-write
+          REG_CALIB_RESET:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write

@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  SCB_MAILBOX:
+    description: SCB_MAILBOX Controller
+    baseAddress: 0x37020800
+    registers:
+      SCB_MAILBOX:
+        description: 0x800-0x7FC for MBOX
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          MBOX:
+            description: ''
+            bitOffset: 0
+            bitWidth: 32
+            access: read-write

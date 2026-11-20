@@ -28,6 +28,23 @@
 # Blocks that cannot be probed on the Icicle Kit (MPFS250T), or that were never measured.
 skip ATHENA    The Icicle Kit chip is not an S device: an access to the Athena block resets the OpenOCD connection
 skip TRACE     never measured on hardware
+skip IOSCB_*               behind the IOSCB bus (system controller), never measured on hardware
+skip PFSOC_CONTROL_SCB     behind the IOSCB bus (system controller), never measured on hardware
+skip SCB_MAILBOX           behind the IOSCB bus (system controller), never measured on hardware
+skip QSPIXIP_SCB           behind the IOSCB bus (system controller), never measured on hardware
+skip SCB_REGS_SCB          behind the IOSCB bus (system controller), never measured on hardware
+skip PF_US_CRYPTO_TOP      behind the IOSCB bus (system controller), never measured on hardware
+skip BANK_CTLR_*           behind the IOSCB bus (fabric periphery), never measured on hardware
+skip CFM_CCM_*             behind the IOSCB bus (fabric periphery), never measured on hardware
+skip CORNER_*              behind the IOSCB bus (fabric periphery), never measured on hardware
+skip DLL_*                 behind the IOSCB bus (fabric periphery), never measured on hardware
+skip ICB_*                 behind the IOSCB bus (fabric periphery), never measured on hardware
+skip LANE_N_*              behind the IOSCB bus (fabric periphery), never measured on hardware
+skip PLL_*                 behind the IOSCB bus (fabric periphery), never measured on hardware
+skip PVT_*                 behind the IOSCB bus (fabric periphery), never measured on hardware
+skip SERDES_*              behind the IOSCB bus (SerDes), never measured on hardware
+skip PCIESS_*              behind the IOSCB bus (SerDes and PCIe), never measured on hardware
+skip PCIE_TOP_*            behind the IOSCB bus (SerDes and PCIe), never measured on hardware
 skip IOSCBCFG  never measured on hardware
 skip ENVM      not measured separately yet
 skip-enable-clocks CAN_?_*   the first access after --enable-clocks stalled the debug module at power-on (not yet understood); without --enable-clocks the block reads 0; use --include CAN_A_LO

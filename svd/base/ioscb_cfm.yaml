@@ -1,0 +1,518 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+_add:
+  CFM_CCM_IOB_CCC_SE:
+    description: CFM_CCM_IOB_CCC_SE Controller
+    groupName: IOSCB_CFM
+    baseAddress: 0x3A010000
+    registers:
+      SOFT_RESET:
+        description: This is a compulsory register for all SCB slaves and must be at the same offset in all slaves to facilitate global soft reset of all SCB registers with a single broadcast write from the SCB master.
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          BLOCKID:
+            description: This returns the block type and chip location. (IO SCB bus only) Read 0x0000
+            bitOffset: 16
+            bitWidth: 16
+            access: read-only
+          PERIPH:
+            description: This asserts the functional reset of the block. It is asserted at power up. When written is stays asserted until written to 0. Write 0 Write 1
+            bitOffset: 8
+            bitWidth: 1
+            access: read-write
+          V_MAP:
+            description: This when asserted resets all the register bits apart from the non-volatile registers, the bit self clears. i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          NV_MAP:
+            description: This when asserted resets all the non-volatile register bits e.g. RW-P bits, the bit self clears i.e. is similar to a W1P bit Write 0 Write 1
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      INMUX0:
+        description: Input mux selections
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CIMUX_REF2_SEL:
+            description: ''
+            bitOffset: 28
+            bitWidth: 4
+            access: read-write
+          CIMUX_REF1_SEL:
+            description: ''
+            bitOffset: 24
+            bitWidth: 4
+            access: read-write
+          CIMUX_REF0_SEL:
+            description: ''
+            bitOffset: 20
+            bitWidth: 4
+            access: read-write
+          CIMUX_GEN5_SEL:
+            description: ''
+            bitOffset: 18
+            bitWidth: 2
+            access: read-write
+          CIMUX_GEN4_SEL:
+            description: ''
+            bitOffset: 16
+            bitWidth: 2
+            access: read-write
+          CIMUX_GEN3_SEL:
+            description: ''
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          CIMUX_GEN2_SEL:
+            description: ''
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          CIMUX_GEN1_SEL:
+            description: ''
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          CIMUX_GEN0_SEL:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      INMUX1:
+        description: Input mux selections
+        addressOffset: 0x8
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CDMUX2_SEL:
+            description: ''
+            bitOffset: 31
+            bitWidth: 1
+            access: read-write
+          CDMUX1_SEL:
+            description: ''
+            bitOffset: 30
+            bitWidth: 1
+            access: read-write
+          CDMUX0_SEL:
+            description: ''
+            bitOffset: 28
+            bitWidth: 2
+            access: read-write
+          CIMUX_REF9_SEL:
+            description: ''
+            bitOffset: 24
+            bitWidth: 4
+            access: read-write
+          CIMUX_REF8_SEL:
+            description: ''
+            bitOffset: 20
+            bitWidth: 4
+            access: read-write
+          CIMUX_REF7_SEL:
+            description: ''
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          CIMUX_REF6_SEL:
+            description: ''
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          CIMUX_REF5_SEL:
+            description: ''
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          CIMUX_REF4_SEL:
+            description: ''
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          CIMUX_REF3_SEL:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      INMUX2:
+        description: Configurable delay line selections
+        addressOffset: 0xC
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DELAY_TEST_B:
+            description: ''
+            bitOffset: 25
+            bitWidth: 1
+            access: read-only
+          DELAY_TEST_A:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-only
+          DELAY_TEST_EN:
+            description: ''
+            bitOffset: 23
+            bitWidth: 1
+            access: read-write
+          CDELAY1_EN:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          CDELAY0_EN:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          CDELAY1_SEL:
+            description: ''
+            bitOffset: 13
+            bitWidth: 8
+            access: read-write
+          CDELAY0_SEL:
+            description: ''
+            bitOffset: 5
+            bitWidth: 8
+            access: read-write
+          CDMUX6_SEL:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          CDMUX5_SEL:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          CDMUX4_SEL:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          CDMUX3_SEL:
+            description: ''
+            bitOffset: 0
+            bitWidth: 2
+            access: read-write
+      OUTMUX0:
+        description: output mux selection
+        addressOffset: 0x10
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          COMUX7_SEL:
+            description: ''
+            bitOffset: 28
+            bitWidth: 4
+            access: read-write
+          COMUX6_SEL:
+            description: ''
+            bitOffset: 24
+            bitWidth: 4
+            access: read-write
+          COMUX5_SEL:
+            description: ''
+            bitOffset: 20
+            bitWidth: 4
+            access: read-write
+          COMUX4_SEL:
+            description: ''
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          COMUX3_SEL:
+            description: ''
+            bitOffset: 12
+            bitWidth: 4
+            access: read-write
+          COMUX2_SEL:
+            description: ''
+            bitOffset: 8
+            bitWidth: 4
+            access: read-write
+          COMUX1_SEL:
+            description: ''
+            bitOffset: 4
+            bitWidth: 4
+            access: read-write
+          COMUX0_SEL:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+      OUTMUX1:
+        description: Feeder clocks enable
+        addressOffset: 0x14
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SRMUX1_SEL:
+            description: ''
+            bitOffset: 20
+            bitWidth: 4
+            access: read-write
+          SRMUX0_SEL:
+            description: ''
+            bitOffset: 16
+            bitWidth: 4
+            access: read-write
+          CRNFDR_VERT_EN:
+            description: ''
+            bitOffset: 8
+            bitWidth: 8
+            access: read-write
+          CRNFDR_HORZ_EN:
+            description: ''
+            bitOffset: 0
+            bitWidth: 8
+            access: read-write
+      SPARE0:
+        description: spare logic
+        addressOffset: 0x18
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          SPARE0:
+            description: ''
+            bitOffset: 0
+            bitWidth: 28
+            access: read-write
+      IMIRROR_CTRL:
+        description: Imirror_control_selections
+        addressOffset: 0x1C
+        size: 32
+        access: read-write
+        resetValue: 0x1
+        fields:
+          EN_V1P2BUF:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-write
+          CALIB_POFFSET_DIR:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-write
+          CALIB_POFFSET:
+            description: ''
+            bitOffset: 15
+            bitWidth: 6
+            access: read-write
+          CALIB_PCODE:
+            description: ''
+            bitOffset: 7
+            bitWidth: 8
+            access: read-write
+          CALIB_TRIM:
+            description: ''
+            bitOffset: 6
+            bitWidth: 1
+            access: read-write
+          CALIB_START:
+            description: ''
+            bitOffset: 5
+            bitWidth: 1
+            access: read-write
+          CALIB_MOVE_PCODE:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          CALIB_LOCK:
+            description: ''
+            bitOffset: 3
+            bitWidth: 1
+            access: read-write
+          CALIB_LOAD:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-write
+          CALIB_DIRECTION:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-write
+          CALIB_RST_B:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-write
+      IMIRROR_STAT:
+        description: Imirror_status_register
+        addressOffset: 0x20
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          SRO_REF_BG_CODE:
+            description: ''
+            bitOffset: 26
+            bitWidth: 3
+            access: read-only
+          SRO_BG_CODE:
+            description: ''
+            bitOffset: 23
+            bitWidth: 3
+            access: read-only
+          SRO_COMP_OUT:
+            description: ''
+            bitOffset: 22
+            bitWidth: 1
+            access: read-only
+          SRO_POWER_ON:
+            description: ''
+            bitOffset: 21
+            bitWidth: 1
+            access: read-only
+          SRO_CC_CODE:
+            description: ''
+            bitOffset: 13
+            bitWidth: 8
+            access: read-only
+          SRO_IOEN_OUT:
+            description: ''
+            bitOffset: 12
+            bitWidth: 1
+            access: read-only
+          SRO_COMP_SEL:
+            description: ''
+            bitOffset: 11
+            bitWidth: 1
+            access: read-only
+          SRO_REF_CC_CODE:
+            description: ''
+            bitOffset: 3
+            bitWidth: 8
+            access: read-only
+          SRO_COMP_EN:
+            description: ''
+            bitOffset: 2
+            bitWidth: 1
+            access: read-only
+          SRO_CALIB_STATUS:
+            description: ''
+            bitOffset: 1
+            bitWidth: 1
+            access: read-only
+          SRO_CALIB_INTRPT:
+            description: ''
+            bitOffset: 0
+            bitWidth: 1
+            access: read-only
+      FMETER_ADDR:
+        description: Frequency_meter_address_selections
+        addressOffset: 0x24
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          ADDR:
+            description: ''
+            bitOffset: 2
+            bitWidth: 4
+            access: read-write
+      FMETER_DATAW:
+        description: Frequency_meter_data_write
+        addressOffset: 0x28
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          STROBE:
+            description: ''
+            bitOffset: 24
+            bitWidth: 1
+            access: read-write
+          DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 24
+            access: read-write
+      FMETER_DATAR:
+        description: Frequency_meter_data_read
+        addressOffset: 0x2C
+        size: 32
+        access: read-only
+        resetValue: 0x0
+        fields:
+          DATA:
+            description: ''
+            bitOffset: 0
+            bitWidth: 24
+            access: read-only
+      IMIRROR_TRIM:
+        description: Imirror TRIM Bits
+        addressOffset: 0x30
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          CC_CODE:
+            description: ''
+            bitOffset: 3
+            bitWidth: 8
+            access: read-write
+          BG_CODE:
+            description: ''
+            bitOffset: 0
+            bitWidth: 3
+            access: read-write
+      TEST_CTRL:
+        description: Test MUX Controls
+        addressOffset: 0x34
+        size: 32
+        access: read-write
+        resetValue: 0x0
+        fields:
+          DTEST_SEL:
+            description: ''
+            bitOffset: 11
+            bitWidth: 5
+            access: read-write
+          DTEST_EN:
+            description: ''
+            bitOffset: 10
+            bitWidth: 1
+            access: read-write
+          ATEST_SEL:
+            description: ''
+            bitOffset: 5
+            bitWidth: 5
+            access: read-write
+          ATEST_EN:
+            description: ''
+            bitOffset: 4
+            bitWidth: 1
+            access: read-write
+          OSC_ENABLE:
+            description: ''
+            bitOffset: 0
+            bitWidth: 4
+            access: read-write
+  CFM_CCM_NE:
+    derivedFrom: CFM_CCM_IOB_CCC_SE
+    description: CFM_CCM_NE Controller
+    baseAddress: 0x3A040000
+  CFM_CCM_IOB_CCC_NW:
+    derivedFrom: CFM_CCM_IOB_CCC_SE
+    description: CFM_CCM_IOB_CCC_NW Controller
+    baseAddress: 0x3A100000
+  CFM_CCM_SW:
+    derivedFrom: CFM_CCM_IOB_CCC_SE
+    description: CFM_CCM_SW Controller
+    baseAddress: 0x3A400000
