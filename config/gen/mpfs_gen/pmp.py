@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# @req GEN-010
+# @req GEN-010, GEN-011
 """The PMP of each hart as the MSS Configurator XML sets it.
 
 The PMP is not chosen by the generator: the user sets it with Microchip's MSS Configurator, and the XML
@@ -13,11 +13,30 @@ table for the test program examples/pmp_xml_test, which compares them with what 
   of(config)                the PMP of each hart (HartPmp), and the rules the XML breaks
   describe(pmps)            the entries decoded, one line each (`mpfs_gen pmp`)
   ada_table(config, name)   the Ada package Pmp_Xml with the values of every hart
+  regions(pmp, bits)        the address space of a hart cut into the regions in which its PMP decides
+                            alike, with the rights of U and M mode in each
+  locked_part(pmp)          the entries the boot loader sets (locked), unlocked_part(pmp) those of the kernel
+  rules(config, harts, n)   the rules on how the entries are laid out (the derivation checks them)
 
-The rules (Privileged Spec v1.10, 3.6.1): an entry with W set and R clear is reserved (GEN-E100); bits 5
-and 6 of a configuration byte are reserved and must be zero (GEN-E101).
+The rules of the encoding (Privileged Spec v1.10, 3.6.1): an entry with W set and R clear is reserved
+(GEN-E100); bits 5 and 6 of a configuration byte are reserved and must be zero (GEN-E101).
+
+The semantics (Privileged Spec v1.10, 3.6.1; the MPFS has no Smepmp): the matching entry with the lowest
+index decides an access. For U mode it grants its R, W and X; for M mode only if L is set, an entry without
+L lets M through. If no entry matches, M is allowed and U denied. L also locks the entry and, for TOR, the
+pmpaddr of the entry before it. pmpaddr is WARL: a hart implements only its low bits (target.PMPADDR_BITS),
+so the regions are taken within those bits, as the hart sees them.
+
+The rules of the layout (rules()): all locked entries come before all unlocked ones in use (GEN-E102); the
+entries in use fit the number of entries of the target, 16 on the silicon, 8 under QEMU with
+--pmp-entries 8 (GEN-E103); with MEM_CONFIGS_ENABLED.PMP 0 the PMP sections should be zero (GEN-E104, a
+warning); a locked entry that grants rights over the whole address space, or over the range of a later
+entry so that the later entry can never decide, is refused (GEN-E105): the locked RWX entry 0 over all
+addresses in pmp_h1 to pmp_h4 of the reference XMLs is one. (A locked TOR entry also locks the pmpaddr of
+the entry before it; with all locked entries first that entry is locked or unused, see locked_part.)
 """
 from dataclasses import dataclass
+from itertools import pairwise
 
 from gen_ada import ada, spdx
 
@@ -27,7 +46,8 @@ from .model import MssConfiguration
 
 ENTRIES = 16
 SECTION = "mss_memory_map/pmp_h{}"
-ADDR_BITS = 54                   # pmpaddr holds address bits 55:2 on RV64
+APB_SPLIT = "mss_memory_map/apb_split"
+ADDR_BITS = 54                   # pmpaddr holds address bits 55:2 on RV64 (a hart may implement fewer)
 R, W, X, A_SHIFT, L = 0x01, 0x02, 0x04, 3, 0x80
 RESERVED = 0x60
 MODES = ("OFF", "TOR", "NA4", "NAPOT")
@@ -89,23 +109,149 @@ def of(config: MssConfiguration) -> tuple[tuple[HartPmp, ...], list[Diagnostic]]
     return tuple(harts), found
 
 
-def region(entry: Entry, below: int) -> tuple[int, int] | None:
-    """The bytes [first, last] that <entry> matches, with <below> the pmpaddr of the entry before it (TOR);
-    None for OFF and for an empty TOR range. A NAPOT entry of all ones is the whole space of 2^56 bytes."""
-    addr = entry.addr & ((1 << ADDR_BITS) - 1)
+def space(bits: int) -> int:
+    """The bytes that a pmpaddr of <bits> implemented bits addresses: 2 ** (bits + 2)."""
+    return 1 << (bits + 2)
+
+
+def region(entry: Entry, below: int, bits: int = ADDR_BITS) -> tuple[int, int] | None:
+    """The bytes [first, last] that <entry> matches, with <below> the pmpaddr of the entry before it (TOR),
+    both taken in the <bits> low bits that the hart implements; None for OFF and for an empty TOR range. A
+    NAPOT entry of all ones is the whole space (2^56 bytes with the 54 bits of RV64)."""
+    mask = (1 << bits) - 1
+    addr = entry.addr & mask
     if entry.mode == "OFF":
         return None
     if entry.mode == "TOR":
-        first, end = (below & ((1 << ADDR_BITS) - 1)) << 2, addr << 2
+        first, end = (below & mask) << 2, addr << 2
         return (first, end - 1) if end > first else None
     if entry.mode == "NA4":
         return addr << 2, (addr << 2) + 3
-    if addr == (1 << ADDR_BITS) - 1:
-        return 0, (1 << (ADDR_BITS + 2)) - 1
+    if addr == mask:
+        return 0, space(bits) - 1
     ones = (~addr & (addr + 1)).bit_length() - 1
     size = 1 << (ones + 3)
     first = (addr & ~((1 << ones) - 1)) << 2
-    return first, first + size - 1
+    return first, min(first + size, space(bits)) - 1
+
+
+NONE = "---"
+ALL = "rwx"
+
+
+@dataclass(frozen=True, slots=True)
+class Region:
+    """The bytes [first, last] of a hart in which its PMP decides alike: <entry> is the index of the entry
+    that matches them (None: no entry does), <u> and <m> are the rights of U and M mode there ("rwx" with
+    "-" for a missing right)."""
+    first: int
+    last: int
+    entry: int | None
+    u: str
+    m: str
+
+
+def matches(pmp: HartPmp, bits: int) -> tuple[tuple[Entry, int, int], ...]:
+    """The entries of <pmp> that match a byte, each with its range [first, last], in index order."""
+    out: list[tuple[Entry, int, int]] = []
+    for e in pmp.entries:
+        span = region(e, pmp.addr[e.index - 1] if e.index else 0, bits)
+        if span:
+            out.append((e, span[0], span[1]))
+    return tuple(out)
+
+
+def regions(pmp: HartPmp, bits: int) -> tuple[Region, ...]:
+    """The address space of the hart of <pmp>, whose pmpaddr implements <bits> bits, cut into the regions in
+    which the PMP decides alike, in address order; neighbours decided alike by the same entry are one."""
+    found = matches(pmp, bits)
+    cuts = sorted({0, space(bits)} | {first for _, first, _ in found} | {last + 1 for _, _, last in found})
+    out: list[Region] = []
+    for first, end in pairwise(cuts):
+        entry = next((e for e, low, high in found if low <= first <= high), None)
+        if entry is None:
+            index, u, m = None, NONE, ALL
+        else:
+            index, u, m = entry.index, entry.rights, entry.rights if entry.locked else ALL
+        if out and (out[-1].entry, out[-1].u, out[-1].m) == (index, u, m):
+            out[-1] = Region(out[-1].first, end - 1, index, u, m)
+        else:
+            out.append(Region(first, end - 1, index, u, m))
+    return tuple(out)
+
+
+def rights(found: tuple[Region, ...], first: int, last: int, mode: str) -> tuple[tuple[int, int, str], ...]:
+    """The rights of <mode> ("u" or "m") over the bytes [first, last] as (first, last, rights) pieces in
+    address order, from the regions <found> of a hart (bytes beyond its space are left out)."""
+    out: list[tuple[int, int, str]] = []
+    for r in found:
+        low, high = max(first, r.first), min(last, r.last)
+        if low <= high:
+            out.append((low, high, r.u if mode == "u" else r.m))
+    return tuple(out)
+
+
+def locked_part(pmp: HartPmp) -> tuple[Entry, ...]:
+    """The entries that the boot loader sets and nothing changes until a reset: every locked entry and the
+    entry before a locked TOR entry (whose pmpaddr is its base and is locked with it), in index order."""
+    keep = {e.index for e in pmp.entries if e.locked}
+    keep |= {e.index - 1 for e in pmp.entries if e.locked and e.mode == "TOR" and e.index}
+    return tuple(pmp.entry(i) for i in sorted(keep))
+
+
+def in_use(pmp: HartPmp) -> tuple[int, ...]:
+    """The indices of the entries a hart uses: those not OFF, the locked ones and the base of a TOR entry."""
+    used = {e.index for e in pmp.entries if e.mode != "OFF" or e.locked}
+    used |= {e.index - 1 for e in pmp.entries if e.mode == "TOR" and e.index}
+    return tuple(sorted(used))
+
+
+def unlocked_part(pmp: HartPmp) -> tuple[Entry, ...]:
+    """The entries that the kernel sets: those in use that are not in the locked part (the base of an
+    unlocked TOR entry included), in index order."""
+    locked = {e.index for e in locked_part(pmp)}
+    return tuple(pmp.entry(i) for i in in_use(pmp) if i not in locked)
+
+
+def rules(config: MssConfiguration, harts: tuple[HartPmp, ...],
+          entries: int = target.PMP_ENTRIES) -> list[Diagnostic]:
+    """The rules of the layout of the PMP entries <harts> of the XML <config> (the module text); <entries>
+    is the number of entries of the target (16 on the silicon, 8 under QEMU)."""
+    found: list[Diagnostic] = []
+    for pmp in harts:
+        section = SECTION.format(pmp.hart)
+        bits = target.PMPADDR_BITS[pmp.hart]
+        unlocked = [e for e in pmp.entries if e.mode != "OFF" and not e.locked]
+        late = [e for e in pmp.entries if e.locked and unlocked and e.index > unlocked[0].index]
+        if late:
+            found.append(diagnostic("GEN-E102", f"{section}/PMP{late[0].index}CFG",
+                                    f"entry {late[0].index} of hart {pmp.hart} is locked, after the unlocked "
+                                    f"entry {unlocked[0].index}"))
+        beyond = [e.index for e in pmp.entries if e.index >= entries and (e.mode != "OFF" or e.locked)]
+        if beyond:
+            found.append(diagnostic("GEN-E103", section,
+                                    f"hart {pmp.hart} uses entr{'ies' if len(beyond) > 1 else 'y'} "
+                                    f"{', '.join(map(str, beyond))}; the target has {entries} (0 to {entries - 1})"))
+        spans = matches(pmp, bits)
+        for i, (e, first, last) in enumerate(spans):
+            if not e.locked or e.rights == NONE:
+                continue
+            whole = first == 0 and last == space(bits) - 1
+            hidden = [later.index for later, low, high in spans[i + 1:] if first <= low and high <= last]
+            if whole or hidden:
+                what = "the whole address space" if whole else f"[{first:#x}, {last:#x}]"
+                more = f", hiding entr{'ies' if len(hidden) > 1 else 'y'} {', '.join(map(str, hidden))}" \
+                    if hidden else ""
+                found.append(diagnostic("GEN-E105", f"{section}/PMP{e.index}CFG",
+                                        f"entry {e.index} of hart {pmp.hart} is locked and grants {e.rights} to "
+                                        f"all modes over {what}{more}"))
+    enabled = config.register(APB_SPLIT, "MEM_CONFIGS_ENABLED").field("PMP").value
+    nonzero = [p.hart for p in harts if p.cfg0 or p.cfg2 or any(p.addr)]
+    if not enabled and nonzero:
+        found.append(diagnostic("GEN-E104", f"{APB_SPLIT}/MEM_CONFIGS_ENABLED.PMP",
+                                "PMP is 0, but " + ", ".join(SECTION.format(h).rpartition("/")[2] for h in nonzero)
+                                + " set entries"))
+    return found
 
 
 def describe(harts: tuple[HartPmp, ...]) -> list[str]:
@@ -140,7 +286,7 @@ def ada_table(config: MssConfiguration, name: str) -> str:
     """The Ada package Pmp_Xml with the PMP values of every hart of <config>; <name> names the XML in the
     text (the file as the caller gave it, so that the output does not depend on the directory)."""
     harts, _ = of(config)
-    enabled = config.register("mss_memory_map/apb_split", "MEM_CONFIGS_ENABLED").field("PMP").value
+    enabled = config.register(APB_SPLIT, "MEM_CONFIGS_ENABLED").field("PMP").value
     out = spdx.header("ada", "Apache-2.0").splitlines()
     out += ["--", *ada.comment(ada.generated_notice(TOOL, f"the MSS Configurator XML {name}"), indent=""),
             "--",

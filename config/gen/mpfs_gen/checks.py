@@ -10,8 +10,11 @@ test compares them). A code is never reused for another rule. The schema rules (
 are reported by yaml_reader.py from the failures of the validator, the rules across fields (GEN-E020 to
 GEN-E034) by semantic() below on a description that the schema accepts, and the rules of the MSS
 Configurator XML (GEN-E040 to GEN-E059, XML_CODES) by xml_reader.py, the rules of the derivations from
-a description and its XML (GEN-E060 to GEN-E099, DERIVE_CODES) by the package derive, and the rules of the
-PMP sections of the XML (GEN-E100 on, PMP_CODES) by pmp.py.
+a description and its XML (GEN-E060 to GEN-E099, DERIVE_CODES) by the package derive, the rules of the
+PMP sections of the XML (GEN-E100 to GEN-E119, PMP_CODES) by pmp.py, and the rules of the PMP and the AMP
+contexts against the partitions (GEN-E120 to GEN-E139, PROTECTION_CODES) by derive/protection.py and
+derive/contexts.py. The codes of WARNINGS report what does not stop the derivation; their rule ends in
+"(a warning)".
 """
 from dataclasses import dataclass
 from pathlib import Path
@@ -92,6 +95,25 @@ CODES: dict[str, str] = {
     "GEN-E084": "a partition owns a peripheral that CONFIGURED_PERIPHERALS of the XML leaves out",
     "GEN-E100": "a PMP entry of the XML has W set and R clear (a reserved combination)",
     "GEN-E101": "a PMP configuration byte of the XML sets the reserved bits 5 and 6",
+    "GEN-E102": "a locked PMP entry comes after an unlocked entry in use",
+    "GEN-E103": "a PMP entry in use is beyond the number of entries of the target (16; 8 with --pmp-entries 8)",
+    "GEN-E104": "MEM_CONFIGS_ENABLED.PMP is 0, but the PMP sections set entries (a warning)",
+    "GEN-E105": "a locked PMP entry grants rights over the whole address space or over the range of a later entry",
+    "GEN-E120": "a U partition cannot reach a window of its own with the rights it needs",
+    "GEN-E121": "a U partition cannot read and write a peripheral of its own at the address APBBUS_CR gives",
+    "GEN-E122": "a U partition cannot read the page of mtime",
+    "GEN-E123": "U mode of a U partition reaches what is not its own (a warning)",
+    "GEN-E124": "a window or peripheral of another partition, or the ITIM or DTIM of another hart, is reachable "
+                "from U mode or from M mode of a hart with locked entries",
+    "GEN-E125": "a critical system block is reachable from U mode",
+    "GEN-E126": "SYSREG or MPUCFG is reachable from U mode",
+    "GEN-E127": "a critical system block is reachable from M mode of a hart with locked entries (a warning)",
+    "GEN-E130": "a hart is in both AMP contexts",
+    "GEN-E131": "a peripheral is in both AMP contexts",
+    "GEN-E132": "APBBUS_CR is not bits 23:0 of CONTEXT_B_EN while AMP contexts are used",
+    "GEN-E133": "a peripheral of a partition is not in the AMP context of its harts",
+    "GEN-E134": "the harts of a partition are not all in the same AMP context",
+    "GEN-E135": "a PMP window of a partition in one AMP context covers the bus window of the other (a warning)",
 }
 
 # The codes of the reader of the MSS Configurator XML (xml_reader.py); the others are those of system.yaml.
@@ -100,6 +122,10 @@ XML_CODES = frozenset(code for code in CODES if "GEN-E040" <= code <= "GEN-E059"
 DERIVE_CODES = frozenset(code for code in CODES if "GEN-E060" <= code <= "GEN-E099")
 # The codes of the PMP sections of the XML (pmp.py).
 PMP_CODES = frozenset(code for code in CODES if "GEN-E100" <= code <= "GEN-E119")
+# The codes of the PMP and the AMP contexts against the partitions (derive/protection.py, derive/contexts.py).
+PROTECTION_CODES = frozenset(code for code in CODES if "GEN-E120" <= code <= "GEN-E139")
+# The codes that report what does not stop the derivation.
+WARNINGS = frozenset(code for code, rule in CODES.items() if rule.endswith("(a warning)"))
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,7 +136,11 @@ class Diagnostic:
     message: str
 
     def __str__(self) -> str:
-        return f"{self.code} {self.path or '(top level)'}: {self.message}"
+        return f"{self.code}{' (warning)' if self.warning else ''} {self.path or '(top level)'}: {self.message}"
+
+    @property
+    def warning(self) -> bool:
+        return self.code in WARNINGS
 
 
 class DiagnosticError(errors.InputError):

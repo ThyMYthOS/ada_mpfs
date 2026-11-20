@@ -76,6 +76,19 @@ ENVM_LENGTH = 0x1FF00
 # divider of the configuration must give exactly this rate from the reference clock.
 RUNTIME_CLOCK_HZ = 1_000_000
 
+# The PMP of a hart: the entries of the silicon (16, measured on the Icicle Kit on the E51 and U54 hart 1,
+# docs/lab/results/pmp-entries.md; also the MSS TRM DS60001702S §3.1.4), the entries QEMU 10.1 models (8,
+# what `--pmp-entries 8` checks against), and the bits of pmpaddr that each hart implements (WARL): a U54
+# holds bits 35:0 (measured on hart 1: the all-ones value of the XML reads back 0xf_ffff_ffff; harts 2 to 4
+# are the same core and not measured), the E51 is not measured yet and is taken with all 54 bits of RV64.
+PMP_ENTRIES = 16
+QEMU_PMP_ENTRIES = 8
+PMPADDR_BITS = (54, 36, 36, 36, 36)
+
+# The checks of the PMP take a block of registers in whole pages of 4 KiB: the APB peripherals of the SVD
+# start at multiples of it, and a U partition reads mtime through the page that holds it.
+PAGE = 0x1000
+
 # Nothing in the runtime uses more than one hart yet: a console that needs a second one (a FIFO in
 # RAM that the other hart drains) is refused until SMP exists.
 SMP_AVAILABLE = False

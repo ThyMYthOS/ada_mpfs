@@ -1,10 +1,11 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# @verifies GEN-010
-"""config/gen/mpfs_gen/pmp.py: the PMP of the reference XMLs, the regions of the entries, a negative case for
-every code of the PMP sections, the Ada table of examples/pmp_xml_test and the command line; and that the
-emulator lists run the PMP test programs. Needs the merged SVD (tools/svd.py ensure)."""
+# @verifies GEN-010, GEN-011
+"""config/gen/mpfs_gen/pmp.py: the PMP of the reference XMLs, the regions of the entries, the rules of their
+layout, a negative case for every code of the PMP sections, the Ada table of examples/pmp_xml_test and the
+command line; and that the emulator lists run the PMP test programs. Needs the merged SVD (tools/svd.py
+ensure)."""
 import dataclasses
 import subprocess
 import sys
@@ -89,6 +90,79 @@ def _():
     assert [f.code for f in found] == ["GEN-E101"], found
     assert "pmp_h0/CSR_PMPCFG2.PMP9CFG" in found[0].path
     covered.add("GEN-E101")
+
+
+def enabled(config):
+    """<config> with MEM_CONFIGS_ENABLED.PMP 1."""
+    registers = []
+    for reg in config.registers:
+        if (reg.section, reg.name) == (pmp.APB_SPLIT, "MEM_CONFIGS_ENABLED"):
+            fields = tuple(dataclasses.replace(f, value=1) if f.name == "PMP" else f for f in reg.fields)
+            reg = dataclasses.replace(reg, fields=fields, value=sum(f.value << f.bits.offset for f in fields))
+        registers.append(reg)
+    return dataclasses.replace(config, registers=tuple(registers))
+
+
+def harts_with(hart, entries):
+    """The PMP of the five harts, all OFF but <hart> with <entries> (cfg, pmpaddr) from entry 0."""
+    entries = list(entries) + [(0, 0)] * (16 - len(entries))
+    cfg0 = sum(c << (8 * i) for i, (c, _) in enumerate(entries[:8]))
+    cfg2 = sum(c << (8 * i) for i, (c, _) in enumerate(entries[8:]))
+    return tuple(pmp.HartPmp(h, cfg0, cfg2, tuple(a for _, a in entries)) if h == hart
+                 else pmp.HartPmp(h, 0, 0, (0,) * 16) for h in range(5))
+
+
+def rule_codes(harts, entries=16, config=None):
+    found = pmp.rules(config or enabled(CONFIGS["icicle"]), harts, entries)
+    return [f.code for f in found], " ".join(map(str, found))
+
+
+@case("the rules of the layout hold for a layering of locked entries before unlocked ones within 8 entries")
+def _():
+    deny, allow = 0x98, 0x18 | pmp.R | pmp.W
+    harts = harts_with(1, [(deny, 0x0800_7FFF >> 2), (0x00, 0x0802_0000 >> 2), (0x08 | 0x80, 0x0803_0000 >> 2),
+                           (allow, 0x2010_07FF >> 2)])
+    assert rule_codes(harts, 8) == ([], "")
+    # the base of the locked TOR entry is in the locked part
+    assert [e.index for e in pmp.locked_part(harts[1])] == [0, 1, 2]
+    assert [e.index for e in pmp.unlocked_part(harts[1])] == [3]
+
+
+@case("GEN-E102: a locked entry after an unlocked entry in use")
+def _():
+    codes, message = rule_codes(harts_with(3, [(0x18 | pmp.R, 0x2010_07FF >> 2), (0x98, 0x0800_7FFF >> 2)]))
+    assert codes == ["GEN-E102"] and "entry 1 of hart 3 is locked, after the unlocked entry 0" in message, message
+    covered.add("GEN-E102")
+
+
+@case("GEN-E103: an entry beyond the 8 entries of QEMU; the 16 of the silicon hold it")
+def _():
+    harts = harts_with(2, [(0, 0)] * 9 + [(0x18 | pmp.R, 0x2010_07FF >> 2)])
+    assert rule_codes(harts, 16) == ([], "")
+    codes, message = rule_codes(harts, 8)
+    assert codes == ["GEN-E103"] and "hart 2 uses entry 9; the target has 8 (0 to 7)" in message, message
+    covered.add("GEN-E103")
+
+
+@case("GEN-E104 and GEN-E105: the reference XMLs, MEM_CONFIGS_ENABLED.PMP 0 with the open, locked entry 0 of the "
+      "U54 harts")
+def _():
+    for board, config in CONFIGS.items():
+        harts, _ = pmp.of(config)
+        found = pmp.rules(config, harts)
+        assert [f.code for f in found] == ["GEN-E105"] * 4 + ["GEN-E104"], (board, found)
+        assert found[0].path == "mss_memory_map/pmp_h1/PMP0CFG" and "over the whole address space" in found[0].message
+        assert found[-1].warning and "pmp_h1, pmp_h2, pmp_h3, pmp_h4" in found[-1].message
+    covered.update({"GEN-E104", "GEN-E105"})
+
+
+@case("GEN-E105: a locked entry that grants rights over the range of a later entry hides it")
+def _():
+    codes, message = rule_codes(harts_with(4, [(0x98 | pmp.R, 0x0800_7FFF >> 2), (0x18 | pmp.R | pmp.W,
+                                                                                    0x0800_03FF >> 2)]))
+    assert codes == ["GEN-E105"] and "over [0x8000000, 0x800ffff], hiding entry 1" in message, message
+    # without rights it is a deny entry, which may cover later entries
+    assert rule_codes(harts_with(4, [(0x98, 0x0800_7FFF >> 2), (0x18 | pmp.R, 0x0800_03FF >> 2)]))[0] == []
 
 
 @case("every code of the PMP sections has a negative case, and the codes are in the table of config/README.md")

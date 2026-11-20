@@ -7,7 +7,9 @@ clocks recomputed from the MSS PLL, the L2, the placement, CPU_To_Hart, the PLIC
 negative case for every code of the derivations. Needs the merged SVD (tools/svd.py ensure).
 
 A negative case changes the XML in the model (fields of registers, the value of the register recomputed as
-the reader does) or the description, and expects exactly the codes it names."""
+the reader does) or the description, and expects exactly the codes it names. The reference systems are taken
+with security_profile dev, so that the checks of the PMP and the contexts, which the reference XMLs fail
+(the open, locked entry 0 of the U54 harts), are notes; test_protection.py has them, amp_c (prod) included."""
 import dataclasses
 import subprocess
 import sys
@@ -61,7 +63,8 @@ TWO = ONE + """  - name: b
 
 
 def system(name):
-    return yaml_reader.read(SYSTEMS / name / "system.yaml")
+    """The reference system <name> with security_profile dev (amp_c is prod)."""
+    return dataclasses.replace(yaml_reader.read(SYSTEMS / name / "system.yaml"), security_profile="dev")
 
 
 def text(description):
@@ -265,11 +268,15 @@ def _():
     assert [(w.origin, w.length, w.mode) for w in d.windows] == [(target.LIM_ORIGIN, 512 * 1024, "NAPOT")]
 
 
-@case("the command line: derive --check of the reference systems, derive prints the system, a broken one is status 2")
+@case("the command line: derive --check of the reference systems (amp_c, prod, refused by the PMP of the XML), derive "
+      "prints the system, a broken one is status 2")
 def _():
     files = [str(SYSTEMS / n / "system.yaml") for n in REFERENCE]
     done = cli("derive", "--check", "--svd", str(SVD), *files)
-    assert done.returncode == 0 and done.stdout.count(": ok\n") == 4, (done.stdout, done.stderr)
+    assert done.returncode == 2 and done.stdout.count(": ok\n") == 3 and "amp_c/system.yaml: ok" not in done.stdout, \
+        (done.stdout, done.stderr)
+    assert "amp_c/system.yaml with config/boards/icicle/ICICLE_MSS_mss_cfg.xml: GEN-E105" in done.stderr, done.stderr
+    assert "amp_a/system.yaml: " in done.stderr and "not enforced for security_profile dev" in done.stderr
     done = cli("derive", "--svd", str(SVD), files[0])
     assert done.returncode == 0, done.stderr
     lines = done.stdout.splitlines()
@@ -277,6 +284,8 @@ def _():
             "RTC toggle 1000000 Hz (period 125)") in lines, lines
     assert "window lim 0x0800_0000 length 0x0004_0000 NAPOT: rt code+data" in lines
     assert "partition app: harts [2, 3, 4], mask 0x1c, CPU_To_Hart [2, 3, 4]" in lines
+    assert any(line.startswith("pmp: not applied (security_profile dev)") for line in lines), lines
+    assert any(line.startswith("note: GEN-E105 mss_memory_map/pmp_h1/PMP0CFG") for line in lines), lines
     done = cli("derive", "--svd", str(SVD), "--xml", str(XMLS["video_kit"]), files[0])
     assert done.returncode == 2 and "GEN-E084" in done.stderr, done
 

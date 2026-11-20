@@ -10,18 +10,24 @@
   python3 config/gen/mpfs_gen xml [--check] [--fields] [--svd SVD] FILE...
                                                        read MSS Configurator XMLs and print the
                                                        registers of their core sections
-  python3 config/gen/mpfs_gen derive [--check] [--xml XML] [--svd SVD] FILE...
+  python3 config/gen/mpfs_gen derive [--check] [--xml XML] [--svd SVD] [--pmp-entries 8|16] FILE...
                                                        derive the systems of descriptions with the XML
-                                                       of each (or XML) and print them
+                                                       of each (or XML) and print them; the PMP and the
+                                                       AMP contexts of the XML are checked against the
+                                                       partitions (with 8 entries: whether it runs
+                                                       under QEMU), enforced for prod, notes for dev
   python3 config/gen/mpfs_gen pmp [--svd SVD] [--ada FILE [--check]] XML
                                                        print the PMP entries of each hart that the XML
                                                        sets; --ada writes them as the Ada package
                                                        Pmp_Xml (--check: compare with FILE instead)
 
 `check` prints `FILE: ok` or one line per violated rule, `FILE: GEN-Exxx PATH: message`; so do
-`xml --check` and `derive --check`. `derive` prints the clocks, the L2, the windows and, per partition,
-CPU_To_Hart, the PLIC sources and contexts and the release masks. `pmp` prints, per hart, the PMP CSRs and
-every entry that is not OFF (mode, byte range, rights, lock). `xml` prints the design, the hash and every register of the core sections
+`xml --check` and `derive --check` (a warning, `GEN-Exxx (warning)`, goes to stderr after `FILE: ok`, and
+for a dev image the number of the findings of the PMP and the contexts that are notes). `derive` prints the
+clocks, the L2, the windows and, per partition, CPU_To_Hart, the PLIC sources and contexts, the release
+masks, the AMP context and the address of each peripheral; then APBBUS_CR, the contexts, the PMP occupation
+of each hart (or that a dev image does not apply the PMP), the warnings and the notes. `pmp` prints,
+per hart, the PMP CSRs and every entry that is not OFF (mode, byte range, rights, lock). `xml` prints the design, the hash and every register of the core sections
 (`SECTION/NAME = VALUE`, with --fields also each field), the memory elements and the sections that are
 only validated. Without --svd the merged SVD is build/svd/PolarfireSoC.svd, made current first.
 Exit status: 0 ok, 2 an input breaks a rule or the arguments are wrong.
@@ -40,7 +46,7 @@ sys.path[:0] = [str(HERE.parent), str(HERE.parents[2] / "tools")]
 
 from gen_ada import cli, errors, svdread
 
-from mpfs_gen import ROOT, derive, pmp, presets, xml_reader, yaml_reader
+from mpfs_gen import ROOT, derive, pmp, presets, target, xml_reader, yaml_reader
 from mpfs_gen.checks import DiagnosticError
 from mpfs_gen.derive import Derived
 from mpfs_gen.model import MssConfiguration, XmlRegister
@@ -69,6 +75,8 @@ def parser() -> argparse.ArgumentParser:
     der.add_argument("--check", action="store_true", help="only check: print FILE: ok")
     der.add_argument("--xml", type=Path, help="the MSS Configurator XML (default: that of the description)")
     der.add_argument("--svd", type=Path, help="the merged SVD (default: build/svd, made current)")
+    der.add_argument("--pmp-entries", type=int, choices=(target.QEMU_PMP_ENTRIES, target.PMP_ENTRIES),
+                     default=target.PMP_ENTRIES, help="the PMP entries per hart of the target (8: QEMU)")
     der.add_argument("files", nargs="+", type=Path)
     pm = sub.add_parser("pmp", help="the PMP entries of each hart that an XML sets")
     pm.add_argument("--svd", type=Path, help="the merged SVD (default: build/svd, made current)")
@@ -147,18 +155,47 @@ def describe_derived(d: Derived) -> list[str]:
                    + "; local " + (", ".join(f"{n}={k}" for n, k in irq.local) or "none"))
         out.append(f"  peripherals {', '.join(per.names) or 'none'}: SUBBLK_CLOCK_CR {number(per.clock_mask)}, "
                    f"SOFT_RESET_CR {number(per.reset_mask)}")
+        if d.protection is not None:
+            out.append(f"  context {p.context or 'none'}; addresses "
+                       + (", ".join(f"{b.name} {number(b.base)}" + (f" {b.bus}" if b.bus else "") for b in p.blocks)
+                          or "none"))
     out.append(f"RAM_SHUTDOWN_CR {number(d.ram_shutdown)} ({', '.join(d.ram_shutdown_blocks) or 'nothing'})")
     out.append("gpio direct: " + ", ".join(f"{name}={line}" for name, line in d.gpio_aliases))
+    out += describe_protection(d)
+    out += [f"warning: {w}" for w in d.warnings]
+    out += [f"note: {n}" for n in d.notes]
     return out
 
 
-def derived(path: Path, xml: Path | None, svd: Path) -> Derived:
+def describe_protection(d: Derived) -> list[str]:
+    """The lines of the PMP and the AMP contexts of a derived system."""
+    if d.protection is None:
+        return []
+    pr, c = d.protection, d.protection.contexts
+    out = [f"APBBUS_CR {number(c.apbbus_cr)}",
+           ("contexts: " + (f"A harts {list(c.a_harts)} peripherals {', '.join(c.a_peripherals) or 'none'}; "
+                            f"B harts {list(c.b_harts)} peripherals {', '.join(c.b_peripherals) or 'none'}"
+                            if c.used else "not used")),
+           "partitions on contexts: " + ", ".join(f"{p.name} {p.context or '-'}" for p in d.partitions)]
+    if not pr.applied:
+        out.append(f"pmp: not applied (security_profile {d.system.security_profile}): the image sets no PMP "
+                   "register (the MPU is applied); the checks below are for information, their findings are notes")
+    for h in pr.harts:
+        out.append(f"pmp hart {h.hart}: {h.used} of {pr.entries} entries in use, locked "
+                   f"{[e.index for e in h.locked]}, unlocked {[e.index for e in h.unlocked]}; pmpaddr {h.bits} bits")
+        for r in h.regions:
+            if r.entry is not None:
+                out.append(f"  [{r.first:#x}, {r.last:#x}] entry {r.entry}: U {r.u}, M {r.m}")
+    return out
+
+
+def derived(path: Path, xml: Path | None, svd: Path, pmp_entries: int = target.PMP_ENTRIES) -> Derived:
     """The derived system of the description <path> with <xml> or the XML of the description."""
     system = yaml_reader.read(path)
     xml = xml or derive.xml_of(system, path)
     shown = xml.relative_to(Path.cwd()) if xml.is_absolute() and xml.is_relative_to(Path.cwd()) else xml
     config = xml_reader.read(xml, svd, name=str(shown))
-    return derive.derive(system, config, svd, where=f"{path} with {config.source}")
+    return derive.derive(system, config, svd, where=f"{path} with {config.source}", pmp_entries=pmp_entries)
 
 
 def pmp_command(path: Path, svd: Path, out: Path | None, check: bool) -> int:
@@ -203,8 +240,17 @@ def main(argv: list[str]) -> int:
                 yaml_reader.read(path)
                 print(f"{path}: ok")
             elif args.command == "derive":
-                result = derived(path, args.xml, svd)
-                print(f"{path}: ok" if args.check else "\n".join([f"# {path}", *describe_derived(result)]))
+                result = derived(path, args.xml, svd, args.pmp_entries)
+                if args.check:
+                    print(f"{path}: ok")
+                    for w in result.warnings:
+                        print(f"{path}: {w}", file=sys.stderr)
+                    if result.notes:
+                        print(f"{path}: {len(result.notes)} finding(s) of the PMP and the contexts, not enforced "
+                              f"for security_profile {result.system.security_profile} (derive prints them)",
+                              file=sys.stderr)
+                else:
+                    print("\n".join([f"# {path}", *describe_derived(result)]))
             elif args.check:
                 xml_reader.read(path, svd)
                 print(f"{path}: ok")

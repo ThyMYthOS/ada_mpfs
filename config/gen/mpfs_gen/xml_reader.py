@@ -6,6 +6,7 @@
 
   read(path, svd)  the MssConfiguration of the file, or ConfiguratorXmlError with every diagnostic
   svd_layout(path) the registers of a merged SVD (read once per path)
+  svd_blocks(path) the peripherals of a merged SVD at their addresses (read once per path)
 
 The order: the bytes are read and hashed (SHA-256), a document type or entity declaration is refused
 (GEN-E041) before the parser sees the file, ElementTree parses it (GEN-E040), and xml_format_version must
@@ -122,6 +123,12 @@ _DIGITS = re.compile(r"[0-9]+")
 def svd_layout(path: Path) -> dict[tuple[str, str], svdread.Register]:
     """The registers of the merged SVD at <path> (svdread.registers), read once per path."""
     return svdread.registers(svdread.load(path))
+
+
+@lru_cache(maxsize=4)
+def svd_blocks(path: Path) -> dict[str, svdread.Block]:
+    """The peripherals of the merged SVD at <path> at their addresses (svdread.blocks), read once per path."""
+    return svdread.blocks(svdread.load(path))
 
 
 def svd_place(section: str, name: str) -> tuple[tuple[str, str], ...]:
