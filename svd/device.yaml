@@ -76,4 +76,5 @@ _include:
   - patches/SYSREG.yaml
   - additions/plic.yaml
   - additions/clint.yaml
+  - additions/pdma.yaml
   - additions/interrupts.yaml

@@ -1,0 +1,156 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+# source: Microchip platform drivers/mss/mss_pdma/mss_pdma_regs.h (MIT, copyright 2019 Microchip FPGA Embedded Systems Solutions; read in the Zephyr hal_microchip mirror): PDMA_REG_BASE 0x03000000, PDMA_CHL_REG_OFFSET 0x1000, the CONTROL bits claim 0x01, run 0x02, doneIE 0x4000, errorIE 0x8000, done 0x40000000, error 0x80000000, the NEXT_CONFIG bits repeat 0x04, force ordering 0x08 and the shifts 24 (write size) and 28 (read size)
+# source: Microchip platform drivers/mss/mss_pdma/mss_pdma.h (same mirror): four independent channels, each with its own registers and PLIC interrupts
+# source: Linux drivers/dma/sf-pdma/sf-pdma.h (SPDX GPL-2.0-or-later, copyright 2019 SiFive), which cites chapter 12 "Platform DMA Engine (PDMA)" of the SiFive FU540-C000 manual v1.0: the offsets 0x000 control, 0x004 transfer type (NEXT_CONFIG), 0x008 transfer size, 0x010 destination, 0x018 source and the read-only 0x104, 0x108, 0x110, 0x118, the channel stride 0x1000, four channels, and the control bits claim, run, done interrupt enable, error interrupt enable, done, error at 0, 1, 14, 15, 30, 31 (facts only, no code taken)
+# source: Linux drivers/dma/sf-pdma/sf-pdma.c: the done and error handlers clear the done or error bit by writing the control register with that bit 0; the driver writes the transfer type 0xFF000008 for a transfer at full speed, and reads the remaining byte count of the running transfer from the register at +0x108
+# source: QEMU hw/dma/sifive_pdma.c (GPL-2.0-or-later, copyright 2020 Wind River Systems; the model of the FU540 and FU740 block): the register names Control, NextConfig, NextBytes, NextDestination, NextSource, ExecConfig, ExecBytes, ExecDestination, ExecSource; the 64-bit registers also accept two 32-bit accesses (low word at +0, high word at +4); writing the claim bit of an unclaimed channel resets the Next* registers; the claim bit cannot be cleared while run is set; the size fields of NEXT_CONFIG are four bits wide; the comment in that source says the SiFive manuals give wrong reset values for the write and read size, and the values measured on the SiFive Unleashed and Unmatched boards are 6, not 0
+# status: unverified
+# owner: Manuel Stahl
+
+# Platform DMA engine of the SiFive core complex (four channels, memory to memory). The registers of a channel are
+# at the channel base 0x03000000 + 0x1000 * n: the NEXT_* registers describe the next transfer and are copied into
+# the EXEC_* registers (read-only) when the transfer starts. Nothing here was read from a PolarFire SoC yet: no
+# reset values are given, because the measured values quoted above are those of other SiFive chips. The PLIC
+# sources of the channels are DMA_CH0_DONE (5), DMA_CH0_ERR (6) up to DMA_CH3_DONE (11), DMA_CH3_ERR (12).
+_add:
+  PDMA:
+    description: Platform DMA engine of the core complex (four channels)
+    groupName: PDMA
+    baseAddress: 0x03000000
+    addressBlock:
+      offset: 0x0
+      size: 0x4000
+      usage: registers
+    registers:
+      CONTROL%s:
+        description: "Channel control and status. A channel is claimed first (CLAIM), then configured through the NEXT_* registers, then started with RUN. DONE and ERROR are cleared by software writing the register with that bit 0."
+        addressOffset: 0x0
+        size: 32
+        access: read-write
+        dim: 4
+        dimIncrement: 0x1000
+        dimIndex: "0-3"
+        fields:
+          CLAIM:
+            description: The channel is claimed by software. It is set before the NEXT_* registers are used; the model in QEMU lets it clear only while RUN is 0, and a transfer does not start on a channel that is not claimed.
+            bitOffset: 0
+            bitWidth: 1
+          RUN:
+            description: Start the transfer described by the NEXT_* registers
+            bitOffset: 1
+            bitWidth: 1
+          DONE_IE:
+            description: Enable the done interrupt of the channel
+            bitOffset: 14
+            bitWidth: 1
+          ERROR_IE:
+            description: Enable the error interrupt of the channel
+            bitOffset: 15
+            bitWidth: 1
+          DONE:
+            description: The transfer is done; in the QEMU model the done interrupt of the channel is raised while DONE and DONE_IE are both set. Software clears it by writing 0 (Linux driver).
+            bitOffset: 30
+            bitWidth: 1
+          ERROR:
+            description: The transfer ended with an error; in the QEMU model the error interrupt of the channel is raised while ERROR and ERROR_IE are both set. Software clears it by writing 0 (Linux driver).
+            bitOffset: 31
+            bitWidth: 1
+      NEXT_CONFIG%s:
+        description: Configuration of the next transfer. Written while the channel is claimed and not running; the values are copied into EXEC_CONFIG when the transfer starts.
+        addressOffset: 0x4
+        size: 32
+        access: read-write
+        dim: 4
+        dimIncrement: 0x1000
+        dimIndex: "0-3"
+        fields:
+          REPEAT:
+            description: Start the same transfer again when it is done
+            bitOffset: 2
+            bitWidth: 1
+          FORCE_ORDERING:
+            description: Force the reads and writes of the transfer to stay in order
+            bitOffset: 3
+            bitWidth: 1
+          WSIZE:
+            description: Size of a write access of the transfer, as a power of two (the width is four bits)
+            bitOffset: 24
+            bitWidth: 4
+          RSIZE:
+            description: Size of a read access of the transfer, as a power of two (the width is four bits)
+            bitOffset: 28
+            bitWidth: 4
+      NEXT_BYTES%s:
+        description: Number of bytes of the next transfer (64-bit register; the high word at +4 can be accessed alone)
+        addressOffset: 0x8
+        size: 64
+        access: read-write
+        dim: 4
+        dimIncrement: 0x1000
+        dimIndex: "0-3"
+      NEXT_DESTINATION%s:
+        description: Destination address of the next transfer (64-bit register; the high word at +4 can be accessed alone)
+        addressOffset: 0x10
+        size: 64
+        access: read-write
+        dim: 4
+        dimIncrement: 0x1000
+        dimIndex: "0-3"
+      NEXT_SOURCE%s:
+        description: Source address of the next transfer (64-bit register; the high word at +4 can be accessed alone)
+        addressOffset: 0x18
+        size: 64
+        access: read-write
+        dim: 4
+        dimIncrement: 0x1000
+        dimIndex: "0-3"
+      EXEC_CONFIG%s:
+        description: Configuration of the running transfer (read-only copy of NEXT_CONFIG; the Linux driver calls it the active transfer type)
+        addressOffset: 0x104
+        size: 32
+        access: read-only
+        dim: 4
+        dimIncrement: 0x1000
+        dimIndex: "0-3"
+        fields:
+          REPEAT:
+            description: Repeat flag of the running transfer
+            bitOffset: 2
+            bitWidth: 1
+          FORCE_ORDERING:
+            description: Ordering flag of the running transfer
+            bitOffset: 3
+            bitWidth: 1
+          WSIZE:
+            description: Write access size of the running transfer
+            bitOffset: 24
+            bitWidth: 4
+          RSIZE:
+            description: Read access size of the running transfer
+            bitOffset: 28
+            bitWidth: 4
+      EXEC_BYTES%s:
+        description: Bytes that remain of the running transfer (read-only 64-bit register; the Linux driver reads it as the residue when a done interrupt arrives)
+        addressOffset: 0x108
+        size: 64
+        access: read-only
+        dim: 4
+        dimIncrement: 0x1000
+        dimIndex: "0-3"
+      EXEC_DESTINATION%s:
+        description: Current destination address of the running transfer (read-only 64-bit register)
+        addressOffset: 0x110
+        size: 64
+        access: read-only
+        dim: 4
+        dimIncrement: 0x1000
+        dimIndex: "0-3"
+      EXEC_SOURCE%s:
+        description: Current source address of the running transfer (read-only 64-bit register)
+        addressOffset: 0x118
+        size: 64
+        access: read-only
+        dim: 4
+        dimIncrement: 0x1000
+        dimIndex: "0-3"
