@@ -1,0 +1,13 @@
+No license is granted by the originator of the files this identifier marks.
+
+The files are MSS Configurator XMLs that Microchip Technology Inc. published without a license: the
+repository they come from (polarfire-soc/polarfire-soc-bare-metal-examples) has no LICENSE file, and
+neither its README nor the files state one. Each file holds the register settings of the
+Microcontroller Subsystem that Microchip's Libero MSS Configurator wrote for a design, in the format the
+tool prescribes.
+
+The project treats such a file as configuration data without creative expression, which copyright does
+not protect; it keeps the file unchanged and uses it as input data of its tests. This is the assessment
+and decision of the project owner (2026-11-20), not a license or a statement of Microchip. Whoever takes
+the file from this repository relies on that assessment, not on a grant. Where the file comes from is
+recorded in PROVENANCE.md.

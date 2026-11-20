@@ -55,7 +55,7 @@ CODES: dict[str, str] = {
     "GEN-E034": "the board has no directory in config/boards",
     "GEN-E040": "the XML cannot be read, is not well-formed or has not the structure of an MSS Configurator XML",
     "GEN-E041": "the XML has a document type or entity declaration",
-    "GEN-E042": "xml_format_version is missing or not a version the reader knows (0.6.5, 0.6.8)",
+    "GEN-E042": "xml_format_version is missing or not a version the reader knows (0.5.3, 0.6.5, 0.6.8)",
     "GEN-E043": "a core section is missing",
     "GEN-E044": "a register that the generator needs is missing from its section",
     "GEN-E045": "a section has a register or memory element twice",

@@ -119,14 +119,16 @@ def cli(*args):
 
 # --- positive cases -------------------------------------------------------------------------------------------
 
-@case("the clocks of every reference XML recomputed from the MSS PLL equal those of the XML (at most 1 ppm)")
+@case("the clocks of every reference XML recomputed from the MSS PLL equal those of the XML (at most 1 ppm); the "
+      "PMP demo has its VCO at 4800 MHz")
 def _():
-    assert sorted(CONFIGS) == ["icicle", "icicle_es", "video_kit"]
+    assert sorted(CONFIGS) == ["icicle", "icicle_es", "icicle_es_pmp_demo", "video_kit"]
     for board, config in CONFIGS.items():
         c, found = clocks.derive(config)
         assert found == [], (board, found)
+        vco = 4800 if board == "icicle_es_pmp_demo" else 2400
         assert (c.reference, c.vco, c.system, c.cpu, c.axi, c.ahb) == (
-            125 * MHZ, 2400 * MHZ, 600 * MHZ, 600 * MHZ, 300 * MHZ, 150 * MHZ), board
+            125 * MHZ, vco * MHZ, 600 * MHZ, 600 * MHZ, 300 * MHZ, 150 * MHZ), board
         assert (c.rtc_toggle, c.rtc_period) == (1 * MHZ, 125), board
         for name in clocks.COMPARED:
             assert c.deviation_ppm(name) == 0, (board, name)
@@ -151,10 +153,11 @@ def _():
              "MSS_COREPLEX_CPU_CLK", "1.002 ppm")
 
 
-@case("the four reference systems derive with the XMLs of the Icicle Kit; the video kit configures too few MMUARTs")
+@case("the four reference systems derive with the XMLs of the Icicle Kit and of the PMP demo; the video kit "
+      "configures too few MMUARTs")
 def _():
     for name in REFERENCE:
-        for board in ("icicle", "icicle_es"):
+        for board in ("icicle", "icicle_es", "icicle_es_pmp_demo"):
             d = derive.derive(system(name), CONFIGS[board], SVD)
             assert d.xml_sha256 == CONFIGS[board].sha256
             assert placement.check(d.windows, d.memories, {p.name: p.harts for p in d.partitions}) == []

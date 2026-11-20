@@ -321,7 +321,7 @@ derivations.
 | `GEN-E034` | the board has no directory in config/boards |
 | `GEN-E040` | the XML cannot be read, is not well-formed or has not the structure of an MSS Configurator XML |
 | `GEN-E041` | the XML has a document type or entity declaration |
-| `GEN-E042` | xml_format_version is missing or not a version the reader knows (0.6.5, 0.6.8) |
+| `GEN-E042` | xml_format_version is missing or not a version the reader knows (0.5.3, 0.6.5, 0.6.8) |
 | `GEN-E043` | a core section is missing |
 | `GEN-E044` | a register that the generator needs is missing from its section |
 | `GEN-E045` | a section has a register or memory element twice |
@@ -434,9 +434,15 @@ the sections that are only validated. A broken XML gives one line per violated r
 `FILE: GEN-Exxx SECTION/REGISTER.FIELD: message`, and status 2. The merged SVD is
 `build/svd/PolarfireSoC.svd` (made current first) or `--svd FILE`.
 
-**Format versions.** `xml_format_version` must be `0.6.5` or `0.6.8`, the versions of the reference XMLs;
-any other is refused (`GEN-E042`). A version enters the list together with a reference XML of it and a
-green run of the differential test below.
+**Format versions.** `xml_format_version` must be `0.5.3`, `0.6.5` or `0.6.8`, the versions of the reference
+XMLs; any other is refused (`GEN-E042`). A version enters the list together with a reference XML of it and a
+green run of the differential test below. Format 0.5.3 (Libero 2021.1, the PMP demo) has the same core sections
+and the same layout of every register it has, checked against the SVD as the later ones, but lacks
+`GPIO_INTERRUPT_FAB_CR`, `ALT_GPIO_INTERRUPT_FAB_CR` and `CONFIGURED_PERIPHERALS` (and `DDR_CLK`,
+`MSS_CLKS_VERSION`, `SYSREG_CLKS_VERSION`, which the generator does not need). The first three are not needed in
+that format (`NOT_IN_FORMAT` in `xml_reader.py`); the derivations then take the defaults of Microchip's HAL:
+every peripheral configured (`0xFFFFFFFF`, `mss_peripherals.h`) and `GPIO_INTERRUPT_FAB_CR` 0
+(`mss_io_config.h`).
 
 **Sections.** The core sections are decoded: `mss_clocks` (`clocks`, `mss_sys`, `mss_pll`, `mss_cfm`,
 `sgmii_cfm`), `mss_io` (`io_mux` with the banks and `GPIO_INTERRUPT_FAB_CR`, `io_mux_alt`),
@@ -482,7 +488,7 @@ either field the same way and names it as a known defect; any other value there 
 pinned commit on every reference XML and compares each of its `LIBERO_SETTING_*` defines with the value
 of the reader: the registers of the core sections, the memory elements and the design information. A
 difference fails unless `tools/mchp_diff/exceptions.yaml` admits it with whose defect it is and the
-reason; the list is empty, every overlapping value of the three XMLs agrees.
+reason; the list is empty, every overlapping value of the four XMLs agrees.
 
 **Untrusted input.** The reader refuses a document type or entity declaration before the parser sees the
 file (`GEN-E041`), so no entity is expanded.
@@ -496,6 +502,7 @@ Each board directory has the XML of its design, unchanged; where it comes from i
 |---|---|---|---|---|
 | [`icicle`](boards/icicle/README.md) | `ICICLE_MSS_mss_cfg.xml` | 0.6.8 | 2024.2 | MPFS250T |
 | [`icicle_es`](boards/icicle_es/README.md) | `ICICLE_MSS_mss_cfg.xml` | 0.6.5 | 2022.2 | MPFS250T_ES |
+| [`icicle_es_pmp_demo`](boards/icicle_es_pmp_demo/README.md) | `ICICLE_MSS_mss_cfg.xml` | 0.5.3 | 2021.1 | MPFS250T_ES |
 | [`video_kit`](boards/video_kit/README.md) | `MSS_video-kit_mss_cfg.xml` | 0.6.8 | 2023.2 | MPFS250TS |
 
 ## Derived system
@@ -604,8 +611,10 @@ the E51 and U54 hart 1) or 8 under QEMU 10.1 with `derive --pmp-entries 8` (`GEN
 `MEM_CONFIGS_ENABLED.PMP` 0 the PMP sections should be zero (`GEN-E104`, a warning: Microchip's start code
 writes `pmpcfg0` of the U54 harts whatever the flag says); a locked entry that grants rights over the whole
 address space, or over the range of a later entry so that the later one can never decide, is refused
-(`GEN-E105`). All three reference XMLs have `MEM_CONFIGS_ENABLED.PMP` 0 and, on each U54, entry 0 locked NAPOT
-over the whole address space with RWX (`0x9F`, `pmpaddr` all ones): both are reported, and entry 0 is refused.
+(`GEN-E105`). The three reference XMLs of the boards have `MEM_CONFIGS_ENABLED.PMP` 0 and, on each U54, entry 0
+locked NAPOT over the whole address space with RWX (`0x9F`, `pmpaddr` all ones): both are reported, and entry 0
+is refused. The PMP demo keeps the layout rules (`MEM_CONFIGS_ENABLED` `0x3`, every entry locked, a deny-all
+last); with 11 entries on harts 1 and 2 it does not fit the 8 of QEMU.
 
 ## PMP and AMP contexts against the partitions
 
@@ -679,7 +688,11 @@ either context may own one (its PMP still decides who reaches it). That partitio
 share no peripheral needs no rule: `system.yaml` gives each peripheral, the console included, to one partition
 (`GEN-E025`, `GEN-E026`).
 
-With the reference XMLs the reference systems are refused for prod: the open, locked entry 0 of
+With the reference XMLs of the boards the reference systems are refused for prod: the open, locked entry 0 of
 the U54 harts lets every partition reach everything (`GEN-E105`, `GEN-E124` to `GEN-E126`), and the E51 has no
 entry for the `u` partition `monitor` of `amp_a` (`GEN-E120` to `GEN-E122`). `amp_c` is a prod system and is
-refused; `amp_a`, `amp_b` and `amp_d` are dev systems and derive, with these findings as notes.
+refused; `amp_a`, `amp_b` and `amp_d` are dev systems and derive, with these findings as notes. The PMP demo
+(`config/boards/icicle_es_pmp_demo`) passes the checks of the contexts with one partition per context
+(`tests/host/derive/fixtures/pmp_demo`); its locked PMP grants SYSREG and the L2 controller to all modes and does
+not cover windows in the LIM, so a prod system on it is refused (`GEN-E120`, `GEN-E125`, `GEN-E126`, with the
+warnings `GEN-E123` and `GEN-E127`).

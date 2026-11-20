@@ -25,6 +25,7 @@ BOARDS = ROOT / "config" / "boards"
 XMLS = {p.parent.name: p for p in sorted(BOARDS.glob("*/*.xml"))}
 CONFIGS = {board: xml_reader.read(path, SVD) for board, path in XMLS.items()}
 ICICLE_XML = "config/boards/icicle/ICICLE_MSS_mss_cfg.xml"
+DEMO = "icicle_es_pmp_demo"
 TABLE = ROOT / "examples" / "pmp_xml_test" / "src" / "generated" / "pmp_xml.ads"
 GEN = [sys.executable, "-I", str(ROOT / "config" / "gen" / "mpfs_gen")]
 covered: set[str] = set()
@@ -49,9 +50,12 @@ def run(*args):
     return subprocess.run([*GEN, *args], cwd=ROOT, capture_output=True, text=True, check=False)
 
 
-@case("every reference XML: no entry on the E51, entry 0 of each U54 locked NAPOT over all addresses, RWX")
+@case("every reference XML but the PMP demo: no entry on the E51, entry 0 of each U54 locked NAPOT over all addresses, "
+      "RWX")
 def _():
     for board, config in CONFIGS.items():
+        if board == DEMO:
+            continue
         harts, found = pmp.of(config)
         assert found == [], (board, found)
         assert [h.hart for h in harts] == [0, 1, 2, 3, 4]
@@ -61,6 +65,22 @@ def _():
             assert (first.mode, first.rights, first.locked) == ("NAPOT", "rwx", True), (board, h.hart)
             assert pmp.region(first, 0) == (0, (1 << 56) - 1)
             assert all(e.mode == "OFF" for e in h.entries[1:]), (board, h.hart)
+
+
+@case("the PMP demo: the E51 without an entry; harts 1 and 2 entries 4 to 14, harts 3 and 4 entries 4 to 10, all locked "
+      "NAPOT, the last a deny-all; the per-context peripheral window LO for harts 1 and 2, HI for 3 and 4")
+def _():
+    harts, found = pmp.of(CONFIGS[DEMO])
+    assert found == []
+    assert all(e.mode == "OFF" for e in harts[0].entries)
+    for h, last, window in ((1, 14, 0x2010_0000), (2, 14, 0x2010_0000), (3, 10, 0x2810_0000), (4, 10, 0x2810_0000)):
+        used = [e for e in harts[h].entries if e.mode != "OFF"]
+        assert [e.index for e in used] == list(range(4, last + 1)), (h, used)
+        assert all(e.mode == "NAPOT" and e.locked for e in used), h
+        assert pmp.region(used[0], 0, 36) == (window, window + 0x3_FFFF) and used[0].rights == "rw-", h
+        assert pmp.region(used[-1], 0, 36) == (0, (1 << 38) - 1) and used[-1].rights == "---", h
+    assert harts[1].entry(11).rights == "rwx" and pmp.region(harts[1].entry(11), 0, 36) == (0x8000_0000, 0x801F_FFFF)
+    assert harts[3].entry(7).rights == "rwx" and pmp.region(harts[3].entry(7), 0, 36) == (0x8020_0000, 0x803F_FFFF)
 
 
 @case("the regions of NAPOT, TOR and NA4 entries; OFF and an empty TOR range match nothing")
@@ -150,6 +170,9 @@ def _():
     for board, config in CONFIGS.items():
         harts, _ = pmp.of(config)
         found = pmp.rules(config, harts)
+        if board == DEMO:
+            assert found == [], found
+            continue
         assert [f.code for f in found] == ["GEN-E105"] * 4 + ["GEN-E104"], (board, found)
         assert found[0].path == "mss_memory_map/pmp_h1/PMP0CFG" and "over the whole address space" in found[0].message
         assert found[-1].warning and "pmp_h1, pmp_h2, pmp_h3, pmp_h4" in found[-1].message

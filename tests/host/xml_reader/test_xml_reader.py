@@ -27,7 +27,8 @@ SVD = svdread.ensure(ROOT)
 BOARDS = ROOT / "config" / "boards"
 BROKEN = HERE / "fixtures" / "broken"
 BASE = BOARDS / "icicle" / "ICICLE_MSS_mss_cfg.xml"
-REFERENCE = {"icicle": "0.6.8", "icicle_es": "0.6.5", "video_kit": "0.6.8"}
+REFERENCE = {"icicle": "0.6.8", "icicle_es": "0.6.5", "icicle_es_pmp_demo": "0.5.3", "video_kit": "0.6.8"}
+DEMO = "icicle_es_pmp_demo"
 EXPECT = re.compile(r"^#? ?expect: (GEN-E\d{3})$", re.MULTILINE)
 PLL = "mss_clocks/mss_pll"
 
@@ -91,7 +92,8 @@ def _():
     assert set(REFERENCE.values()) == set(xml_reader.FORMAT_VERSIONS), "each known version has a reference XML"
     for board, config in found.items():
         assert sorted(config.sections) == sorted(xml_reader.NEEDED), (board, config.sections)
-        assert len(config.registers) == 314 and len(config.mem_elements) == 13, board
+        # 0.5.3 lacks DDR_CLK, MSS_CLKS_VERSION, SYSREG_CLKS_VERSION and the three of NOT_IN_FORMAT
+        assert len(config.registers) == (308 if board == DEMO else 314) and len(config.mem_elements) == 13, board
         assert config.validated == ("mss_io/hsio", "mss_ddr/options", "mss_ddr/io_bank", "mss_ddr/segs",
                                     "mss_ddr/ddrc", "mss_clocks/sgmii_pll", "mss_clocks/ddr_pll"), board
 
@@ -138,7 +140,8 @@ def _():
     assert sorted(checks.XML_CODES) == [f"GEN-E{n:03}" for n in range(40, 53)]
 
 
-@case("PLL_PHADJ of the MSS PLL: the 0x8 in the 3 bits of REG_OUT3_PHSINIT gives 0x4003, named as a defect, in every reference XML")
+@case("PLL_PHADJ of the MSS PLL: the 0x8 in the 3 bits of REG_OUT3_PHSINIT gives 0x4003, named as a defect, in every "
+      "reference XML (in the PMP demo also the enabled MEM_CONFIGS_ENABLED)")
 def _():
     for path in reference_xmls():
         config = read(path)
@@ -149,7 +152,8 @@ def _():
         assert reg.defect and "REG_LOADPHS_B" in reg.defect and "0x4003" in reg.defect, path
         # What Microchip's generator writes (and hw/mss_init.py): the overflow lands on bit 14, REG_LOADPHS_B.
         assert reg.value == config.value(PLL, "PLL_PHADJ") == 0x4003, (path, hex(reg.value))
-        assert [r.name for r in config.registers if r.defect] == ["PLL_PHADJ"], path
+        expected = ["MEM_CONFIGS_ENABLED", "PLL_PHADJ"] if path.parent.name == DEMO else ["PLL_PHADJ"]
+        assert [r.name for r in config.registers if r.defect] == expected, path
 
 
 @case("MEM_CONFIGS_ENABLED: PMP and MPU are declared 0 bits wide; set, each is 1 at its offset (0x3), named as a "
@@ -169,21 +173,42 @@ def _():
     path.write_text(edited(edit).replace('name="PMP" offset="0" width="0">0x1<', 'name="PMP" offset="0" width="0">0x2<'))
     assert codes_of(path) == ["GEN-E050"], codes_of(path)
     for ref in reference_xmls():
-        assert read(ref).register("mss_memory_map/apb_split", "MEM_CONFIGS_ENABLED").defect is None, ref
+        reg = read(ref).register("mss_memory_map/apb_split", "MEM_CONFIGS_ENABLED")
+        if ref.parent.name == DEMO:      # Microchip's PMP demo enables both
+            assert reg.value == 0x3 and reg.defect, ref
+        else:
+            assert reg.value == 0 and reg.defect is None, ref
 
 
 @case("the AMP contexts are read: CONTEXT_A_EN, CONTEXT_B_EN, CONTEXT_A_HART_EN, CONTEXT_B_HART_EN (0 in every "
-      "reference XML), the XML's own layout (the SVD has none)")
+      "reference XML but the PMP demo), the XML's own layout (the SVD has none)")
 def _():
+    demo = {"CONTEXT_A_EN": 0x4F69_5406, "CONTEXT_B_EN": 0x12_A818, "CONTEXT_A_HART_EN": 0x6, "CONTEXT_B_HART_EN": 0x18}
     for ref in reference_xmls():
         config = read(ref)
         for name in ("CONTEXT_A_EN", "CONTEXT_B_EN", "CONTEXT_A_HART_EN", "CONTEXT_B_HART_EN"):
             reg = config.register("mss_memory_map/apb_split", name)
-            assert reg.value == 0 and reg.svd is None, (ref, name)
+            assert reg.value == (demo[name] if ref.parent.name == DEMO else 0) and reg.svd is None, (ref, name)
         assert len(config.register("mss_memory_map/apb_split", "CONTEXT_B_EN").fields) == 31
         assert [f.name for f in config.register("mss_memory_map/apb_split", "CONTEXT_A_HART_EN").fields] == \
             [f"HART{h}" for h in range(5)]
     assert {"CONTEXT_A_EN", "CONTEXT_B_HART_EN"} <= set(xml_reader.NEEDED["mss_memory_map/apb_split"])
+
+
+@case("format 0.5.3 (the PMP demo): GPIO_INTERRUPT_FAB_CR, ALT_GPIO_INTERRUPT_FAB_CR and CONFIGURED_PERIPHERALS are "
+      "not in it and not needed there; missing from a 0.6.x XML they are GEN-E044")
+def _():
+    demo = read(BOARDS / DEMO / "ICICLE_MSS_mss_cfg.xml")
+    for section, name in (("mss_io/io_mux", "GPIO_INTERRUPT_FAB_CR"), ("mss_io/io_mux_alt", "ALT_GPIO_INTERRUPT_FAB_CR"),
+                          ("mss_general/mss_peripherals", "CONFIGURED_PERIPHERALS")):
+        raises(KeyError, lambda section=section, name=name: demo.register(section, name))
+        assert name in xml_reader.NOT_IN_FORMAT["0.5.3"]
+    tmp = Path(tempfile.mkdtemp())
+    edit = tmp / "no_configured.edit"
+    edit.write_text('after: <mss_peripherals>\nold: name="CONFIGURED_PERIPHERALS"\nnew: name="NOT_CONFIGURED_PERIPHERALS"\n')
+    path = tmp / "no_configured.xml"
+    path.write_text(edited(edit))
+    assert codes_of(path) == ["GEN-E044"], codes_of(path)
 
 
 @case("a register is found by section and name: PLL_CTRL of the MSS PLL is not that of the other PLLs")
@@ -249,7 +274,7 @@ def _():
     assert str(err) == ("x.xml: GEN-E050 mss_clocks/mss_pll/PLL_PHADJ.REG_OUT3_PHSINIT: "
                         "0x9 does not fit the 3 bits of the field"), str(err)
     err = raises(ConfiguratorXmlError, lambda: read(BROKEN / "e042_unknown_version.xml", name="v.xml"))
-    assert str(err) == "v.xml: GEN-E042 design_information/xml_format_version: 0.6.6 is not one of 0.6.5, 0.6.8"
+    assert str(err) == "v.xml: GEN-E042 design_information/xml_format_version: 0.6.6 is not one of 0.5.3, 0.6.5, 0.6.8"
 
 
 @case("several mistakes are all reported; a missing file is GEN-E040")

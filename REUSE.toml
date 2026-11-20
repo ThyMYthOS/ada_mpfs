@@ -181,6 +181,16 @@ precedence = "closest"
 SPDX-FileCopyrightText = "2019-2021 Microchip Corporation"
 SPDX-License-Identifier = "MIT"
 
+# The MSS Configurator XML of Microchip's PMP demo, unchanged. Its repository states no license; the project
+# treats it as configuration data without creative expression (decision of the project owner, see
+# LICENSES/LicenseRef-Microchip-MSS-config-data.txt and PROVENANCE.md). The text names Microchip as origin;
+# it claims no license that Microchip did not grant.
+[[annotations]]
+path = "config/boards/icicle_es_pmp_demo/ICICLE_MSS_mss_cfg.xml"
+precedence = "closest"
+SPDX-FileCopyrightText = "2021 Microchip Technology Inc. (origin; no license stated)"
+SPDX-License-Identifier = "LicenseRef-Microchip-MSS-config-data"
+
 # JSON has no comments: the schema of system.yaml, which the configuration generator reads, carries
 # the licence of the generator here.
 [[annotations]]

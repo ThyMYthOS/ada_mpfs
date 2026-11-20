@@ -48,7 +48,10 @@ from . import target
 from .checks import ConfiguratorXmlError, Diagnostic, diagnostic
 from .model import BitField, Design, MemElement, MssConfiguration, XmlField, XmlRegister
 
-FORMAT_VERSIONS = ("0.6.5", "0.6.8")
+FORMAT_VERSIONS = ("0.5.3", "0.6.5", "0.6.8")
+# The registers that the generator needs and an older format does not have yet: the version -> the names. The
+# model then has no such register, and the derivations take the default of Microchip's HAL for it.
+NOT_IN_FORMAT = {"0.5.3": frozenset({"GPIO_INTERRUPT_FAB_CR", "ALT_GPIO_INTERRUPT_FAB_CR", "CONFIGURED_PERIPHERALS"})}
 
 # The sections whose values are decimal (Microchip's generator writes them back as decimal).
 DECIMAL_SECTIONS = frozenset({"mss_clocks/clocks", "mss_memory_map/nvm_map"})
@@ -351,7 +354,7 @@ def read(path: Path, svd: Path, *, name: str | None = None) -> MssConfiguration:
             validated.append(section)
         else:
             for needed_name in needed(section, reader.svd):
-                if needed_name not in names:
+                if needed_name not in names and needed_name not in NOT_IN_FORMAT.get(version, ()):
                     reader.report("GEN-E044", f"{section}/{needed_name}", f"{section} has no register {needed_name}")
     for section in CORE:
         if section not in present:

@@ -10,8 +10,9 @@ SVD (tools/svd.py ensure).
 The reference XMLs set no PMP that fits a partition, so the cases write their own into the XML of the Icicle
 Kit in the model: the entries a user would set in the MSS Configurator for the system TWO_CONTEXTS (one
 partition per context, the contexts of Microchip's PMP demo: harts 1 and 2 in A, 3 and 4 in B, APBBUS_CR and
-CONTEXT_B_EN 0x12A818), a prod system. Each negative case changes that configuration in one point; a dev system
-takes every finding as a note."""
+CONTEXT_B_EN 0x12A818), a prod system. Each negative case changes that configuration in one point. The XML of the
+PMP demo itself (config/boards/icicle_es_pmp_demo) is checked with tests/host/derive/fixtures/pmp_demo; a dev
+system takes every finding as a note."""
 import dataclasses
 import sys
 from pathlib import Path
@@ -287,10 +288,13 @@ def _():
     assert (mtime.base, mtime.length) == (0x0200_B000, 0x1000)
 
 
-@case("the reference XMLs use no contexts: all four registers and APBBUS_CR are 0")
+@case("the reference XMLs of the boards use no contexts (all four registers and APBBUS_CR 0), the PMP demo does")
 def _():
     for board, config in CONFIGS.items():
         c, _, found = contexts.derive(system(), config, LAYOUT, BLOCKS)
+        if board == "icicle_es_pmp_demo":
+            assert found == [] and c.used and c.apbbus_cr == 0x12A818, board
+            continue
         assert found == [] and not c.used and c.apbbus_cr == 0, board
 
 
@@ -496,6 +500,36 @@ def _():
         d = derive.derive(dataclasses.replace(sys_, security_profile="dev"), ICICLE, SVD)
         assert not d.protection.applied and d.warnings == ()
         assert sorted(n.code for n in d.notes) == sorted(codes), (name, [n.code for n in d.notes])
+
+
+@case("the PMP demo in a prod system: the contexts pass (A harts 1 and 2 on the LO bus, B harts 3 and 4 on the HI "
+      "bus), the locked tables grant SYSREG and the L2 controller to all modes and not the partitions' LIM windows, "
+      "and 11 entries do not fit the 8 of QEMU")
+def _():
+    path = HERE / "fixtures" / "pmp_demo" / "system.yaml"
+    sys_ = yaml_reader.read(path)
+    demo = CONFIGS["icicle_es_pmp_demo"]
+    assert sys_.security_profile == "prod" and derive.xml_of(sys_, path) == XMLS["icicle_es_pmp_demo"]
+    assert demo.design.format_version == "0.5.3" and demo.value(APB, "MEM_CONFIGS_ENABLED") == 0x3
+    c, parts, found = contexts.derive(sys_, demo, LAYOUT, BLOCKS)
+    assert found == [] and c.used and c.apbbus_cr == 0x12A818 and (c.a_harts, c.b_harts) == ((1, 2), (3, 4))
+    assert [p.context for p in parts] == ["A", "B"]
+    assert [(b.name, b.base) for b in parts[1].blocks] == [("mmuart3", 0x2810_4000), ("mmuart4", 0x2810_6000)]
+    harts, found = pmp.of(demo)
+    assert found == [] and pmp.rules(demo, harts) == []
+    assert [len(pmp.in_use(h)) for h in harts] == [0, 11, 11, 7, 7]
+    assert all(e.locked for h in harts for e in (h.entry(i) for i in pmp.in_use(h)))
+    codes, message = codes_of(sys_, demo)
+    assert codes == ["GEN-E120", "GEN-E125", "GEN-E126"] * 4 + ["GEN-E123", "GEN-E127"] * 4, codes
+    assert "hart 1 of 'a' lacks rwx in U mode on its code+data window lim [0x8000000, 0x801ffff]" in message
+    assert "U mode of hart 3 ('b') reaches SYSREG [0x20002000, 0x20002fff]" in message
+    assert "U mode of hart 4 ('b') reaches L2 controller [0x2010000, 0x2010fff]" in message
+    assert "M mode of hart 2 ('a') reaches L2 controller [0x2010000, 0x2010fff]; SYSREG" in message
+    assert "GEN-E121" not in codes and "GEN-E122" not in codes and "GEN-E124" not in codes
+    codes8, message8 = codes_of(sys_, demo, entries=8)
+    assert codes8.count("GEN-E103") == 4 and "hart 1 uses entries 8, 9, 10, 11, 12, 13, 14" in message8, message8
+    dev = derive.derive(dataclasses.replace(sys_, security_profile="dev"), demo, SVD)
+    assert sorted(n.code for n in dev.notes) == sorted(codes) and dev.warnings == ()
 
 
 @case("every code of the PMP against the partitions and of the contexts has a negative case, the warnings are the documented ones, "
