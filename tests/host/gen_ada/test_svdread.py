@@ -114,6 +114,34 @@ def _():
     assert sorted(regs) == [("NARROW", "R"), ("PHY", "MODE"), ("PHY", "WIDE"), ("PHY2", "MODE"), ("PHY2", "WIDE")]
 
 
+BLOCKS = """<?xml version="1.0"?>
+<device><size>32</size><peripherals>
+  <peripheral><name>CLINT</name><baseAddress>0x02000000</baseAddress>
+    <registers>
+      <register><name>MSIP%s</name><addressOffset>0x0</addressOffset><dim>5</dim><dimIncrement>4</dimIncrement></register>
+      <register><name>MTIME</name><addressOffset>0xBFF8</addressOffset><size>0x40</size></register>
+      <register><name>NONE</name></register>
+    </registers></peripheral>
+  <peripheral derivedFrom="CLINT"><name>CLINT_HI</name><baseAddress>0x2000000</baseAddress></peripheral>
+  <peripheral><name>EMPTY</name><baseAddress>0x20</baseAddress></peripheral>
+  <peripheral><name>NOWHERE</name><baseAddress>x</baseAddress></peripheral>
+</peripherals></device>
+"""
+
+
+@case("blocks: the base, the span of the registers (a <dim> array whole, a 64-bit register 8 bytes), the offsets "
+      "and the step of an array")
+def _():
+    with tempfile.TemporaryDirectory() as t:
+        found = svdread.blocks(svd_root(t, BLOCKS))
+    assert sorted(found) == ["CLINT", "CLINT_HI", "EMPTY"], found
+    clint = found["CLINT"]
+    assert (clint.base, clint.span, clint.offsets) == (0x0200_0000, 0xC000, {"MSIP%s": 0, "MTIME": 0xBFF8}), clint
+    assert clint.steps == {"MSIP%s": 4}, clint
+    assert found["CLINT_HI"] == clint
+    assert found["EMPTY"] == svdread.Block(0x20, 0, {})
+
+
 @case("ensure: a failing tools/svd.py raises the error of the caller with its output")
 def _():
     class Mine(errors.GenError):

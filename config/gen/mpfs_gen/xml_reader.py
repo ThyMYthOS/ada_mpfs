@@ -6,6 +6,7 @@
 
   read(path, svd)  the MssConfiguration of the file, or ConfiguratorXmlError with every diagnostic
   svd_layout(path) the registers of a merged SVD (read once per path)
+  svd_blocks(path) the peripherals of a merged SVD at their addresses (read once per path)
 
 The order: the bytes are read and hashed (SHA-256), a document type or entity declaration is refused
 (GEN-E041) before the parser sees the file, ElementTree parses it (GEN-E040), and xml_format_version must
@@ -47,7 +48,10 @@ from . import target
 from .checks import ConfiguratorXmlError, Diagnostic, diagnostic
 from .model import BitField, Design, MemElement, MssConfiguration, XmlField, XmlRegister
 
-FORMAT_VERSIONS = ("0.6.5", "0.6.8")
+FORMAT_VERSIONS = ("0.5.3", "0.6.5", "0.6.8")
+# The registers that the generator needs and an older format does not have yet: the version -> the names. The
+# model then has no such register, and the derivations take the default of Microchip's HAL for it.
+NOT_IN_FORMAT = {"0.5.3": frozenset({"GPIO_INTERRUPT_FAB_CR", "ALT_GPIO_INTERRUPT_FAB_CR", "CONFIGURED_PERIPHERALS"})}
 
 # The sections whose values are decimal (Microchip's generator writes them back as decimal).
 DECIMAL_SECTIONS = frozenset({"mss_clocks/clocks", "mss_memory_map/nvm_map"})
@@ -79,7 +83,8 @@ NEEDED: dict[str, tuple[str, ...]] = {
     "mss_clocks/sgmii_cfm": ("REFCLKMUX", "SGMII_CLKMUX", "CLK_XCVR"),
     "mss_io/io_mux": _IO_MUX,
     "mss_io/io_mux_alt": tuple("ALT_" + name for name in _IO_MUX),
-    "mss_memory_map/apb_split": ("MEM_CONFIGS_ENABLED", "APBBUS_CR"),
+    "mss_memory_map/apb_split": ("MEM_CONFIGS_ENABLED", "APBBUS_CR", "CONTEXT_A_EN", "CONTEXT_B_EN",
+                                 "CONTEXT_A_HART_EN", "CONTEXT_B_HART_EN"),
     "mss_memory_map/cache": ("WAY_ENABLE", "NUM_SCRATCH_PAD_WAYS") + tuple("WAY_MASK_" + m for m in _WAY_MASKS),
     "mss_memory_map/nvm_map": ("SNVM_MSS_START_PAGE", "SNVM_MSS_END_PAGE", "ENVM_MSS_START_PAGE",
                                "ENVM_MSS_END_PAGE"),
@@ -103,6 +108,12 @@ KNOWN_DEFECTS: dict[tuple[str, str, str, int], str] = {
         "0x4003: all four phases 0 and REG_LOADPHS_B 1, the form of PLL_PHADJ of the SGMII and DDR PLLs and "
         "the value hw/mss_init.py writes on the board. Reported to Microchip "
         "(polarfire-soc/polarfire-soc-documentation#610), not answered",
+    **{("mss_memory_map/apb_split", "MEM_CONFIGS_ENABLED", flag, 1):
+       f"{flag} is declared with width 0 in every XML at hand and holds 1 when the configurator enables the "
+       f"{flag} tables (Microchip's PMP demo has 0x1 in both); Microchip's generator ignores the width and "
+       "shifts the value to its offset: PMP is bit 0 and MPU bit 1, PMP_ENABLED_MASK 1 and MPU_ENABLED_MASK 2 "
+       "of Microchip's mss_pmp.h:26-27 @ 8d52d59"
+       for flag in ("PMP", "MPU")},
 }
 
 _DOCTYPE = re.compile(rb"<!\s*(DOCTYPE|ENTITY)")
@@ -115,6 +126,12 @@ _DIGITS = re.compile(r"[0-9]+")
 def svd_layout(path: Path) -> dict[tuple[str, str], svdread.Register]:
     """The registers of the merged SVD at <path> (svdread.registers), read once per path."""
     return svdread.registers(svdread.load(path))
+
+
+@lru_cache(maxsize=4)
+def svd_blocks(path: Path) -> dict[str, svdread.Block]:
+    """The peripherals of the merged SVD at <path> at their addresses (svdread.blocks), read once per path."""
+    return svdread.blocks(svdread.load(path))
 
 
 def svd_place(section: str, name: str) -> tuple[tuple[str, str], ...]:
@@ -337,7 +354,7 @@ def read(path: Path, svd: Path, *, name: str | None = None) -> MssConfiguration:
             validated.append(section)
         else:
             for needed_name in needed(section, reader.svd):
-                if needed_name not in names:
+                if needed_name not in names and needed_name not in NOT_IN_FORMAT.get(version, ()):
                     reader.report("GEN-E044", f"{section}/{needed_name}", f"{section} has no register {needed_name}")
     for section in CORE:
         if section not in present:

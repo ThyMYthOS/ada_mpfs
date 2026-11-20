@@ -59,16 +59,20 @@ into the reader.
 
 ## Results
 
-At the pinned commit, every overlapping value of the three reference XMLs agrees, and the exception list is
+At the pinned commit, every overlapping value of the five reference XMLs agrees, and the exception list is
 empty (the run of `tests/host/mchp_diff`):
 
 | XML | Defines | Compared (agree) | Outside the model | Generator's own | Unmapped, missing |
 |---|---|---|---|---|---|
 | `icicle` | 876 | 348 (348) | 524 | 4 | 0, 0 |
+| `icicle_amp_c` | 876 | 348 (348) | 524 | 4 | 0, 0 |
 | `icicle_es` | 811 | 348 (348) | 459 | 4 | 0, 0 |
+| `icicle_es_pmp_demo` | 804 | 342 (342) | 458 | 4 | 0, 0 |
 | `video_kit` | 876 | 348 (348) | 524 | 4 | 0, 0 |
 
-The 348 are the 314 registers of the core sections, 13 memory elements with address and size, the five strings
+The 348 are the 314 registers of the core sections (308 in the PMP demo of format 0.5.3, which has no
+`DDR_CLK`, `MSS_CLKS_VERSION`, `SYSREG_CLKS_VERSION`, `GPIO_INTERRUPT_FAB_CR`, `ALT_GPIO_INTERRUPT_FAB_CR` and
+`CONFIGURED_PERIPHERALS`; the pinned generator reads that format as well), 13 memory elements with address and size, the five strings
 of the design information and the three parts of the format version. `PLL_PHADJ` of the MSS PLL agrees at
 `0x4003`: the reader takes Microchip's sum there on purpose (the known defect of the configurator,
 `config/README.md`).

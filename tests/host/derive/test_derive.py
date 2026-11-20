@@ -4,10 +4,14 @@
 # @verifies GEN-006, GEN-007, GEN-008, GEN-009
 """config/gen/mpfs_gen/derive: the derived systems of the four reference systems with the reference XMLs, the
 clocks recomputed from the MSS PLL, the L2, the placement, CPU_To_Hart, the PLIC, the peripheral bits, and a
-negative case for every code of the derivations. Needs the merged SVD (tools/svd.py ensure).
+negative case for every code of the derivations. Needs the merged SVD (tools/svd.py ensure). amp_a, amp_b and
+amp_d take the XMLs of the boards; amp_c needs the L2 of its own XML (config/boards/icicle_amp_c: 15 ways of LIM).
 
 A negative case changes the XML in the model (fields of registers, the value of the register recomputed as
-the reader does) or the description, and expects exactly the codes it names."""
+the reader does) or the description, and expects exactly the codes it names. The reference systems are taken
+with security_profile dev, so that the checks of the PMP and the contexts, which the XMLs of the boards fail
+(the open, locked entry 0 of the U54 harts), are notes; test_protection.py has them, amp_c (prod with its XML)
+included."""
 import dataclasses
 import subprocess
 import sys
@@ -31,6 +35,7 @@ SYSTEMS = ROOT / "systems"
 XMLS = {p.parent.name: p for p in sorted(BOARDS.glob("*/*.xml"))}
 CONFIGS = {board: xml_reader.read(path, SVD) for board, path in XMLS.items()}
 ICICLE = CONFIGS["icicle"]
+AMP_C = CONFIGS["icicle_amp_c"]
 REFERENCE = ("amp_a", "amp_b", "amp_c", "amp_d")
 CLOCKS = "mss_clocks/clocks"
 PLL = "mss_clocks/mss_pll"
@@ -61,7 +66,13 @@ TWO = ONE + """  - name: b
 
 
 def system(name):
-    return yaml_reader.read(SYSTEMS / name / "system.yaml")
+    """The reference system <name> with security_profile dev (amp_c is prod)."""
+    return dataclasses.replace(yaml_reader.read(SYSTEMS / name / "system.yaml"), security_profile="dev")
+
+
+def config_of(name):
+    """The XML a reference system is derived with here: its own for amp_c, the Icicle Kit's for the others."""
+    return AMP_C if name == "amp_c" else ICICLE
 
 
 def text(description):
@@ -116,14 +127,16 @@ def cli(*args):
 
 # --- positive cases -------------------------------------------------------------------------------------------
 
-@case("the clocks of every reference XML recomputed from the MSS PLL equal those of the XML (at most 1 ppm)")
+@case("the clocks of every reference XML recomputed from the MSS PLL equal those of the XML (at most 1 ppm); the "
+      "PMP demo and amp_c have their VCO at 4800 MHz")
 def _():
-    assert sorted(CONFIGS) == ["icicle", "icicle_es", "video_kit"]
+    assert sorted(CONFIGS) == ["icicle", "icicle_amp_c", "icicle_es", "icicle_es_pmp_demo", "video_kit"]
     for board, config in CONFIGS.items():
         c, found = clocks.derive(config)
         assert found == [], (board, found)
+        vco = 4800 if board in ("icicle_es_pmp_demo", "icicle_amp_c") else 2400
         assert (c.reference, c.vco, c.system, c.cpu, c.axi, c.ahb) == (
-            125 * MHZ, 2400 * MHZ, 600 * MHZ, 600 * MHZ, 300 * MHZ, 150 * MHZ), board
+            125 * MHZ, vco * MHZ, 600 * MHZ, 600 * MHZ, 300 * MHZ, 150 * MHZ), board
         assert (c.rtc_toggle, c.rtc_period) == (1 * MHZ, 125), board
         for name in clocks.COMPARED:
             assert c.deviation_ppm(name) == 0, (board, name)
@@ -148,26 +161,38 @@ def _():
              "MSS_COREPLEX_CPU_CLK", "1.002 ppm")
 
 
-@case("the four reference systems derive with the XMLs of the Icicle Kit; the video kit configures too few MMUARTs")
+@case("amp_a, amp_b and amp_d derive with the XMLs of the Icicle Kit and of the PMP demo, amp_c with its own; the "
+      "video kit configures too few MMUARTs; amp_c does not fit the 512 KiB of LIM of the boards' XMLs")
 def _():
     for name in REFERENCE:
-        for board in ("icicle", "icicle_es"):
+        boards = ("icicle_amp_c",) if name == "amp_c" else ("icicle", "icicle_es", "icicle_es_pmp_demo")
+        for board in boards:
             d = derive.derive(system(name), CONFIGS[board], SVD)
             assert d.xml_sha256 == CONFIGS[board].sha256
             assert placement.check(d.windows, d.memories, {p.name: p.harts for p in d.partitions}) == []
-        got, _ = codes_of(system(name), CONFIGS["video_kit"])
-        assert set(got) == {"GEN-E084"}, (name, got)
+        if name != "amp_c":
+            got, _ = codes_of(system(name), CONFIGS["video_kit"])
+            assert set(got) == {"GEN-E084"}, (name, got)
+    unpinned = dataclasses.replace(system("amp_c"), xml=None)
+    assert codes_of(unpinned, ICICLE)[0] == ["GEN-E076"], codes_of(unpinned, ICICLE)
 
 
 @case("the derivation is deterministic")
 def _():
     for name in REFERENCE:
-        assert derive.derive(system(name), ICICLE, SVD) == derive.derive(system(name), ICICLE, SVD)
+        config = config_of(name)
+        assert derive.derive(system(name), config, SVD) == derive.derive(system(name), config, SVD)
 
 
-@case("the L2 of the reference XMLs: 8 cache, 4 scratchpad (the upper enabled ways 8 to 11), 4 LIM ways")
+@case("the L2 of the reference XMLs: 8 cache, 4 scratchpad (the upper enabled ways 8 to 11), 4 LIM ways; the XML "
+      "of amp_c: 1 cache way, 15 LIM ways")
 def _():
+    l2 = derive.derive(system("amp_c"), AMP_C, SVD).l2
+    assert (l2.ways.cache, l2.ways.lim, l2.ways.scratchpad) == (1, 15, 0) and not l2.override, l2
+    assert l2.way_enable == 0 and l2.lim_length == 1920 * 1024, l2
     for board, config in CONFIGS.items():
+        if board == "icicle_amp_c":
+            continue
         l2 = derive.derive(text(ONE), config if board != "video_kit" else ICICLE, SVD).l2
         assert (l2.ways.cache, l2.ways.lim, l2.ways.scratchpad) == (8, 4, 4) and not l2.override, board
         assert l2.way_enable == 11 and l2.cache_ways == tuple(range(8)), board
@@ -176,7 +201,7 @@ def _():
     d = derive.derive(system("amp_d"), ICICLE, SVD)
     assert d.l2.override and (d.l2.ways.cache, d.l2.ways.lim) == (4, 12) and d.l2.reason
     assert d.l2.partitioning == (("u54_1", (0, 1)), ("u54_2", (0, 1)), ("u54_3", (2, 3)), ("u54_4", (2, 3)))
-    for name in ("amp_a", "amp_b", "amp_c"):
+    for name in ("amp_a", "amp_b"):
         l2 = derive.derive(system(name), ICICLE, SVD).l2
         assert l2.override and (l2.ways.cache, l2.ways.lim, l2.ways.scratchpad) == (1, 15, 0), name
 
@@ -195,7 +220,7 @@ def _():
 @case("amp_b and amp_c: a graph that is not a chain gets one shared block of channels")
 def _():
     for name, channels in (("amp_b", 3), ("amp_c", 5)):
-        d = derive.derive(system(name), ICICLE, SVD)
+        d = derive.derive(system(name), config_of(name), SVD)
         ipc = sorted((w.origin, w.end) for w in d.windows if w.kind == "ipc")
         assert len(ipc) == channels and all(a[1] == b[0] for a, b in pairwise(ipc)), (name, ipc)
 
@@ -265,11 +290,16 @@ def _():
     assert [(w.origin, w.length, w.mode) for w in d.windows] == [(target.LIM_ORIGIN, 512 * 1024, "NAPOT")]
 
 
-@case("the command line: derive --check of the reference systems, derive prints the system, a broken one is status 2")
+@case("the command line: derive --check of the reference systems (amp_c, prod, passes with warnings), derive "
+      "prints the system, a broken one is status 2")
 def _():
     files = [str(SYSTEMS / n / "system.yaml") for n in REFERENCE]
     done = cli("derive", "--check", "--svd", str(SVD), *files)
     assert done.returncode == 0 and done.stdout.count(": ok\n") == 4, (done.stdout, done.stderr)
+    assert "amp_c/system.yaml: GEN-E128 (warning)" in done.stderr, done.stderr
+    amp_c = [line.split(": ", 1)[1].split(" ")[0] for line in done.stderr.splitlines() if "amp_c/system.yaml: " in line]
+    assert set(amp_c) == {"GEN-E127", "GEN-E128", "GEN-E135"}, done.stderr
+    assert "amp_a/system.yaml: " in done.stderr and "not enforced for security_profile dev" in done.stderr
     done = cli("derive", "--svd", str(SVD), files[0])
     assert done.returncode == 0, done.stderr
     lines = done.stdout.splitlines()
@@ -277,6 +307,8 @@ def _():
             "RTC toggle 1000000 Hz (period 125)") in lines, lines
     assert "window lim 0x0800_0000 length 0x0004_0000 NAPOT: rt code+data" in lines
     assert "partition app: harts [2, 3, 4], mask 0x1c, CPU_To_Hart [2, 3, 4]" in lines
+    assert any(line.startswith("pmp: not applied (security_profile dev)") for line in lines), lines
+    assert any(line.startswith("note: GEN-E105 mss_memory_map/pmp_h1/PMP0CFG") for line in lines), lines
     done = cli("derive", "--svd", str(SVD), "--xml", str(XMLS["video_kit"]), files[0])
     assert done.returncode == 2 and "GEN-E084" in done.stderr, done
 

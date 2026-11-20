@@ -61,7 +61,8 @@ def _():
     assert sorted(p.name for p in SYSTEMS.iterdir() if p.is_dir()) == list(REFERENCE)
     for name in REFERENCE:
         system = yaml_reader.read(SYSTEMS / name / "system.yaml")
-        assert system.schema == 1 and system.board == "icicle", name
+        board = "icicle_amp_c" if name == "amp_c" else "icicle"   # amp_c has its own XML
+        assert system.schema == 1 and system.board == board, name
 
 
 @case("the reference systems are the ones described: harts, profiles and privilege modes")
@@ -86,10 +87,11 @@ def _():
 
 
 @case("every code of system.yaml has a broken description that is rejected with it (tests/host/xml_reader has those "
-      "of the XML, tests/host/derive those of the derivations, tests/host/pmp those of the PMP sections)")
+      "of the XML, tests/host/derive those of the derivations and of the PMP against the partitions, "
+      "tests/host/pmp those of the PMP sections)")
 def _():
     covered = {expected(p) for p in BROKEN.glob("*.yaml")}
-    own = set(checks.CODES) - checks.XML_CODES - checks.DERIVE_CODES - checks.PMP_CODES
+    own = set(checks.CODES) - checks.XML_CODES - checks.DERIVE_CODES - checks.PMP_CODES - checks.PROTECTION_CODES
     assert covered == own, sorted(own ^ covered)
 
 

@@ -16,8 +16,11 @@ the names of the direct GPIO interrupts.
     SD_SDIO) after CONFIGURED_PERIPHERALS, DDRC when DDRPHY_MODE & 0x7 is DDR_OFF_MODE 0x7 (mss_ddr.h:313,
     :373).
   - The PLIC sources GPIO_DIRECT_0 .. 31 are GPIO0 bit n (n < 14) or GPIO1 bit n - 14 when bit n of
-    GPIO_INTERRUPT_FAB_CR is 0, GPIO2 bit n when it is 1 (the field names of the XML,
+    GPIO2 bit n when it is 1 (the field names of the XML,
     GPIO0_0_OR_GPIO2_0 ...); GPIO_DIRECT_32 .. 37 are GPIO1 bits 18 .. 23 (mss_plic.h:264-304 @ 8d52d59).
+  - An XML of a format without CONFIGURED_PERIPHERALS or GPIO_INTERRUPT_FAB_CR (0.5.3, xml_reader.NOT_IN_FORMAT)
+    gets the default of Microchip's HAL: every peripheral configured (0xFFFFFFFF, mss_peripherals.h:93-94
+    @ 8d52d59), and GPIO_INTERRUPT_FAB_CR 0, every direct line from GPIO0 or GPIO1 (mss_io_config.h:43-52).
 """
 import re
 from dataclasses import dataclass
@@ -25,7 +28,7 @@ from dataclasses import dataclass
 from gen_ada import svdread
 
 from ..checks import Diagnostic, diagnostic
-from ..model import MssConfiguration, System
+from ..model import MssConfiguration, System, XmlRegister
 
 SUBBLK = ("SYSREG", "SUBBLK_CLOCK_CR")
 SOFT_RESET = ("SYSREG", "SOFT_RESET_CR")
@@ -77,16 +80,33 @@ def _bit(svd: dict[tuple[str, str], svdread.Register], register: tuple[str, str]
     return 1 << bits.offset if bits else 0
 
 
+def _register(config: MssConfiguration, section: str, name: str) -> XmlRegister | None:
+    """The register, None if the format of the XML does not have it."""
+    try:
+        return config.register(section, name)
+    except KeyError:
+        return None
+
+
+def is_configured(config: MssConfiguration, field: str) -> bool:
+    """Whether CONFIGURED_PERIPHERALS of <config> has <field> set; True for an XML whose format has no
+    CONFIGURED_PERIPHERALS (Microchip's HAL then takes 0xFFFFFFFF)."""
+    reg = _register(config, PERIPHERALS, "CONFIGURED_PERIPHERALS")
+    return True if reg is None else bool(reg.field(field).value)
+
+
 def gpio_aliases(config: MssConfiguration, sources: dict[str, int]) -> tuple[tuple[str, str], ...]:
-    reg = config.register(*FAB_CR)
+    reg = _register(config, *FAB_CR)
     out: list[tuple[str, str]] = []
     direct = {name: int(m.group(1)) for name in sources if (m := _DIRECT.fullmatch(name))}
     for name, n in sorted(direct.items(), key=lambda item: sources[item[0]]):
-        field = next((f for f in reg.fields if f.bits.offset == n and f.bits.width == 1), None)
+        field = next((f for f in reg.fields if f.bits.offset == n and f.bits.width == 1), None) if reg else None
         parts = _FAB_FIELD.fullmatch(field.name) if field else None
-        if parts:
+        if parts and reg:
             fabric = (reg.value >> n) & 1
             gpio, bit = (parts.group(3), parts.group(4)) if fabric else (parts.group(1), parts.group(2))
+        elif n < GPIO1_DIRECT_FIRST:
+            gpio, bit = "GPIO0", str(n)
         else:
             gpio, bit = "GPIO1", str(n - GPIO1_DIRECT_FIRST)
         out.append((name, f"{gpio}_BIT{bit}"))
@@ -98,10 +118,12 @@ def derive(system: System, config: MssConfiguration, svd: dict[tuple[str, str], 
     """The peripheral bits of <system> with the XML <config>, and the rules they break."""
     found: list[Diagnostic] = []
     known = catalogue(svd)
-    configured = config.register(PERIPHERALS, "CONFIGURED_PERIPHERALS")
-    flags = {f.name: bool(f.value) for f in configured.fields if f.value is not None}
+    configured = _register(config, PERIPHERALS, "CONFIGURED_PERIPHERALS")
+    flags = {f.name: bool(f.value) for f in configured.fields if f.value is not None} if configured else {}
 
     def is_configured(name: str) -> bool | None:
+        if configured is None:
+            return True
         fields = CONFIGURED_ALIASES.get(name, (name.upper(),))
         present = [flags[f] for f in fields if f in flags]
         return any(present) if present else None
@@ -119,14 +141,15 @@ def derive(system: System, config: MssConfiguration, svd: dict[tuple[str, str], 
                 continue
             if is_configured(name) is False:
                 found.append(diagnostic("GEN-E084", at, f"{name} of {part.name!r} is not in CONFIGURED_PERIPHERALS "
-                                        f"({configured.value:#010x}) of the XML"))
+                                        f"({configured.value if configured else 0:#010x}) of the XML"))
             field = known[name]
             if field is not None:
                 clock |= _bit(svd, SUBBLK, field)
                 reset |= _bit(svd, SOFT_RESET, field)
         partitions.append((part.name, PartitionPeripherals(tuple(sorted(names)), clock, reset)))
 
-    blocks = [block for block, fields in RAM_RULES if not any(flags.get(f, False) for f in fields)]
+    blocks = [block for block, fields in RAM_RULES
+              if configured is not None and not any(flags.get(f, False) for f in fields)]
     if config.value("mss_ddr/mode", "DDRPHY_MODE") & DDRPHY_MODE_MASK == DDR_OFF_MODE:
         blocks.append("DDRC")
     shutdown = sum(_bit(svd, RAM_SHUTDOWN, b) for b in blocks)

@@ -1,0 +1,24 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# A system for the XML of Microchip's PMP demo (config/boards/icicle_es_pmp_demo): one partition per AMP
+# context of the XML, with the harts and peripherals the XML puts there (context A: harts 1 and 2, MMUART1
+# and 2 on the LO bus; context B: harts 3 and 4, MMUART3 and 4 on the HI bus). Test data of tests/host/derive.
+schema: 1
+board: icicle_es_pmp_demo
+security_profile: prod
+partitions:
+  - name: a
+    harts: [1, 2]
+    profile: light
+    memory:
+      code: { region: lim, size: 64K }
+      data: { region: lim, size: 64K }
+    peripherals: [mmuart1, mmuart2]
+  - name: b
+    harts: [3, 4]
+    profile: light
+    memory:
+      code: { region: lim, size: 64K }
+      data: { region: lim, size: 64K }
+    peripherals: [mmuart3, mmuart4]

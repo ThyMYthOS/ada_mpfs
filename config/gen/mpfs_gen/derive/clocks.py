@@ -31,6 +31,7 @@ from fractions import Fraction
 from .. import target
 from ..checks import Diagnostic, diagnostic
 from ..model import MssConfiguration
+from . import periph
 
 CLOCKS = "mss_clocks/clocks"
 PLL = "mss_clocks/mss_pll"
@@ -102,7 +103,7 @@ def derive(config: MssConfiguration) -> tuple[Clocks, list[Diagnostic]]:
     div_cpu = _field(config, SYS, "CLOCK_CONFIG_CR", "DIVIDER_CPU")
     div_axi = _field(config, SYS, "CLOCK_CONFIG_CR", "DIVIDER_AXI")
     div_ahb = _field(config, SYS, "CLOCK_CONFIG_CR", "DIVIDER_APB_AHB")
-    usb = bool(_field(config, "mss_general/mss_peripherals", "CONFIGURED_PERIPHERALS", "USB"))
+    usb = periph.is_configured(config, "USB")
     clocks = Clocks(reference=reference, vco=vco, system=system, cpu=system / (1 << div_cpu),
                     axi=system / (1 << div_axi), ahb=system / (1 << max(div_ahb, 1)),
                     rtc_toggle=stated["MSS_RTC_TOGGLE_CLK"],

@@ -7,10 +7,13 @@
   peripherals(root)  the peripherals in file order with their group and whether they have a readAction
   interrupts(root)   the <interrupt> elements in file order
   registers(root)    the registers of each peripheral with their size and the layout of their fields
+  blocks(root)       where each peripheral lies: its base, the bytes its registers span, their offsets
+                     and the step of each register array
 
 What a generator makes of them (which group sizes are valid, which interrupt numbers are allowed) is its
 own rule; this module only reads.
 """
+import dataclasses
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -99,6 +102,17 @@ def interrupts(root: ET.Element) -> list[Interrupt]:
             for element in root.iter("interrupt")]
 
 
+@dataclass(frozen=True, slots=True)
+class Block:
+    """Where a peripheral of the SVD lies: its base address, the bytes its registers span from the base (to
+    the end of the register that ends highest), the offset of each register by name and, for a register
+    array (<dim>), the bytes from one element to the next (<dimIncrement>) by name."""
+    base: int
+    span: int
+    offsets: dict[str, int]
+    steps: dict[str, int] = dataclasses.field(default_factory=dict)
+
+
 def _bits(field: ET.Element) -> Field | None:
     """The bits of a <field> in any of the three forms of the SVD (bitOffset and bitWidth, lsb and msb,
     bitRange [msb:lsb]); None if it has none or they are no numbers."""
@@ -152,4 +166,49 @@ def registers(root: ET.Element) -> dict[tuple[str, str], Register]:
                 if bits is not None:
                     fields[(field.findtext("name") or "").strip()] = bits
             result[(name, (reg.findtext("name") or "").strip())] = Register(size_of(reg, peripheral_size), fields)
+    return result
+
+
+def blocks(root: ET.Element) -> dict[str, Block]:
+    """The peripherals of the SVD with a readable <baseAddress> by name, each with its base, the bytes its
+    registers span (a <dim> array counted with all its elements, a register of <size> bits taking size / 8
+    bytes; 0 for a peripheral without registers) and the offset of each register. A derived peripheral has
+    the registers of its base when it has none of its own, at its own base."""
+    regs = registers(root)
+    elements = {p.findtext("name") or "": p for p in root.iter("peripheral")}
+
+    def own(name: str, seen: tuple[str, ...] = ()) -> ET.Element:
+        elt = elements[name]
+        base = elt.get("derivedFrom")
+        if elt.find("registers") is None and base in elements and base not in seen:
+            return own(base, seen + (name,))
+        return elt
+
+    def number(text: str | None) -> int | None:
+        try:
+            return int(text.strip(), 0) if text else None
+        except ValueError:
+            return None
+
+    result: dict[str, Block] = {}
+    for name, elt in elements.items():
+        base = number(elt.findtext("baseAddress"))
+        if base is None:
+            continue
+        offsets: dict[str, int] = {}
+        steps: dict[str, int] = {}
+        span = 0
+        for reg in own(name).iter("register"):
+            reg_name = (reg.findtext("name") or "").strip()
+            offset = number(reg.findtext("addressOffset"))
+            if offset is None:
+                continue
+            offsets[reg_name] = offset
+            count = number(reg.findtext("dim")) or 1
+            step = number(reg.findtext("dimIncrement")) or 0
+            if count > 1:
+                steps[reg_name] = step
+            size = regs[(name, reg_name)].size if (name, reg_name) in regs else 32
+            span = max(span, offset + (count - 1) * step + size // 8)
+        result[name] = Block(base, span, offsets, steps)
     return result

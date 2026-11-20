@@ -279,7 +279,10 @@ the description agrees with the XML are checked by the later stages that read th
 Each rule has its own code. `GEN-E001` to `GEN-E013` are the rules of the schema (the reader maps each
 failure of the validator to the code of its keyword; a size that is not a size is `GEN-E010` whatever the
 keyword), `GEN-E020` to `GEN-E034` the rules across fields, `GEN-E040` to `GEN-E052` the rules of the [MSS
-Configurator XML](#mss-configurator-xml), `GEN-E060` on the rules of the [derived system](#derived-system).
+Configurator XML](#mss-configurator-xml), `GEN-E060` to `GEN-E099` the rules of the [derived
+system](#derived-system), `GEN-E100` to `GEN-E119` the rules of the [PMP of the XML](#pmp-of-the-xml), `GEN-E120`
+on the [PMP and the AMP contexts against the partitions](#pmp-and-amp-contexts-against-the-partitions). A rule
+that ends in "(a warning)" is reported without stopping the derivation.
 The table is `CODES` in `gen/mpfs_gen/checks.py`, and a test compares the two.
 `tests/host/system_yaml/fixtures/broken` has a description for each code of `system.yaml`,
 `tests/host/xml_reader/fixtures/broken` an XML (or an edit of the XML of the Icicle Kit) for each code of the
@@ -318,7 +321,7 @@ derivations.
 | `GEN-E034` | the board has no directory in config/boards |
 | `GEN-E040` | the XML cannot be read, is not well-formed or has not the structure of an MSS Configurator XML |
 | `GEN-E041` | the XML has a document type or entity declaration |
-| `GEN-E042` | xml_format_version is missing or not a version the reader knows (0.6.5, 0.6.8) |
+| `GEN-E042` | xml_format_version is missing or not a version the reader knows (0.5.3, 0.6.5, 0.6.8) |
 | `GEN-E043` | a core section is missing |
 | `GEN-E044` | a register that the generator needs is missing from its section |
 | `GEN-E045` | a section has a register or memory element twice |
@@ -356,6 +359,26 @@ derivations.
 | `GEN-E084` | a partition owns a peripheral that CONFIGURED_PERIPHERALS of the XML leaves out |
 | `GEN-E100` | a PMP entry of the XML has W set and R clear (a reserved combination) |
 | `GEN-E101` | a PMP configuration byte of the XML sets the reserved bits 5 and 6 |
+| `GEN-E102` | a locked PMP entry comes after an unlocked entry in use |
+| `GEN-E103` | a PMP entry in use is beyond the number of entries of the target (16; 8 with --pmp-entries 8) |
+| `GEN-E104` | MEM_CONFIGS_ENABLED.PMP is 0, but the PMP sections set entries (a warning) |
+| `GEN-E105` | a locked PMP entry grants rights over the whole address space or over the range of a later entry |
+| `GEN-E120` | a U partition cannot reach a window of its own with the rights it needs |
+| `GEN-E121` | a U partition cannot read and write a peripheral of its own at the address APBBUS_CR gives |
+| `GEN-E122` | a U partition cannot read the page of mtime |
+| `GEN-E123` | U mode of a U partition reaches what is not its own (a warning) |
+| `GEN-E124` | a window or peripheral of another partition, or the ITIM or DTIM of another hart, is reachable from U mode or from M mode of a hart with locked entries |
+| `GEN-E125` | a critical system block is reachable from U mode |
+| `GEN-E126` | SYSREG or MPUCFG is reachable from U mode |
+| `GEN-E127` | a critical system block is reachable from M mode of a hart with locked entries (a warning) |
+| `GEN-E128` | a window, peripheral, ITIM or DTIM of a partition of the same AMP context is reachable from M mode of a hart with locked entries (a warning) |
+| `GEN-E129` | the generated allow list of a hart does not fit the PMP entries of the target after the entries of the XML |
+| `GEN-E130` | a hart is in both AMP contexts |
+| `GEN-E131` | a peripheral is in both AMP contexts |
+| `GEN-E132` | APBBUS_CR is not bits 23:0 of CONTEXT_B_EN while AMP contexts are used |
+| `GEN-E133` | a peripheral of a partition is not in the AMP context of its harts |
+| `GEN-E134` | the harts of a partition are not all in the same AMP context |
+| `GEN-E135` | a PMP window of a partition in one AMP context covers the bus window of the other (a warning) |
 
 Several rules are also checks of the package `MPFS_Partition` (a mask that mixes E51 and U54, a stack size,
 `ram_fifo`, the L2 ways, the ITIM): the reader refuses a description early, and the package still refuses
@@ -363,11 +386,13 @@ partition data that breaks them, whichever tool wrote it.
 
 ### The reference systems
 
-[`systems/`](../systems/README.md) has four systems that the schema validates and that derive with the XMLs of
-the Icicle Kit (`icicle`, `icicle_es`; the video kit does not configure MMUART2 and MMUART3, which they use).
-Their window sizes are example data that fit together into the LIM; they are not measured. The reference
-XMLs configure 4 ways of LIM (512 KiB), too few for them, so `amp_a` to `amp_c` override the L2 with the split at
-reset (1 way of cache, 15 of LIM) and `amp_d` with 4 ways of cache and 12 of LIM.
+[`systems/`](../systems/README.md) has four systems that the schema validates. `amp_a`, `amp_b` and `amp_d`
+derive with the XMLs of the Icicle Kit (`icicle`, `icicle_es`; the video kit does not configure MMUART2 and
+MMUART3, which they use); `amp_c` is a prod system with an XML of its own (`icicle_amp_c`: the L2, the AMP
+contexts and the locked PMP tables of `amp_c`). Their window sizes are example data that fit together into the
+LIM; they are not measured. The XMLs of the boards configure 4 ways of LIM (512 KiB), too few for them, so
+`amp_a` and `amp_b` override the L2 with the split at reset (1 way of cache, 15 of LIM) and `amp_d` with 4 ways
+of cache and 12 of LIM; the XML of `amp_c` sets 1 way of cache and 15 of LIM itself.
 
 | System | E51 (hart 0) | U54 (harts 1 to 4) |
 |---|---|---|
@@ -413,13 +438,20 @@ the sections that are only validated. A broken XML gives one line per violated r
 `FILE: GEN-Exxx SECTION/REGISTER.FIELD: message`, and status 2. The merged SVD is
 `build/svd/PolarfireSoC.svd` (made current first) or `--svd FILE`.
 
-**Format versions.** `xml_format_version` must be `0.6.5` or `0.6.8`, the versions of the reference XMLs;
-any other is refused (`GEN-E042`). A version enters the list together with a reference XML of it and a
-green run of the differential test below.
+**Format versions.** `xml_format_version` must be `0.5.3`, `0.6.5` or `0.6.8`, the versions of the reference
+XMLs; any other is refused (`GEN-E042`). A version enters the list together with a reference XML of it and a
+green run of the differential test below. Format 0.5.3 (Libero 2021.1, the PMP demo) has the same core sections
+and the same layout of every register it has, checked against the SVD as the later ones, but lacks
+`GPIO_INTERRUPT_FAB_CR`, `ALT_GPIO_INTERRUPT_FAB_CR` and `CONFIGURED_PERIPHERALS` (and `DDR_CLK`,
+`MSS_CLKS_VERSION`, `SYSREG_CLKS_VERSION`, which the generator does not need). The first three are not needed in
+that format (`NOT_IN_FORMAT` in `xml_reader.py`); the derivations then take the defaults of Microchip's HAL:
+every peripheral configured (`0xFFFFFFFF`, `mss_peripherals.h`) and `GPIO_INTERRUPT_FAB_CR` 0
+(`mss_io_config.h`).
 
 **Sections.** The core sections are decoded: `mss_clocks` (`clocks`, `mss_sys`, `mss_pll`, `mss_cfm`,
 `sgmii_cfm`), `mss_io` (`io_mux` with the banks and `GPIO_INTERRUPT_FAB_CR`, `io_mux_alt`),
-`mss_memory_map` (`apb_split` with `APBBUS_CR` and `MEM_CONFIGS_ENABLED`, `map/mem_elements`, `nvm_map`,
+`mss_memory_map` (`apb_split` with `APBBUS_CR`, `MEM_CONFIGS_ENABLED` and the AMP contexts `CONTEXT_A_EN`,
+`CONTEXT_B_EN`, `CONTEXT_A_HART_EN`, `CONTEXT_B_HART_EN`, `map/mem_elements`, `nvm_map`,
 `cache`, `pmp_h0` to `pmp_h4`, the ten `mpu_*`), `mss_general/mss_peripherals`, `mss_sgmii/tip` (the
 values of the SGMII off mode) and `mss_ddr/mode` and `mss_ddr/off_mode` (`DDRPHY_MODE`). A register is
 found by section and name: the three PLLs have registers of the same names. The other sections (the rest of
@@ -450,24 +482,33 @@ to Microchip (polarfire-soc/polarfire-soc-documentation#610, without an answer).
 field with this one value (`KNOWN_DEFECTS` in `xml_reader.py`); `0x8` in any other field, or another value
 there, is `GEN-E050`.
 
+**The width of `MEM_CONFIGS_ENABLED`.** Every XML at hand declares its fields `PMP` (offset 0) and `MPU` (offset
+1) 0 bits wide; the configurator writes `0x1` into them when it enables its PMP and MPU tables (Microchip's PMP
+demo has both). Microchip's generator ignores the width and shifts the value to its offset, which gives the bits
+that Microchip's HAL tests (`PMP_ENABLED_MASK` 1, `MPU_ENABLED_MASK` 2, `mss_pmp.h`). The reader takes `0x1` in
+either field the same way and names it as a known defect; any other value there is `GEN-E050`.
+
 **Differential test.** [`tools/mchp_diff`](../tools/mchp_diff/README.md) runs Microchip's generator at a
 pinned commit on every reference XML and compares each of its `LIBERO_SETTING_*` defines with the value
 of the reader: the registers of the core sections, the memory elements and the design information. A
 difference fails unless `tools/mchp_diff/exceptions.yaml` admits it with whose defect it is and the
-reason; the list is empty, every overlapping value of the three XMLs agrees.
+reason; the list is empty, every overlapping value of the four XMLs agrees.
 
 **Untrusted input.** The reader refuses a document type or entity declaration before the parser sees the
 file (`GEN-E041`), so no entity is expanded.
 
 ### Reference XMLs
 
-Each board directory has the XML of its design, unchanged; where it comes from is in
-[`PROVENANCE.md`](../PROVENANCE.md).
+Each board directory has the XML of its design, unchanged; where an imported one comes from is in
+[`PROVENANCE.md`](../PROVENANCE.md). `icicle_amp_c` is the project owner's own Icicle design, exported with
+pfsoc_mss from the `.cfg` next to it.
 
 | Board | File | Format | Libero | Part |
 |---|---|---|---|---|
 | [`icicle`](boards/icicle/README.md) | `ICICLE_MSS_mss_cfg.xml` | 0.6.8 | 2024.2 | MPFS250T |
+| [`icicle_amp_c`](boards/icicle_amp_c/README.md) | `amp_c_mss_cfg.xml` | 0.6.8 | 2026.1 | MPFS250T_ES |
 | [`icicle_es`](boards/icicle_es/README.md) | `ICICLE_MSS_mss_cfg.xml` | 0.6.5 | 2022.2 | MPFS250T_ES |
+| [`icicle_es_pmp_demo`](boards/icicle_es_pmp_demo/README.md) | `ICICLE_MSS_mss_cfg.xml` | 0.5.3 | 2021.1 | MPFS250T_ES |
 | [`video_kit`](boards/video_kit/README.md) | `MSS_video-kit_mss_cfg.xml` | 0.6.8 | 2023.2 | MPFS250TS |
 
 ## Derived system
@@ -482,6 +523,7 @@ partition `CPU_To_Hart`, the PLIC sources and contexts and the release masks of 
 python3 config/gen/mpfs_gen derive systems/amp_a/system.yaml                      # print the derived system
 python3 config/gen/mpfs_gen derive --check systems/*/system.yaml                  # FILE: ok
 python3 config/gen/mpfs_gen derive --xml config/boards/icicle_es/ICICLE_MSS_mss_cfg.xml systems/amp_a/system.yaml
+python3 config/gen/mpfs_gen derive --pmp-entries 8 --check FILE                   # does the PMP run under QEMU
 ```
 
 The XML is `xml.file` of the description (its SHA-256 must be `xml.sha256`, `GEN-E060`), otherwise the one XML
@@ -559,3 +601,129 @@ reserved (`GEN-E100`), bits 5 and 6 of a configuration byte are reserved (`GEN-E
 as the package `Pmp_Xml` (`Pure`, one record per hart), byte for byte the same for the same XML; the test program
 `examples/pmp_xml_test` compares it with the CSRs of the hart. What the reference XMLs set and what the tests
 cover is in [`docs/assurance/pmp-tests.md`](../docs/assurance/pmp-tests.md).
+
+**Semantics.** `pmp.regions` cuts the address space of a hart into the regions in which its PMP decides alike,
+after the Privileged Spec v1.10 (the MPFS has no Smepmp): the matching entry with the lowest index decides; for
+U mode it grants its rights, for M mode only if it is locked (an unlocked entry lets M through); no match allows
+M and denies U. `pmpaddr` is WARL, so the entries are taken in the bits each hart implements
+(`target.PMPADDR_BITS`): 36 on a U54, measured on hart 1 (the all-ones value of the XML reads back
+`0xf_ffff_ffff`, `docs/lab/results/pmp-entries.md`), 54 on the E51, whose width is not measured yet. The
+locked part of a hart (the locked entries and the base of a locked TOR entry, whose `pmpaddr` is locked with it)
+is what the boot loader will set, the unlocked part what the kernel of the partition will set.
+
+**Layout.** The derivation checks how the entries are laid out: all locked entries come before all unlocked
+entries in use (`GEN-E102`); the entries in use fit the target, 16 entries per hart on the silicon (measured on
+the E51 and U54 hart 1) or 8 under QEMU 10.1 with `derive --pmp-entries 8` (`GEN-E103`); with
+`MEM_CONFIGS_ENABLED.PMP` 0 the PMP sections should be zero (`GEN-E104`, a warning: Microchip's start code
+writes `pmpcfg0` of the U54 harts whatever the flag says); a locked entry that grants rights over the whole
+address space, or over the range of a later entry so that the later one can never decide, is refused
+(`GEN-E105`). The three reference XMLs of the boards have `MEM_CONFIGS_ENABLED.PMP` 0 and, on each U54, entry 0
+locked NAPOT over the whole address space with RWX (`0x9F`, `pmpaddr` all ones): both are reported, and entry 0
+is refused. The PMP demo keeps the layout rules (`MEM_CONFIGS_ENABLED` `0x3`, every entry locked, a deny-all
+last); with 11 entries on harts 1 and 2 it does not fit the 8 of QEMU.
+
+## PMP and AMP contexts against the partitions
+
+The locked PMP entries and the AMP contexts are the user's, set in the MSS Configurator; the generator does not
+make or repair one. `derive` (`derive/protection.py`, `derive/contexts.py`) adds the unlocked allow list of each
+hart of a `u` partition, checks the whole against the partitions of `system.yaml` and adds to the derived system
+the AMP context and the peripheral addresses of each partition, `APBBUS_CR`, the contexts, and per hart the PMP:
+the entries in use, the locked part (from the XML), the unlocked part with the generated entries and the regions
+with the rights of U and M mode. `derive` prints them with the occupation of each hart, each generated entry
+(`generated entry N: NAPOT [first, last] rw-`) and the mapping of the partitions onto the contexts; a warning is
+a line `warning: GEN-Exxx (warning) ...` (with `--check`, on stderr after `FILE: ok`).
+
+**The allow list.** The Configurator writes three PMP tables: the E51's and one per context, which every U54 hart
+of the context gets. The XML can therefore hold the locked barrier of a context, not what separates two
+partitions of the same context. That is the allow list: unlocked entries, which bind U mode only and which the
+kernel of the partition sets in M mode per hart. The generator derives them for every hart of a `u` partition
+from `system.yaml` and the placement: its windows with the rights they need (code and data in one window RWX,
+code and `fast_text` RX, data and channels RW; `fast_text` only in the ITIM of the hart itself), its peripherals
+and console RW at the address `APBBUS_CR` gives, and the page of `mtime` R. Ranges that touch and have the same
+rights are one range. From the lowest index after the last entry the XML uses for the hart, in address order, a
+range takes one NAPOT entry where it is a power of two at a multiple of itself, otherwise the fewest NAPOT
+entries if that is not more than TOR needs, else a TOR entry (with an OFF entry for its base unless the entry
+before it is a TOR entry that ends there). An allow list that does not fit the entries of the target is refused
+(`GEN-E129`; a note in dev). A hart whose table in the XML has unlocked entries in use (an allow list written in
+the Configurator's Expert Mode) keeps them and gets none generated. The rules below evaluate the entries of the
+XML and the generated ones together. `m` partitions get no allow list: their kernel and application run in M
+mode, bound by the locked entries only.
+
+**Security profile.** A `prod` image must pass the checks: every rule of the PMP and the contexts, those of the
+XML's own PMP sections (`GEN-E100` to `GEN-E105`) included, is enforced, and an error stops the derivation. For a
+`dev` image (the default) the checks run for information; every finding, error or warning, is a note
+(`Derived.notes`, the lines `note: ...`; `derive --check` prints how many) and stops nothing. A dev image does
+not set the PMP registers: the derived system marks the PMP as not applied (`Protection.applied` False, the line
+`pmp: not applied (security_profile dev)`), so that the emitters write no PMP entries into the boot table and
+the partition data. Everything else of the XML is applied in both profiles: the MPU (a DMA master has no access
+until its MPU regions exist, MSS TRM DS60001702S §3.4; its checks, still to come, will be notes in dev and errors
+in prod like those of the PMP), the way masks and the L2 split, `APBBUS_CR` and the addresses of the
+peripherals, the clocks and the IO multiplexing.
+
+**Addresses.** A peripheral of both APB buses (MSS TRM DS60001702S Table 3-49: MMUART0 to 4, WDOG0 to 4, SPI,
+I2C, CAN, MAC (GEM), GPIO0 to 2, RTC, timer, H2F interrupts; the blocks `<NAME>_LO` and `<NAME>_HI` of the SVD)
+is at its LO address (from `0x2000_0000`) or its HI address (from `0x2800_0000`) as its bit of `APBBUS_CR` says;
+USB, QSPI, eMMC, the eNVM controller and Athena have one address, the one of the SVD; a peripheral takes the
+whole 4 KiB pages its registers in the SVD span. The FICs, the DDR controller and the CFM have no block of
+their own and are not checked.
+
+**What a partition reaches.** For each hart of a partition the PMP is evaluated in U mode (a `u` partition) and
+in M mode where the hart has locked entries (M mode of a hart without any is bound by no entry). Its own are
+its windows (code and data RWX in one window, code and `fast_text` RX, data and channels RW; `fast_text` only in
+the ITIM of the hart itself), its peripherals and console RW at their address, and the page of `mtime` R
+(`0x0200_B000`, from the CLINT of the SVD). Foreign are the windows of other partitions and channels, the DTIM
+and the ITIMs of the harts outside the partition and the peripherals of other partitions. An ITIM of another hart
+is foreign only if a partition places a window in it (`fast_text`): an ITIM that no partition uses holds no code
+or data of any partition, and locking each one out would take an entry of the locked tables per ITIM, a budget
+the Configurator's one table per context does not have. Critical are, from the SVD and in the whole pages their
+registers touch: SYSREG, MPUCFG (with the SEG registers), SCB, the AXI switch, `CFG_DDR_SGMII_PHY`, the eNVM
+controller (unless the partition owns `envm`), the L2 cache controller (`0x0201_0000`), the PDMA (`0x0300_0000`,
+four channels of `0x1000`), the system controller (`0x3702_0000`) and its mailbox (`0x3702_0800`), the IOSCB
+configuration (`0x3708_0000`), the IOSCB blocks of the MSS (`IOSCB_*` from `0x3E00_1000`) and the bus error
+units of the harts outside the partition (`0x0170_0000` plus `0x1000` per hart).
+
+The rules: U mode lacks a right on a window of its own (`GEN-E120`), cannot read and write a peripheral of its own
+at its address (`GEN-E121`) or cannot read the page of `mtime` (`GEN-E122`); U mode reaches what is not its own
+and none of the following (`GEN-E123`, a warning); U mode, or M mode of a hart with locked entries, reaches
+something foreign (`GEN-E124`), except that M mode reaching a partition of the same context is a warning
+(`GEN-E128`): the allow list separates the partitions of one context in U mode, and the one table of the context
+cannot lock one of them out for the others, so the separation within a context does not hold against M-mode
+code (the weakness this design accepts; across contexts, and for the E51, which is in no context, it stays
+`GEN-E124`); U mode reaches a critical block (`GEN-E125`), or SYSREG or MPUCFG, which expose
+`APBBUS_CR`, the clocks and resets of all peripherals and the MPU of every master (`GEN-E126`); M mode of a hart
+with locked entries reaches a critical block (`GEN-E127`, a warning: which ones its kernel needs is not described
+yet); a partition of one context reaches the bus window of the other, the HI addresses for A and the LO ones for
+B (`GEN-E135`, a warning).
+
+`GEN-E135` is a warning for now: on the Icicle Kit an access to a peripheral at the address of the bus it is not
+on had no effect and raised no fault (`docs/lab/results/pmp-entries.md`); where the PSLVERR of such an access
+goes is still being measured.
+
+**AMP contexts.** The Configurator keeps them in `apb_split`: `CONTEXT_A_HART_EN` and `CONTEXT_B_HART_EN` (a bit
+per hart), `CONTEXT_A_EN` and `CONTEXT_B_EN` (a bit per peripheral, bits 0 to 23 those of `APBBUS_CR`). No
+register of the silicon holds them: the Configurator derives `APBBUS_CR` and one PMP table per context from them.
+They are used when one of the four is not 0 (the reference XMLs have all four 0). A hart in both contexts
+(`GEN-E130`; Libero SoC Help §20.2.2.3.9: harts "cannot be enabled in both Context A & Context B") and a
+peripheral in both (`GEN-E131`) are refused, so is an `APBBUS_CR` other than bits 23:0 of `CONTEXT_B_EN` while
+contexts are used (`GEN-E132`), a peripheral of a partition that is not in the context of its harts (`GEN-E133`)
+and a partition whose harts are not all in the same context (`GEN-E134`). `GEN-E133` applies only to the
+peripherals the Configurator can put into a context: its `.cfg` (pfsoc_mss) has the keys
+`PMP_<P>_CONTEXT_A_EN` and `PMP_<P>_CONTEXT_B_EN` only for MMUART1 to 4, CAN0 and 1, GEM0 and 1, GPIO0 to 2, I2C0
+and 1, SPI0 and 1, QSPI, RTC, USB, EMMC and the crypto block (`CRYPTO_CFG`, `CRYPTO_MEM`). MMUART0, WDOG0 to 4,
+the timer and the H2F interrupts have none: they stay on the LO bus and belong to no context, and a partition of
+either context may own one (its PMP still decides who reaches it). That partitions of different contexts
+share no peripheral needs no rule: `system.yaml` gives each peripheral, the console included, to one partition
+(`GEN-E025`, `GEN-E026`).
+
+With the XMLs of the boards the reference systems would be refused for prod: the open, locked entry 0 of the
+U54 harts lets every partition reach everything and hides the generated allow list (`GEN-E105`, `GEN-E124` to
+`GEN-E126`). `amp_a`, `amp_b` and `amp_d` are dev systems and derive, with these findings as notes. `amp_c` is a
+prod system and derives with its own XML ([`icicle_amp_c`](boards/icicle_amp_c/README.md): the locked barrier
+of the E51 and of each context, 9 to 11 entries, and the generated allow list of 4 to 7 entries per hart, at most
+16), with warnings only: the same context from M mode (`GEN-E128`), the critical blocks that the tables leave
+open to M mode (`GEN-E127`), and the LO addresses of the peripherals that the table of context B leaves open to M
+mode (`GEN-E135`). The PMP demo (`config/boards/icicle_es_pmp_demo`) passes the checks of the contexts with one
+partition per context (`tests/host/derive/fixtures/pmp_demo`); its locked PMP grants SYSREG and the L2
+controller to all modes, does not cover windows in the LIM and ends in a locked deny-all, so a prod system on it
+is refused (`GEN-E120`, `GEN-E125`, `GEN-E126`, and `GEN-E129` for harts 1 and 2, whose tables leave one entry
+free; with the warnings `GEN-E123` and `GEN-E127`).
