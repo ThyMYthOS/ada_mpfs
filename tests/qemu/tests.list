@@ -38,6 +38,14 @@
 name	dir	serial	expect	observe	why
 report_test_e51	examples/report_test	0	pass	-	-
 report_test_u54	examples/report_test	0	pass	-	-
+pmp_xml_test_e51	examples/pmp_xml_test	0	pass	-	-
+pmp_xml_test_u54	examples/pmp_xml_test	0	pass	-	-
+pmp_access_test_e51	examples/pmp_access_test	0	pass	-	-
+pmp_access_test_u54	examples/pmp_access_test	0	pass	-	-
+pmp_isolation_test_e51	examples/pmp_isolation_test	0	pass	-	-
+pmp_isolation_test_u54	examples/pmp_isolation_test	0	pass	-	-
+apb_window_test_e51	examples/apb_window_test	0	pass	-	-
+apb_window_test_u54	examples/apb_window_test	0	pass	-	-
 trap_test_e51	examples/trap_test	0	pass	-	-
 trap_test_u54	examples/trap_test	0	pass	-	-
 trap_tasking_test_e51	examples/trap_tasking_test	0	pass	-	-

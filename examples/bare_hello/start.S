@@ -12,6 +12,7 @@
 
 #define MSTATUS_MIE 0x00000008
 #define MSTATUS_FS  0x00006000
+#define MISA_S      0x00040000
 
 	.section .start,"ax",@progbits
 	.globl _start
@@ -60,6 +61,18 @@ _start:
 	li      t0, MSTATUS_FS
 	csrs    mstatus, t0
 #endif
+
+	/* satp, medeleg and mideleg have no reset value on the silicon, and only a hart with S mode has them
+	 * (misa.S; the E51 has not). A satp with MODE set makes every fetch below M mode go through a page
+	 * table, and a stale medeleg sends traps to S mode. */
+	csrr    t0, misa
+	li      t1, MISA_S
+	and     t0, t0, t1
+	beqz    t0, 3f
+	csrw    satp, zero
+	csrw    medeleg, zero
+	csrw    mideleg, zero
+3:
 
 	call    main
 

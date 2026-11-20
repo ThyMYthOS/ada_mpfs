@@ -1243,6 +1243,17 @@ out="$(MX_TEST=console_noinit_test_e51 MX_GARBAGE=1 matrix --uart-standin)"
 case "$out" in *"console_noinit_test_e51"*"PASS"*"(standin, hart 0, port 0)"*"pass 1, fail 0"*) pass "run_matrix: console_noinit_test passes with --uart-standin" ;; *) fail "run_matrix: console_noinit_test passes with --uart-standin ($out)" ;; esac
 [ "$(tr '\n' ' ' < "$tmp/mx.flags")" = "--uart-standin " ] && pass "run_matrix: console_noinit_test is run once, with --uart-standin only" || fail "run_matrix: console_noinit_test is run once, with --uart-standin only ($(cat "$tmp/mx.flags"))"
 
+# A name for U54 hart 2 to 4 that the list has only for hart 1 (<rest>_u54) runs that row on the other hart: built with
+# --harts N, the image of bin-u54-h<N>/, --hart N; the list itself is not changed.
+mkdir -p "$mx/examples/foo/bin-u54-h3"
+: > "$mx/examples/foo/bin-u54-h3/foo_test.elf"
+printf 'name\tdir\tserial\texpect\tobserve\twhy\nfoo_test_u54\texamples/foo\t0\tpass\t-\t-\n' > "$mx/tests/qemu/tests.list"
+: > "$tmp/mx.flags"
+out="$(MX_TEST=foo_test_u54h3 MX_NEED=none MX_LOG="$tmp/mx.flags" bash "$mx/tests/hw/run_matrix.sh" -o "$tmp/mx.out" foo_test_u54h3 2>&1)"
+case "$out" in *"foo_test_u54h3"*"PASS"*"(no flag, hart 3, port 0)"*"pass 1, fail 0"*) pass "run_matrix: a U54 hart 2 to 4 runs the row of hart 1" ;; *) fail "run_matrix: a U54 hart 2 to 4 runs the row of hart 1 ($out)" ;; esac
+out="$(MX_TEST=foo_test_u54h3 MX_NEED=none MX_LOG="$tmp/mx.flags" bash "$mx/tests/hw/run_matrix.sh" -o "$tmp/mx.out" 2>&1)"
+case "$out" in *"foo_test_u54h3"*) fail "run_matrix: without the name only the rows of the list run ($out)" ;; *) pass "run_matrix: without the name only the rows of the list run" ;; esac
+
 # flashpros: a fake sysfs with two FlashPro (vendor 1514), a CP2108 and a hub without serial number
 fs="$tmp/sysfs"; mkdir -p "$fs"
 mkusb () { mkdir -p "$fs/$1"; echo "$2" > "$fs/$1/idVendor"; echo "$3" > "$fs/$1/idProduct"; [ -z "$4" ] || echo "$4" > "$fs/$1/product"; [ -z "$5" ] || echo "$5" > "$fs/$1/serial"; }

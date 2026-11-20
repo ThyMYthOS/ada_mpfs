@@ -1,0 +1,74 @@
+--  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+--  SPDX-License-Identifier: Apache-2.0
+--
+--  A bare image like examples/pmp_probe (start.S and Bare_Console of
+--  bare_hello, Pmp_Csr, pmp_mask.S and pmp_try.S of pmp_probe, Test_Report
+--  of tests/common).
+--
+--  Build contract: see examples/STYLE.md.
+
+project App is
+   type Hart_Kind is ("e51", "u54");
+   Hart : Hart_Kind := external ("MPFS_HART", "e51");
+
+   --  STACK_ANALYSIS=1 (./x stack) makes the compiler also write the stack
+   --  usage (.su) and the call graph (.ci) of every unit. The code is the same.
+   type Switch is ("0", "1");
+   Stack_Analysis : Switch := external ("STACK_ANALYSIS", "0");
+   Analysis := ();
+   case Stack_Analysis is
+      when "1" => Analysis := ("-fstack-usage", "-fcallgraph-info=su,da");
+      when "0" => null;
+   end case;
+
+   --  The build directory must not reach the image (./x repro compares two
+   --  builds made in different directories): the paths the compiler records
+   --  are made relative to the repository root, which ./x exports (without
+   --  ADA_MPFS_SDK, gprbuild called by hand, they stay absolute), and the
+   --  switches are not recorded: they name a temporary file of gprbuild.
+   Sdk_Root := external ("ADA_MPFS_SDK", "");
+   Repro_Switches := ("-gno-record-gcc-switches");
+   case Sdk_Root is
+      when ""     => null;
+      when others =>
+         Repro_Switches := Repro_Switches
+           & ("-ffile-prefix-map=" & Sdk_Root & "=.");
+   end case;
+
+   --  The ABI of the image. The E51 has no FPU.
+   Arch := "";
+   Abi  := "";
+   case Hart is
+      when "e51" =>
+         Arch := "rv64imac_zicsr_zifencei";
+         Abi  := "lp64";
+      when "u54" =>
+         Arch := "rv64imafdc_zicsr_zifencei";
+         Abi  := "lp64d";
+   end case;
+
+   for Languages use ("Ada", "Asm_Cpp");
+   for Target use "riscv64-elf";
+   for Runtime ("Ada") use "light-polarfiresoc";
+   for Source_Dirs use
+     (".", "src", "../bare_hello", "../bare_hello/src", "../pmp_probe",
+      "../pmp_probe/src", "../../tests/common");
+   --  Only what the image needs of the shared directories.
+   for Source_Files use
+     ("start.S", "pmp_mask.S", "pmp_regs.S", "pmp_try.S",
+      "bare_console.ads", "bare_console.adb", "pmp_csr.ads", "pmp_csr.adb",
+      "test_report.ads", "test_report.adb",
+      "apb_window_test.ads", "apb_window_test.adb");
+   for Object_Dir use "obj-" & Hart;
+   for Exec_Dir use "bin-" & Hart;
+   for Main use ("apb_window_test.adb");
+
+   Common := ("-march=" & Arch, "-mabi=" & Abi, "-mcmodel=medany");
+
+   package Compiler is
+      for Default_Switches ("Ada") use Common &
+        ("-O2", "-g", "-gnat2022", "-gnatwa", "-gnatwe", "-gnaty",
+         "-ffunction-sections", "-fdata-sections") & Repro_Switches & Analysis;
+      for Default_Switches ("Asm_Cpp") use Common & ("-g") & Repro_Switches;
+   end Compiler;
+end App;

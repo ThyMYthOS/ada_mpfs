@@ -13,6 +13,10 @@
 # (MMUART4: console_mmuart4_test) and itim_reject_test (QEMU has no ITIM, the board has) are listed as "skip". The images of delay_accuracy_test
 # are built with DELAY_ACCURACY=hardware, those of interrupt_test with RX_SOURCE=loopback. The log of each cell is DIR/NAME.log (default build/hw-results).
 #
+# A NAME <rest>_u54h2, _u54h3 or _u54h4 that the list does not have runs the row <rest>_u54 on that U54 hart
+# (the image built with --harts N into bin-u54-h<N>/), so that a test listed for hart 1 can be run on the other
+# U54 harts on the board without adding them to the QEMU runs (pmp_xml_test_u54h3, ...).
+#
 # A cell passes if "TEST <name>: PASS" is on the port of the list and no "FAIL" line is. The images are primary
 # images (the default role): they set the MSS up themselves, so the cell is run without any flag first. Only if
 # nothing at all is printed it is run again with --uart-clocks (clock and release of the MMUARTs, for an image
@@ -39,6 +43,19 @@ shift $((OPTIND - 1))
 case "$memory" in lim|scratchpad) ;; *) echo "run_matrix: -m is lim or scratchpad" >&2; exit 2 ;; esac
 mkdir -p "$out"
 export DELAY_ACCURACY=hardware RX_SOURCE=loopback
+
+# The list, and a row for each NAME of another U54 hart that the list has only for hart 1.
+cells () {
+  local n base row
+  cat "$root/tests/qemu/tests.list"
+  for n in "$@"; do
+    case "$n" in *_u54h[2-4]) ;; *) continue ;; esac
+    awk -F'\t' -v n="$n" '$1 == n { f = 1 } END { exit !f }' "$root/tests/qemu/tests.list" && continue
+    base="${n%h?}"
+    row="$(awk -F'\t' -v b="$base" 'BEGIN { OFS = "\t" } $1 == b { $1 = ""; print; exit }' "$root/tests/qemu/tests.list")"
+    [ -n "$row" ] && printf '%s%s\n' "$n" "$row"
+  done
+}
 
 pass=0 fail=0 skip=0
 uarts=4   # MMUART0..3 are on the ports of the lab; the CP2108 has four interfaces, MMUART4 has none
@@ -102,7 +119,7 @@ while IFS=$'\t' read -r name dir serial expect _; do
   setup="${mode#--uart-}"; [ -n "$setup" ] || setup="no flag"
   printf '%-40s %s   (%s, hart %s, port %s)\n' "$name" "$verdict" "$setup" "$hart" "$serial"
   case "$verdict" in PASS) pass=$((pass + 1)) ;; *) fail=$((fail + 1)) ;; esac
-done <"$root/tests/qemu/tests.list"
+done < <(cells "$@")
 
 echo "pass $pass, fail $fail, skip $skip"
 [ "$fail" -eq 0 ]

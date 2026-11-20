@@ -22,10 +22,14 @@
 # what was written) QEMU gives the harts of the icicle kit: 8 with QEMU 10.1.0,
 # where the Renode model of the same board has 16. The rows are here so that a
 # QEMU that changes the number fails the smoke test instead of going unnoticed.
+# The width row: QEMU returns all 64 bits of pmpaddr0 written with all ones
+# (Renode 54, the Icicle Kit fewer; docs/assurance/pmp-tests.md).
 image	string
 examples/bare_hello/bin-e51/bare_hello.elf	bare hello E51 hart 0
 examples/bare_hello/bin-u54/bare_hello.elf	bare hello U54 hart 1
 examples/pmp_probe/bin-e51/pmp_probe.elf	pmp probe hart 0
 examples/pmp_probe/bin-e51/pmp_probe.elf	pmp entries 8
+examples/pmp_probe/bin-e51/pmp_probe.elf	pmp pmpaddr width 64
 examples/pmp_probe/bin-u54/pmp_probe.elf	pmp probe hart 1
 examples/pmp_probe/bin-u54/pmp_probe.elf	pmp entries 8
+examples/pmp_probe/bin-u54/pmp_probe.elf	pmp pmpaddr width 64

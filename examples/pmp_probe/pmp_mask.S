@@ -13,6 +13,12 @@
  * reset.
  *
  * unsigned long pmp_mask (void);
+ *
+ * pmp_ones writes all ones (64 bits) to pmpaddr0, reads it back and clears it
+ * again; the bits that read one are the bits of pmpaddr the hart implements
+ * (WARL). Entry 0 is expected to be unlocked and OFF.
+ *
+ * unsigned long pmp_ones (void);
  */
 
         .text
@@ -33,3 +39,14 @@ pmp_mask:
         .endr
         ret
         .size pmp_mask, . - pmp_mask
+
+        .globl pmp_ones
+        .type pmp_ones,@function
+
+pmp_ones:
+        li      t0, -1
+        csrw    pmpaddr0, t0
+        csrr    a0, pmpaddr0
+        csrw    pmpaddr0, zero
+        ret
+        .size pmp_ones, . - pmp_ones

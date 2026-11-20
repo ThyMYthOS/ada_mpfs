@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# The bare-metal images (bare_hello, pmp_probe, report_test) for the E51 and the U54, built once:
+# The bare-metal images (bare_hello, pmp_probe, report_test, the PMP tests) for the E51 and the U54, built once:
 # job `build` builds them, checks metrics.golden, runs the negative cases and the host tests of
 # the harnesses, and hands the images to the emulator jobs as the artifact `images`; the jobs
 # `qemu` (smoke test, Test_Report applications, the register trace of rts_console_bringup) and
@@ -243,7 +243,8 @@ jobs:
           name: images
 
       # The Renode model of the board has 16 PMP entries where QEMU has 8; its
-      # expectations are kept apart in tests/renode/smoke.expected.
+      # expectations are kept apart in tests/renode/smoke.expected, which also
+      # runs the PMP tests (pmp_xml_test, pmp_access_test) with 16 entries.
       - name: Renode smoke test
         shell: bash
         env:

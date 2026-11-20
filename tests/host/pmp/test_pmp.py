@@ -3,7 +3,8 @@
 #
 # @verifies GEN-010
 """config/gen/mpfs_gen/pmp.py: the PMP of the reference XMLs, the regions of the entries, a negative case for
-every code of the PMP sections, the Ada table and the command line. Needs the merged SVD (tools/svd.py ensure)."""
+every code of the PMP sections, the Ada table of examples/pmp_xml_test and the command line; and that the
+emulator lists run the PMP test programs. Needs the merged SVD (tools/svd.py ensure)."""
 import dataclasses
 import subprocess
 import sys
@@ -23,6 +24,7 @@ BOARDS = ROOT / "config" / "boards"
 XMLS = {p.parent.name: p for p in sorted(BOARDS.glob("*/*.xml"))}
 CONFIGS = {board: xml_reader.read(path, SVD) for board, path in XMLS.items()}
 ICICLE_XML = "config/boards/icicle/ICICLE_MSS_mss_cfg.xml"
+TABLE = ROOT / "examples" / "pmp_xml_test" / "src" / "generated" / "pmp_xml.ads"
 GEN = [sys.executable, "-I", str(ROOT / "config" / "gen" / "mpfs_gen")]
 covered: set[str] = set()
 
@@ -97,7 +99,7 @@ def _():
         assert f"| `{code}` | {checks.CODES[code]} |" in readme, code
 
 
-@case("the Ada table has every CSR of every hart, is the same twice, and its lines fit")
+@case("the Ada table has every CSR of every hart, is the same twice, and the committed one is current")
 def _():
     config = xml_reader.read(ROOT / ICICLE_XML, SVD, name=ICICLE_XML)
     text = pmp.ada_table(config, ICICLE_XML)
@@ -105,21 +107,23 @@ def _():
     assert "package Pmp_Xml with Pure is" in text and config.sha256 in text
     assert text.count("Cfg0 => ") == 5 and text.count("16#ffff_ffff_ffff_ffff#") == 4
     assert text.count("16#0000_0000_0000_009f#") == 4
+    assert TABLE.read_text() == text, "run python3 config/gen/mpfs_gen pmp --ada " + str(TABLE.relative_to(ROOT))
     assert all(len(line) <= 79 for line in text.splitlines())
 
 
-@case("pmp --check: 0 for a current table, 1 and a diff for a stale one, 2 without --ada")
+@case("pmp --check: 0 for the committed table, 1 and a diff for a stale one, 2 without --ada")
 def _():
+    rel = str(TABLE.relative_to(ROOT))
+    ok = run("pmp", "--svd", str(SVD), "--check", "--ada", rel, ICICLE_XML)
+    assert ok.returncode == 0, ok.stderr
     with tempfile.TemporaryDirectory() as tmp:
-        written = Path(tmp) / "new" / "pmp_xml.ads"
-        made = run("pmp", "--svd", str(SVD), "--ada", str(written), ICICLE_XML)
-        assert made.returncode == 0, made.stderr
-        ok = run("pmp", "--svd", str(SVD), "--check", "--ada", str(written), ICICLE_XML)
-        assert ok.returncode == 0, ok.stderr
         stale = Path(tmp) / "pmp_xml.ads"
-        stale.write_text(written.read_text().replace("16#0000_0000_0000_009f#", "16#0000_0000_0000_0098#", 1))
+        stale.write_text(TABLE.read_text().replace("16#0000_0000_0000_009f#", "16#0000_0000_0000_0098#", 1))
         bad = run("pmp", "--svd", str(SVD), "--check", "--ada", str(stale), ICICLE_XML)
         assert bad.returncode == 1 and "is not current" in bad.stderr, bad.stderr
+        written = Path(tmp) / "new" / "pmp_xml.ads"
+        made = run("pmp", "--svd", str(SVD), "--ada", str(written), ICICLE_XML)
+        assert made.returncode == 0 and written.read_text() == TABLE.read_text(), made.stderr
     usage = run("pmp", "--svd", str(SVD), "--check", ICICLE_XML)
     assert usage.returncode == 2 and "--ada" in usage.stderr
 
@@ -130,6 +134,16 @@ def _():
     assert out.returncode == 0, out.stderr
     assert "hart 0: pmpcfg0 0x0000000000000000, pmpcfg2 0x0000000000000000, 0 of 16 entries not OFF" in out.stdout
     assert out.stdout.count("  entry 0: NAPOT [0x0, 0xffffffffffffff] rwx locked") == 4
+
+
+@case("tests.list and the Renode expectations run the PMP tests and the APB window test on the E51 and a U54")
+def _():
+    rows = (ROOT / "tests" / "qemu" / "tests.list").read_text().splitlines()
+    renode = (ROOT / "tests" / "renode" / "smoke.expected").read_text().splitlines()
+    for test in ("pmp_xml_test", "pmp_access_test", "pmp_isolation_test", "apb_window_test"):
+        for hart in ("e51", "u54"):
+            assert f"{test}_{hart}\texamples/{test}\t0\tpass\t-\t-" in rows, (test, hart)
+            assert f"examples/{test}/bin-{hart}/{test}.elf\tTEST {test}_{hart}: PASS" in renode, (test, hart)
 
 
 finish()

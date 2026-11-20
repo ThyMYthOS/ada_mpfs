@@ -10,9 +10,10 @@
 #
 # gprbuild only compiles (-c) the sources of app.gpr; the objects named (base
 # names in obj-<hart>/) are linked with the linker script of examples/common/ld
-# into bin-<hart>/<image>.elf. This is the pattern of a bootloader that is
-# built against the runtime for its system.ads only: no unit of the runtime
-# is bound or linked.
+# into bin-<hart>/<image>.elf; the image of U54 hart N = 2 to 4 (--harts N) goes
+# to bin-u54-h<N>/, next to the one of hart 1 (the objects are the same). This
+# is the pattern of a bootloader that is built against the runtime for its
+# system.ads only: no unit of the runtime is bound or linked.
 #
 #   Harts mask   bit n set = hart n runs the image (E51 = hart 0, U54 = 1 .. 4);
 #                start.S parks every other hart. It reaches start.S as the
@@ -23,7 +24,7 @@
 
 bare_build () {
   local image="$1"; shift
-  local hart="${MPFS_HART:-e51}" harts="${MPFS_HARTS:-}" mask objs=() o
+  local hart="${MPFS_HART:-e51}" harts="${MPFS_HARTS:-}" mask objs=() o bin
   case "$hart" in
     e51) [ -z "$harts" ] || { echo "bare_build: --harts needs the u54" >&2; return 1; }
          mask=1 ;;
@@ -39,8 +40,10 @@ bare_build () {
     [ -f "obj-$hart/$o.o" ] || { echo "bare_build: obj-$hart/$o.o was not built" >&2; return 1; }
     objs+=("obj-$hart/$o.o")
   done
-  mkdir -p "bin-$hart"
-  bare_link "$mask" "bin-$hart/$image" "${objs[@]}"
+  bin="bin-$hart"
+  case "$hart:$harts" in u54:[234]) bin="bin-u54-h$harts" ;; esac
+  mkdir -p "$bin"
+  bare_link "$mask" "$bin/$image" "${objs[@]}"
 }
 
 # bare_link <mask> <output base> <object>...

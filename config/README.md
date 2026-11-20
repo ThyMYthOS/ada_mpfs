@@ -556,4 +556,6 @@ python3 config/gen/mpfs_gen pmp --ada examples/pmp_xml_test/src/generated/pmp_xm
 matches (TOR from the `pmpaddr` of the entry before it, a NAPOT entry of all ones is the whole space of 2^56
 bytes), its rights and its lock. The rules of the Privileged Spec v1.10: an entry with W set and R clear is
 reserved (`GEN-E100`), bits 5 and 6 of a configuration byte are reserved (`GEN-E101`). `--ada` writes the values
-as the package `Pmp_Xml` (`Pure`, one record per hart), byte for byte the same for the same XML.
+as the package `Pmp_Xml` (`Pure`, one record per hart), byte for byte the same for the same XML; the test program
+`examples/pmp_xml_test` compares it with the CSRs of the hart. What the reference XMLs set and what the tests
+cover is in [`docs/assurance/pmp-tests.md`](../docs/assurance/pmp-tests.md).

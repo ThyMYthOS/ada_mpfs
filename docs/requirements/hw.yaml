@@ -1,7 +1,8 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: CC-BY-4.0
 #
-# Requirements on the board tools. See README.md for the format.
+# Requirements on the board tools and on the behaviour of the board that the project relies on. See
+# README.md for the format.
 requirements:
   - id: HW-001
     text: >-
@@ -18,3 +19,40 @@ requirements:
       --dry-run prints the XML with its SHA-256 and, for each value of the XML, its register.
     tsf: false
     source: hw/README.md
+  - id: HW-003
+    text: >-
+      The PMP of every hart (the E51 and the U54) holds the configuration that the MSS Configurator XML
+      sets for it and enforces each entry as the Privileged Spec v1.10 requires: an allowed read, write
+      or execute completes and a denied one raises its access fault (mcause 1, 5, 7); in U mode an access
+      that no entry matches is denied; an entry applies to M mode only with L set; TOR, NA4 and NAPOT
+      regions match their bytes; the matching entry with the lowest index decides; a locked entry, and
+      pmpaddr(i-1) of a locked TOR entry i, ignore writes until reset. The test programs count the
+      entries of the hart (Microchip documents 16, SiFive's U54-MC documents 8) and the bits of pmpaddr it
+      implements (WARL), adapt to both, and do not rely on any PMP register being zero at start.
+    tsf: true
+    source: docs/assurance/pmp-tests.md
+  - id: HW-004
+    text: >-
+      The behaviour of the LO and HI windows of the APB peripherals under SYSREG.APBBUS_CR is measured on
+      the hart, not assumed: whether a peripheral answers at its LO and its HI address in either setting
+      (reads, and writes with the posted mode of the AHB-APB bridges off and on), where RTC and timer
+      answer in the HI window, and whether, with one PMP entry per AMP context over the 256 KiB of the LO
+      or the HI window, U mode reaches the peripheral of its own context and faults on the window of the
+      other context (mcause 5, 7). A peripheral answers in the window APBBUS_CR selects for it, and an
+      access in the other window has no effect: a read there does not return the value the peripheral
+      holds, a write there does not change it (measured on the Icicle Kit; the MSS TRM DS60001702S, 3.8,
+      expects an AXI response error, which was not observed). Whether such an access faults, and what the
+      Bus Error Unit of the hart, mip and the PLIC record, is reported, not required.
+    tsf: false
+    source: docs/assurance/pmp-tests.md
+  - id: HW-005
+    text: >-
+      U mode is isolated from M mode by the PMP of the hart with locked entries: where no entry matches, U
+      mode is denied and M mode is not, so a page without an entry belongs to M mode; U mode reaches
+      what a locked entry gives it and nothing else (a load, store or fetch outside faults with mcause 5,
+      7 or 1); U mode cannot read or write a PMP CSR (illegal instruction, mcause 2); a locked entry
+      binds M mode with the rights it gives U mode, and M mode cannot change it (writes are ignored until
+      reset); an entry that is not locked can be opened and closed by M mode; a locked entry without
+      rights over a page denies it to M mode and to U mode.
+    tsf: true
+    source: docs/assurance/pmp-tests.md
