@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+# source: svd/base/pfsoc_control_scb.yaml, SERVICES_CR.COMMAND description: "The 16-bit command value", without the layout of the value
+# source: Microchip platform drivers/mss/mss_sys_services/mss_sys_services.c (MIT; read in the Zephyr hal_microchip mirror): the driver forms the command as the 7-bit opcode in bits 6:0 and the mailbox offset in bits 15:7, with another meaning of that field for some services (the example in the source is the spi index of the bitstream authentication), checks SERVICES_SR.BUSY first, clears MESSAGE_INT, writes the request data into the mailbox, and then writes SERVICES_CR once with the command, REQUEST and, for the interrupt mode, NOTIFY
+# status: unverified
+# owner: Manuel Stahl
+
+# The vendor driver gives the layout of the command that the register map page leaves open. The page lists the block
+# at 0x07020000, an offset on the IOSCB bus that the MSS sees at 0x30000000, so it is at 0x37020000 (the address of
+# the driver); the mailbox is SCB_MAILBOX.
+PFSOC_CONTROL_SCB:
+  SERVICES_CR:
+    _modify:
+      COMMAND:
+        description: "The 16-bit command value. The vendor driver puts the 7-bit opcode of the service in bits 6:0 and the offset of the mailbox data, counted in words, in bits 15:7; some services use the upper bits differently. The driver checks SERVICES_SR.BUSY before it writes the register and writes it once, with the command and REQUEST (and NOTIFY when it waits for the message interrupt)."

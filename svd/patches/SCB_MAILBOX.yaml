@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+# source: svd/base/scb_mailbox.yaml: the register map page lists the mailbox as one register MBOX at offset 0x000 with the description "0x800-0x7FC for MBOX", and the memory map page gives the block a range of 4 KBytes
+# source: Microchip platform drivers/mss/mss_sys_services/mss_sys_services.h and mss_sys_services.c (MIT; read in the Zephyr hal_microchip mirror): the mailbox MSS_SCBMAILBOX at 0x37020800 is "2kB bytes long", accessed in words, and the last valid mailbox offset of a service is 511 (the driver asserts mb_offset <= 511); the mailbox ECC status of a read is part of the service response
+# status: unverified
+# owner: Manuel Stahl
+
+# The mailbox of the system services is 512 words, not one register: the page names a single register and
+# its description of the range is a typo. The array has the layout that the vendor driver uses (a word per
+# mailbox offset); the 4 KBytes that the memory map page gives are the size of the address window, not the
+# size of the mailbox.
+SCB_MAILBOX:
+  _delete:
+    - MBOX
+  _add:
+    MBOX%s:
+      description: "Mailbox of the system services (512 words, accessed in words): the data of a service goes in and the response comes back. The mailbox offset of a service is counted in words, and the last valid offset is 511. The system controller reports the ECC status of a mailbox read in the response of the service (0: no error, 1: one bit corrected, 2: two bits wrong)."
+      addressOffset: 0x0
+      size: 32
+      access: read-write
+      resetValue: 0x0
+      dim: 512
+      dimIncrement: 0x4
+      dimIndex: "0-511"
+      fields:
+        MBOX:
+          description: Mailbox word
+          bitOffset: 0
+          bitWidth: 32
+          access: read-write

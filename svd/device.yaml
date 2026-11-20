@@ -68,7 +68,9 @@ _include:
   - patches/EMMC_SD.yaml
   - patches/I2C_A_LO.yaml
   - patches/MMUART0_LO.yaml
+  - patches/PFSOC_CONTROL_SCB.yaml
   - patches/QSPIXIP.yaml
+  - patches/SCB_MAILBOX.yaml
   - patches/SCB_REGS.yaml
   - patches/SPI_A_LO.yaml
   - patches/SYSREG.yaml
