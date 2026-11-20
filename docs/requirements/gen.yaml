@@ -148,3 +148,18 @@ requirements:
       system and are notes for a dev system, while APBBUS_CR and the addresses apply to both.
     tsf: false
     source: config/README.md
+  - id: GEN-013
+    text: >-
+      For every hart of a U partition the generator derives the unlocked PMP entries that U mode
+      needs (the allow list: the windows of the partition with the rights they need, fast_text only
+      in the ITIM of the hart itself, its peripherals and console read-write at the address APBBUS_CR
+      gives, the page of mtime read-only), placed from the lowest index after the last entry the XML
+      uses for the hart, one NAPOT entry where a range allows it and TOR otherwise, unless the XML
+      already has unlocked entries in use for that hart; an allow list that does not fit the entries
+      of the target is reported with its own error code. The derived system keeps per hart the locked
+      part from the XML and the unlocked part with the generated entries, and the checks of GEN-011
+      evaluate both together. M mode of a hart with locked entries that reaches a window, peripheral
+      or ITIM or DTIM of a partition of the same AMP context is a warning; of a partition of the
+      other context or of none it is an error.
+    tsf: false
+    source: config/README.md

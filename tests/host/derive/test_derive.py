@@ -4,12 +4,14 @@
 # @verifies GEN-006, GEN-007, GEN-008, GEN-009
 """config/gen/mpfs_gen/derive: the derived systems of the four reference systems with the reference XMLs, the
 clocks recomputed from the MSS PLL, the L2, the placement, CPU_To_Hart, the PLIC, the peripheral bits, and a
-negative case for every code of the derivations. Needs the merged SVD (tools/svd.py ensure).
+negative case for every code of the derivations. Needs the merged SVD (tools/svd.py ensure). amp_a, amp_b and
+amp_d take the XMLs of the boards; amp_c needs the L2 of its own XML (config/boards/icicle_amp_c: 15 ways of LIM).
 
 A negative case changes the XML in the model (fields of registers, the value of the register recomputed as
 the reader does) or the description, and expects exactly the codes it names. The reference systems are taken
-with security_profile dev, so that the checks of the PMP and the contexts, which the reference XMLs fail
-(the open, locked entry 0 of the U54 harts), are notes; test_protection.py has them, amp_c (prod) included."""
+with security_profile dev, so that the checks of the PMP and the contexts, which the XMLs of the boards fail
+(the open, locked entry 0 of the U54 harts), are notes; test_protection.py has them, amp_c (prod with its XML)
+included."""
 import dataclasses
 import subprocess
 import sys
@@ -33,6 +35,7 @@ SYSTEMS = ROOT / "systems"
 XMLS = {p.parent.name: p for p in sorted(BOARDS.glob("*/*.xml"))}
 CONFIGS = {board: xml_reader.read(path, SVD) for board, path in XMLS.items()}
 ICICLE = CONFIGS["icicle"]
+AMP_C = CONFIGS["icicle_amp_c"]
 REFERENCE = ("amp_a", "amp_b", "amp_c", "amp_d")
 CLOCKS = "mss_clocks/clocks"
 PLL = "mss_clocks/mss_pll"
@@ -65,6 +68,11 @@ TWO = ONE + """  - name: b
 def system(name):
     """The reference system <name> with security_profile dev (amp_c is prod)."""
     return dataclasses.replace(yaml_reader.read(SYSTEMS / name / "system.yaml"), security_profile="dev")
+
+
+def config_of(name):
+    """The XML a reference system is derived with here: its own for amp_c, the Icicle Kit's for the others."""
+    return AMP_C if name == "amp_c" else ICICLE
 
 
 def text(description):
@@ -153,28 +161,33 @@ def _():
              "MSS_COREPLEX_CPU_CLK", "1.002 ppm")
 
 
-@case("the four reference systems derive with the XMLs of the Icicle Kit and of the PMP demo; the video kit "
-      "configures too few MMUARTs")
+@case("amp_a, amp_b and amp_d derive with the XMLs of the Icicle Kit and of the PMP demo, amp_c with its own; the "
+      "video kit configures too few MMUARTs; amp_c does not fit the 512 KiB of LIM of the boards' XMLs")
 def _():
     for name in REFERENCE:
-        for board in ("icicle", "icicle_es", "icicle_es_pmp_demo"):
+        boards = ("icicle_amp_c",) if name == "amp_c" else ("icicle", "icicle_es", "icicle_es_pmp_demo")
+        for board in boards:
             d = derive.derive(system(name), CONFIGS[board], SVD)
             assert d.xml_sha256 == CONFIGS[board].sha256
             assert placement.check(d.windows, d.memories, {p.name: p.harts for p in d.partitions}) == []
-        got, _ = codes_of(system(name), CONFIGS["video_kit"])
-        assert set(got) == {"GEN-E084"}, (name, got)
+        if name != "amp_c":
+            got, _ = codes_of(system(name), CONFIGS["video_kit"])
+            assert set(got) == {"GEN-E084"}, (name, got)
+    unpinned = dataclasses.replace(system("amp_c"), xml=None)
+    assert codes_of(unpinned, ICICLE)[0] == ["GEN-E076"], codes_of(unpinned, ICICLE)
 
 
 @case("the derivation is deterministic")
 def _():
     for name in REFERENCE:
-        assert derive.derive(system(name), ICICLE, SVD) == derive.derive(system(name), ICICLE, SVD)
+        config = config_of(name)
+        assert derive.derive(system(name), config, SVD) == derive.derive(system(name), config, SVD)
 
 
 @case("the L2 of the reference XMLs: 8 cache, 4 scratchpad (the upper enabled ways 8 to 11), 4 LIM ways; the XML "
       "of amp_c: 1 cache way, 15 LIM ways")
 def _():
-    l2 = derive.derive(text(ONE), CONFIGS["icicle_amp_c"], SVD).l2
+    l2 = derive.derive(system("amp_c"), AMP_C, SVD).l2
     assert (l2.ways.cache, l2.ways.lim, l2.ways.scratchpad) == (1, 15, 0) and not l2.override, l2
     assert l2.way_enable == 0 and l2.lim_length == 1920 * 1024, l2
     for board, config in CONFIGS.items():
@@ -188,7 +201,7 @@ def _():
     d = derive.derive(system("amp_d"), ICICLE, SVD)
     assert d.l2.override and (d.l2.ways.cache, d.l2.ways.lim) == (4, 12) and d.l2.reason
     assert d.l2.partitioning == (("u54_1", (0, 1)), ("u54_2", (0, 1)), ("u54_3", (2, 3)), ("u54_4", (2, 3)))
-    for name in ("amp_a", "amp_b", "amp_c"):
+    for name in ("amp_a", "amp_b"):
         l2 = derive.derive(system(name), ICICLE, SVD).l2
         assert l2.override and (l2.ways.cache, l2.ways.lim, l2.ways.scratchpad) == (1, 15, 0), name
 
@@ -207,7 +220,7 @@ def _():
 @case("amp_b and amp_c: a graph that is not a chain gets one shared block of channels")
 def _():
     for name, channels in (("amp_b", 3), ("amp_c", 5)):
-        d = derive.derive(system(name), ICICLE, SVD)
+        d = derive.derive(system(name), config_of(name), SVD)
         ipc = sorted((w.origin, w.end) for w in d.windows if w.kind == "ipc")
         assert len(ipc) == channels and all(a[1] == b[0] for a, b in pairwise(ipc)), (name, ipc)
 
@@ -277,14 +290,15 @@ def _():
     assert [(w.origin, w.length, w.mode) for w in d.windows] == [(target.LIM_ORIGIN, 512 * 1024, "NAPOT")]
 
 
-@case("the command line: derive --check of the reference systems (amp_c, prod, refused by the PMP of the XML), derive "
+@case("the command line: derive --check of the reference systems (amp_c, prod, passes with warnings), derive "
       "prints the system, a broken one is status 2")
 def _():
     files = [str(SYSTEMS / n / "system.yaml") for n in REFERENCE]
     done = cli("derive", "--check", "--svd", str(SVD), *files)
-    assert done.returncode == 2 and done.stdout.count(": ok\n") == 3 and "amp_c/system.yaml: ok" not in done.stdout, \
-        (done.stdout, done.stderr)
-    assert "amp_c/system.yaml with config/boards/icicle/ICICLE_MSS_mss_cfg.xml: GEN-E105" in done.stderr, done.stderr
+    assert done.returncode == 0 and done.stdout.count(": ok\n") == 4, (done.stdout, done.stderr)
+    assert "amp_c/system.yaml: GEN-E128 (warning)" in done.stderr, done.stderr
+    amp_c = [line.split(": ", 1)[1].split(" ")[0] for line in done.stderr.splitlines() if "amp_c/system.yaml: " in line]
+    assert set(amp_c) == {"GEN-E127", "GEN-E128", "GEN-E135"}, done.stderr
     assert "amp_a/system.yaml: " in done.stderr and "not enforced for security_profile dev" in done.stderr
     done = cli("derive", "--svd", str(SVD), files[0])
     assert done.returncode == 0, done.stderr

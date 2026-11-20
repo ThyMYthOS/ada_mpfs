@@ -108,6 +108,8 @@ CODES: dict[str, str] = {
     "GEN-E125": "a critical system block is reachable from U mode",
     "GEN-E126": "SYSREG or MPUCFG is reachable from U mode",
     "GEN-E127": "a critical system block is reachable from M mode of a hart with locked entries (a warning)",
+    "GEN-E128": "a window, peripheral, ITIM or DTIM of a partition of the same AMP context is reachable from M mode of a hart with locked entries (a warning)",
+    "GEN-E129": "the generated allow list of a hart does not fit the PMP entries of the target after the entries of the XML",
     "GEN-E130": "a hart is in both AMP contexts",
     "GEN-E131": "a peripheral is in both AMP contexts",
     "GEN-E132": "APBBUS_CR is not bits 23:0 of CONTEXT_B_EN while AMP contexts are used",

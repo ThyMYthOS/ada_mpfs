@@ -27,8 +27,9 @@ What it sets (`python3 config/gen/mpfs_gen pmp`, `derive` with `tests/host/deriv
 
 Against a system with one partition per context the contexts pass, and the PMP is refused for a prod image: the
 locked entries grant SYSREG and the L2 controller to U and M mode (`GEN-E126`, `GEN-E125`, `GEN-E127`) and do not
-cover the partitions' windows in the LIM (`GEN-E120`; the demo runs from DDR). 11 entries do not fit the 8 of
-QEMU (`GEN-E103` with `--pmp-entries 8`).
+cover the partitions' windows in the LIM (`GEN-E120`; the demo runs from DDR). The generated allow list comes
+after the locked deny-all, which hides it, and on harts 1 and 2 it does not fit the one entry left (`GEN-E129`).
+11 entries do not fit the 8 of QEMU (`GEN-E103` with `--pmp-entries 8`).
 
 Format 0.5.3 has no `GPIO_INTERRUPT_FAB_CR`, `ALT_GPIO_INTERRUPT_FAB_CR` and `CONFIGURED_PERIPHERALS` (nor
 `DDR_CLK`, `MSS_CLKS_VERSION`, `SYSREG_CLKS_VERSION`); the derivations take the defaults of Microchip's HAL for

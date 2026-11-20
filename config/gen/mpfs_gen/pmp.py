@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# @req GEN-010, GEN-011
+# @req GEN-010, GEN-011, GEN-013
 """The PMP of each hart as the MSS Configurator XML sets it.
 
 The PMP is not chosen by the generator: the user sets it with Microchip's MSS Configurator, and the XML
@@ -16,6 +16,8 @@ table for the test program examples/pmp_xml_test, which compares them with what 
   regions(pmp, bits)        the address space of a hart cut into the regions in which its PMP decides
                             alike, with the rights of U and M mode in each
   locked_part(pmp)          the entries the boot loader sets (locked), unlocked_part(pmp) those of the kernel
+  cover(ranges, start, pmp) unlocked entries from index <start> that grant each range its rights (NAPOT
+                            where the range allows, else TOR), and with_entries() the PMP with them set
   rules(config, harts, n)   the rules on how the entries are laid out (the derivation checks them)
 
 The rules of the encoding (Privileged Spec v1.10, 3.6.1): an entry with W set and R clear is reserved
@@ -211,6 +213,66 @@ def unlocked_part(pmp: HartPmp) -> tuple[Entry, ...]:
     unlocked TOR entry included), in index order."""
     locked = {e.index for e in locked_part(pmp)}
     return tuple(pmp.entry(i) for i in in_use(pmp) if i not in locked)
+
+
+def _cfg(mode: str, rights: str) -> int:
+    return MODES.index(mode) << A_SHIFT | sum(bit for c, bit in (("r", R), ("w", W), ("x", X)) if c in rights)
+
+
+def napot_pieces(first: int, end: int) -> list[tuple[int, int]]:
+    """[first, end) as the fewest NAPOT ranges (first, size) in address order: each the largest power of two
+    of at least 8 bytes that is a multiple of its start and fits; <first> and <end> multiples of 8."""
+    out: list[tuple[int, int]] = []
+    while first < end:
+        size = first & -first if first else 1 << (end.bit_length() - 1)
+        while first + size > end:
+            size >>= 1
+        out.append((first, size))
+        first += size
+    return out
+
+
+def cover(ranges: list[tuple[int, int, str]], start: int, pmp: HartPmp) -> tuple[Entry, ...]:
+    """Unlocked entries from index <start> on (indices may pass the 16 of the hart) that grant each of the
+    <ranges> (first, end, rights), [first, end) multiples of 8 and in address order, its rights: one NAPOT
+    entry per piece of napot_pieces() if that takes no more entries than TOR, else a TOR entry, whose base is
+    the pmpaddr of the entry before it (an OFF entry with the base before it, unless the entry before is a
+    TOR entry that ends at <first>). The entries before <start> are those of <pmp>."""
+    out: list[Entry] = []
+
+    def before(index: int) -> Entry | None:
+        if index == 0:
+            return None
+        return out[-1] if out and out[-1].index == index - 1 else pmp.entry(index - 1) if index - 1 < ENTRIES else None
+
+    index = start
+    for first, end, rights in ranges:
+        pieces = napot_pieces(first, end)
+        prev = before(index)
+        chained = (prev is None and first == 0) or (prev is not None and prev.mode == "TOR"
+                                                    and prev.addr << 2 == first)
+        if len(pieces) <= (1 if chained else 2):
+            for base, size in pieces:
+                out.append(Entry(index, _cfg("NAPOT", rights), (base >> 2) | ((size >> 3) - 1)))
+                index += 1
+            continue
+        if not chained:
+            out.append(Entry(index, _cfg("OFF", ""), first >> 2))
+            index += 1
+        out.append(Entry(index, _cfg("TOR", rights), end >> 2))
+        index += 1
+    return tuple(out)
+
+
+def with_entries(pmp: HartPmp, entries: tuple[Entry, ...]) -> HartPmp:
+    """<pmp> with <entries> set at their indices (those beyond the 16 of the hart left out)."""
+    cfg = [pmp.entry(i).cfg for i in range(ENTRIES)]
+    addr = list(pmp.addr)
+    for e in entries:
+        if e.index < ENTRIES:
+            cfg[e.index], addr[e.index] = e.cfg, e.addr
+    return HartPmp(pmp.hart, sum(c << 8 * i for i, c in enumerate(cfg[:8])),
+                   sum(c << 8 * i for i, c in enumerate(cfg[8:])), tuple(addr))
 
 
 def rules(config: MssConfiguration, harts: tuple[HartPmp, ...],

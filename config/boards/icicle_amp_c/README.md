@@ -25,8 +25,8 @@ What it sets (`python3 config/gen/mpfs_gen pmp config/boards/icicle_amp_c/amp_c_
 ## The locked tables
 
 The Configurator writes three PMP tables: the E51's and one per context, which every hart of the context
-gets. They hold only the locked barrier, entries without rights (`---`) that bind U and M mode; the unlocked
-allow list of each hart, which separates the partitions of a context in U mode, comes behind them. The tables are the keys
+gets. They hold only the locked barrier, entries without rights (`---`) that bind U and M mode; the generator
+adds the unlocked allow list of each hart behind them (`config/README.md`). The tables are the keys
 `PMP<i>CFG_<T>` and `CSRPMP_ADDR<i>_<T>` of the `.cfg` with `<T>` `E51`, `CTXA`, `CTXB`: the configuration
 byte `0x98` (locked NAPOT) or `0x88` (locked TOR) with `0x80` for the base of a TOR entry (locked OFF), and
 `pmpaddr` the address shifted right by 2 (NAPOT: `(base + size / 2 - 1) >> 2`). The windows are those of
@@ -82,11 +82,20 @@ Deliberately, for the budget of 16 entries:
 - context A: the ITIMs of harts 0, 3 and 4, which `amp_c` does not use (an unused ITIM is not foreign to the
   checks);
 - context B: the unused LIM above `0x0813_4000`;
-- all three: PLIC and CLINT, the PDMA, the IOSCB, the system controller and the eNVM controller.
+- all three: PLIC and CLINT, the PDMA, the IOSCB, the system controller and the eNVM controller. M mode of
+  every hart reaches them (`GEN-E127`, a warning).
+
+The checks also report, as warnings, what the tables leave open beyond that list: the bus error units of the
+other harts (`0x0170_0000` to `0x0170_4FFF`, all three tables), `CFG_DDR_SGMII_PHY` (`0x2000_7000`, the E51
+and context A), and for M mode of context B the LO addresses of the peripherals of both buses from
+`0x2010_4000` that entry 4 does not cover (`GEN-E135`: MMUART3 and 4 at their LO address, and SPI0 to the
+timer from `0x2010_8000`). Within a context the tables cannot separate the partitions in M mode
+(`GEN-E128`): `io` and `control` reach each other's windows, channels and peripherals, and so do `app_a` and
+`app_b`.
 
 ## Budget per hart
 
-Locked entries of the XML plus the unlocked allow list that the kernel of the hart sets, at most 16:
+Locked entries of the XML plus the unlocked allow list the generator adds (`derive`), at most 16:
 
 | Hart | Partition | Locked | Unlocked | Allow list |
 |---|---|---|---|---|

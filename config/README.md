@@ -371,6 +371,8 @@ derivations.
 | `GEN-E125` | a critical system block is reachable from U mode |
 | `GEN-E126` | SYSREG or MPUCFG is reachable from U mode |
 | `GEN-E127` | a critical system block is reachable from M mode of a hart with locked entries (a warning) |
+| `GEN-E128` | a window, peripheral, ITIM or DTIM of a partition of the same AMP context is reachable from M mode of a hart with locked entries (a warning) |
+| `GEN-E129` | the generated allow list of a hart does not fit the PMP entries of the target after the entries of the XML |
 | `GEN-E130` | a hart is in both AMP contexts |
 | `GEN-E131` | a peripheral is in both AMP contexts |
 | `GEN-E132` | APBBUS_CR is not bits 23:0 of CONTEXT_B_EN while AMP contexts are used |
@@ -384,11 +386,13 @@ partition data that breaks them, whichever tool wrote it.
 
 ### The reference systems
 
-[`systems/`](../systems/README.md) has four systems that the schema validates and that derive with the XMLs of
-the Icicle Kit (`icicle`, `icicle_es`; the video kit does not configure MMUART2 and MMUART3, which they use).
-Their window sizes are example data that fit together into the LIM; they are not measured. The reference
-XMLs configure 4 ways of LIM (512 KiB), too few for them, so `amp_a` to `amp_c` override the L2 with the split at
-reset (1 way of cache, 15 of LIM) and `amp_d` with 4 ways of cache and 12 of LIM.
+[`systems/`](../systems/README.md) has four systems that the schema validates. `amp_a`, `amp_b` and `amp_d`
+derive with the XMLs of the Icicle Kit (`icicle`, `icicle_es`; the video kit does not configure MMUART2 and
+MMUART3, which they use); `amp_c` is a prod system with an XML of its own (`icicle_amp_c`: the L2, the AMP
+contexts and the locked PMP tables of `amp_c`). Their window sizes are example data that fit together into the
+LIM; they are not measured. The XMLs of the boards configure 4 ways of LIM (512 KiB), too few for them, so
+`amp_a` and `amp_b` override the L2 with the split at reset (1 way of cache, 15 of LIM) and `amp_d` with 4 ways
+of cache and 12 of LIM; the XML of `amp_c` sets 1 way of cache and 15 of LIM itself.
 
 | System | E51 (hart 0) | U54 (harts 1 to 4) |
 |---|---|---|
@@ -620,13 +624,30 @@ last); with 11 entries on harts 1 and 2 it does not fit the 8 of QEMU.
 
 ## PMP and AMP contexts against the partitions
 
-The PMP and the AMP contexts are the user's, set in the MSS Configurator; the generator does not make or repair
-an entry. `derive` (`derive/protection.py`, `derive/contexts.py`) checks them against the partitions of
-`system.yaml` and adds to the derived system the AMP context and the peripheral addresses of each partition,
-`APBBUS_CR`, the contexts, and per hart the PMP: the entries in use, the locked and the unlocked part and the
-regions with the rights of U and M mode. `derive` prints them with the occupation of each hart and the mapping of
-the partitions onto the contexts; a warning is a line `warning: GEN-Exxx (warning) ...` (with `--check`, on
-stderr after `FILE: ok`).
+The locked PMP entries and the AMP contexts are the user's, set in the MSS Configurator; the generator does not
+make or repair one. `derive` (`derive/protection.py`, `derive/contexts.py`) adds the unlocked allow list of each
+hart of a `u` partition, checks the whole against the partitions of `system.yaml` and adds to the derived system
+the AMP context and the peripheral addresses of each partition, `APBBUS_CR`, the contexts, and per hart the PMP:
+the entries in use, the locked part (from the XML), the unlocked part with the generated entries and the regions
+with the rights of U and M mode. `derive` prints them with the occupation of each hart, each generated entry
+(`generated entry N: NAPOT [first, last] rw-`) and the mapping of the partitions onto the contexts; a warning is
+a line `warning: GEN-Exxx (warning) ...` (with `--check`, on stderr after `FILE: ok`).
+
+**The allow list.** The Configurator writes three PMP tables: the E51's and one per context, which every U54 hart
+of the context gets. The XML can therefore hold the locked barrier of a context, not what separates two
+partitions of the same context. That is the allow list: unlocked entries, which bind U mode only and which the
+kernel of the partition sets in M mode per hart. The generator derives them for every hart of a `u` partition
+from `system.yaml` and the placement: its windows with the rights they need (code and data in one window RWX,
+code and `fast_text` RX, data and channels RW; `fast_text` only in the ITIM of the hart itself), its peripherals
+and console RW at the address `APBBUS_CR` gives, and the page of `mtime` R. Ranges that touch and have the same
+rights are one range. From the lowest index after the last entry the XML uses for the hart, in address order, a
+range takes one NAPOT entry where it is a power of two at a multiple of itself, otherwise the fewest NAPOT
+entries if that is not more than TOR needs, else a TOR entry (with an OFF entry for its base unless the entry
+before it is a TOR entry that ends there). An allow list that does not fit the entries of the target is refused
+(`GEN-E129`; a note in dev). A hart whose table in the XML has unlocked entries in use (an allow list written in
+the Configurator's Expert Mode) keeps them and gets none generated. The rules below evaluate the entries of the
+XML and the generated ones together. `m` partitions get no allow list: their kernel and application run in M
+mode, bound by the locked entries only.
 
 **Security profile.** A `prod` image must pass the checks: every rule of the PMP and the contexts, those of the
 XML's own PMP sections (`GEN-E100` to `GEN-E105`) included, is enforced, and an error stops the derivation. For a
@@ -664,7 +685,11 @@ units of the harts outside the partition (`0x0170_0000` plus `0x1000` per hart).
 The rules: U mode lacks a right on a window of its own (`GEN-E120`), cannot read and write a peripheral of its own
 at its address (`GEN-E121`) or cannot read the page of `mtime` (`GEN-E122`); U mode reaches what is not its own
 and none of the following (`GEN-E123`, a warning); U mode, or M mode of a hart with locked entries, reaches
-something foreign (`GEN-E124`); U mode reaches a critical block (`GEN-E125`), or SYSREG or MPUCFG, which expose
+something foreign (`GEN-E124`), except that M mode reaching a partition of the same context is a warning
+(`GEN-E128`): the allow list separates the partitions of one context in U mode, and the one table of the context
+cannot lock one of them out for the others, so the separation within a context does not hold against M-mode
+code (the weakness this design accepts; across contexts, and for the E51, which is in no context, it stays
+`GEN-E124`); U mode reaches a critical block (`GEN-E125`), or SYSREG or MPUCFG, which expose
 `APBBUS_CR`, the clocks and resets of all peripherals and the MPU of every master (`GEN-E126`); M mode of a hart
 with locked entries reaches a critical block (`GEN-E127`, a warning: which ones its kernel needs is not described
 yet); a partition of one context reaches the bus window of the other, the HI addresses for A and the LO ones for
@@ -690,11 +715,15 @@ either context may own one (its PMP still decides who reaches it). That partitio
 share no peripheral needs no rule: `system.yaml` gives each peripheral, the console included, to one partition
 (`GEN-E025`, `GEN-E026`).
 
-With the reference XMLs of the boards the reference systems are refused for prod: the open, locked entry 0 of
-the U54 harts lets every partition reach everything (`GEN-E105`, `GEN-E124` to `GEN-E126`), and the E51 has no
-entry for the `u` partition `monitor` of `amp_a` (`GEN-E120` to `GEN-E122`). `amp_c` is a prod system and is
-refused; `amp_a`, `amp_b` and `amp_d` are dev systems and derive, with these findings as notes. The PMP demo
-(`config/boards/icicle_es_pmp_demo`) passes the checks of the contexts with one partition per context
-(`tests/host/derive/fixtures/pmp_demo`); its locked PMP grants SYSREG and the L2 controller to all modes and does
-not cover windows in the LIM, so a prod system on it is refused (`GEN-E120`, `GEN-E125`, `GEN-E126`, with the
-warnings `GEN-E123` and `GEN-E127`).
+With the XMLs of the boards the reference systems would be refused for prod: the open, locked entry 0 of the
+U54 harts lets every partition reach everything and hides the generated allow list (`GEN-E105`, `GEN-E124` to
+`GEN-E126`). `amp_a`, `amp_b` and `amp_d` are dev systems and derive, with these findings as notes. `amp_c` is a
+prod system and derives with its own XML ([`icicle_amp_c`](boards/icicle_amp_c/README.md): the locked barrier
+of the E51 and of each context, 9 to 11 entries, and the generated allow list of 4 to 7 entries per hart, at most
+16), with warnings only: the same context from M mode (`GEN-E128`), the critical blocks that the tables leave
+open to M mode (`GEN-E127`), and the LO addresses of the peripherals that the table of context B leaves open to M
+mode (`GEN-E135`). The PMP demo (`config/boards/icicle_es_pmp_demo`) passes the checks of the contexts with one
+partition per context (`tests/host/derive/fixtures/pmp_demo`); its locked PMP grants SYSREG and the L2
+controller to all modes, does not cover windows in the LIM and ends in a locked deny-all, so a prod system on it
+is refused (`GEN-E120`, `GEN-E125`, `GEN-E126`, and `GEN-E129` for harts 1 and 2, whose tables leave one entry
+free; with the warnings `GEN-E123` and `GEN-E127`).
