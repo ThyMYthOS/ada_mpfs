@@ -78,4 +78,5 @@ _include:
   - additions/clint.yaml
   - additions/pdma.yaml
   - additions/l2_cache.yaml
+  - additions/beu.yaml
   - additions/interrupts.yaml

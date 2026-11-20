@@ -1,0 +1,70 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: CC-BY-4.0
+# source: Microchip platform mpfs_hal/common/mss_beu_def.h (MIT, copyright 2019 Microchip FPGA Embedded Systems Solutions; read in the Zephyr hal_microchip mirror): the register struct BEU_Type (CAUSE, VALUE, ENABLE, PLIC_INT, ACCRUED and LOCAL_INT, each 64 bits, one 0x1000 block per hart), the five base addresses MSS_BUS_ERROR_UNIT_H0 to H4 from 0x01700000 to 0x01704000, and the enum BEU_event_cause with the event codes
+# source: Microchip platform mpfs_hal/common/mss_beu.c and mss_beu.h (same mirror): init_bus_error_unit writes ENABLE, PLIC_INT and LOCAL_INT of every hart and clears CAUSE, ACCRUED and VALUE with 0; handle_local_beu_interrupt reads CAUSE and clears the three registers the same way
+# status: unverified
+# owner: Manuel Stahl
+
+# Bus error unit of the core complex: one unit per hart (hart n at 0x01700000 + 0x1000 * n), each with six 64-bit
+# registers. It records bus errors and the ECC events of the instruction memory and the data cache of the hart and can
+# raise the PLIC interrupt and the local interrupt of the hart. Nothing was read from a PolarFire SoC yet: there are no
+# reset values, and which bit of ENABLE, PLIC_INT, ACCRUED and LOCAL_INT belongs to which event is not given in the
+# sources read (the vendor enum numbers the events).
+_add:
+  BEU:
+    description: Bus error units of the five harts
+    groupName: BEU
+    baseAddress: 0x01700000
+    addressBlock:
+      offset: 0x0
+      size: 0x5000
+      usage: registers
+    registers:
+      CAUSE%s:
+        description: "Cause of the last bus error or ECC event of the hart: the code of the event, 0 for none. The vendor driver lists the codes 2 (instruction tightly-integrated memory, correctable), 3 (the same, uncorrectable), 5 (TileLink bus error), 6 (data cache, correctable) and 7 (data cache, uncorrectable); codes 1 and 4 are reserved. The driver clears it with a 0 after it handled an event. One register per hart (the array index is the hart ID), at a stride of 0x1000."
+        addressOffset: 0x0
+        size: 64
+        access: read-write
+        dim: 5
+        dimIncrement: 0x1000
+        dimIndex: "0-4"
+      VALUE%s:
+        description: "Address at which the event happened. The driver clears it with a 0 after it handled an event. One register per hart (the array index is the hart ID), at a stride of 0x1000."
+        addressOffset: 0x8
+        size: 64
+        access: read-write
+        dim: 5
+        dimIncrement: 0x1000
+        dimIndex: "0-4"
+      ENABLE%s:
+        description: "Enable mask: which events the unit records (the vendor driver writes its configured value here for every hart at start-up) One register per hart (the array index is the hart ID), at a stride of 0x1000."
+        addressOffset: 0x10
+        size: 64
+        access: read-write
+        dim: 5
+        dimIncrement: 0x1000
+        dimIndex: "0-4"
+      PLIC_INT%s:
+        description: "Which events raise the PLIC interrupt of the unit (written by the vendor driver at start-up) One register per hart (the array index is the hart ID), at a stride of 0x1000."
+        addressOffset: 0x18
+        size: 64
+        access: read-write
+        dim: 5
+        dimIncrement: 0x1000
+        dimIndex: "0-4"
+      ACCRUED%s:
+        description: "The events that happened since the register was last cleared. The driver clears it with a 0 after it handled an event. One register per hart (the array index is the hart ID), at a stride of 0x1000."
+        addressOffset: 0x20
+        size: 64
+        access: read-write
+        dim: 5
+        dimIncrement: 0x1000
+        dimIndex: "0-4"
+      LOCAL_INT%s:
+        description: "Which events raise the local interrupt of the hart (written by the vendor driver at start-up; the handler is handle_local_beu_interrupt) One register per hart (the array index is the hart ID), at a stride of 0x1000."
+        addressOffset: 0x28
+        size: 64
+        access: read-write
+        dim: 5
+        dimIncrement: 0x1000
+        dimIndex: "0-4"
