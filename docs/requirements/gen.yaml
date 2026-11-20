@@ -103,3 +103,13 @@ requirements:
       XML does not configure are refused, each with its own error code.
     tsf: false
     source: config/README.md
+  - id: GEN-010
+    text: >-
+      The generator takes the PMP of each hart from the MSS Configurator XML (mss_memory_map/pmp_h0 to
+      pmp_h4: CSR_PMPCFG0, CSR_PMPCFG2, CSR_PMPADDR0 to 15) and does not choose it; it decodes every entry
+      (mode, byte range, rights, lock), refuses an entry with W set and R clear and a configuration byte
+      with the reserved bits 5 and 6 set, each with its own error code, and writes the values as the Ada
+      table Pmp_Xml, byte for byte the same for the same XML, which the PMP test program compares with the
+      CSRs of the hart.
+    tsf: false
+    source: config/README.md

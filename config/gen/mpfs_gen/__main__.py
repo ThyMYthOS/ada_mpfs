@@ -13,10 +13,15 @@
   python3 config/gen/mpfs_gen derive [--check] [--xml XML] [--svd SVD] FILE...
                                                        derive the systems of descriptions with the XML
                                                        of each (or XML) and print them
+  python3 config/gen/mpfs_gen pmp [--svd SVD] [--ada FILE [--check]] XML
+                                                       print the PMP entries of each hart that the XML
+                                                       sets; --ada writes them as the Ada package
+                                                       Pmp_Xml (--check: compare with FILE instead)
 
 `check` prints `FILE: ok` or one line per violated rule, `FILE: GEN-Exxx PATH: message`; so do
 `xml --check` and `derive --check`. `derive` prints the clocks, the L2, the windows and, per partition,
-CPU_To_Hart, the PLIC sources and contexts and the release masks. `xml` prints the design, the hash and every register of the core sections
+CPU_To_Hart, the PLIC sources and contexts and the release masks. `pmp` prints, per hart, the PMP CSRs and
+every entry that is not OFF (mode, byte range, rights, lock). `xml` prints the design, the hash and every register of the core sections
 (`SECTION/NAME = VALUE`, with --fields also each field), the memory elements and the sections that are
 only validated. Without --svd the merged SVD is build/svd/PolarfireSoC.svd, made current first.
 Exit status: 0 ok, 2 an input breaks a rule or the arguments are wrong.
@@ -33,9 +38,9 @@ HERE = Path(__file__).resolve().parent
 sys.path[:] = [p for p in sys.path if p not in (str(HERE), "")]
 sys.path[:0] = [str(HERE.parent), str(HERE.parents[2] / "tools")]
 
-from gen_ada import errors, svdread
+from gen_ada import cli, errors, svdread
 
-from mpfs_gen import ROOT, derive, presets, xml_reader, yaml_reader
+from mpfs_gen import ROOT, derive, pmp, presets, xml_reader, yaml_reader
 from mpfs_gen.checks import DiagnosticError
 from mpfs_gen.derive import Derived
 from mpfs_gen.model import MssConfiguration, XmlRegister
@@ -65,6 +70,11 @@ def parser() -> argparse.ArgumentParser:
     der.add_argument("--xml", type=Path, help="the MSS Configurator XML (default: that of the description)")
     der.add_argument("--svd", type=Path, help="the merged SVD (default: build/svd, made current)")
     der.add_argument("files", nargs="+", type=Path)
+    pm = sub.add_parser("pmp", help="the PMP entries of each hart that an XML sets")
+    pm.add_argument("--svd", type=Path, help="the merged SVD (default: build/svd, made current)")
+    pm.add_argument("--ada", type=Path, help="write the Ada package Pmp_Xml to this file")
+    cli.add_check(pm, help="compare with the file of --ada instead of writing it")
+    pm.add_argument("file", type=Path)
     return p
 
 
@@ -151,6 +161,29 @@ def derived(path: Path, xml: Path | None, svd: Path) -> Derived:
     return derive.derive(system, config, svd, where=f"{path} with {config.source}")
 
 
+def pmp_command(path: Path, svd: Path, out: Path | None, check: bool) -> int:
+    """`pmp`: print the entries of the XML <path>, or write (or --check) the Ada table <out>."""
+    if check and out is None:
+        print("mpfs_gen: pmp --check needs --ada FILE", file=sys.stderr)
+        return errors.INPUT_ERROR
+    try:
+        config = xml_reader.read(path, svd, name=str(path))
+        harts, found = pmp.of(config)
+        if found:
+            raise DiagnosticError(str(path), found)
+    except DiagnosticError as err:
+        print(err, file=sys.stderr)
+        return errors.INPUT_ERROR
+    if out is None:
+        print("\n".join([f"# {path}", f"# sha256 {config.sha256}", *pmp.describe(harts)]))
+        return errors.OK
+    text = pmp.ada_table(config, str(path))
+    if check:
+        return cli.check_output(text, out, tool=TOOL, command=f"python3 config/gen/mpfs_gen pmp --ada {out} {path}")
+    cli.write_output(text, out)
+    return errors.OK
+
+
 def main(argv: list[str]) -> int:
     args = parser().parse_args(argv)
     if args.command == "preset":
@@ -159,8 +192,10 @@ def main(argv: list[str]) -> int:
     if args.command == "standalone-args":
         print(" ".join(presets.standalone_args(yaml_reader.read(args.file))))
         return errors.OK
-    if args.command in ("xml", "derive"):
+    if args.command in ("xml", "derive", "pmp"):
         svd = args.svd if args.svd else svdread.ensure(ROOT)
+    if args.command == "pmp":
+        return pmp_command(args.file, svd, args.ada, args.check)
     status = errors.OK
     for path in args.files:
         try:

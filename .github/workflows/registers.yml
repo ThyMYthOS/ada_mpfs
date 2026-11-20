@@ -113,6 +113,11 @@ jobs:
       - name: Host tests of the derivations of the configuration generator
         run: tests/host/derive/run.sh
 
+      # The PMP of the MSS Configurator XMLs: decoding, the reserved encodings, and the table of the
+      # test program examples/pmp_xml_test, which must be what the generator makes of the XML.
+      - name: Host tests of the PMP table of the configuration generator
+        run: tests/host/pmp/run.sh
+
       # The same reader against Microchip's configuration generator: the suite fetches the generator
       # at the commit of tools/mchp_diff/oracle.env (one commit, one directory, from github.com) and
       # compares every LIBERO_SETTING_* value of the reference XMLs. A new format version of the XML

@@ -9,8 +9,9 @@ CODES is the one list of the codes: each rule has its own, and config/README.md 
 test compares them). A code is never reused for another rule. The schema rules (GEN-E001 to GEN-E013)
 are reported by yaml_reader.py from the failures of the validator, the rules across fields (GEN-E020 to
 GEN-E034) by semantic() below on a description that the schema accepts, and the rules of the MSS
-Configurator XML (GEN-E040 to GEN-E059, XML_CODES) by xml_reader.py, and the rules of the derivations from
-a description and its XML (GEN-E060 on, DERIVE_CODES) by the package derive.
+Configurator XML (GEN-E040 to GEN-E059, XML_CODES) by xml_reader.py, the rules of the derivations from
+a description and its XML (GEN-E060 to GEN-E099, DERIVE_CODES) by the package derive, and the rules of the
+PMP sections of the XML (GEN-E100 on, PMP_CODES) by pmp.py.
 """
 from dataclasses import dataclass
 from pathlib import Path
@@ -89,12 +90,16 @@ CODES: dict[str, str] = {
     "GEN-E082": "a PLIC source is handled by two partitions",
     "GEN-E083": "a peripheral is neither a block of SUBBLK_CLOCK_CR nor a watchdog of the SVD",
     "GEN-E084": "a partition owns a peripheral that CONFIGURED_PERIPHERALS of the XML leaves out",
+    "GEN-E100": "a PMP entry of the XML has W set and R clear (a reserved combination)",
+    "GEN-E101": "a PMP configuration byte of the XML sets the reserved bits 5 and 6",
 }
 
 # The codes of the reader of the MSS Configurator XML (xml_reader.py); the others are those of system.yaml.
 XML_CODES = frozenset(code for code in CODES if "GEN-E040" <= code <= "GEN-E059")
 # The codes of the derivations from a system description and its XML (derive/).
 DERIVE_CODES = frozenset(code for code in CODES if "GEN-E060" <= code <= "GEN-E099")
+# The codes of the PMP sections of the XML (pmp.py).
+PMP_CODES = frozenset(code for code in CODES if "GEN-E100" <= code <= "GEN-E119")
 
 
 @dataclass(frozen=True, slots=True)

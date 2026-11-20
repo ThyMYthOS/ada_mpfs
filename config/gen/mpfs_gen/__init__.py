@@ -9,6 +9,8 @@ board to the data of the partitions.
   yaml_reader  system.yaml: YAML, the schema config/gen/schema/system.schema.json, defaults, normalisation
   xml_reader   the MSS Configurator XML: format versions, the core sections, widths against the SVD
   presets      the system description of each runtime variant that ./x build builds without one
+  derive       the derived system of a description and its XML
+  pmp          the PMP of each hart as the XML sets it, decoded, and as an Ada table
 
 `python3 config/gen/mpfs_gen check FILE...` validates system descriptions, `python3 config/gen/mpfs_gen xml
 FILE...` reads MSS Configurator XMLs (config/README.md).

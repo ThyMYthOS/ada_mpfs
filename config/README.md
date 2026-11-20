@@ -354,6 +354,8 @@ derivations.
 | `GEN-E082` | a PLIC source is handled by two partitions |
 | `GEN-E083` | a peripheral is neither a block of SUBBLK_CLOCK_CR nor a watchdog of the SVD |
 | `GEN-E084` | a partition owns a peripheral that CONFIGURED_PERIPHERALS of the XML leaves out |
+| `GEN-E100` | a PMP entry of the XML has W set and R clear (a reserved combination) |
+| `GEN-E101` | a PMP configuration byte of the XML sets the reserved bits 5 and 6 |
 
 Several rules are also checks of the package `MPFS_Partition` (a mask that mixes E51 and U54, a stack size,
 `ram_fifo`, the L2 ways, the ITIM): the reader refuses a description early, and the package still refuses
@@ -537,3 +539,21 @@ there (`GEN-E084`).
 Microchip's `mss_peripherals.h` (the video kit: CAN0 and CAN1). The direct GPIO interrupts `GPIO_DIRECT_0` to
 `_31` are GPIO0 or GPIO1 lines, or GPIO2 lines where the bit of `GPIO_INTERRUPT_FAB_CR` is set; `_32` to `_37`
 are GPIO1 bits 18 to 23.
+
+## PMP of the XML
+
+The PMP of each hart is not chosen by the generator: the user sets it with Microchip's MSS Configurator
+(pfsoc_mss), and the XML holds it in `mss_memory_map/pmp_h0` to `pmp_h4` (`CSR_PMPCFG0` for the entries 0 to 7,
+`CSR_PMPCFG2` for 8 to 15, `CSR_PMPADDR0` to `15`). `mpfs_gen/pmp.py` reads and decodes it:
+
+```sh
+python3 config/gen/mpfs_gen pmp config/boards/icicle/ICICLE_MSS_mss_cfg.xml      # the entries of each hart
+python3 config/gen/mpfs_gen pmp --ada examples/pmp_xml_test/src/generated/pmp_xml.ads \
+  config/boards/icicle/ICICLE_MSS_mss_cfg.xml                                     # the Ada table (--check: compare)
+```
+
+`pmp` prints per hart the two configuration CSRs and every entry that is not OFF: its mode, the byte range it
+matches (TOR from the `pmpaddr` of the entry before it, a NAPOT entry of all ones is the whole space of 2^56
+bytes), its rights and its lock. The rules of the Privileged Spec v1.10: an entry with W set and R clear is
+reserved (`GEN-E100`), bits 5 and 6 of a configuration byte are reserved (`GEN-E101`). `--ada` writes the values
+as the package `Pmp_Xml` (`Pure`, one record per hart), byte for byte the same for the same XML.

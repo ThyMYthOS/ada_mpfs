@@ -86,10 +86,10 @@ def _():
 
 
 @case("every code of system.yaml has a broken description that is rejected with it (tests/host/xml_reader has those "
-      "of the XML, tests/host/derive those of the derivations)")
+      "of the XML, tests/host/derive those of the derivations, tests/host/pmp those of the PMP sections)")
 def _():
     covered = {expected(p) for p in BROKEN.glob("*.yaml")}
-    own = set(checks.CODES) - checks.XML_CODES - checks.DERIVE_CODES
+    own = set(checks.CODES) - checks.XML_CODES - checks.DERIVE_CODES - checks.PMP_CODES
     assert covered == own, sorted(own ^ covered)
 
 
