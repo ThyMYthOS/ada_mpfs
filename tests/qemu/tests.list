@@ -126,3 +126,4 @@ elab_tasking_test_e51	examples/elab_tasking_test	0	pass	-	-
 elab_tasking_test_u54	examples/elab_tasking_test	0	pass	-	-
 elab_embedded_test_e51	examples/elab_embedded_test	0	pass	-	-
 elab_embedded_test_u54	examples/elab_embedded_test	0	pass	-	-
+mss_init_spike_qemu_e51	examples/mss_init_spike	0	console	MSS INIT DONE WITH TIMEOUTS	the table of the MSS set-up runs to its end (under QEMU the polls on registers it does not model time out and are reported)
