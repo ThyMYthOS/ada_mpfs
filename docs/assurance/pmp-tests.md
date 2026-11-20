@@ -223,6 +223,7 @@ and DMA masters, which are governed by the MPUs, not by the contexts.
 | QEMU 10.2.1, `microchip-icicle-kit` | 8 | 0 | PASS on hart 0 and 1 | PASS on hart 0 and 1 (last entry 7) | PASS on hart 0 and 1, steps 2 and 3 left out |
 | Renode 1.17.0, `mpfs-icicle-kit.repl` | 16 | 0 | PASS on hart 0 and 1 | PASS on hart 0 and 1 (last entry 15) | PASS on hart 0 and 1, steps 2 and 3 left out |
 | Icicle Kit (`MPFS250T_ES`), hart 0 and 1, earlier versions of the tests ([#103](https://github.com/ThyMYthOS/ada_mpfs/issues/103#issuecomment-7041553523)) | 16 | 0 | PASS on hart 0; FAIL on hart 1 (`pmpaddr0`, see "On the board") | PASS on hart 0 and 1 (45 checks each) | FAIL on hart 0 and 1 (the fault of the TRM, see "AMP contexts and `APBBUS_CR`") |
+| Icicle Kit (`MPFS250T_ES`), the current versions, hart 0 to 4 ([results](../lab/results/pmp-entries.md)) | 16 | 0 | PASS on hart 0 to 4 | PASS on hart 0 to 4 | PASS on hart 0 to 4 |
 
 Measured with `./x qemu <example> --hart 0|1` and with the Renode script of `tests/renode` (the lines
 `pmp entries`, `pmp granularity G` and `last entry` of the reports); `pmp_probe` gives the same counts in the
@@ -267,8 +268,13 @@ of the tests:
   checks that such an access has no effect and reports the fault, the Bus Error Unit, `mip` and the PLIC.
 
 Not covered by that run: U54 harts 2 to 4, M mode with the configuration of the XML applied (U54 entry 0 locked,
-NAPOT, RWX), entries locked before the image starts, and G > 0. The current versions of the
-four tests and of `pmp_probe` have not run on the board yet.
+NAPOT, RWX), entries locked before the image starts, and G > 0. The current versions of the four tests and of
+`pmp_probe` have run since on the E51 and on U54 harts 1 to 4 (`pmp_xml_test` 19 checks, `pmp_access_test` 45,
+`pmp_isolation_test` 30, `apb_window_test` 29): all 20 cells pass, see
+[`docs/lab/results/pmp-entries.md`](../lab/results/pmp-entries.md). On U54 harts 3 and 4 the U-mode accesses of
+`pmp_access_test` and `apb_window_test` failed (mcause 1) until `start.S` cleared `satp`, `medeleg` and `mideleg`,
+which have no reset value; the results have the details. Not covered by any run: M mode with the configuration of
+the XML applied, entries locked before the image starts, and G > 0.
 
 The commands for the next run, in boot mode 0 with OpenOCD running (`hw/README.md`):
 

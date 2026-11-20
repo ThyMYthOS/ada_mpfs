@@ -373,7 +373,7 @@ reset (1 way of cache, 15 of LIM) and `amp_d` with 4 ways of cache and 12 of LIM
 |---|---|---|
 | `amp_a` | light, `u` (monitor, watchdog, log) | hart 1 light-tasking `m` (real-time core); harts 2 to 4 one SMP partition, embedded, `u` |
 | `amp_b` | light-tasking, `u` | hart 1 light `u`; harts 2 to 4 SMP light-tasking `u` |
-| `amp_c` | embedded, `u` | harts 1 to 4 each a partition of its own, `u`: light, light-tasking, embedded, embedded (ten domains) |
+| `amp_c` | embedded, `u` | harts 1 to 4 each a partition of its own, `u`: light, light-tasking, embedded, embedded (ten domains: M and U mode of each of the five harts; the E51 has U mode and no S mode, the U54 has S mode, which is not counted) |
 | `amp_d` | none (the E51 stays with the boot loader) | harts 1 and 2 SMP embedded `u`; harts 3 and 4 SMP light `m`; an L2 override with cache partitioning |
 
 ### Standalone presets

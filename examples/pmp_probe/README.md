@@ -21,9 +21,10 @@ access fault; the pages the access test configures). The image of `pmp_probe` us
 |---|---|
 | QEMU 10.1.0, `microchip-icicle-kit`, E51 and U54 | 8 (mask `0x00ff`) |
 | Renode 1.17.0, `mpfs-icicle-kit.repl` of that release, E51 and U54 | 16 (mask `0xffff`) |
+| Icicle Kit, E51 (hart 0) and U54 (hart 1) | 16 (mask `0xffff`) |
 
-The two models disagree, so the number of entries a test can rely on is the smaller one. The value on
-the hardware is not measured here. `tests/qemu/smoke.expected` pins the QEMU value.
+The two models disagree, so the number of entries a test can rely on is the smaller one. The hardware
+value is from the run in [`docs/lab/results/pmp-entries.md`](../../docs/lab/results/pmp-entries.md). `tests/qemu/smoke.expected` pins the QEMU value.
 
     ./x build pmp_probe [--hart u54]
     ./x qemu pmp_probe
