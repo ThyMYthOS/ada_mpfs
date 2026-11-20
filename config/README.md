@@ -419,7 +419,8 @@ green run of the differential test below.
 
 **Sections.** The core sections are decoded: `mss_clocks` (`clocks`, `mss_sys`, `mss_pll`, `mss_cfm`,
 `sgmii_cfm`), `mss_io` (`io_mux` with the banks and `GPIO_INTERRUPT_FAB_CR`, `io_mux_alt`),
-`mss_memory_map` (`apb_split` with `APBBUS_CR` and `MEM_CONFIGS_ENABLED`, `map/mem_elements`, `nvm_map`,
+`mss_memory_map` (`apb_split` with `APBBUS_CR`, `MEM_CONFIGS_ENABLED` and the AMP contexts `CONTEXT_A_EN`,
+`CONTEXT_B_EN`, `CONTEXT_A_HART_EN`, `CONTEXT_B_HART_EN`, `map/mem_elements`, `nvm_map`,
 `cache`, `pmp_h0` to `pmp_h4`, the ten `mpu_*`), `mss_general/mss_peripherals`, `mss_sgmii/tip` (the
 values of the SGMII off mode) and `mss_ddr/mode` and `mss_ddr/off_mode` (`DDRPHY_MODE`). A register is
 found by section and name: the three PLLs have registers of the same names. The other sections (the rest of
@@ -449,6 +450,12 @@ register this value; the register names the defect (`defect`), and `xml` marks i
 to Microchip (polarfire-soc/polarfire-soc-documentation#610, without an answer). The exception is this one
 field with this one value (`KNOWN_DEFECTS` in `xml_reader.py`); `0x8` in any other field, or another value
 there, is `GEN-E050`.
+
+**The width of `MEM_CONFIGS_ENABLED`.** Every XML at hand declares its fields `PMP` (offset 0) and `MPU` (offset
+1) 0 bits wide; the configurator writes `0x1` into them when it enables its PMP and MPU tables (Microchip's PMP
+demo has both). Microchip's generator ignores the width and shifts the value to its offset, which gives the bits
+that Microchip's HAL tests (`PMP_ENABLED_MASK` 1, `MPU_ENABLED_MASK` 2, `mss_pmp.h`). The reader takes `0x1` in
+either field the same way and names it as a known defect; any other value there is `GEN-E050`.
 
 **Differential test.** [`tools/mchp_diff`](../tools/mchp_diff/README.md) runs Microchip's generator at a
 pinned commit on every reference XML and compares each of its `LIBERO_SETTING_*` defines with the value

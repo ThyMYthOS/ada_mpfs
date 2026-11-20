@@ -79,7 +79,8 @@ NEEDED: dict[str, tuple[str, ...]] = {
     "mss_clocks/sgmii_cfm": ("REFCLKMUX", "SGMII_CLKMUX", "CLK_XCVR"),
     "mss_io/io_mux": _IO_MUX,
     "mss_io/io_mux_alt": tuple("ALT_" + name for name in _IO_MUX),
-    "mss_memory_map/apb_split": ("MEM_CONFIGS_ENABLED", "APBBUS_CR"),
+    "mss_memory_map/apb_split": ("MEM_CONFIGS_ENABLED", "APBBUS_CR", "CONTEXT_A_EN", "CONTEXT_B_EN",
+                                 "CONTEXT_A_HART_EN", "CONTEXT_B_HART_EN"),
     "mss_memory_map/cache": ("WAY_ENABLE", "NUM_SCRATCH_PAD_WAYS") + tuple("WAY_MASK_" + m for m in _WAY_MASKS),
     "mss_memory_map/nvm_map": ("SNVM_MSS_START_PAGE", "SNVM_MSS_END_PAGE", "ENVM_MSS_START_PAGE",
                                "ENVM_MSS_END_PAGE"),
@@ -103,6 +104,12 @@ KNOWN_DEFECTS: dict[tuple[str, str, str, int], str] = {
         "0x4003: all four phases 0 and REG_LOADPHS_B 1, the form of PLL_PHADJ of the SGMII and DDR PLLs and "
         "the value hw/mss_init.py writes on the board. Reported to Microchip "
         "(polarfire-soc/polarfire-soc-documentation#610), not answered",
+    **{("mss_memory_map/apb_split", "MEM_CONFIGS_ENABLED", flag, 1):
+       f"{flag} is declared with width 0 in every XML at hand and holds 1 when the configurator enables the "
+       f"{flag} tables (Microchip's PMP demo has 0x1 in both); Microchip's generator ignores the width and "
+       "shifts the value to its offset: PMP is bit 0 and MPU bit 1, PMP_ENABLED_MASK 1 and MPU_ENABLED_MASK 2 "
+       "of Microchip's mss_pmp.h:26-27 @ 8d52d59"
+       for flag in ("PMP", "MPU")},
 }
 
 _DOCTYPE = re.compile(rb"<!\s*(DOCTYPE|ENTITY)")

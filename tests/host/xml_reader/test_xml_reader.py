@@ -152,6 +152,40 @@ def _():
         assert [r.name for r in config.registers if r.defect] == ["PLL_PHADJ"], path
 
 
+@case("MEM_CONFIGS_ENABLED: PMP and MPU are declared 0 bits wide; set, each is 1 at its offset (0x3), named as a "
+      "defect; any other value is GEN-E050")
+def _():
+    tmp = Path(tempfile.mkdtemp())
+    edit = tmp / "mem_configs.edit"
+    edit.write_text('after: name="MEM_CONFIGS_ENABLED"\nold: name="PMP" offset="0" width="0">0x0<\n'
+                    'new: name="PMP" offset="0" width="0">0x1<\n'
+                    'after: name="MEM_CONFIGS_ENABLED"\nold: name="MPU" offset="1" width="0">0x0<\n'
+                    'new: name="MPU" offset="1" width="0">0x1<\n')
+    path = tmp / "mem_configs.xml"
+    path.write_text(edited(edit))
+    reg = read(path).register("mss_memory_map/apb_split", "MEM_CONFIGS_ENABLED")
+    assert reg.value == 0x3 and (reg.field("PMP").value, reg.field("MPU").value) == (1, 1), reg
+    assert reg.defect and "width 0" in reg.defect, reg.defect
+    path.write_text(edited(edit).replace('name="PMP" offset="0" width="0">0x1<', 'name="PMP" offset="0" width="0">0x2<'))
+    assert codes_of(path) == ["GEN-E050"], codes_of(path)
+    for ref in reference_xmls():
+        assert read(ref).register("mss_memory_map/apb_split", "MEM_CONFIGS_ENABLED").defect is None, ref
+
+
+@case("the AMP contexts are read: CONTEXT_A_EN, CONTEXT_B_EN, CONTEXT_A_HART_EN, CONTEXT_B_HART_EN (0 in every "
+      "reference XML), the XML's own layout (the SVD has none)")
+def _():
+    for ref in reference_xmls():
+        config = read(ref)
+        for name in ("CONTEXT_A_EN", "CONTEXT_B_EN", "CONTEXT_A_HART_EN", "CONTEXT_B_HART_EN"):
+            reg = config.register("mss_memory_map/apb_split", name)
+            assert reg.value == 0 and reg.svd is None, (ref, name)
+        assert len(config.register("mss_memory_map/apb_split", "CONTEXT_B_EN").fields) == 31
+        assert [f.name for f in config.register("mss_memory_map/apb_split", "CONTEXT_A_HART_EN").fields] == \
+            [f"HART{h}" for h in range(5)]
+    assert {"CONTEXT_A_EN", "CONTEXT_B_HART_EN"} <= set(xml_reader.NEEDED["mss_memory_map/apb_split"])
+
+
 @case("a register is found by section and name: PLL_CTRL of the MSS PLL is not that of the other PLLs")
 def _():
     config = read(BASE)
