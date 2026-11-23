@@ -7,7 +7,7 @@
 #   - test_derive.py: the clocks of every reference XML recomputed from the MSS PLL equal those of the XML
 #     (at most 1 ppm), also in the fractional mode; the four reference systems derive with the XMLs of the
 #     Icicle Kit and the PMP demo (the video kit configures too few MMUARTs for them); the L2 (the
-#     scratchpad ways are the upper enabled ways); the placement (a chain of channels, a shared block); CPU_To_Hart; the PLIC
+#     scratchpad ways are the upper enabled ways); the placement (a chain of channels, a shared block of aligned channels); CPU_To_Hart; the PLIC
 #     sources and contexts; the peripheral bits from the SVD, RAM_SHUTDOWN_CR, the direct GPIO lines; the
 #     command line; and a negative case for every code of the derivations (GEN-E060 on), among them each
 #     clock limit and an overlap of two partition windows whose message names both partitions; the reference

@@ -210,6 +210,33 @@ def _():
         d = derive.derive(system(name), ICICLE, SVD)
         ipc = sorted((w.origin, w.end) for w in d.windows if w.kind == "ipc")
         assert len(ipc) == channels and all(a[1] == b[0] for a, b in pairwise(ipc)), (name, ipc)
+        assert all(w.mode == "NAPOT" for w in d.windows if w.kind == "ipc"), name
+    d = derive.derive(system("amp_b"), ICICLE, SVD)
+    ipc = [(w.channel, w.origin, w.length) for w in d.windows if w.kind == "ipc"]
+    assert ipc == [("supervisor_app", 0x0816_0000, 0x4000), ("supervisor_control", 0x0816_4000, 0x2000),
+                   ("control_app", 0x0816_6000, 0x2000)], ipc
+
+
+@case("the shared block: the channels largest first (equal sizes in the order of the description), each at a "
+      "multiple of its size where that is a power of two, after a gap behind a channel whose size is not")
+def _():
+    three = TWO + """  - name: c
+    harts: [3]
+    profile: light
+    memory:
+      code: { region: lim, size: 64K }
+      data: { region: lim, size: 64K }
+    peripherals: [mmuart3]
+ipc:
+  - { name: ab, between: [a, b], size: 8K }
+  - { name: bc, between: [b, c], size: 12K }
+  - { name: ca, between: [c, a], size: 16K }
+  - { name: ac, between: [a, c], size: 8K }
+"""
+    d = derive.derive(text(three), ICICLE, SVD)
+    ipc = [(w.channel, w.origin, w.length, w.mode) for w in d.windows if w.kind == "ipc"]
+    assert ipc == [("ca", 0x0806_0000, 0x4000, "NAPOT"), ("bc", 0x0806_4000, 0x3000, "TOR"),
+                   ("ab", 0x0806_8000, 0x2000, "NAPOT"), ("ac", 0x0806_A000, 0x2000, "NAPOT")], ipc
 
 
 @case("CPU_To_Hart is the k-th set bit of the mask")

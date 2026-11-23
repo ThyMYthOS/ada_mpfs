@@ -552,9 +552,12 @@ split and is laid out the same way; the ways of `l2.cache_partitioning` must be 
 `lim`, `scratchpad`), and `fast_text` a window in the ITIM of each of its harts. A channel lies in the memory
 of the data of both its partitions (the LIM where they differ). Where the channels of a memory form chains,
 each chain is one block, `A | IPC_AB | B | IPC_BC | C`, starting at the end that comes first in the
-description; otherwise all channels of the memory form one shared block. The blocks are placed
-first-fit-decreasing (equal sizes in the order of the description), at a multiple of the size of their first
-window where that is a power of two (a NAPOT region), at a multiple of 4 (TOR) otherwise. A size that is no
+description; otherwise all channels of the memory form one shared block. In the shared block the channels lie
+largest first (equal sizes in the order of the description), each at a multiple of its size where that is a
+power of two, after a gap behind a channel whose size is not, so that each channel is a NAPOT region and takes
+one PMP entry. The blocks are placed first-fit-decreasing (equal sizes in the order of the description), at a
+multiple of the size of their first window where that is a power of two (a NAPOT region; the shared block at
+the largest such multiple of its channels), at a multiple of 4 (TOR) otherwise. A size that is no
 multiple of 4 is `GEN-E075`, windows that do not fit their memory are `GEN-E076` (the message names the
 partitions). The system map is then checked, whoever placed its windows: a window outside its memory
 (`GEN-E077`), windows of two different partitions that overlap (`GEN-E078`, the message names both), a window

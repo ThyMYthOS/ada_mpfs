@@ -19,10 +19,14 @@ The rules of the placement:
     chain becomes one block, A | IPC_AB | B | IPC_BC | C, starting at the end whose partition comes first
     in system.yaml. Otherwise all channels of the memory form one shared block, and the partitions are
     blocks of their own (the rights on the shared block are given per partition by a PMP entry).
+  - In the shared block the channels lie largest first, equal sizes in the order of system.yaml, each at
+    a multiple of its own size where that is a power of two (after a gap if a channel before it is not),
+    so that each channel is a NAPOT region and takes one PMP entry.
   - The blocks are placed first-fit-decreasing: the largest first, equal sizes in the order of their
     first partition in system.yaml, each at the lowest free address. A block whose first window has a
     power-of-two size starts at a multiple of that size (so that the window is a NAPOT region) where it
-    fits so; any other block, and one that does not fit so, starts at a multiple of 4 (TOR).
+    fits so, the shared block at the largest such multiple of its channels; any other block, and one
+    that does not fit so, starts at a multiple of 4 (TOR).
   - A window is NAPOT if its length is a power of two of at least 8 and its origin a multiple of its
     length, otherwise TOR.
 
@@ -245,13 +249,16 @@ def _place_in(mem: MemoryRegion, pieces: list[tuple[int, _Piece]], index: dict[s
         if not (piece.kind in ("code+data", "data") and index[piece.owners[0]] in used):
             blocks.append((prio, [piece]))
     if shared:
+        shared.sort(key=lambda p: -(p.size or 0))       # stable: equal sizes keep the order of system.yaml
         blocks.append((min(index[o] for p in shared for o in p.owners), shared))
 
     free = [(mem.origin, mem.end)]
     placed: list[PlacedWindow] = []
-    for prio, block in sorted(blocks, key=lambda b: (-sum(p.size or 0 for p in b[1]), b[0])):
-        size = sum(p.size or 0 for p in block)
-        at = _first_fit(free, size, _alignment(block[0].size or 0))
+    for prio, block in sorted(blocks, key=lambda b: (-_offsets(b[1], b[1] is shared)[1], b[0])):
+        aligned = block is shared
+        offsets, size = _offsets(block, aligned)
+        align = max(_alignment(p.size or 0) for p in block) if aligned else _alignment(block[0].size or 0)
+        at = _first_fit(free, size, align)
         if at is None:
             at = _first_fit(free, size, GRANULE)
         if at is None:
@@ -260,10 +267,24 @@ def _place_in(mem: MemoryRegion, pieces: list[tuple[int, _Piece]], index: dict[s
                                     f"no room of {size} bytes left for the windows of {', '.join(names)}"))
             continue
         free = _take(free, at, size)
-        for piece in block:
-            placed.append(PlacedWindow(piece.kind, mem.name, at, piece.size or 0, piece.owners, piece.channel))
-            at += piece.size or 0
+        for piece, offset in zip(block, offsets):
+            placed.append(PlacedWindow(piece.kind, mem.name, at + offset, piece.size or 0, piece.owners,
+                                       piece.channel))
     return sorted(placed, key=lambda w: w.origin)
+
+
+def _offsets(block: list[_Piece], aligned: bool) -> tuple[list[int], int]:
+    """The offset of each piece of <block> from the start of the block, one after the other, and the size
+    of the block; <aligned> (the shared block of channels): each piece at a multiple of its alignment."""
+    offsets: list[int] = []
+    at = 0
+    for piece in block:
+        if aligned:
+            step = _alignment(piece.size or 0)
+            at = -(-at // step) * step
+        offsets.append(at)
+        at += piece.size or 0
+    return offsets, at
 
 
 def check(windows: Sequence[PlacedWindow], mems: Iterable[MemoryRegion],
