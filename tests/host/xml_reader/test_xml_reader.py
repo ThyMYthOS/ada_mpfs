@@ -27,8 +27,14 @@ SVD = svdread.ensure(ROOT)
 BOARDS = ROOT / "config" / "boards"
 BROKEN = HERE / "fixtures" / "broken"
 BASE = BOARDS / "icicle" / "ICICLE_MSS_mss_cfg.xml"
-REFERENCE = {"icicle": "0.6.8", "icicle_es": "0.6.5", "icicle_es_pmp_demo": "0.5.3", "video_kit": "0.6.8"}
+REFERENCE = {"icicle": "0.6.8", "icicle_amp_c": "0.6.8", "icicle_es": "0.6.5", "icicle_es_pmp_demo": "0.5.3",
+             "video_kit": "0.6.8"}
 DEMO = "icicle_es_pmp_demo"
+AMP_C = "icicle_amp_c"
+# The XMLs that set MEM_CONFIGS_ENABLED (PMP and MPU, 0x3) and the AMP contexts.
+CONTEXTS = {DEMO: {"CONTEXT_A_EN": 0x4F69_5406, "CONTEXT_B_EN": 0x12_A818, "CONTEXT_A_HART_EN": 0x6,
+                   "CONTEXT_B_HART_EN": 0x18},
+            AMP_C: {"CONTEXT_A_EN": 0x6, "CONTEXT_B_EN": 0x18, "CONTEXT_A_HART_EN": 0x6, "CONTEXT_B_HART_EN": 0x18}}
 EXPECT = re.compile(r"^#? ?expect: (GEN-E\d{3})$", re.MULTILINE)
 PLL = "mss_clocks/mss_pll"
 
@@ -141,7 +147,7 @@ def _():
 
 
 @case("PLL_PHADJ of the MSS PLL: the 0x8 in the 3 bits of REG_OUT3_PHSINIT gives 0x4003, named as a defect, in every "
-      "reference XML (in the PMP demo also the enabled MEM_CONFIGS_ENABLED)")
+      "reference XML (in the PMP demo and the XML of amp_c also the enabled MEM_CONFIGS_ENABLED)")
 def _():
     for path in reference_xmls():
         config = read(path)
@@ -152,7 +158,7 @@ def _():
         assert reg.defect and "REG_LOADPHS_B" in reg.defect and "0x4003" in reg.defect, path
         # What Microchip's generator writes (and hw/mss_init.py): the overflow lands on bit 14, REG_LOADPHS_B.
         assert reg.value == config.value(PLL, "PLL_PHADJ") == 0x4003, (path, hex(reg.value))
-        expected = ["MEM_CONFIGS_ENABLED", "PLL_PHADJ"] if path.parent.name == DEMO else ["PLL_PHADJ"]
+        expected = ["MEM_CONFIGS_ENABLED", "PLL_PHADJ"] if path.parent.name in CONTEXTS else ["PLL_PHADJ"]
         assert [r.name for r in config.registers if r.defect] == expected, path
 
 
@@ -174,21 +180,20 @@ def _():
     assert codes_of(path) == ["GEN-E050"], codes_of(path)
     for ref in reference_xmls():
         reg = read(ref).register("mss_memory_map/apb_split", "MEM_CONFIGS_ENABLED")
-        if ref.parent.name == DEMO:      # Microchip's PMP demo enables both
+        if ref.parent.name in CONTEXTS:      # Microchip's PMP demo and the XML of amp_c enable both
             assert reg.value == 0x3 and reg.defect, ref
         else:
             assert reg.value == 0 and reg.defect is None, ref
 
 
 @case("the AMP contexts are read: CONTEXT_A_EN, CONTEXT_B_EN, CONTEXT_A_HART_EN, CONTEXT_B_HART_EN (0 in every "
-      "reference XML but the PMP demo), the XML's own layout (the SVD has none)")
+      "reference XML but the PMP demo and the XML of amp_c), the XML's own layout (the SVD has none)")
 def _():
-    demo = {"CONTEXT_A_EN": 0x4F69_5406, "CONTEXT_B_EN": 0x12_A818, "CONTEXT_A_HART_EN": 0x6, "CONTEXT_B_HART_EN": 0x18}
     for ref in reference_xmls():
         config = read(ref)
         for name in ("CONTEXT_A_EN", "CONTEXT_B_EN", "CONTEXT_A_HART_EN", "CONTEXT_B_HART_EN"):
             reg = config.register("mss_memory_map/apb_split", name)
-            assert reg.value == (demo[name] if ref.parent.name == DEMO else 0) and reg.svd is None, (ref, name)
+            assert reg.value == CONTEXTS.get(ref.parent.name, {}).get(name, 0) and reg.svd is None, (ref, name)
         assert len(config.register("mss_memory_map/apb_split", "CONTEXT_B_EN").fields) == 31
         assert [f.name for f in config.register("mss_memory_map/apb_split", "CONTEXT_A_HART_EN").fields] == \
             [f"HART{h}" for h in range(5)]

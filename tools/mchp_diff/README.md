@@ -59,12 +59,13 @@ into the reader.
 
 ## Results
 
-At the pinned commit, every overlapping value of the four reference XMLs agrees, and the exception list is
+At the pinned commit, every overlapping value of the five reference XMLs agrees, and the exception list is
 empty (the run of `tests/host/mchp_diff`):
 
 | XML | Defines | Compared (agree) | Outside the model | Generator's own | Unmapped, missing |
 |---|---|---|---|---|---|
 | `icicle` | 876 | 348 (348) | 524 | 4 | 0, 0 |
+| `icicle_amp_c` | 876 | 348 (348) | 524 | 4 | 0, 0 |
 | `icicle_es` | 811 | 348 (348) | 459 | 4 | 0, 0 |
 | `icicle_es_pmp_demo` | 804 | 342 (342) | 458 | 4 | 0, 0 |
 | `video_kit` | 876 | 348 (348) | 524 | 4 | 0, 0 |

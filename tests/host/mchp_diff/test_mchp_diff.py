@@ -71,7 +71,7 @@ def _():
     status, out = run()
     assert status == 0, out
     summaries = [line for line in out.splitlines() if line.startswith("config/boards/")]
-    assert len(summaries) == len(sorted((ROOT / "config" / "boards").glob("*/*.xml"))) == 4, out
+    assert len(summaries) == len(sorted((ROOT / "config" / "boards").glob("*/*.xml"))) == 5, out
     for line in summaries:
         assert "differ 0)" in line and "unmapped 0; missing 0" in line and "compared 0 " not in line, line
 

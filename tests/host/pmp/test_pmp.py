@@ -26,6 +26,7 @@ XMLS = {p.parent.name: p for p in sorted(BOARDS.glob("*/*.xml"))}
 CONFIGS = {board: xml_reader.read(path, SVD) for board, path in XMLS.items()}
 ICICLE_XML = "config/boards/icicle/ICICLE_MSS_mss_cfg.xml"
 DEMO = "icicle_es_pmp_demo"
+AMP_C = "icicle_amp_c"
 TABLE = ROOT / "examples" / "pmp_xml_test" / "src" / "generated" / "pmp_xml.ads"
 GEN = [sys.executable, "-I", str(ROOT / "config" / "gen" / "mpfs_gen")]
 covered: set[str] = set()
@@ -50,11 +51,11 @@ def run(*args):
     return subprocess.run([*GEN, *args], cwd=ROOT, capture_output=True, text=True, check=False)
 
 
-@case("every reference XML but the PMP demo: no entry on the E51, entry 0 of each U54 locked NAPOT over all addresses, "
-      "RWX")
+@case("every reference XML but the PMP demo and the XML of amp_c: no entry on the E51, entry 0 of each U54 locked "
+      "NAPOT over all addresses, RWX")
 def _():
     for board, config in CONFIGS.items():
-        if board == DEMO:
+        if board in (DEMO, AMP_C):
             continue
         harts, found = pmp.of(config)
         assert found == [], (board, found)
@@ -164,13 +165,44 @@ def _():
     covered.add("GEN-E103")
 
 
+@case("the XML of amp_c: the locked barrier only, no entry on the E51 (the monitor), context A (harts 1 and 2) 9 "
+      "entries, context B (harts 3 and 4) 10, every entry without rights but the watchdog pages WDOG3 and WDOG4 "
+      "(rw-) of context B, all NAPOT")
+def _():
+    harts, found = pmp.of(CONFIGS[AMP_C])
+    assert found == []
+    K, M = 1024, 1024 * 1024
+    a = [(0x0800_0000, 256 * K, "---"), (0x0808_0000, 512 * K, "---"), (0x0812_0000, 64 * K, "---"),
+         (0x2000_0000, 32 * K, "---"), (0x0201_0000, 4 * K, "---"), (0x2800_0000, 128 * M, "---"),
+         (0x2010_4000, 16 * K, "---"), (0x0100_0000, 8 * K, "---"), (0x0170_0000, 32 * K, "---")]
+    b = [(0x0800_0000, 512 * K, "---"), (0x0810_0000, 128 * K, "---"), (0x0813_0000, 16 * K, "---"),
+         (0x2010_5000, 4 * K, "rw-"), (0x2010_7000, 4 * K, "rw-"), (0x2000_0000, 2 * M, "---"),
+         (0x0201_0000, 4 * K, "---"), (0x0181_0000, 32 * K, "---"), (0x0100_0000, 8 * K, "---"),
+         (0x0170_0000, 32 * K, "---")]
+
+    def table(h):
+        out = []
+        for e in h.entries:
+            if e.mode == "OFF":
+                continue
+            assert e.mode == "NAPOT" and e.locked, (h.hart, e)
+            first, last = pmp.region(e, h.addr[e.index - 1] if e.index else 0)
+            out.append((first, last + 1 - first, e.rights))
+        return out
+    assert [table(h) for h in harts] == [[], a, a, b, b], [table(h) for h in harts]
+    assert [len(pmp.in_use(h)) for h in harts] == [0, 9, 9, 10, 10]
+    for h in harts:
+        assert pmp.unlocked_part(h) == () and pmp.in_use(h) == tuple(range(len(pmp.in_use(h)))), h.hart
+    assert pmp.rules(CONFIGS[AMP_C], harts) == []
+
+
 @case("GEN-E104 and GEN-E105: the reference XMLs, MEM_CONFIGS_ENABLED.PMP 0 with the open, locked entry 0 of the "
       "U54 harts")
 def _():
     for board, config in CONFIGS.items():
         harts, _ = pmp.of(config)
         found = pmp.rules(config, harts)
-        if board == DEMO:
+        if board in (DEMO, AMP_C):
             assert found == [], found
             continue
         assert [f.code for f in found] == ["GEN-E105"] * 4 + ["GEN-E104"], (board, found)

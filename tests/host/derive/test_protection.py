@@ -288,12 +288,16 @@ def _():
     assert (mtime.base, mtime.length) == (0x0200_B000, 0x1000)
 
 
-@case("the reference XMLs of the boards use no contexts (all four registers and APBBUS_CR 0), the PMP demo does")
+@case("the XMLs of the boards use no contexts (all four registers and APBBUS_CR 0), the PMP demo and amp_c do")
 def _():
     for board, config in CONFIGS.items():
         c, _, found = contexts.derive(system(), config, LAYOUT, BLOCKS)
         if board == "icicle_es_pmp_demo":
             assert found == [] and c.used and c.apbbus_cr == 0x12A818, board
+            continue
+        if board == "icicle_amp_c":
+            assert c.used and c.apbbus_cr == 0x18 and (c.a_harts, c.b_harts) == ((1, 2), (3, 4)), c
+            assert (c.a_peripherals, c.b_peripherals) == (("MMUART1", "MMUART2"), ("MMUART3", "MMUART4")), c
             continue
         assert found == [] and not c.used and c.apbbus_cr == 0, board
 
