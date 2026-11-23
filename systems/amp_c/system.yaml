@@ -21,6 +21,7 @@ partitions:
   - name: monitor
     harts: [0]
     profile: embedded
+    monitor: true              # supervises the other harts: the PMP checks leave its M mode unrestricted
     memory:
       code: { region: lim, size: 128K }
       data: { region: lim, size: 128K }

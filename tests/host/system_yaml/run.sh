@@ -14,7 +14,7 @@
 #
 # Needs PyYAML and jsonschema (tools/requirements.txt), no toolchain. Exits non-zero on any failure.
 #
-# @verifies GEN-001, GEN-002
+# @verifies GEN-001, GEN-002, GEN-014
 
 set -u
 export LC_ALL=C

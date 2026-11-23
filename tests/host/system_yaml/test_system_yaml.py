@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# @verifies GEN-001, GEN-002
+# @verifies GEN-001, GEN-002, GEN-014
 """config/gen/mpfs_gen: the schema of system.yaml and its reader, on the reference systems in systems/ and
 on the broken descriptions in fixtures/broken (each names the one code it must be rejected with in a line
 `# expect: GEN-Exxx`); the table of the codes; the defaults; the standalone presets of the 30 runtime
@@ -75,6 +75,9 @@ def _():
     assert shape("amp_c") == [((0,), "embedded", "u"), ((1,), "light", "u"), ((2,), "light-tasking", "u"),
                               ((3,), "embedded", "u"), ((4,), "embedded", "u")]
     assert shape("amp_d") == [((1, 2), "embedded", "u"), ((3, 4), "light", "m")]
+    monitors = {name: [p.name for p in yaml_reader.read(SYSTEMS / name / "system.yaml").partitions if p.monitor]
+                for name in ("amp_a", "amp_b", "amp_c", "amp_d")}
+    assert monitors == {"amp_a": [], "amp_b": [], "amp_c": ["monitor"], "amp_d": []}, monitors
 
 
 @case("each broken description is rejected with exactly the code it names, and there are at least 20")
@@ -163,6 +166,7 @@ def _():
     assert system.security_profile == schema["properties"]["security_profile"]["default"] == "dev"
     a, b = system.partitions
     assert a.priv == b.priv == part["priv"]["default"] == "u"
+    assert a.monitor is b.monitor is part["monitor"]["default"] is False
     assert a.stacks.main == yaml_reader.size(part["stacks"]["properties"]["main"]["default"]) == 16384
     assert (a.stacks.interrupt, a.stacks.secondary) == (8192, 16384)
     assert (b.stacks.interrupt, b.stacks.secondary) == (12912, 16384)

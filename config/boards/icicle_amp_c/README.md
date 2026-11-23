@@ -35,9 +35,10 @@ channels largest first, `app_a_app_b` `0x0812_0000` (32 KiB), `monitor_app_a` `0
 `0x0812_C000` (16 KiB), `monitor_io` `0x0813_0000` and `monitor_control` `0x0813_2000` (8 KiB), and the
 `fast_text` of `control` in the ITIM of hart 2.
 
-The E51 (`pmp_h0`, partition `monitor`) has no entry: the monitor supervises the system (the bus error units and
-the watchdogs of the other harts), so its M mode is not locked out of anything; its U mode is held to its own
-ranges by the allow list alone.
+The E51 (`pmp_h0`, partition `monitor`, `monitor: true` in `systems/amp_c/system.yaml`) has no entry: the
+monitor supervises the system (the bus error units and the watchdogs of the other harts), so its M mode is not
+locked out of anything, and the checks do not report what it reaches; its U mode is held to its own ranges by the
+allow list alone. Its kernel belongs to the TSF.
 
 Context A (`pmp_h1`, `pmp_h2`, partitions `io` and `control`), 9 entries:
 

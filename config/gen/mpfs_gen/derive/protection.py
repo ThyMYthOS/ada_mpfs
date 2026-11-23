@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# @req GEN-011, GEN-013
+# @req GEN-011, GEN-013, GEN-014
 """The PMP of the XML, with the allow list of each U partition, checked against the partitions of system.yaml.
 
 The locked entries are the user's, set in the MSS Configurator; the generator does not make or repair one.
@@ -73,6 +73,11 @@ GEN-E135 is a warning for now: on the Icicle Kit an access to a peripheral at th
 not on had no effect and raised no fault (docs/lab/results/pmp-entries.md); where the PSLVERR of such an
 access goes is still being measured. M mode of a hart without locked entries reaches everything (no entry
 binds it); the deny list of locked entries is what binds it.
+
+The monitor (monitor: true in system.yaml, at most one partition, GEN-E035) supervises the system, the bus
+error units and watchdogs of the other harts among it, so the checks do not report what M mode of its harts
+reaches (no GEN-E124, GEN-E127 or GEN-E128 for it): its kernel belongs to the TSF. Its U mode gets the allow
+list and the checks of U mode like any other partition.
 """
 from dataclasses import dataclass
 
@@ -309,7 +314,7 @@ def check(system: System, windows: tuple[PlacedWindow, ...], memories: tuple[Mem
 
         for hart in part.harts:
             hp = checked[hart]
-            modes = (["u"] if part.priv == "u" else []) + (["m"] if hp.locked else [])
+            modes = (["u"] if part.priv == "u" else []) + (["m"] if hp.locked and not part.monitor else [])
             if part.priv == "u":
                 for w in own_windows:
                     if w.kind == "fast_text" and w.memory != itim_name(hart):

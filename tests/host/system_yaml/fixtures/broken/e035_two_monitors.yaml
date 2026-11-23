@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+# SPDX-License-Identifier: Apache-2.0
+#
+# expect: GEN-E035
+# Two partitions marked as the monitor.
+schema: 1
+board: icicle
+partitions:
+  - name: monitor
+    harts: [0]
+    profile: light
+    monitor: true
+    memory:
+      code: { region: lim, size: 64K }
+      data: { region: lim, size: 64K }
+  - name: app
+    harts: [1]
+    profile: embedded
+    monitor: true
+    memory:
+      code: { region: lim, size: 256K }
+      data: { region: lim, size: 256K }

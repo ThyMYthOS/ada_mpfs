@@ -197,6 +197,11 @@
           "enum": ["u", "m"],
           "default": "u"
         },
+        "monitor": {
+          "description": "The partition is the monitor, which supervises the system: the PMP checks do not restrict M mode of its harts, U mode is checked as for any partition. At most one per system.",
+          "type": "boolean",
+          "default": false
+        },
         "memory": {
           "type": "object",
           "additionalProperties": false,

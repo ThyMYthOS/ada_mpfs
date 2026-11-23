@@ -254,6 +254,7 @@ A partition:
 | `harts` | list of 1 to 4 harts 0 to 4, each once | required | 0 is the E51, 1 to 4 the U54 cores; more than one is SMP |
 | `profile` | `light`, `light-tasking`, `embedded` | required | the runtime profile |
 | `priv` | `u`, `m` | `u` | the privilege mode of the application |
+| `monitor` | boolean | `false` | the partition is the monitor, which supervises the system; at most one ([PMP and AMP contexts against the partitions](#pmp-and-amp-contexts-against-the-partitions)) |
 | `memory.code` | `region` (`envm`, `lim`, `scratchpad`), `size` | required; without `size` the whole region | the window of the code |
 | `memory.data` | `region` (`lim`, `scratchpad`), `size` | required; without `size` the whole region | the window of the data |
 | `memory.fast_text` | `region` (`itim`), `size` | none | code in the ITIM of each hart of the partition |
@@ -278,7 +279,7 @@ the description agrees with the XML are checked by the later stages that read th
 
 Each rule has its own code. `GEN-E001` to `GEN-E013` are the rules of the schema (the reader maps each
 failure of the validator to the code of its keyword; a size that is not a size is `GEN-E010` whatever the
-keyword), `GEN-E020` to `GEN-E034` the rules across fields, `GEN-E040` to `GEN-E052` the rules of the [MSS
+keyword), `GEN-E020` to `GEN-E035` the rules across fields, `GEN-E040` to `GEN-E052` the rules of the [MSS
 Configurator XML](#mss-configurator-xml), `GEN-E060` to `GEN-E099` the rules of the [derived
 system](#derived-system), `GEN-E100` to `GEN-E119` the rules of the [PMP of the XML](#pmp-of-the-xml), `GEN-E120`
 on the [PMP and the AMP contexts against the partitions](#pmp-and-amp-contexts-against-the-partitions). A rule
@@ -319,6 +320,7 @@ derivations.
 | `GEN-E032` | a memory window without a size in a system of more than one partition |
 | `GEN-E033` | the boot source fram without a fram section |
 | `GEN-E034` | the board has no directory in config/boards |
+| `GEN-E035` | more than one partition is the monitor |
 | `GEN-E040` | the XML cannot be read, is not well-formed or has not the structure of an MSS Configurator XML |
 | `GEN-E041` | the XML has a document type or entity declaration |
 | `GEN-E042` | xml_format_version is missing or not a version the reader knows (0.5.3, 0.6.5, 0.6.8) |
@@ -684,7 +686,8 @@ whole 4 KiB pages its registers in the SVD span. The FICs, the DDR controller an
 their own and are not checked.
 
 **What a partition reaches.** For each hart of a partition the PMP is evaluated in U mode (a `u` partition) and
-in M mode where the hart has locked entries (M mode of a hart without any is bound by no entry). Its own are
+in M mode where the hart has locked entries (M mode of a hart without any is bound by no entry), except for the
+monitor (below). Its own are
 its windows (code and data RWX in one window, code and `fast_text` RX, data and channels RW; `fast_text` only in
 the ITIM of the hart itself), its peripherals and console RW at their address, and the page of `mtime` R
 (`0x0200_B000`, from the CLINT of the SVD). Foreign are the windows of other partitions and channels, the DTIM
@@ -713,6 +716,14 @@ with locked entries reaches a critical block (`GEN-E127`, a warning: which ones 
 yet); a partition of one context reaches the bus window of the other, the HI addresses for A and the LO ones for
 B (`GEN-E135`, a warning).
 
+**The monitor.** One partition may be marked as the monitor (`monitor: true`; a second one is `GEN-E035`). It
+supervises the system, the bus error units and the watchdogs of the other harts among it, so its M mode must not
+be locked out of them: the checks do not report what M mode of its harts reaches (no `GEN-E124`, `GEN-E127` or
+`GEN-E128` for it), and its table in the XML may leave it without locked entries. Its U mode is separated like
+that of any other partition: it gets the generated allow list, and the rules of U mode apply unchanged. The
+kernel of the monitor thereby belongs to the TSF: nothing but its own correctness keeps its M mode from the
+other partitions, their windows, peripherals and the critical blocks.
+
 `GEN-E135` is a warning for now: on the Icicle Kit an access to a peripheral at the address of the bus it is not
 on had no effect and raised no fault (`docs/lab/results/pmp-entries.md`); where the PSLVERR of such an access
 goes is still being measured.
@@ -737,7 +748,7 @@ With the XMLs of the boards the reference systems would be refused for prod: the
 U54 harts lets every partition reach everything and hides the generated allow list (`GEN-E105`, `GEN-E124` to
 `GEN-E126`). `amp_a`, `amp_b` and `amp_d` are dev systems and derive, with these findings as notes. `amp_c` is a
 prod system and derives with its own XML ([`icicle_amp_c`](boards/icicle_amp_c/README.md): no locked entry on
-the E51, the locked barrier of each context, 9 and 10 entries, and the generated allow list of 4 to 6 entries
+the E51 of the monitor, the locked barrier of each context, 9 and 10 entries, and the generated allow list of 4 to 6 entries
 per hart, at most 16), with warnings only: the same context from M mode (`GEN-E128`), the watchdogs WDOG3 and
 WDOG4, which the table of context B grants both its harts (`GEN-E136`), and the critical blocks that the tables
 leave open to M mode (`GEN-E127`: the PDMA, the eNVM controller, the system controller and the IOSCB). The PMP demo (`config/boards/icicle_es_pmp_demo`) passes the checks of the contexts with one

@@ -17,7 +17,8 @@
 #     contexts whose PMP passes (also with the 8 entries of QEMU) and a negative case for every code of the
 #     PMP against the partitions and of the contexts (GEN-E120 on), changed into the XML of the Icicle Kit in
 #     the model; the PMP demo XML with tests/host/derive/fixtures/pmp_demo (contexts pass, its PMP refused for
-#     prod); the reference systems with the reference XMLs refused for prod and derived with notes for dev.
+#     prod); the reference systems with the reference XMLs refused for prod and derived with notes for dev;
+#     the monitor, whose M mode the checks do not report and whose U mode they check.
 #
 # Needs the merged SVD (tools/svd.py ensure rebuilds it if it is missing or stale, which needs svdtools),
 # PyYAML and jsonschema, no toolchain. Exits non-zero on any failure.

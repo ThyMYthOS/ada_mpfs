@@ -51,6 +51,7 @@ class Partition:
     peripherals: tuple[str, ...]
     interrupts: tuple[str, ...]
     watchdog: Watchdog | None
+    monitor: bool = False
 
     @property
     def mask(self) -> int:

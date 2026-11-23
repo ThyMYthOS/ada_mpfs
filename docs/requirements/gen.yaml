@@ -165,3 +165,12 @@ requirements:
       partition of the other context or of none both are errors.
     tsf: false
     source: config/README.md
+  - id: GEN-014
+    text: >-
+      A partition of system.yaml may be marked as the monitor (monitor: true), at most one per
+      system (a second one is refused with its own error code). The monitor supervises the system,
+      so the checks of the PMP against the partitions do not report what M mode of its harts
+      reaches; its U mode gets the generated allow list and is checked like that of any other
+      partition. The kernel of the monitor thereby belongs to the TSF.
+    tsf: false
+    source: config/README.md

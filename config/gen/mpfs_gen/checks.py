@@ -1,14 +1,14 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# @req GEN-001
+# @req GEN-001, GEN-014
 """The error codes of the configuration generator and the rules on a system description that the JSON
 schema cannot express.
 
 CODES is the one list of the codes: each rule has its own, and config/README.md has the same table (a
 test compares them). A code is never reused for another rule. The schema rules (GEN-E001 to GEN-E013)
 are reported by yaml_reader.py from the failures of the validator, the rules across fields (GEN-E020 to
-GEN-E034) by semantic() below on a description that the schema accepts, and the rules of the MSS
+GEN-E035) by semantic() below on a description that the schema accepts, and the rules of the MSS
 Configurator XML (GEN-E040 to GEN-E059, XML_CODES) by xml_reader.py, the rules of the derivations from
 a description and its XML (GEN-E060 to GEN-E099, DERIVE_CODES) by the package derive, the rules of the
 PMP sections of the XML (GEN-E100 to GEN-E119, PMP_CODES) by pmp.py, and the rules of the PMP and the AMP
@@ -53,6 +53,7 @@ CODES: dict[str, str] = {
     "GEN-E032": "a memory window without a size in a system of more than one partition",
     "GEN-E033": "the boot source fram without a fram section",
     "GEN-E034": "the board has no directory in config/boards",
+    "GEN-E035": "more than one partition is the monitor",
     "GEN-E040": "the XML cannot be read, is not well-formed or has not the structure of an MSS Configurator XML",
     "GEN-E041": "the XML has a document type or entity declaration",
     "GEN-E042": "xml_format_version is missing or not a version the reader knows (0.5.3, 0.6.5, 0.6.8)",
@@ -249,6 +250,11 @@ def semantic(system: System, boards: Path) -> list[Diagnostic]:
     ways = system.l2.ways
     if ways and ways.cache + ways.lim + ways.scratchpad != target.WAYS:
         report("GEN-E031", "l2.ways", f"{ways.cache} + {ways.lim} + {ways.scratchpad} ways is not {target.WAYS}")
+
+    monitors = [i for i, part in enumerate(system.partitions) if part.monitor]
+    for i in monitors[1:]:
+        report("GEN-E035", f"partitions[{i}].monitor",
+               f"partitions[{monitors[0]}] ({system.partitions[monitors[0]].name!r}) is the monitor already")
 
     if system.boot and "fram" in system.boot.sources and system.fram is None:
         report("GEN-E033", "boot.sources", "fram is a boot source, but there is no fram section")

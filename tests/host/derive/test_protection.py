@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# @verifies GEN-011, GEN-012, GEN-013
+# @verifies GEN-011, GEN-012, GEN-013, GEN-014
 """config/gen/mpfs_gen: the PMP of the XML evaluated (pmp.regions) and checked against the partitions
 (derive/protection.py), the AMP contexts and the addresses of the peripherals (derive/contexts.py), the
 rules of the layout of the entries (pmp.rules), and a negative case for every code of them. Needs the merged
@@ -367,6 +367,27 @@ def _():
            "M mode of hart 1 ('a') reaches", "code+data of 'b'", "dtim of hart 0", "mmuart3 of partition 'b'")
 
 
+@case("the monitor: the checks do not report what M mode of its harts reaches, but check its U mode as any "
+      "other; the other partitions are checked as before")
+def _():
+    sys_ = system(TWO_CONTEXTS.replace("  - name: a\n", "  - name: a\n    monitor: true\n"))
+    assert [p.monitor for p in sys_.partitions] == [True, False]
+    # a locked entry without the deny list: M mode of a reaches b, the critical blocks and the HI window
+    loose = {1: entries_for([(0x2000_2000, 0x1000, L)]) + allow_list(sys_, 1)}
+    assert codes_of(system(), good(system(), loose))[0] == ["GEN-E124", "GEN-E127", "GEN-E135"]
+    expect([], sys_, good(sys_, loose))
+    # U mode of the monitor is checked: the window of b in its allow list
+    b_window = next(w for w in map_of(sys_).windows if w.owners == ("b",))
+    wide = {1: entries_for([(0x2000_2000, 0x1000, L)])
+            + allow_list(sys_, 1, extra=[(b_window.origin, b_window.length, R)])}
+    message = expect(["GEN-E124"], sys_, good(sys_, wide), "U mode of hart 1 ('a') reaches code+data of 'b'")
+    assert "M mode" not in message, message
+    # b is no monitor: its M mode is checked
+    expect(["GEN-E124", "GEN-E127", "GEN-E135"], sys_, good(sys_, {3: entries_for([(0x2000_2000, 0x1000, L)])
+                                                               + allow_list(sys_, 3)}),
+           "M mode of hart 3 ('b') reaches")
+
+
 # --- negative cases, one per code ----------------------------------------------------------------------------
 
 @case("GEN-E102: a locked entry after an unlocked one")
@@ -595,6 +616,7 @@ def _():
     sys_ = amp_c()
     assert sys_.security_profile == "prod" and derive.xml_of(sys_, AMP_C_PATH).resolve() == XMLS["icicle_amp_c"]
     assert sys_.l2.ways is None and AMP_C.design.format_version == "0.6.8"
+    assert [p.name for p in sys_.partitions if p.monitor] == ["monitor"]
     harts, found = pmp.of(AMP_C)
     assert found == [] and pmp.rules(AMP_C, harts) == []
     assert all(e.locked for h in harts for e in (h.entry(i) for i in pmp.in_use(h)))

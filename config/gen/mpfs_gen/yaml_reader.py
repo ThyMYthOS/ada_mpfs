@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# @req GEN-001
+# @req GEN-001, GEN-014
 """The reader of system.yaml: YAML, the JSON schema, the defaults, the normalisation, the rules.
 
   read(path)              the System of the file, or SystemDescriptionError with every diagnostic
@@ -173,7 +173,8 @@ def _partition(data: dict[str, Any]) -> Partition:
         console=data.get("console", target.default_console(harts[0])),
         peripherals=tuple(sorted(data.get("peripherals", ()))),
         interrupts=tuple(sorted(data.get("interrupts", ()))),
-        watchdog=Watchdog(watchdog["instance"], watchdog["timeout_ms"]) if watchdog else None)
+        watchdog=Watchdog(watchdog["instance"], watchdog["timeout_ms"]) if watchdog else None,
+        monitor=data.get("monitor", False))
 
 
 def build(data: dict[str, Any]) -> System:
