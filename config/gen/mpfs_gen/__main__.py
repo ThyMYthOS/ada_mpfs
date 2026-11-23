@@ -182,7 +182,14 @@ def describe_protection(d: Derived) -> list[str]:
                    "register (the MPU is applied); the checks below are for information, their findings are notes")
     for h in pr.harts:
         out.append(f"pmp hart {h.hart}: {h.used} of {pr.entries} entries in use, locked "
-                   f"{[e.index for e in h.locked]}, unlocked {[e.index for e in h.unlocked]}; pmpaddr {h.bits} bits")
+                   f"{[e.index for e in h.locked]}, unlocked {[e.index for e in h.unlocked]}"
+                   + (f" (generated {[e.index for e in h.generated]})" if h.generated else "")
+                   + f"; pmpaddr {h.bits} bits")
+        below = {e.index: e.addr for e in h.locked + h.unlocked + h.generated}
+        for e in h.generated:
+            span = pmp.region(e, below.get(e.index - 1, 0), h.bits)
+            where = f"[{span[0]:#x}, {span[1]:#x}]" if span else f"base {e.addr << 2:#x}"
+            out.append(f"  generated entry {e.index}: {e.mode} {where} {e.rights}")
         for r in h.regions:
             if r.entry is not None:
                 out.append(f"  [{r.first:#x}, {r.last:#x}] entry {r.entry}: U {r.u}, M {r.m}")

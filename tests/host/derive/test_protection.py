@@ -1,18 +1,21 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# @verifies GEN-011, GEN-012
+# @verifies GEN-011, GEN-012, GEN-013
 """config/gen/mpfs_gen: the PMP of the XML evaluated (pmp.regions) and checked against the partitions
 (derive/protection.py), the AMP contexts and the addresses of the peripherals (derive/contexts.py), the
 rules of the layout of the entries (pmp.rules), and a negative case for every code of them. Needs the merged
 SVD (tools/svd.py ensure).
 
-The reference XMLs set no PMP that fits a partition, so the cases write their own into the XML of the Icicle
-Kit in the model: the entries a user would set in the MSS Configurator for the system TWO_CONTEXTS (one
+The XMLs of the boards set no PMP that fits a partition, so most cases write their own into the XML of the
+Icicle Kit in the model: the entries a user would set in the MSS Configurator for the system TWO_CONTEXTS (one
 partition per context, the contexts of Microchip's PMP demo: harts 1 and 2 in A, 3 and 4 in B, APBBUS_CR and
 CONTEXT_B_EN 0x12A818), a prod system. Each negative case changes that configuration in one point. The XML of the
 PMP demo itself (config/boards/icicle_es_pmp_demo) is checked with tests/host/derive/fixtures/pmp_demo; a dev
-system takes every finding as a note."""
+system takes every finding as a note. Those cases put the whole allow list into the XML as unlocked entries, so
+the generator keeps it and adds none. The reference system amp_c with its own XML (config/boards/icicle_amp_c:
+only the locked barrier per context) is the case of the generated allow list: its entries per hart are
+asserted, and its variants give the codes of the generated entries and of the same context."""
 import dataclasses
 import sys
 from pathlib import Path
@@ -34,6 +37,8 @@ BOARDS = ROOT / "config" / "boards"
 XMLS = {p.parent.name: p for p in sorted(BOARDS.glob("*/*.xml"))}
 CONFIGS = {board: xml_reader.read(path, SVD) for board, path in XMLS.items()}
 ICICLE = CONFIGS["icicle"]
+AMP_C_PATH = ROOT / "systems" / "amp_c" / "system.yaml"
+AMP_C = CONFIGS["icicle_amp_c"]
 APB = "mss_memory_map/apb_split"
 R, W, X, L = 0x01, 0x02, 0x04, 0x80
 OFF, TOR, NA4, NAPOT = 0x00, 0x08, 0x10, 0x18
@@ -319,6 +324,7 @@ def _():
     assert (pr.contexts.a_harts, pr.contexts.b_harts) == ((1, 2), (3, 4))
     h1 = pr.hart(1)
     assert h1.locked == () and len(h1.unlocked) == h1.used and h1.bits == 36
+    assert h1.generated == (), "an XML with unlocked entries keeps its allow list"
     assert pr.hart(0).used == 0
 
 
@@ -492,12 +498,13 @@ def _():
            "the LO window of context A")
 
 
-@case("the reference systems with the reference XMLs: refused in prod (the open entry 0 of the U54 harts, the E51 "
-      "without a PMP for the U partition monitor), derived in dev with the same findings as notes")
+@case("the reference systems with the XML of the Icicle Kit: refused in prod (the open entry 0 of the U54 harts "
+      "hides the generated allow list, the E51 without a locked entry), derived in dev with the same findings as "
+      "notes")
 def _():
-    for name in ("amp_a", "amp_b", "amp_c", "amp_d"):
+    for name in ("amp_a", "amp_b", "amp_d"):
         sys_ = yaml_reader.read(ROOT / "systems" / name / "system.yaml")
-        assert sys_.security_profile == ("prod" if name == "amp_c" else "dev"), name
+        assert sys_.security_profile == "dev", name
         prod = dataclasses.replace(sys_, security_profile="prod")
         codes, _ = codes_of(prod, ICICLE)
         assert {"GEN-E105", "GEN-E124", "GEN-E104"} <= set(codes), (name, sorted(set(codes)))
@@ -534,6 +541,163 @@ def _():
     assert codes8.count("GEN-E103") == 4 and "hart 1 uses entries 8, 9, 10, 11, 12, 13, 14" in message8, message8
     dev = derive.derive(dataclasses.replace(sys_, security_profile="dev"), demo, SVD)
     assert sorted(n.code for n in dev.notes) == sorted(codes) and dev.warnings == ()
+    # The locked tables grant the peripherals of each context (its whole bus window) and the CLINT RW to all
+    # modes, so the allow list is the window alone: behind the locked deny-all, where it cannot take effect
+    # (GEN-E120).
+    for hart, window in ((1, 0x0800_0000), (2, 0x0800_0000), (3, 0x0802_0000), (4, 0x0802_0000)):
+        made = [(e.index, e.mode, *pmp.region(e, 0), e.rights) for e in dev.protection.hart(hart).generated]
+        assert made == [(15 if hart < 3 else 11, "NAPOT", window, window + 0x1FFFF, "rwx")], (hart, made)
+
+
+# --- the generated allow list: amp_c with its XML -------------------------------------------------------------
+
+# The unlocked entries generated for each hart of amp_c: (index, mode, first, last, rights).
+AMP_C_ALLOW = {
+    0: [(0, "NAPOT", 0x0200_B000, 0x0200_BFFF, "r--"), (1, "NAPOT", 0x0800_0000, 0x0803_FFFF, "rwx"),
+        (2, "NAPOT", 0x0812_8000, 0x0812_FFFF, "rw-"), (3, "NAPOT", 0x0813_0000, 0x0813_3FFF, "rw-"),
+        (4, "NAPOT", 0x2000_0000, 0x2000_1FFF, "rw-")],
+    1: [(9, "NAPOT", 0x0200_B000, 0x0200_BFFF, "r--"), (10, "NAPOT", 0x0810_0000, 0x0811_FFFF, "rwx"),
+        (11, "NAPOT", 0x0813_0000, 0x0813_1FFF, "rw-"), (12, "NAPOT", 0x2010_0000, 0x2010_1FFF, "rw-")],
+    2: [(9, "NAPOT", 0x0181_0000, 0x0181_3FFF, "r-x"), (10, "NAPOT", 0x0181_4000, 0x0181_5FFF, "r-x"),
+        (11, "NAPOT", 0x0200_B000, 0x0200_BFFF, "r--"), (12, "NAPOT", 0x0804_0000, 0x0807_FFFF, "rwx"),
+        (13, "NAPOT", 0x0813_2000, 0x0813_3FFF, "rw-"), (14, "NAPOT", 0x2010_2000, 0x2010_3FFF, "rw-")],
+    3: [(10, "NAPOT", 0x0200_B000, 0x0200_BFFF, "r--"), (11, "NAPOT", 0x0808_0000, 0x080B_FFFF, "rwx"),
+        (12, "NAPOT", 0x0812_0000, 0x0812_7FFF, "rw-"), (13, "NAPOT", 0x0812_8000, 0x0812_BFFF, "rw-"),
+        (14, "NAPOT", 0x2810_4000, 0x2810_4FFF, "rw-")],
+    4: [(10, "NAPOT", 0x0200_B000, 0x0200_BFFF, "r--"), (11, "NAPOT", 0x080C_0000, 0x080F_FFFF, "rwx"),
+        (12, "NAPOT", 0x0812_0000, 0x0812_7FFF, "rw-"), (13, "NAPOT", 0x0812_C000, 0x0812_FFFF, "rw-")],
+}
+AMP_C_LOCKED = {0: 0, 1: 9, 2: 9, 3: 10, 4: 10}
+# The warnings of amp_c: per partition io, control, app_a, app_b; U mode before M mode.
+AMP_C_WARNINGS = ["GEN-E127", "GEN-E128", "GEN-E127", "GEN-E128", "GEN-E136", "GEN-E127", "GEN-E128",
+                  "GEN-E136", "GEN-E127", "GEN-E128"]
+
+
+def amp_c(text=None):
+    """amp_c (prod), or the description <text> with the XML of amp_c."""
+    return yaml_reader.read(AMP_C_PATH) if text is None else yaml_reader.read_text(text, "test.yaml")
+
+
+def generated_of(d, hart):
+    h = d.protection.hart(hart)
+    below = {e.index: e.addr for e in h.locked + h.unlocked}
+    out = []
+    for e in h.generated:
+        first, last = pmp.region(e, below.get(e.index - 1, 0), h.bits)
+        out.append((e.index, e.mode, first, last, e.rights))
+    return out
+
+
+@case("amp_c in prod with its XML: the locked barrier of the XML per context, none on the E51 of the monitor, and "
+      "the generated allow list of each hart, at most 16 entries, none for what a locked entry grants already; only "
+      "warnings remain (same context and critical blocks from M mode, the watchdogs of the same context from U mode)")
+def _():
+    sys_ = amp_c()
+    assert sys_.security_profile == "prod" and derive.xml_of(sys_, AMP_C_PATH).resolve() == XMLS["icicle_amp_c"]
+    assert sys_.l2.ways is None and AMP_C.design.format_version == "0.6.8"
+    harts, found = pmp.of(AMP_C)
+    assert found == [] and pmp.rules(AMP_C, harts) == []
+    assert all(e.locked for h in harts for e in (h.entry(i) for i in pmp.in_use(h)))
+    d = derive.derive(sys_, AMP_C, SVD)
+    windows = [(w.channel or w.owners[0], w.origin, w.length) for w in d.windows if w.memory == "lim"]
+    assert windows == [("monitor", 0x0800_0000, 0x40000), ("control", 0x0804_0000, 0x40000),
+                       ("app_a", 0x0808_0000, 0x40000), ("app_b", 0x080C_0000, 0x40000), ("io", 0x0810_0000, 0x20000),
+                       ("app_a_app_b", 0x0812_0000, 0x8000), ("monitor_app_a", 0x0812_8000, 0x4000),
+                       ("monitor_app_b", 0x0812_C000, 0x4000), ("monitor_io", 0x0813_0000, 0x2000),
+                       ("monitor_control", 0x0813_2000, 0x2000)], windows
+    for hart in range(5):
+        h = d.protection.hart(hart)
+        assert len(h.locked) == AMP_C_LOCKED[hart] and h.unlocked == h.generated, hart
+        assert generated_of(d, hart) == AMP_C_ALLOW[hart], (hart, generated_of(d, hart))
+        assert h.used == AMP_C_LOCKED[hart] + len(AMP_C_ALLOW[hart]) <= 16, hart
+        assert all(not e.locked for e in h.generated) and h.generated[0].index == AMP_C_LOCKED[hart]
+    # WDOG3 and WDOG4 are granted rw- by locked entries of context B: no generated entry for them
+    assert not any(first in (0x2010_5000, 0x2010_7000) for hart in (3, 4) for _, _, first, _, _ in AMP_C_ALLOW[hart])
+    assert [w.code for w in d.warnings] == AMP_C_WARNINGS, d.warnings
+    message = "\n".join(map(str, d.warnings))
+    assert "M mode of hart 1 ('io') reaches fast_text of 'control' [0x1810000, 0x1815fff]" in message
+    assert "M mode of hart 3 ('app_a') reaches code+data of 'app_b' [0x80c0000, 0x80fffff]" in message
+    assert "U mode of hart 3 ('app_a') reaches wdog4 of partition 'app_b' [0x20107000, 0x20107fff]" in message
+    assert "U mode of hart 4 ('app_b') reaches wdog3 of partition 'app_a' [0x20105000, 0x20105fff]" in message
+    assert [line for line in message.splitlines() if "U mode" in line and "GEN-E136" not in line] == []
+    # the printout lists the generated entries
+    import importlib
+    lines = importlib.import_module("mpfs_gen.__main__").describe_derived(d)
+    assert ("pmp hart 3: 15 of 16 entries in use, locked [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], unlocked "
+            "[10, 11, 12, 13, 14] (generated [10, 11, 12, 13, 14]); pmpaddr 36 bits") in lines, lines
+    assert "  generated entry 14: NAPOT [0x28104000, 0x28104fff] rw-" in lines, lines
+
+
+@case("the cover of a range: NAPOT where it takes no more entries than TOR, else TOR with its base, or chained to "
+      "the TOR entry before it")
+def _():
+    assert pmp.napot_pieces(0x1000, 0x8000) == [(0x1000, 0x1000), (0x2000, 0x2000), (0x4000, 0x4000)]
+    assert pmp.napot_pieces(0, 0x3000) == [(0, 0x2000), (0x2000, 0x1000)]
+    empty = hart_pmp([])
+    got = pmp.cover([(0x1000, 0x8000, "rw-"), (0x8000, 0xB000, "r--"), (0x1_0000, 0x1_4000, "r-x")], 2, empty)
+    assert [(e.index, e.mode, e.addr << 2, e.rights) for e in got] == [
+        (2, "OFF", 0x1000, "---"), (3, "TOR", 0x8000, "rw-"), (4, "TOR", 0xB000, "r--"),
+        (5, "NAPOT", 0x1_0000 | 0x1FFC, "r-x")], got
+    # two NAPOT pieces are not more than the two entries of TOR, but more than a chained TOR
+    two = pmp.cover([(0, 0x3000, "rwx")], 0, empty)
+    assert [e.mode for e in two] == ["TOR"], two
+    tor = hart_pmp([(OFF, 0x1000 >> 2), (TOR | L, 0x2000 >> 2)])
+    assert [e.mode for e in pmp.cover([(0x2000, 0x5000, "rw-")], 2, tor)] == ["TOR"]
+    assert [e.mode for e in pmp.cover([(0x4000, 0x7000, "rw-")], 2, tor)] == ["NAPOT", "NAPOT"]
+    combined = pmp.with_entries(empty, got)
+    assert [(r.first, r.last, r.u) for r in pmp.regions(combined, 36) if r.entry is not None] == [
+        (0x1000, 0x7FFF, "rw-"), (0x8000, 0xAFFF, "r--"), (0x1_0000, 0x1_3FFF, "r-x")]
+
+
+@case("GEN-E128: M mode reaches what belongs to a partition of the same context (a warning); across contexts it "
+      "stays GEN-E124")
+def _():
+    sys_ = amp_c()
+    message = expect(AMP_C_WARNINGS, sys_, AMP_C, "M mode of hart 2 ('control') reaches code+data of 'io'",
+                     "channel 'monitor_io'", "wdog3 of partition 'app_a'")
+    assert "GEN-E124" not in message
+    # without entry 0 of context B (monitor and control) M mode of app_a reaches control of context A and monitor
+    opened = edited(AMP_C, with_pmp({}, 3, [(OFF, 0)] + [(e.cfg, e.addr) for e in pmp.of(AMP_C)[0][3].entries[1:]]))
+    got, text = codes_of(sys_, opened)
+    assert got[0] == "GEN-E124" and got.count("GEN-E124") == 1, (got, text)
+    assert "M mode of hart 3 ('app_a') reaches code+data of 'monitor' [0x8000000, 0x803ffff]; code+data of " \
+           "'control' [0x8040000, 0x807ffff]" in text, text
+
+
+@case("GEN-E136: a locked entry of the XML grants U mode a peripheral of a partition of the same context (a "
+      "warning); across contexts it stays GEN-E124")
+def _():
+    sys_ = amp_c()
+    expect(AMP_C_WARNINGS, sys_, AMP_C, "GEN-E136 (warning) partitions[3]: U mode of hart 3 ('app_a') "
+           "reaches wdog4 of partition 'app_b' [0x20107000, 0x20107fff]")
+    # entry 3 of hart 3 (locked rw-) moved from WDOG3 to WDOG1 of io, a partition of context A
+    entries = [(e.cfg, e.addr) for e in pmp.of(AMP_C)[0][3].entries]
+    assert entries[3] == (NAPOT | L | R | W, 0x2010_5000 >> 2 | 0x1FF), entries[3]
+    entries[3] = (NAPOT | L | R | W, 0x2010_1000 >> 2 | 0x1FF)
+    got, text = codes_of(sys_, edited(AMP_C, with_pmp({}, 3, entries)))
+    assert "GEN-E124 partitions[3]: U mode of hart 3 ('app_a') reaches wdog1 of partition 'io' [0x20101000, " \
+           "0x20101fff]" in text, text
+    assert "U mode of hart 3 ('app_a') reaches wdog4 of partition 'app_b'" in text and "GEN-E136" in got, got
+    assert "hart 3 of 'app_a' cannot read and write wdog3" in text, text
+
+
+@case("GEN-E129: an allow list that does not fit the 16 entries after the locked ones; a note in dev")
+def _():
+    # app_a with 24 KiB of fast_text in its ITIM (two entries) and MMUART4: 8 entries after the 10 of the XML;
+    # the table of context A does not lock out the ITIM of hart 3, which is foreign now (GEN-E124)
+    text = AMP_C_PATH.read_text().replace("    peripherals: [mmuart3, wdog3]",
+                                          "      fast_text: { region: itim, size: 24K }\n"
+                                          "    peripherals: [mmuart3, wdog3, mmuart4]")
+    sys_ = amp_c(text.replace("../../config", str(ROOT / "config")))
+    expect(["GEN-E129", "GEN-E124", "GEN-E124", "GEN-E121", "GEN-E121"] + AMP_C_WARNINGS, sys_, AMP_C,
+           "hart 3 of 'app_a' needs 8 unlocked entries after the 10 of the XML (to index 17); the target has 16 "
+           "(0 to 15)", "cannot read and write mmuart3 in U mode at its HI address [0x28104000",
+           "cannot read and write mmuart4 in U mode at its HI address [0x28106000")
+    dev = derive.derive(dataclasses.replace(sys_, security_profile="dev"), AMP_C, SVD)
+    assert {"GEN-E129", "GEN-E121"} <= {n.code for n in dev.notes} and dev.warnings == ()
+    # with 8 entries (QEMU) the locked part alone leaves no room on harts 1 to 4; the E51 has none
+    got, _ = codes_of(amp_c(), AMP_C, entries=8)
+    assert got.count("GEN-E129") == 4 and got.count("GEN-E103") == 4, got
 
 
 @case("every code of the PMP against the partitions and of the contexts has a negative case, the warnings are the documented ones, "
@@ -541,7 +705,8 @@ def _():
 def _():
     wanted = checks.PROTECTION_CODES
     assert covered - checks.PMP_CODES == wanted, sorted((covered - checks.PMP_CODES) ^ wanted)
-    assert checks.WARNINGS == {"GEN-E104", "GEN-E123", "GEN-E127", "GEN-E135"}, checks.WARNINGS
+    assert checks.WARNINGS == {"GEN-E104", "GEN-E123", "GEN-E127", "GEN-E128", "GEN-E135", "GEN-E136"}, \
+        checks.WARNINGS
     readme = (ROOT / "config" / "README.md").read_text()
     for code in wanted:
         assert f"| `{code}` | {checks.CODES[code]} |" in readme, code

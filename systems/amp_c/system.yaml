@@ -5,22 +5,24 @@
 # kernel and an application domain (ten domains): the E51 and U54 harts 1 to 4 with the profiles
 # embedded, light, light-tasking, embedded and embedded.
 #
-# Example data. The window and channel sizes are chosen to fit together into the LIM
-# at reset (15 ways of 128 KiB, 1920 KiB); they are not measured from images. The reference XML
-# configures 8 ways of cache, 4 of scratchpad and 4 of LIM (512 KiB), so the description keeps the L2
-# at reset with an override.
+# A prod system: its MSS Configurator XML (config/boards/icicle_amp_c) sets the L2 (1 way of cache, 15 of
+# LIM, 1920 KiB) and the locked PMP barrier of the two AMP contexts, A with io and control (harts 1 and 2),
+# B with app_a and app_b (harts 3 and 4); the E51 of monitor has none. The generator adds the unlocked
+# allow list of each hart. The windows of monitor, app_a and app_b are 256 KiB each, one NAPOT entry.
+#
+# Example data. The window and channel sizes are chosen to fit together into the LIM; they are not
+# measured from images.
 schema: 1
-board: icicle
-l2:
-  ways: { cache: 1, lim: 15, scratchpad: 0 }
-  reason: the windows need more than the 512 KiB of LIM of the XML; the L2 at reset has 1920 KiB
+board: icicle_amp_c
+xml: { file: ../../config/boards/icicle_amp_c/amp_c_mss_cfg.xml,
+       sha256: 3b838b24f25871b4f7fbefa55bd9dc4fdc388b6b4049c70c36b6895804cbbd33 }
 security_profile: prod
 partitions:
   - name: monitor
     harts: [0]
     profile: embedded
     memory:
-      code: { region: lim, size: 192K }
+      code: { region: lim, size: 128K }
       data: { region: lim, size: 128K }
     peripherals: [mmuart0, wdog0]
     interrupts: [MMUART0, WDOG0_MVRP]
@@ -48,7 +50,7 @@ partitions:
     harts: [3]
     profile: embedded
     memory:
-      code: { region: lim, size: 192K }
+      code: { region: lim, size: 128K }
       data: { region: lim, size: 128K }
     peripherals: [mmuart3, wdog3]
     interrupts: [MMUART3]
@@ -57,7 +59,7 @@ partitions:
     harts: [4]
     profile: embedded
     memory:
-      code: { region: lim, size: 192K }
+      code: { region: lim, size: 128K }
       data: { region: lim, size: 128K }
     console: none              # MMUART4 is not brought out on the Icicle Kit
     peripherals: [wdog4]

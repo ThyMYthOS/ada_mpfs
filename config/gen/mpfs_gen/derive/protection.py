@@ -1,12 +1,32 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# @req GEN-011
-"""The PMP of the XML checked against the partitions of system.yaml.
+# @req GEN-011, GEN-013
+"""The PMP of the XML, with the allow list of each U partition, checked against the partitions of system.yaml.
 
-The PMP is the user's, set in the MSS Configurator; the generator does not make or repair an entry. It
-evaluates the PMP of each hart of a partition (pmp.regions, the rules of the Privileged Spec v1.10) and
-compares what U mode, and M mode where the hart has locked entries, can reach with what the partition owns:
+The locked entries are the user's, set in the MSS Configurator; the generator does not make or repair one.
+The Configurator writes three PMP tables only: one for the E51 and one per AMP context, which every U54 hart
+of the context gets. The XML can therefore hold the barrier of locked entries of a context, not what
+separates two partitions of the same context. That is the allow list of each hart of a U partition, a set of
+unlocked entries that the kernel of the partition sets in M mode (MSS TRM DS60001702S §3.1.4: unlocked
+entries bind U mode only), which the generator derives from system.yaml and the placement:
+
+  allowed    for each hart of a U partition: its windows with the rights they need (NEEDS: code+data RWX,
+             code and fast_text RX, data and channels RW; fast_text only in the ITIM of the hart itself),
+             its peripherals and console RW at the address APBBUS_CR gives, the page of mtime R; ranges
+             that touch and have the same rights are one range; what a locked entry of the XML already
+             grants U mode with the rights needed is left out (the locked entry decides there);
+  entries    from the lowest index after the last entry the XML uses for the hart on, in address order:
+             a range that is a power of two at a multiple of itself is one NAPOT entry; otherwise it takes
+             the fewest NAPOT entries if that is not more than TOR needs, else a TOR entry (with an OFF
+             entry for its base unless the entry before it is a TOR entry that ends there);
+  kept       a hart whose table in the XML has unlocked entries in use already gets none: the XML's own
+             allow list (written in the Configurator's Expert Mode) is the one checked.
+
+They are generated in both profiles (for a dev image they are not applied, like the whole PMP). The rules
+below evaluate each hart with the entries of the XML and the generated ones together (pmp.regions, the
+rules of the Privileged Spec v1.10) and compare what U mode, and M mode where the hart has locked entries,
+can reach with what the partition owns:
 
   own        its windows (code+data RWX, code and fast_text RX, data and channels RW; fast_text only in the
              ITIM of the hart itself), its peripherals and console RW at the address APBBUS_CR gives
@@ -39,7 +59,15 @@ The rules, each with its code (W: a warning, which does not stop the derivation)
                and resets of all peripherals (SUBBLK_CLOCK_CR, SOFT_RESET_CR) and the MPU of every master
   GEN-E127 W   a critical block is reachable from M mode of a hart with locked entries (the kernel there may
                need some; which is not described yet)
+  GEN-E128 W   M mode of a hart with locked entries reaches something of a partition of the same AMP context
+               (the weakness this design accepts: the allow list separates the partitions of one context in
+               U mode, and the table of the context, the same for all its harts, cannot lock one of them
+               out for the others; across contexts and for a hart in no context it stays GEN-E124)
+  GEN-E129     the allow list of a hart does not fit the entries of the target after the entries of the XML
   GEN-E135 W   a PMP window of a partition in one context covers the bus window of the other context
+  GEN-E136 W   a locked entry of the XML grants U mode of a partition a window or peripheral of a partition of
+               the same AMP context (the same weakness as GEN-E128: the table of the context is the same for
+               all its harts; across contexts, and by an unlocked entry, it stays GEN-E124)
 
 GEN-E135 is a warning for now: on the Icicle Kit an access to a peripheral at the address of the bus it is
 not on had no effect and raised no fault (docs/lab/results/pmp-entries.md); where the PSLVERR of such an
@@ -71,22 +99,27 @@ IOSCB_PREFIX = "IOSCB_"
 BEU = "BEU"
 MAX_RANGES = 4
 # What a reached piece of a zone kind is in a mode (no code: allowed).
-_CODES = {("foreign", "u"): "GEN-E124", ("foreign", "m"): "GEN-E124", ("grant", "u"): "GEN-E126",
+_CODES = {("foreign", "u"): "GEN-E124", ("foreign", "m"): "GEN-E124", ("peer", "u"): "GEN-E124",
+          ("peer", "m"): "GEN-E128", ("grant", "u"): "GEN-E126",
           ("critical", "u"): "GEN-E125", ("grant", "m"): "GEN-E127", ("critical", "m"): "GEN-E127",
           ("bus", "u"): "GEN-E135", ("bus", "m"): "GEN-E135", ("other", "u"): "GEN-E123"}
+LOCKED_PEER = "GEN-E136"   # U mode reaches a partition of the same context by a locked entry of the XML
 
 
 @dataclass(frozen=True, slots=True)
 class HartProtection:
-    """The PMP of a hart as checked: <bits> of pmpaddr implemented, the entries in use, the locked part
-    (for the boot table) and the unlocked part (for MPFS_Partition), and the regions with the rights of U
-    and M mode."""
+    """The PMP of a hart as checked, the entries of the XML and the generated allow list together: <bits> of
+    pmpaddr implemented, the entries in use, the locked part (from the XML, for the boot table), the unlocked
+    part (for MPFS_Partition: the generated entries, or the unlocked entries of the XML), the generated
+    entries among them (also those beyond the 16 of the hart, which GEN-E129 refuses), and the regions with
+    the rights of U and M mode."""
     hart: int
     bits: int
     used: int
     locked: tuple[pmp_.Entry, ...]
     unlocked: tuple[pmp_.Entry, ...]
     regions: tuple[pmp_.Region, ...]
+    generated: tuple[pmp_.Entry, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -137,8 +170,53 @@ def mtime_page(blocks: dict[str, svdread.Block]) -> Block:
 class _Zone:
     first: int
     last: int
-    kind: str       # own, foreign, grant, critical, bus
+    kind: str       # own, foreign, peer (foreign, of the same context), grant, critical, bus
     label: str
+
+
+def _foreign(mine: str, *theirs: str) -> str:
+    """The kind of a foreign zone for a partition of context <mine> (empty: none) whose owners are in the
+    contexts <theirs>: peer if one of them is in the same context, else foreign."""
+    return "peer" if mine and mine in theirs else "foreign"
+
+
+def allowed(part_name: str, hart: int, windows: tuple[PlacedWindow, ...], blocks: tuple[Block, ...],
+            mtime: Block) -> list[tuple[int, int, str]]:
+    """The ranges [first, end) with their rights that U mode of <hart> of the partition <part_name> needs: its
+    <windows>, its peripheral <blocks>, the page of mtime; touching ranges of the same rights merged, in
+    address order."""
+    ranges = [(w.origin, w.end, NEEDS[w.kind]) for w in windows if part_name in w.owners
+              and (w.kind != "fast_text" or w.memory == itim_name(hart))]
+    ranges += [(b.base, b.base + b.length, "rw-") for b in blocks]
+    ranges.append((mtime.base, mtime.base + mtime.length, "r--"))
+    merged: list[tuple[int, int, str]] = []
+    for first, end, rights in sorted(ranges):
+        if merged and merged[-1][1] == first and merged[-1][2] == rights:
+            merged[-1] = (merged[-1][0], end, rights)
+        else:
+            merged.append((first, end, rights))
+    return merged
+
+
+def generate(pmp: pmp_.HartPmp, ranges: list[tuple[int, int, str]], bits: int = pmp_.ADDR_BITS
+             ) -> tuple[pmp_.Entry, ...]:
+    """The allow list <ranges> of a hart as unlocked entries after the entries its table <pmp> of the XML
+    uses (<bits> of pmpaddr implemented), leaving out what the locked entries of the XML already grant U mode
+    with the rights needed; none if that table has unlocked entries in use (the module text)."""
+    if pmp_.unlocked_part(pmp):
+        return ()
+    found = pmp_.regions(pmp, bits)
+    needed: list[tuple[int, int, str]] = []
+    for first, end, rights in ranges:
+        for low, high, granted in pmp_.rights(found, first, end - 1, "u"):
+            if _has(granted, rights):
+                continue
+            if needed and needed[-1][1] == low and needed[-1][2] == rights:
+                needed[-1] = (needed[-1][0], high + 1, rights)
+            else:
+                needed.append((low, high + 1, rights))
+    used = pmp_.in_use(pmp)
+    return pmp_.cover(needed, used[-1] + 1 if used else 0, pmp)
 
 
 def _has(rights: str, needed: str) -> bool:
@@ -182,23 +260,40 @@ def check(system: System, windows: tuple[PlacedWindow, ...], memories: tuple[Mem
     found: list[Diagnostic] = []
     critical = critical_blocks(blocks)
     mtime = mtime_page(blocks)
+    generated: dict[int, tuple[pmp_.Entry, ...]] = {}
+    for i, (part, placed) in enumerate(zip(system.partitions, parts)):
+        if part.priv != "u":
+            continue
+        for hart in part.harts:
+            made = generate(harts[hart], allowed(part.name, hart, windows, placed.blocks, mtime),
+                            target.PMPADDR_BITS[hart])
+            generated[hart] = made
+            if made and made[-1].index >= entries:
+                found.append(diagnostic("GEN-E129", f"partitions[{i}]",
+                                        f"hart {hart} of {part.name!r} needs {len(made)} unlocked entries after "
+                                        f"the {made[0].index} of the XML (to index {made[-1].index}); the target "
+                                        f"has {entries} (0 to {entries - 1})"))
+    combined = [pmp_.with_entries(p, generated.get(p.hart, ())) for p in harts]
     checked = tuple(HartProtection(p.hart, target.PMPADDR_BITS[p.hart],
                                    len(pmp_.in_use(p)),
                                    pmp_.locked_part(p), pmp_.unlocked_part(p),
-                                   pmp_.regions(p, target.PMPADDR_BITS[p.hart])) for p in harts)
+                                   pmp_.regions(p, target.PMPADDR_BITS[p.hart]),
+                                   generated.get(p.hart, ())) for p in combined)
     owned_blocks = {part.name: placed.blocks for part, placed in zip(system.partitions, parts)}
     used_itims = {w.memory for w in windows}
+    context_of = {part.name: placed.context for part, placed in zip(system.partitions, parts)}
 
     for i, (part, placed) in enumerate(zip(system.partitions, parts)):
         at = f"partitions[{i}]"
         own_windows = [w for w in windows if part.name in w.owners]
-        foreign: list[_Zone] = [_Zone(w.origin, w.end - 1, "foreign",
+        mine_ = placed.context
+        foreign: list[_Zone] = [_Zone(w.origin, w.end - 1, _foreign(mine_, *(context_of[o] for o in w.owners)),
                                       f"channel {w.channel!r}" if w.channel else f"{w.kind} of {w.owners[0]!r}")
                                 for w in windows if part.name not in w.owners]
-        foreign += [_Zone(m.origin, m.end - 1, "foreign", f"{m.name} of hart {m.hart}")
+        foreign += [_Zone(m.origin, m.end - 1, _foreign(mine_, contexts.of_hart(m.hart)), f"{m.name} of hart {m.hart}")
                     for m in memories if m.hart is not None and m.hart not in part.harts
                     and (m.name != itim_name(m.hart) or m.name in used_itims)]
-        foreign += [_Zone(b.base, b.last, "foreign", f"{b.name} of partition {other!r}")
+        foreign += [_Zone(b.base, b.last, _foreign(mine_, context_of[other]), f"{b.name} of partition {other!r}")
                     for other, bs in owned_blocks.items() if other != part.name for b in bs]
         mine = {b.name for b in placed.blocks}
         own_beus = {beu_name(h) for h in part.harts}
@@ -236,17 +331,22 @@ def check(system: System, windows: tuple[PlacedWindow, ...], memories: tuple[Mem
                 if lacking:
                     found.append(diagnostic("GEN-E122", at, f"hart {hart} of {part.name!r} cannot read the page of "
                                             f"mtime {_ranges(lacking)} in U mode"))
+            locked = {e.index for e in hp.locked if e.locked}
             for mode in modes:
-                reached = [(r.first, r.last, r.u if mode == "u" else r.m) for r in hp.regions
+                reached = [(r.first, r.last, r.u if mode == "u" else r.m, r.entry in locked) for r in hp.regions
                            if (r.u if mode == "u" else r.m) != pmp_.NONE]
-                classes = _classify(reached, zones)
                 who = f"{'U' if mode == 'u' else 'M'} mode of hart {hart} ({part.name!r}) reaches"
                 by_code: dict[str, list[tuple[int, str]]] = {}
-                for (kind, label), pieces in classes.items():
-                    code = _CODES.get((kind, mode))
-                    if code:
-                        named = f"{label or 'what is not its own'} {_ranges(pieces)}"
-                        by_code.setdefault(code, []).append((min(pieces)[0], named))
+                # U mode of a partition reaching one of the same context by a locked entry of the XML is
+                # GEN-E136, by an unlocked one GEN-E124 (the module text).
+                for by_lock in (False, True) if mode == "u" else (False,):
+                    classes = _classify([(f, l, r) for f, l, r, k in reached if k == by_lock or mode == "m"],
+                                        zones)
+                    for (kind, label), pieces in classes.items():
+                        code = LOCKED_PEER if by_lock and kind == "peer" else _CODES.get((kind, mode))
+                        if code:
+                            named = f"{label or 'what is not its own'} {_ranges(pieces)}"
+                            by_code.setdefault(code, []).append((min(pieces)[0], named))
                 for code, items in sorted(by_code.items()):
                     text = f"{who} {'; '.join(named for _, named in sorted(items))}"
                     if code == "GEN-E126":

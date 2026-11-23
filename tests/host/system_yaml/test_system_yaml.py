@@ -61,7 +61,8 @@ def _():
     assert sorted(p.name for p in SYSTEMS.iterdir() if p.is_dir()) == list(REFERENCE)
     for name in REFERENCE:
         system = yaml_reader.read(SYSTEMS / name / "system.yaml")
-        assert system.schema == 1 and system.board == "icicle", name
+        board = "icicle_amp_c" if name == "amp_c" else "icicle"   # amp_c has its own XML
+        assert system.schema == 1 and system.board == board, name
 
 
 @case("the reference systems are the ones described: harts, profiles and privilege modes")

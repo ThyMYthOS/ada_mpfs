@@ -108,12 +108,16 @@ CODES: dict[str, str] = {
     "GEN-E125": "a critical system block is reachable from U mode",
     "GEN-E126": "SYSREG or MPUCFG is reachable from U mode",
     "GEN-E127": "a critical system block is reachable from M mode of a hart with locked entries (a warning)",
+    "GEN-E128": "a window, peripheral, ITIM or DTIM of a partition of the same AMP context is reachable from M mode of a hart with locked entries (a warning)",
+    "GEN-E129": "the generated allow list of a hart does not fit the PMP entries of the target after the entries of the XML",
     "GEN-E130": "a hart is in both AMP contexts",
     "GEN-E131": "a peripheral is in both AMP contexts",
     "GEN-E132": "APBBUS_CR is not bits 23:0 of CONTEXT_B_EN while AMP contexts are used",
     "GEN-E133": "a peripheral of a partition is not in the AMP context of its harts",
     "GEN-E134": "the harts of a partition are not all in the same AMP context",
     "GEN-E135": "a PMP window of a partition in one AMP context covers the bus window of the other (a warning)",
+    "GEN-E136": "a locked PMP entry of the XML grants U mode of a partition a window or peripheral of a partition of "
+                "the same AMP context (a warning)",
 }
 
 # The codes of the reader of the MSS Configurator XML (xml_reader.py); the others are those of system.yaml.

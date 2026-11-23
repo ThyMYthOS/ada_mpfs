@@ -25,15 +25,15 @@ What it sets (`python3 config/gen/mpfs_gen pmp config/boards/icicle_amp_c/amp_c_
 ## The locked tables
 
 The Configurator writes three PMP tables: the E51's and one per context, which every hart of the context
-gets. They hold only the locked barrier, entries that bind U and M mode alike; the unlocked allow list of each
-hart, which separates the partitions of a context in U mode, comes behind them. The tables are the keys
-`PMP<i>CFG_<T>` and `CSRPMP_ADDR<i>_<T>` of the `.cfg` with `<T>` `E51`, `CTXA`, `CTXB`: every entry in use is
-a locked NAPOT entry, the configuration byte `0x98` (no rights) or `0x9B` (`rw-`), and `pmpaddr` is
-`(base + size / 2 - 1) >> 2`. The windows are those of `amp_c`: `monitor` `0x0800_0000`, `control`
-`0x0804_0000`, `app_a` `0x0808_0000`, `app_b` `0x080C_0000` (256 KiB each), `io` `0x0810_0000` (128 KiB), the
-shared block of channels largest first, each at a multiple of its size, `app_a_app_b` `0x0812_0000` (32 KiB),
-`monitor_app_a` `0x0812_8000` and `monitor_app_b` `0x0812_C000` (16 KiB), `monitor_io` `0x0813_0000` and
-`monitor_control` `0x0813_2000` (8 KiB), and the `fast_text` of `control` in the ITIM of hart 2.
+gets. They hold only the locked barrier, entries that bind U and M mode alike; the generator adds the unlocked
+allow list of each hart behind them (`config/README.md`). The tables are the keys `PMP<i>CFG_<T>` and
+`CSRPMP_ADDR<i>_<T>` of the `.cfg` with `<T>` `E51`, `CTXA`, `CTXB`: every entry in use is a locked NAPOT entry,
+the configuration byte `0x98` (no rights) or `0x9B` (`rw-`), and `pmpaddr` is `(base + size / 2 - 1) >> 2`.
+The windows are those of `amp_c` as `derive` places them: `monitor` `0x0800_0000`, `control` `0x0804_0000`,
+`app_a` `0x0808_0000`, `app_b` `0x080C_0000` (256 KiB each), `io` `0x0810_0000` (128 KiB), the shared block of
+channels largest first, `app_a_app_b` `0x0812_0000` (32 KiB), `monitor_app_a` `0x0812_8000` and `monitor_app_b`
+`0x0812_C000` (16 KiB), `monitor_io` `0x0813_0000` and `monitor_control` `0x0813_2000` (8 KiB), and the
+`fast_text` of `control` in the ITIM of hart 2.
 
 The E51 (`pmp_h0`, partition `monitor`) has no entry: the monitor supervises the system (the bus error units and
 the watchdogs of the other harts), so its M mode is not locked out of anything; its U mode is held to its own
@@ -79,10 +79,22 @@ Deliberately, for the budget of 16 entries:
 - contexts A and B: the unused LIM above `0x0813_4000`, the ITIMs that no partition uses (an unused ITIM is not
   foreign to the checks), the PDMA, the eNVM controller, the system controller, the IOSCB, and PLIC and CLINT.
 
+## Remaining warnings
+
+`derive --check systems/amp_c/system.yaml` passes with these warnings:
+
+- `GEN-E128`: within a context the tables cannot separate the partitions in M mode: `io` and `control` reach
+  each other's windows, channels (`monitor_io`, `monitor_control`) and peripherals, `io` also the `fast_text` of
+  `control` in the ITIM of hart 2; `app_a` and `app_b` the same.
+- `GEN-E136`: the locked entries 3 and 4 of context B grant WDOG4 to U mode of `app_a` and WDOG3 to U mode of
+  `app_b` (the same weakness: one table for the context).
+- `GEN-E127`: M mode of harts 1 to 4 reaches the PDMA, the eNVM controller, the system controller and the
+  IOSCB, which the tables leave open.
+
 ## Budget per hart
 
-Locked entries of the XML plus the unlocked allow list that the kernel of the hart sets, at most 16; what a
-locked entry grants already (WDOG3 and WDOG4 in context B) needs no unlocked entry.
+Locked entries of the XML plus the unlocked allow list the generator adds (`derive`), at most 16. The generator
+leaves out what a locked entry already grants (WDOG3 and WDOG4 in context B).
 
 | Hart | Partition | Locked | Unlocked | Allow list |
 |---|---|---|---|---|
