@@ -107,6 +107,7 @@ status 2 and say so, instead of running whatever the memory held (measured: rand
 |---|---|
 | `UART<n>` | Optional, `UART0` .. `UART<count-1>`: the port of MMUART `<n>` alone, in the same two forms (`{n}` works here too). It replaces `UART_PATTERN` for that MMUART. |
 | `UART_COUNT` | Number of ports (default 4). |
+| `UART_BAUD`, `UART<n>_BAUD` | The baud rate at which the devices of this machine are opened: `UART_BAUD` for every port (default 115200), `UART<n>_BAUD` (for example `UART0_BAUD=230400`) for MMUART `<n>` alone. `--baud N=RATE` of `./x hw run` and `./x hw monitor` (repeatable) overrides both. A TCP port has the rate of its socat; `tests/host/hw/baud_test.py` checks the rates on a pty. |
 | `UART_PATTERN` | The port of MMUART `<n>`; `{n}` is replaced by the number. A device path (a glob; the first match in sorted order is used), or `tcp:HOST:PORT` / `tcp://HOST:PORT` (`HOST` a name, an IPv4 address or `[IPv6]`). Default: the four interfaces of the CP2108 of the Icicle Kit. |
 
 Examples (`lab.conf.example` has them with comments):
@@ -124,7 +125,7 @@ The syntax was chosen for three reasons. A TCP port is written where a device pa
 socat TCP-LISTEN:5000,reuseaddr,fork FILE:/dev/serial/by-id/usb-Silicon_Labs_CP2108_...-if00-port0,b115200,raw,echo=0
 ```
 
-The baud rate, 8N1 and raw mode are set by that command; the tools cannot change the baud rate of a TCP port (a device of this machine is opened at 115200 8N1). `fork` lets another client connect after the first one has gone, so the tools can be run again and again against the same listener.
+The baud rate, 8N1 and raw mode are set by that command; the tools cannot change the baud rate of a TCP port (a device of this machine is opened at 115200 8N1 unless `UART_BAUD`, `UART<n>_BAUD` or `--baud` say another rate). `fork` lets another client connect after the first one has gone, so the tools can be run again and again against the same listener.
 
 **Security.** `socat` TCP listeners do not authenticate or encrypt: anyone who can reach the port reads the console of the board (and, with this `socat` command, can write to it). Bind the listener to a trusted network (`TCP-LISTEN:5000,bind=10.0.0.5,...`), restrict it with a firewall (or `range=10.0.0.0/24`), or let it listen on `localhost` only and reach it through an ssh tunnel: `ssh -N -L 5000:localhost:5000 lab-pc`, with `UART0=tcp:localhost:5000` in `lab.conf`.
 

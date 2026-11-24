@@ -57,6 +57,9 @@ def load(path: str | None = None) -> dict[str, str]:
     if "{n}" not in values["UART_PATTERN"] and any(n not in overrides for n in range(count)):
         raise SystemExit("lab: UART_PATTERN must contain {n}, the number of the MMUART")
     parse_endpoint(values["UART_PATTERN"], 0, "UART_PATTERN")
+    for key, text in values.items():
+        if key == "UART_BAUD" or re.fullmatch(r"UART\d+_BAUD", key):
+            baud_rate(text, key)
     return values
 
 
@@ -109,6 +112,28 @@ class Endpoint:
 def uart_overrides(values: dict[str, str]) -> dict[int, str]:
     """The UART<n> keys of the lab settings: {n: value}."""
     return {int(k[4:]): v for k, v in values.items() if re.fullmatch(r"UART\d+", k)}
+
+
+def baud_rate(text: str, key: str) -> int:
+    """The baud rate that TEXT names, which a device of this machine can be opened at (a termios speed)."""
+    import termios
+    if not text.isdigit() or not hasattr(termios, f"B{int(text)}"):
+        raise SystemExit(f"lab: {key}: '{text}' is not a baud rate that a serial device can be opened at (such as 115200)")
+    return int(text)
+
+
+def uart_bauds(lab: dict[str, str], ports, options=()) -> dict[int, int]:
+    """The baud rate of every MMUART in <ports>, for the devices of this machine (a TCP port has the rate of its
+    socat): --baud N=RATE of <options> if there is one for it, else UART<n>_BAUD of the lab settings, else UART_BAUD
+    (default 115200)."""
+    given = {}
+    for option in options:
+        number, _, rate = option.partition("=")
+        if not number.isdigit() or not rate:
+            raise SystemExit(f"lab: --baud {option}: wanted N=RATE, for example 0=230400")
+        given[int(number)] = baud_rate(rate, f"--baud {option}")
+    return {n: given.get(n) or baud_rate(lab.get(f"UART{n}_BAUD") or lab["UART_BAUD"], f"UART{n}_BAUD" if f"UART{n}_BAUD" in lab else "UART_BAUD")
+            for n in ports}
 
 
 def parse_endpoint(spec: str, n: int, key: str = "UART_PATTERN") -> Endpoint:

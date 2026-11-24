@@ -37,6 +37,8 @@ def main(argv=None):
     ap.add_argument("--secs", type=float, default=10)
     ap.add_argument("--port", type=int)
     ap.add_argument("--expect", metavar="REGEX")
+    ap.add_argument("--baud", action="append", default=[], metavar="N=RATE",
+                    help="baud rate of the device of MMUART N (repeatable; default: UART<n>_BAUD or UART_BAUD of lab.conf, 115200)")
     ap.add_argument("--lab", metavar="FILE")
     serialview.add_arguments(ap)
     a = ap.parse_args(argv)
@@ -53,7 +55,7 @@ def main(argv=None):
     ports = [a.port] if a.port is not None else list(range(count))
     eps = lab.uart_endpoints(lab_conf, ports)
     view = serialview.make_view(a.view, a.color, {i: str(ep) for i, ep in eps.items()})
-    s = Serial(eps, note=view.note)
+    s = Serial(eps, note=view.note, baud=lab.uart_bauds(lab_conf, eps, a.baud))
     try:
         with view:
             s.pump(a.secs, view)

@@ -146,6 +146,8 @@ def main(argv=None):
     ap.add_argument("--uart-clocks", action="store_true")
     ap.add_argument("--uart-standin", action="store_true")
     ap.add_argument("--div", type=int, default=22)
+    ap.add_argument("--baud", action="append", default=[], metavar="N=RATE",
+                    help="baud rate of the device of MMUART N (repeatable; default: UART<n>_BAUD or UART_BAUD of lab.conf, 115200)")
     ap.add_argument("--lab", metavar="FILE")
     serialview.add_arguments(ap)
     a = ap.parse_args(argv)
@@ -172,7 +174,7 @@ def main(argv=None):
     o = OCD(int(lab_conf["OCD_PORT"]), lab_conf["OCD_HOST"])
     eps = lab.uart_endpoints(lab_conf, range(int(lab_conf["UART_COUNT"])))
     view = serialview.make_view(a.view, a.color, {i: str(ep) for i, ep in eps.items()})
-    s = Serial(eps, note=view.note)
+    s = Serial(eps, note=view.note, baud=lab.uart_bauds(lab_conf, eps, a.baud))
     try:
         o.hart(a.hart)
         o.cmd("halt")

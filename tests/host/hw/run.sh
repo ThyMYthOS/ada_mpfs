@@ -1160,6 +1160,11 @@ if grep -q '^resume$' "$tmp/dbg.log"; then fail "debug: --load leaves the hart h
 grep -q '^compare-sections$' "$tmp/gdb.args" && pass "debug: after --load GDB compares the sections" || fail "debug: after --load GDB compares the sections"
 
 # The sequences built from the MSS Configurator XML against the old literal values, and the executor
+# the baud rate of the serial devices (UART_BAUD, UART<n>_BAUD, --baud N=RATE): a pty stands in for the device
+out="$("$PY" -I "$ROOT/tests/host/hw/baud_test.py" 2>&1)"; rc=$?
+echo "$out" | grep -v '^ok:' | sed 's/^/  baud_test: /'
+[ $rc -eq 0 ] && pass "baud: $(echo "$out" | grep -c '^ok:') checks of the rates (default 115200, per port, --baud, refused rates, the speed set on the device)" \
+  || fail "baud: the checks of baud_test.py failed (see above)"
 out="$("$PY" -I "$ROOT/tests/host/hw/mss_init_test.py" 2>&1)"; rc=$?
 echo "$out" | grep -v '^ok:' | sed 's/^/  mss_init_test: /'
 [ $rc -eq 0 ] && pass "mss_init: $(echo "$out" | grep -c '^ok:') checks of the sequences from the XML (the old values pinned) and of the executor" \

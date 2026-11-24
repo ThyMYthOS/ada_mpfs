@@ -59,7 +59,7 @@ class OCD:
 
 class Serial:
     """Open the serial ports of MMUART0 .. MMUART<count-1> and collect what arrives, as bytes in
-    <data>. <ports> maps the MMUART number to a device path (opened at 115200 8N1), or to a
+    <data>. <ports> maps the MMUART number to a device path (opened at <baud>[n], default 115200, 8N1), or to a
     lab.Endpoint: a device, or a TCP port (a socat on another machine tunnels the UART; its baud rate is
     set there). TCP ports are connected in parallel, with a timeout of <connect_timeout> seconds each;
     a port that cannot be opened or connected is a set-up error (SystemExit) that names the port and the
@@ -67,19 +67,20 @@ class Serial:
     reported once through <note>(number, text), default a line on stderr, and not read any more; the
     others go on."""
 
-    def __init__(self, ports, note=None, connect_timeout=5.0):
+    def __init__(self, ports, note=None, connect_timeout=5.0, baud=None):
         import lab
         self.note = note or self._note_stderr
         self.src = {}        # MMUART number -> fd (device) or socket (TCP)
         self.tcp = set()     # the numbers that are TCP ports
         self.dead = set()    # the numbers that are not read any more
+        baud = baud or {}    # MMUART number -> baud rate of a device (default 115200)
         self.data = {i: b"" for i in ports}
         eps = {i: (p if isinstance(p, lab.Endpoint) else lab.Endpoint("device", path=str(p))) for i, p in ports.items()}
         self.labels = {i: str(ep) for i, ep in eps.items()}
         try:
             for i, ep in eps.items():
                 if ep.kind == "device":
-                    self.src[i] = self._open_device(i, ep.path)
+                    self.src[i] = self._open_device(i, ep.path, baud.get(i, 115200))
             tcp = {i: ep for i, ep in eps.items() if ep.kind == "tcp"}
             if tcp:
                 self._connect(tcp, connect_timeout)
@@ -92,7 +93,7 @@ class Serial:
         print(f"{os.path.basename(sys.argv[0])}: MMUART{i}: {text}", file=sys.stderr, flush=True)
 
     @staticmethod
-    def _open_device(i, path):
+    def _open_device(i, path, rate=115200):
         try:
             fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOCTTY)
         except OSError as e:
@@ -101,7 +102,7 @@ class Serial:
             a = termios.tcgetattr(fd)
             a[0] = a[1] = a[3] = 0
             a[2] = termios.CS8 | termios.CREAD | termios.CLOCAL
-            a[4] = a[5] = termios.B115200
+            a[4] = a[5] = getattr(termios, f"B{rate}")
             a[6][termios.VMIN] = 0
             a[6][termios.VTIME] = 0
             termios.tcsetattr(fd, termios.TCSANOW, a)

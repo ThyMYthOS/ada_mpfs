@@ -21,6 +21,9 @@
 #                 (see "TCP ports" below): tcp:HOST:PORT or tcp://HOST:PORT. The CP2108 of the
 #                 board shows interface if0<n> as MMUART<n>.
 #   UART_COUNT    number of serial ports to read (MMUART0 .. MMUART<count-1>)
+#   UART_BAUD     baud rate at which the devices of this machine are opened (default 115200; a TCP port has the rate of
+#                 its socat). UART<n>_BAUD (optional, for example UART0_BAUD=230400) is the rate of MMUART <n> alone;
+#                 --baud N=RATE of ./x hw run and ./x hw monitor overrides both
 #   UART<n>       (optional, UART0 .. UART<count-1>) the port of MMUART <n> alone, in the same two
 #                 forms; it replaces UART_PATTERN for that MMUART, so device ports and TCP ports
 #                 mix. {n} may be used here too.
@@ -88,6 +91,7 @@ OCD_GDB_PORT=3333
 OCD_ROOT=
 UART_PATTERN=/dev/serial/by-id/usb-Silicon_Labs_CP2108_*-if0{n}-port0
 UART_COUNT=4
+UART_BAUD=115200
 FPGENPROG=/opt/Microchip/Libero_SoC/Libero/bin/fpgenprog
 FPEXPRESS=
 FLASHPRO_ID=

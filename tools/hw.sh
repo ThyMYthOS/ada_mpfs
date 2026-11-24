@@ -51,7 +51,7 @@
 #                              programmer both use the FlashPro, and the script refuses while OpenOCD answers
 #                              on the port of lab.conf.
 #   ./x hw run <ex|file.elf> [--hart N] [--secs S] [--expect RE] [--expect-port N] [--uart-clocks|--uart-standin]
-#                           [--view MODE] [--color WHEN] [--lab F]
+#                           [--baud N=RATE] [--view MODE] [--color WHEN] [--lab F]
 #                              build the example (or take the ELF), load it onto hart N
 #                              (0 = E51, 1-4 = U54; default: the HART of example.conf, hart 0
 #                              for E51, hart 1 for U54), run it, show what the serial ports print as it arrives.
@@ -65,8 +65,10 @@
 #                              Without an example, GDB starts without symbols. OpenOCD is not started by it.
 #   ./x hw probe <probe.S> <hart> [--words N] [--secs S] [--expect RE] [--lab F]
 #                              run a probe of hw/ and print its result block
-#   ./x hw monitor [--secs N] [--port N] [--expect RE] [--view MODE] [--color WHEN] [--lab F]
+#   ./x hw monitor [--secs N] [--port N] [--expect RE] [--baud N=RATE] [--view MODE] [--color WHEN] [--lab F]
 #                              show what the serial ports print, as it arrives
+#   --baud N=RATE (run, monitor)  the baud rate of the device of MMUART N (repeatable); default UART<n>_BAUD or
+#                              UART_BAUD of lab.conf, 115200. TCP ports have the rate of their socat
 #   --view MODE (run, monitor) how the serial text is shown: live (a window of 8 lines per port, in which the
 #                              text scrolls; the default on a terminal), interleaved (complete lines in the
 #                              order they arrive, behind MMUART<n>:; the default otherwise) or blocks (one
