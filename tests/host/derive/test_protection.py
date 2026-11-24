@@ -671,6 +671,18 @@ def _():
         (0x1000, 0x7FFF, "rw-"), (0x8000, 0xAFFF, "r--"), (0x1_0000, 0x1_3FFF, "r-x")]
 
 
+@case("the allow list after a locked entry that ends at a multiple of 4, not of 8: no NAPOT entry of 4 bytes "
+      "(a NAPOT region has at least 8), but TOR")
+def _():
+    locked = hart_pmp([(NA4 | R | W | L, 0x1000 >> 2)])
+    made = protection.generate(locked, [(0x1000, 0x1008, "rw-")], 36)
+    assert all(e.addr >= 0 for e in made), made
+    assert [e.mode for e in made] == ["OFF", "TOR"], made
+    combined = pmp.with_entries(locked, made)
+    assert pmp.rights(pmp.regions(combined, 36), 0x1000, 0x1007, "u") == ((0x1000, 0x1003, "rw-"),
+                                                                           (0x1004, 0x1007, "rw-"))
+
+
 @case("GEN-E128: M mode reaches what belongs to a partition of the same context (a warning); across contexts it "
       "stays GEN-E124")
 def _():

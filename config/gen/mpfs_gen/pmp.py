@@ -52,6 +52,7 @@ APB_SPLIT = "mss_memory_map/apb_split"
 ADDR_BITS = 54                   # pmpaddr holds address bits 55:2 on RV64 (a hart may implement fewer)
 R, W, X, A_SHIFT, L = 0x01, 0x02, 0x04, 3, 0x80
 RESERVED = 0x60
+NAPOT_MIN = 8                    # the smallest NAPOT region (4 bytes are NA4)
 MODES = ("OFF", "TOR", "NA4", "NAPOT")
 TOOL = "config/gen/mpfs_gen pmp"
 
@@ -234,10 +235,12 @@ def napot_pieces(first: int, end: int) -> list[tuple[int, int]]:
 
 def cover(ranges: list[tuple[int, int, str]], start: int, pmp: HartPmp) -> tuple[Entry, ...]:
     """Unlocked entries from index <start> on (indices may pass the 16 of the hart) that grant each of the
-    <ranges> (first, end, rights), [first, end) multiples of 8 and in address order, its rights: one NAPOT
-    entry per piece of napot_pieces() if that takes no more entries than TOR, else a TOR entry, whose base is
-    the pmpaddr of the entry before it (an OFF entry with the base before it, unless the entry before is a
-    TOR entry that ends at <first>). The entries before <start> are those of <pmp>."""
+    <ranges> (first, end, rights), [first, end) multiples of 4 and in address order, its rights: one NAPOT
+    entry per piece of napot_pieces() if every piece has at least the 8 bytes of a NAPOT region and that takes
+    no more entries than TOR, else a TOR entry, whose base is the pmpaddr of the entry before it (an OFF entry
+    with the base before it, unless the entry before is a TOR entry that ends at <first>). A range is a
+    multiple of 4 but not of 8 where a locked entry of the XML ends inside it. The entries before <start> are
+    those of <pmp>."""
     out: list[Entry] = []
 
     def before(index: int) -> Entry | None:
@@ -251,7 +254,7 @@ def cover(ranges: list[tuple[int, int, str]], start: int, pmp: HartPmp) -> tuple
         prev = before(index)
         chained = (prev is None and first == 0) or (prev is not None and prev.mode == "TOR"
                                                     and prev.addr << 2 == first)
-        if len(pieces) <= (1 if chained else 2):
+        if len(pieces) <= (1 if chained else 2) and all(size >= NAPOT_MIN for _, size in pieces):
             for base, size in pieces:
                 out.append(Entry(index, _cfg("NAPOT", rights), (base >> 2) | ((size >> 3) - 1)))
                 index += 1
