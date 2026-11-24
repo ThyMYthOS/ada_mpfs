@@ -265,4 +265,30 @@ def _():
                                          sleep=lambda s: None, monotonic=lambda: next(t) * 0.5), "never")
 
 
+@case("run: a poll that runs out of time is passed to on_timeout and the sequence goes on")
+def _():
+    writes, late = [], []
+    t = iter(range(1000))
+    steps = [m.Write(0x1, 1, "a"), m.Poll(0x10, 1, 1, "never", 1.0), m.Write(0x2, 2, "b")]
+    m.run(steps, lambda a, v, what: writes.append((a, v)), lambda a: 0, sleep=lambda s: None,
+          monotonic=lambda: next(t) * 0.5, on_timeout=late.append)
+    assert writes == [(1, 1), (2, 2)] and late == [steps[1]], (writes, late)
+    t = iter(range(1000))
+    m.run([m.IfSet(0x20, 1, "x", (m.Poll(0x10, 1, 1, "inner", 1.0),))], lambda a, v, what: None, lambda a: 1 if a == 0x20 else 0,
+          sleep=lambda s: None, monotonic=lambda: next(t) * 0.5, on_timeout=late.append)
+    assert late[-1].what == "inner", "the nested steps of an IfSet take the same on_timeout"
+
+
+@case("phases: full() is the phases in order; the IO phase is the one that io=False leaves out; names are unique")
+def _():
+    ph = m.phases(ES)
+    assert [p.name for p in ph] == ["refclk", "io", "mssio", "sgmii", "pll"], [p.name for p in ph]
+    assert m.full(ES) == tuple(step for p in ph for step in p.steps)
+    assert [p.name for p in m.phases(ES, io=False)] == ["refclk", "mssio", "sgmii", "pll"]
+    assert m.full(ES, io=False) == tuple(step for p in m.phases(ES, io=False) for step in p.steps)
+    assert all(p.steps for p in ph)
+    last = m.full(ES)[-1]
+    assert isinstance(last, m.Poll) and (last.address, last.mask) == (m.PLL_MSS + 4, m.PLL_CTRL_LOCK), last
+
+
 finish()

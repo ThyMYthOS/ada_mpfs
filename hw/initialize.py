@@ -98,7 +98,7 @@ def main(argv: list[str] | None = None) -> int:
         for problem in hart_state.clear(ocd.command, a.target):
             print(f"initialize: {problem} (is the hart halted? ./x hw reset halts all)", file=sys.stderr)
         print("initialize: PLIC enables and fcsr cleared")
-        print(f"initialize: done ({len(steps)} steps); CLINT.MTIME now reads {read(0x0200BFF8):#x}")
+        print(f"initialize: done ({len(steps)} steps); CLINT.MTIME now reads {read(mss_init.MTIME):#x}")
     except KeyboardInterrupt:
         print("initialize: interrupted", file=sys.stderr)
         return 130
