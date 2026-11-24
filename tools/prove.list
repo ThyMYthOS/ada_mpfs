@@ -18,3 +18,8 @@ tests/prove/sample/sample.gpr	Sample_Math: byte join and split, saturating add (
 # project.
 tests/prove/tlsf/tlsf.gpr	Tlsf_Math: size classes and bit arithmetic of the TLSF allocator, bucket indices in range	--level=4 --prover=z3,cvc5,altergo --timeout=60 -u tlsf_math.adb
 tests/prove/tlsf/tlsf.gpr	Heap_Guard: request sizes of malloc and calloc, no wrap into a block that is too small	--level=3 --prover=z3,cvc5,altergo --timeout=30 -u heap_guard.adb
+# The independent checker of the PMP (all units but the file and console I/O of the main program): free of
+# run-time errors, and Lemma_Uniform, the evaluation of an interval the same for all its addresses (Gold).
+# Level 2 and three provers: the decoding of the entries needs the bit-vector provers. --no-inlining: each
+# local subprogram is proved on its own contract (the loader's helpers otherwise give flow warnings per call).
+tools/pmp_check/pmp_check.gpr	pmp_check: the independent checker of the PMP, the evaluation of an interval the same for all its addresses	--level=2 --prover=z3,cvc5,altergo --timeout=30 --no-inlining

@@ -757,3 +757,67 @@ controller to all modes, does not cover windows in the LIM and ends in a locked 
 is refused (`GEN-E120`, `GEN-E125`, `GEN-E126`; with the warnings `GEN-E123` and `GEN-E127`). Its tables grant
 the bus window of each context and the CLINT to all modes, so the allow list of each hart is its window alone,
 behind the deny-all.
+
+## Independent checker of the PMP
+
+`tools/pmp_check` is a second implementation of the checks of the PMP and the way masks, in SPARK and
+independent of the generator: it shares no code with `mpfs_gen`, only the data. `derive --check-json` writes
+that data, the input of the checker, and the checker evaluates it on its own:
+
+```sh
+python3 config/gen/mpfs_gen derive --check-json build/amp_c.json systems/amp_c/system.yaml
+gprbuild -P tools/pmp_check/pmp_check.gpr                                        # build/pmp_check/pmp_check
+build/pmp_check/pmp_check build/amp_c.json                                       # the findings and the verdict
+```
+
+**The check input** (`gen/mpfs_gen/system_json.py`, `version` 1) holds the target and the protection as they will
+be set, nothing that the checks conclude: the security profile; the harts of the two AMP contexts; per hart the
+16 configuration bytes and `pmpaddr` values of the XML as they are, the bits of `pmpaddr` it implements and the
+generated unlocked entries (an index above 15 when the allow list does not fit); `MEM_CONFIGS_ENABLED.PMP` and the
+PMP entries of the target (16, 8 with `--pmp-entries 8`); the partitions with their harts, privilege, monitor
+flag and peripherals at the address `APBBUS_CR` gives; the windows with their kind, memory and owners; the
+memories (which are an ITIM of which hart); the critical blocks (which bus error unit is whose); the page of
+`mtime`; the peripherals of both APB buses at their LO and HI address; `WAY_ENABLE`, `NUM_SCRATCH_PAD_WAYS` and the
+way masks of the XML. Every range is `base` and `length` in bytes. The JSON is canonical (keys sorted, an indent
+of one, a newline at the end, the lists in a fixed order), the same bytes for the same system. `system.json`,
+which the emitters will write, takes these keys over unchanged and adds its own; the checker ignores keys it
+does not know. `--check-json` writes the file for a system that breaks rules too, then reports the rules as
+`--check` does (status 2), so that the checker sees what the generator refuses.
+
+**What the checker does.** It decodes every entry itself after the Privileged Spec v1.10 (no Smepmp; OFF, TOR,
+NA4, NAPOT within the implemented bits of `pmpaddr`; the matching entry with the lowest index decides; a locked
+entry binds M and U, an unlocked one U only; no match allows M and denies U), sets the generated entries at their
+indices, and builds for each partition the zones of the target from the input: its own windows, peripherals and
+the page of `mtime`; foreign ones (the windows of other partitions and channels, the DTIM and the used ITIMs of
+other harts, the peripherals of other partitions), of the same context or not; the critical blocks, SYSREG and
+MPUCFG among them; the bus window of the other context. The first and one past the last byte of every entry and
+zone cut the space of a hart into intervals, at most twice their number plus one. For each interval, mode (U for
+a `u` partition; M for a hart with a locked entry, unless the partition is the monitor) and access (R, W, X) it
+compares what the PMP allows with the target, so no address is left out and the time depends only on the number
+of bounds. It reports each rule with the code and path of the generator: `GEN-E100` to `GEN-E105` on the table
+of the XML, `GEN-E120` to `GEN-E129`, `GEN-E135` and `GEN-E136` against the partitions, and `GEN-E072` and
+`GEN-E073` for the way masks. The severity follows the generator: the PMP rules are notes for a dev system and,
+for prod, warnings for the rules that are warnings above and errors otherwise; the way masks are errors in both
+profiles (they are applied in both). It prints `error: GEN-Exxx PATH: message` (or `warning:`, `note:`) per
+finding and `verdict: accepted` or `verdict: refused (N errors)`; status 0 accepted, 1 refused, 2 a wrong
+argument or input (not JSON of the check input: a missing key, a value out of its range, a hart missing).
+
+Two properties of the layout need no rule of their own: an unlocked entry can let M mode through a locked deny
+entry only by coming first, which `GEN-E102` refuses, and the evaluation of M mode would report it; the base of a
+locked TOR entry is the `pmpaddr` of the entry before it, which is locked with it, or an unlocked entry in use
+before a locked one (`GEN-E102`).
+
+Not in the checker: the rules of the AMP context registers themselves (`GEN-E130` to `GEN-E134`), which are rules
+of the consistency of the XML, not of what the PMP lets through; `l2.cache_partitioning` (`GEN-E074`); the MPU of
+the DMA masters, which the generator does not decode yet; a rule that every master keeps a cache way in its way
+mask, which the generator does not have yet either.
+
+**The proof.** All of the checker except the reading of the file and the printing (`pmp_check_main.adb`) is
+SPARK, proved free of run-time errors (`./x prove`, `tools/prove.list`). The evaluation carries a functional
+proof: `Next_Bound` gives the end of the interval that starts at an address such that no bound of an entry or a
+zone lies inside it, and `Lemma_Uniform` proves that the evaluation of such an interval (the deciding entry and
+the zone, and with them the rights of each mode and access and the finding) is the same for all its addresses.
+
+**Agreement.** `tests/host/pmp_check` runs every reference system with its XML and with the XML of the PMP demo,
+as dev and as prod, with 16 and 8 entries, a case per rule and 1000 random configurations through both and
+asserts the same findings (severity, code and path), so the same verdict.

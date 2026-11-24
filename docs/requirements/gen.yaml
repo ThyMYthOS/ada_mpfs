@@ -174,3 +174,31 @@ requirements:
       partition. The kernel of the monitor thereby belongs to the TSF.
     tsf: false
     source: config/README.md
+  - id: GEN-015
+    text: >-
+      An independent checker (tools/pmp_check), written in SPARK and sharing no code with the
+      generator, reads the check input of a system and evaluates the PMP of each hart itself after the
+      Privileged Spec v1.10 (the matching entry with the lowest index decides; a locked entry binds M and
+      U mode, an unlocked one U mode only; no match allows M and denies U; TOR, NA4 and NAPOT within the
+      implemented bits of pmpaddr), the generated entries set at their indices, over the intervals into
+      which the bounds of all entries and of all zones of the target cut the space of the hart, for each
+      mode and access, and reports the rules of the table of the XML, of the PMP against the partitions
+      and of the way masks with the code, path and severity the generator gives them, refusing a prod
+      system with an error (status 1) and reporting the findings of a dev system as notes. All of it but
+      the file and console input and output is proved free of run-time errors, and the evaluation of an
+      interval is proved to be the same for all its addresses. On the reference systems and on 1000
+      random configurations it reports the same findings as the generator.
+    tsf: false
+    source: config/README.md
+  - id: GEN-016
+    text: >-
+      `mpfs_gen derive --check-json OUT` writes the input of the independent checker of the PMP for a
+      system, also for one that breaks rules: the security profile, the harts of the AMP contexts, per
+      hart the configuration bytes and pmpaddr values of the XML as they are with the bits of pmpaddr it
+      implements and the generated unlocked entries, MEM_CONFIGS_ENABLED.PMP and the entries of the
+      target, the partitions with their harts, privilege, monitor flag and peripherals at their address,
+      the windows with their owners, the memories, the critical blocks, the page of mtime, the
+      peripherals of both APB buses and the way masks; as canonical JSON, byte for byte the same for the
+      same system, whose keys the system.json of the emitters keeps.
+    tsf: false
+    source: config/README.md

@@ -1,0 +1,29 @@
+--  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
+--  SPDX-License-Identifier: Apache-2.0
+--
+--  Native (host) build of the independent checker of the PMP, and its SPARK proof (tools/prove.list).
+--     gprbuild -P tools/pmp_check/pmp_check.gpr     (the program: build/pmp_check/pmp_check)
+--  No Target attribute: it builds for the host.
+
+project Pmp_Check is
+   for Source_Dirs use ("src");
+   for Object_Dir use "../../build/pmp_check/obj";
+   for Exec_Dir use "../../build/pmp_check";
+   for Create_Missing_Dirs use "True";
+   for Languages use ("Ada");
+   for Main use ("pmp_check_main.adb");
+
+   package Builder is
+      for Executable ("pmp_check_main.adb") use "pmp_check";
+   end Builder;
+
+   package Compiler is
+      --  No -gnata: the contracts are proved, and the one of Lemma_Uniform quantifies over up to 2 ** 56
+      --  addresses, which no run could check.
+      for Default_Switches ("Ada") use ("-g", "-O1", "-gnat2022", "-gnatwa", "-gnatwe");
+   end Compiler;
+
+   package Binder is
+      for Default_Switches ("Ada") use ("-Es");
+   end Binder;
+end Pmp_Check;

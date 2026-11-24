@@ -4,7 +4,8 @@
 # The registers: job `svd` rebuilds the merged SVD, verifies its recorded hash and runs the host
 # tests of the SVD tooling and of ./x (no Ada toolchain). Job `pac` takes that merged SVD from
 # the `svd` job, regenerates libs/mpfs_pac/src/generated with the svd2ada built at the pinned
-# commit, fails if its hash is not the recorded one (the package is not committed) and compiles the package for the E51 and the U54 ABI.
+# commit, fails if its hash is not the recorded one (the package is not committed) and compiles the package for the E51 and the U54 ABI;
+# with the same toolchain it builds the independent checker of the PMP and runs its host tests.
 name: registers
 
 on:
@@ -174,3 +175,9 @@ jobs:
 
       - name: Host tests of the register package tooling
         run: tests/host/pac/run.sh
+
+      # The independent checker of the PMP (tools/pmp_check) needs the native GNAT of this job, the
+      # python environment of `./x toolchain install pac` and the merged SVD: built, then run against the
+      # checks of the generator on the reference systems and 1000 random configurations.
+      - name: Host tests of the independent checker of the PMP
+        run: tests/host/pmp_check/run.sh

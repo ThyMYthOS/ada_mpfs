@@ -16,6 +16,10 @@
                                                        AMP contexts of the XML are checked against the
                                                        partitions (with 8 entries: whether it runs
                                                        under QEMU), enforced for prod, notes for dev
+  python3 config/gen/mpfs_gen derive --check-json OUT [--xml XML] [--svd SVD] [--pmp-entries 8|16] FILE
+                                                       also write the input of the independent checker
+                                                       of the PMP (tools/pmp_check, system_json.py) to
+                                                       OUT, a refused system's too; then as --check
   python3 config/gen/mpfs_gen pmp [--svd SVD] [--ada FILE [--check]] XML
                                                        print the PMP entries of each hart that the XML
                                                        sets; --ada writes them as the Ada package
@@ -46,10 +50,19 @@ sys.path[:0] = [str(HERE.parent), str(HERE.parents[2] / "tools")]
 
 from gen_ada import cli, errors, svdread
 
-from mpfs_gen import ROOT, derive, pmp, presets, target, xml_reader, yaml_reader
-from mpfs_gen.checks import DiagnosticError
+from mpfs_gen import (
+    ROOT,
+    derive,
+    pmp,
+    presets,
+    system_json,
+    target,
+    xml_reader,
+    yaml_reader,
+)
+from mpfs_gen.checks import DerivationError, DiagnosticError
 from mpfs_gen.derive import Derived
-from mpfs_gen.model import MssConfiguration, XmlRegister
+from mpfs_gen.model import MssConfiguration, System, XmlRegister
 
 TOOL = "mpfs_gen"
 
@@ -77,6 +90,8 @@ def parser() -> argparse.ArgumentParser:
     der.add_argument("--svd", type=Path, help="the merged SVD (default: build/svd, made current)")
     der.add_argument("--pmp-entries", type=int, choices=(target.QEMU_PMP_ENTRIES, target.PMP_ENTRIES),
                      default=target.PMP_ENTRIES, help="the PMP entries per hart of the target (8: QEMU)")
+    der.add_argument("--check-json", type=Path, metavar="OUT",
+                     help="write the input of tools/pmp_check to OUT (one FILE), then check as --check")
     der.add_argument("files", nargs="+", type=Path)
     pm = sub.add_parser("pmp", help="the PMP entries of each hart that an XML sets")
     pm.add_argument("--svd", type=Path, help="the merged SVD (default: build/svd, made current)")
@@ -196,13 +211,30 @@ def describe_protection(d: Derived) -> list[str]:
     return out
 
 
-def derived(path: Path, xml: Path | None, svd: Path, pmp_entries: int = target.PMP_ENTRIES) -> Derived:
-    """The derived system of the description <path> with <xml> or the XML of the description."""
+def configured(path: Path, xml: Path | None, svd: Path) -> tuple[System, MssConfiguration]:
+    """The description <path> and <xml> or the XML of the description."""
     system = yaml_reader.read(path)
     xml = xml or derive.xml_of(system, path)
     shown = xml.relative_to(Path.cwd()) if xml.is_absolute() and xml.is_relative_to(Path.cwd()) else xml
-    config = xml_reader.read(xml, svd, name=str(shown))
+    return system, xml_reader.read(xml, svd, name=str(shown))
+
+
+def derived(path: Path, xml: Path | None, svd: Path, pmp_entries: int = target.PMP_ENTRIES) -> Derived:
+    """The derived system of the description <path> with <xml> or the XML of the description."""
+    system, config = configured(path, xml, svd)
     return derive.derive(system, config, svd, where=f"{path} with {config.source}", pmp_entries=pmp_entries)
+
+
+def check_json(path: Path, xml: Path | None, svd: Path, pmp_entries: int, out: Path) -> Derived:
+    """`derive --check-json OUT`: write the check input of the description <path> to <out>, also for a
+    system that breaks rules, then raise DerivationError if it does."""
+    system, config = configured(path, xml, svd)
+    where = f"{path} with {config.source}"
+    d = derive.derive(system, config, svd, where=where, pmp_entries=pmp_entries, strict=False)
+    cli.write_output(system_json.text(system_json.check_input(d, config, xml_reader.svd_blocks(svd))), out)
+    if d.errors:
+        raise DerivationError(where, list(d.errors) + list(d.warnings))
+    return d
 
 
 def pmp_command(path: Path, svd: Path, out: Path | None, check: bool) -> int:
@@ -240,6 +272,9 @@ def main(argv: list[str]) -> int:
         svd = args.svd if args.svd else svdread.ensure(ROOT)
     if args.command == "pmp":
         return pmp_command(args.file, svd, args.ada, args.check)
+    if args.command == "derive" and args.check_json and len(args.files) != 1:
+        print("mpfs_gen: derive --check-json takes one FILE", file=sys.stderr)
+        return errors.INPUT_ERROR
     status = errors.OK
     for path in args.files:
         try:
@@ -247,8 +282,11 @@ def main(argv: list[str]) -> int:
                 yaml_reader.read(path)
                 print(f"{path}: ok")
             elif args.command == "derive":
-                result = derived(path, args.xml, svd, args.pmp_entries)
-                if args.check:
+                if args.check_json:
+                    result = check_json(path, args.xml, svd, args.pmp_entries, args.check_json)
+                else:
+                    result = derived(path, args.xml, svd, args.pmp_entries)
+                if args.check or args.check_json:
                     print(f"{path}: ok")
                     for w in result.warnings:
                         print(f"{path}: {w}", file=sys.stderr)

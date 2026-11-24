@@ -6,7 +6,9 @@
 system, the data that the emitters write out.
 
   derive(system, config, svd)  the Derived system, or DerivationError with every error (the warnings are in
-                               Derived.warnings, the findings not enforced in dev in Derived.notes)
+                               Derived.warnings, the findings not enforced in dev in Derived.notes); with
+                               strict=False the Derived system even so, its errors in Derived.errors (for the
+                               input of the independent checker, which must see a refused system too)
   xml_of(system, path)         the XML of a description: xml.file next to it, else the one of its board
 
   clocks     the clocks, recomputed from the MSS PLL and checked against the limits
@@ -69,7 +71,8 @@ class DerivedPartition:
 class Derived:
     """The derived system: the description, the XML (its file and hash), and what is derived from them;
     <protection> the PMP and contexts checked, <warnings> the rules broken that do not stop the derivation,
-    <notes> the findings of the PMP and the contexts that a dev image does not enforce."""
+    <notes> the findings of the PMP and the contexts that a dev image does not enforce, <errors> the rules
+    broken that stop it (empty unless derive() ran with strict=False)."""
     system: System
     xml: str
     xml_sha256: str
@@ -84,6 +87,7 @@ class Derived:
     protection: protection_.Protection | None = None
     warnings: tuple[Diagnostic, ...] = ()
     notes: tuple[Diagnostic, ...] = ()
+    errors: tuple[Diagnostic, ...] = ()
 
     def partition(self, name: str) -> DerivedPartition:
         for part in self.partitions:
@@ -110,10 +114,11 @@ def xml_of(system: System, path: Path) -> Path:
 
 
 def derive(system: System, config: MssConfiguration, svd: Path, where: str = "", *,
-           pmp_entries: int = target.PMP_ENTRIES) -> Derived:
+           pmp_entries: int = target.PMP_ENTRIES, strict: bool = True) -> Derived:
     """The derived system of <system> with the XML <config> and the merged SVD <svd>; <where> names the
     pair in the messages. The PMP of the XML and its contexts are checked against the partitions with
-    <pmp_entries> entries per hart (16 on the silicon, 8 for QEMU): enforced for a prod image, notes for dev."""
+    <pmp_entries> entries per hart (16 on the silicon, 8 for QEMU): enforced for a prod image, notes for dev.
+    An error raises DerivationError; with <strict> False the derived system is returned with its errors."""
     found: list[Diagnostic] = []
     if system.xml is not None and system.xml.sha256 != config.sha256:
         found.append(diagnostic("GEN-E060", "xml.sha256",
@@ -148,7 +153,7 @@ def derive(system: System, config: MssConfiguration, svd: Path, where: str = "",
         notes = tuple(guarded)
     errors_ = [d for d in found if not d.warning]
     warnings = tuple(d for d in found if d.warning)
-    if errors_:
+    if errors_ and strict:
         raise DerivationError(where or f"{config.source}", errors_ + list(warnings))
     per = dict(peripherals.partitions)
     parts = tuple(DerivedPartition(p.name, p.harts, p.mask, cpu_to_hart(p.mask),
@@ -157,4 +162,4 @@ def derive(system: System, config: MssConfiguration, svd: Path, where: str = "",
                   for p, c in zip(system.partitions, placed))
     return Derived(system, config.source, config.sha256, clocks, l2, mems, windows, parts,
                    peripherals.ram_shutdown, peripherals.ram_shutdown_blocks, peripherals.gpio_aliases,
-                   checked, warnings, notes)
+                   checked, warnings, notes, tuple(errors_))
