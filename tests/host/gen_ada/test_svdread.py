@@ -167,4 +167,28 @@ def _():
         raises(Mine, lambda: svdread.load(garbage, error=Mine), f"{garbage}: cannot read the SVD")
 
 
+MAP_SVD = """<?xml version="1.0"?>
+<device><size>32</size><peripherals>
+  <peripheral><name>BLOCK_A</name><groupName>BLOCK</groupName><baseAddress>0x1000</baseAddress>
+    <registers>
+      <register><name>CTRL</name><addressOffset>0x4</addressOffset></register>
+      <register><name>DATA%s</name><addressOffset>0x10</addressOffset><dim>2</dim><dimIncrement>0x8</dimIncrement></register>
+      <register><name>WIDE</name><addressOffset>0x30</addressOffset><size>64</size></register>
+    </registers></peripheral>
+  <peripheral derivedFrom="BLOCK_A"><name>BLOCK_B</name><baseAddress>0x2000</baseAddress></peripheral>
+</peripherals></device>
+"""
+
+
+@case("register_map: registers by absolute address, derived peripherals at their own base, dim elements, sizes")
+def _():
+    with tempfile.TemporaryDirectory() as t:
+        got = svdread.register_map(svd_root(t, MAP_SVD))
+    assert got[0x1004] == svdread.RegisterAt("BLOCK_A", "BLOCK", "CTRL", 32, False), got[0x1004]
+    assert got[0x2004] == svdread.RegisterAt("BLOCK_B", "BLOCK", "CTRL", 32, False), got[0x2004]
+    assert got[0x1010].array and got[0x1018].array and got[0x1018].name == "DATA", got[0x1018]
+    assert got[0x1030].size == 64 and 0x1005 not in got and 0x1014 not in got
+    assert len(got) == 8, sorted(hex(a) for a in got)
+
+
 finish()

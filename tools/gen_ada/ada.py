@@ -5,6 +5,8 @@
   identifier(name, where)       a name from an input as an Ada identifier, or an error
   comment(text, indent)         a comment, wrapped at WIDTH columns
   banner(title)                 the three-line box above a section
+  hex_literal(value, width)     an Ada based literal, 16#2000_200C#
+  string_literal(text, width)   the lines of a string literal, split where it is long
   generated_notice(by, inputs)  the "generated, do not edit" paragraph
 
 The header with the licence tags is gen_ada.spdx.
@@ -50,6 +52,24 @@ def comment(text: str, indent: str = "   ") -> list[str]:
     if line or not lines:
         lines.append(line)
     return [f"{indent}--  {item}" for item in lines]
+
+
+def hex_literal(value: int, width: int = 0) -> str:
+    """An Ada based literal, upper case, with digit groups of four; <width> digits at least (zeros in front)."""
+    digits = f"{value:X}".zfill(width)
+    if len(digits) > 4:
+        digits = digits.zfill((len(digits) + 3) // 4 * 4)
+        digits = "_".join(digits[i:i + 4] for i in range(0, len(digits), 4))
+    return f"16#{digits}#"
+
+
+def string_literal(text: str, width: int = 60) -> list[str]:
+    """<text> as Ada string literals of at most <width> characters each, one per item, to be joined by `&`.
+    A quote is doubled; the text must be printable ASCII (an InputError if not)."""
+    if not text.isascii() or not text.isprintable():
+        raise InputError(f"{text!r} is not printable ASCII, which an Ada string literal needs here")
+    pieces = [text[i:i + width] for i in range(0, len(text), width)] or [""]
+    return ['"' + piece.replace('"', '""') + '"' for piece in pieces]
 
 
 def banner(title: str) -> list[str]:

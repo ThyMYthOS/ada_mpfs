@@ -231,13 +231,7 @@ class Partition:
         return [(name, values[name]) for name in VALUE_SYMBOLS if name != self.omit]
 
 
-def hexa(value: int) -> str:
-    """An Ada based literal, upper case, with digit groups of four."""
-    digits = f"{value:X}"
-    if len(digits) > 4:
-        digits = digits.zfill((len(digits) + 3) // 4 * 4)
-        digits = "_".join(digits[i:i + 4] for i in range(0, len(digits), 4))
-    return f"16#{digits}#"
+hexa = ada.hex_literal
 
 
 def render_defsyms(part: Partition) -> str:

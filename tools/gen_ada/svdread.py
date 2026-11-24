@@ -9,6 +9,7 @@
   registers(root)    the registers of each peripheral with their size and the layout of their fields
   blocks(root)       where each peripheral lies: its base, the bytes its registers span, their offsets
                      and the step of each register array
+  register_map(root) the registers by absolute address: peripheral, package, name and size
 
 What a generator makes of them (which group sizes are valid, which interrupt numbers are allowed) is its
 own rule; this module only reads.
@@ -211,4 +212,57 @@ def blocks(root: ET.Element) -> dict[str, Block]:
             size = regs[(name, reg_name)].size if (name, reg_name) in regs else 32
             span = max(span, offset + (count - 1) * step + size // 8)
         result[name] = Block(base, span, offsets, steps)
+    return result
+
+
+@dataclass(frozen=True, slots=True)
+class RegisterAt:
+    """The register at an absolute address: its peripheral (the object of the register package is
+    <peripheral>_Periph), the group that names the package, its name and size in bits, and whether it is an
+    element of a <dim> array (the component is then an array and <name> is the name of the array)."""
+    peripheral: str
+    group: str
+    name: str
+    size: int
+    array: bool
+
+
+def register_map(root: ET.Element) -> dict[int, RegisterAt]:
+    """Every register of the SVD by its absolute address (base address of the peripheral + offset, the elements
+    of a <dim> array each at their own). A derived peripheral has the registers of its base. Two registers at one
+    address (an alias) keep the first."""
+    elements = {p.findtext("name") or "": p for p in root.iter("peripheral")}
+    groups = {p.name: p.group for p in peripherals(root)}
+
+    def number(text: str | None, default: int = 0) -> int:
+        try:
+            return int(text.strip(), 0) if text and text.strip() else default
+        except ValueError:
+            return default
+
+    def source(name: str, seen: tuple[str, ...] = ()) -> ET.Element:
+        elt = elements[name]
+        base = elt.get("derivedFrom")
+        if elt.find("registers") is None and base in elements and base not in seen:
+            return source(base, seen + (name,))
+        return elt
+
+    device_size = number(root.findtext("size"), 32)
+    result: dict[int, RegisterAt] = {}
+    for name, elt in elements.items():
+        origin = source(name)
+        base_address = number(elt.findtext("baseAddress"))
+        size = number(origin.findtext("size"), device_size)
+        for reg in origin.iter("register"):
+            reg_name = (reg.findtext("name") or "").strip()
+            reg_size = number(reg.findtext("size"), size)
+            offset = number(reg.findtext("addressOffset"))
+            dim = number(reg.findtext("dim"), 0)
+            if dim:
+                step = number(reg.findtext("dimIncrement"))
+                for i in range(dim):
+                    result.setdefault(base_address + offset + i * step,
+                                      RegisterAt(name, groups[name], reg_name.replace("%s", ""), reg_size, True))
+            else:
+                result.setdefault(base_address + offset, RegisterAt(name, groups[name], reg_name, reg_size, False))
     return result
