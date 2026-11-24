@@ -69,12 +69,43 @@ def mss_xml(option: Path | None, values: dict[str, str], tool: str) -> Path:
     which run() turns into status 2. There is no default board."""
     if option is not None:
         return option
-    configured = values.get("MSS_XML", "")
-    if configured:
-        path = Path(os.path.expanduser(configured))
-        return path if path.is_absolute() else ROOT / path
+    configured = configured_mss_xml(values)
+    if configured is not None:
+        return configured
     raise SystemExit(f"{tool}: no MSS Configurator XML: give --xml FILE or set MSS_XML in hw/lab.conf "
                      "(relative to the repository root; the XMLs of the reference boards are in config/boards)")
+
+
+def configured_mss_xml(values: dict[str, str]) -> Path | None:
+    """MSS_XML of the lab settings as a path (relative to the root of the repository), None if it is empty."""
+    configured = values.get("MSS_XML", "")
+    if not configured:
+        return None
+    path = Path(os.path.expanduser(configured))
+    return path if path.is_absolute() else ROOT / path
+
+
+def mss_xml_mismatch(used: Path | None, values: dict[str, str]) -> str | None:
+    """The warning for a build whose MSS set-up table comes from <used> (None: the table of the source tree) when
+    MSS_XML of the lab settings names another file, the board that ./x hw initialize and the probes are run for;
+    None if they are the same file or the lab settings name none."""
+    board = configured_mss_xml(values)
+    if board is None or (used is not None and used.resolve() == board.resolve()):
+        return None
+    table = f"the MSS Configurator XML {used}" if used is not None else "the table of the source tree"
+    return (f"MSS_XML of hw/lab.conf names {board}, but this build takes its MSS set-up from {table}; "
+            "set MSS_XML in the environment or in example.conf to build for that board")
+
+
+def warn_mss_xml_mismatch(used: Path | None) -> None:
+    """Print mss_xml_mismatch for the lab settings of this machine to stderr. A lab.conf that does not load is
+    not the build's business: that is said by the tools that need it."""
+    try:
+        message = mss_xml_mismatch(used, load())
+    except SystemExit:
+        return
+    if message:
+        print(f"x: warning: {message}", file=sys.stderr)
 
 
 def toolchain_bin() -> Path:

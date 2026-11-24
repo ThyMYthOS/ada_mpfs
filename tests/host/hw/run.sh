@@ -1165,6 +1165,11 @@ out="$("$PY" -I "$ROOT/tests/host/hw/baud_test.py" 2>&1)"; rc=$?
 echo "$out" | grep -v '^ok:' | sed 's/^/  baud_test: /'
 [ $rc -eq 0 ] && pass "baud: $(echo "$out" | grep -c '^ok:') checks of the rates (default 115200, per port, --baud, refused rates, the speed set on the device)" \
   || fail "baud: the checks of baud_test.py failed (see above)"
+# the warning of a build for another XML than the one of hw/lab.conf
+out="$("$PY" -I "$ROOT/tests/host/hw/mss_xml_mismatch_test.py" 2>&1)"; rc=$?
+echo "$out" | grep -v '^ok:' | sed 's/^/  mss_xml_mismatch_test: /'
+[ $rc -eq 0 ] && pass "mss_xml: $(echo "$out" | grep -c '^ok:') checks of the warning for an MSS_XML that differs from hw/lab.conf" \
+  || fail "mss_xml: the checks of mss_xml_mismatch_test.py failed (see above)"
 out="$("$PY" -I "$ROOT/tests/host/hw/mss_init_test.py" 2>&1)"; rc=$?
 echo "$out" | grep -v '^ok:' | sed 's/^/  mss_init_test: /'
 [ $rc -eq 0 ] && pass "mss_init: $(echo "$out" | grep -c '^ok:') checks of the sequences from the XML (the old values pinned) and of the executor" \

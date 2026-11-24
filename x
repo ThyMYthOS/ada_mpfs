@@ -610,6 +610,37 @@ partition_prepare () {
   P_DEFSYMS="$(sed -e '/^#/d' -e '/^$/d' -e 's/^/-Wl,--defsym=/' "$dir/mpfs_partition.defsyms" | paste -sd";" -)"
 }
 
+#  The MSS set-up table of an image (examples/mss_init_spike): with MSS_XML (the environment, else example.conf)
+#  set, config/gen/mss_init_table.py makes MPFS_Init_Table from that MSS Configurator XML (a path relative to
+#  the repository root, or absolute) into build/mss-init/<name>/, with the options of MSS_INIT_OPTS (the
+#  emitter's, for example --skip-io), and the project takes it from there (MSS_INIT_TABLE_DIR). Without it the
+#  table of the example's source tree is used. An XML the reader rejects stops the build with status 2.
+MSS_TABLE_DIR=""
+mss_table_prepare () {
+  local e="$1" name="$2" xml opts
+  xml="${MSS_XML:-$(conf_get "$e" MSS_XML "")}"
+  opts="${MSS_INIT_OPTS:-$(conf_get "$e" MSS_INIT_OPTS "")}"
+  MSS_TABLE_DIR=""
+  [ -n "$xml" ] || [ -z "$opts" ] || die "MSS_INIT_OPTS needs MSS_XML ($e)"
+  #  Only an example that has the key (examples/mss_init_spike) is about the board of hw/lab.conf: say so
+  #  when that names another XML than the one the table is made from.
+  if [ -f "$EXROOT/$e/example.conf" ] && grep -q '^MSS_XML=' "$EXROOT/$e/example.conf"; then
+    mpfs_find_python
+    local used=""
+    [ -z "$xml" ] || case "$xml" in /*) used="$xml" ;; *) used="$ROOT/$xml" ;; esac
+    "$MPFS_PYTHON" -I -c 'import sys; sys.path.insert(0, sys.argv[1]); import lab; from pathlib import Path; lab.warn_mss_xml_mismatch(Path(sys.argv[2]) if sys.argv[2] else None)' "$ROOT/hw" "$used" || true
+  fi
+  [ -n "$xml" ] || return 0
+  case "$xml" in /*) ;; *) xml="$ROOT/$xml" ;; esac
+  local dir="$ROOT/build/mss-init/$name"
+  mpfs_find_python
+  rm -rf "$dir"
+  # shellcheck disable=SC2086
+  "$MPFS_PYTHON" -I "$ROOT/config/gen/mss_init_table.py" --xml "$xml" $opts --output "$dir/mpfs_init_table.ads" \
+    || { echo "x: the table of the MSS set-up of $e from $xml was not made" >&2; exit 2; }
+  MSS_TABLE_DIR="$dir"
+}
+
 #  Build one example; leaves the ELF path in B_ELF.  Warnings are errors: the
 #  project files set -gnatwe, and any compiler warning outside generated/ that
 #  still gets through fails the build as well.
@@ -645,6 +676,8 @@ build_example () {
     partition_prepare "$e" "$rts" "$prof" "$name"
     envs+=("MPFS_DEFSYMS=$P_DEFSYMS" "MPFS_PLACEMENT=$P_MEMORY")
   fi
+  mss_table_prepare "$e" "$e-$B_HART${B_HARTS:+-h$B_HARTS}"
+  [ -z "$MSS_TABLE_DIR" ] || envs+=("MSS_INIT_TABLE_DIR=$MSS_TABLE_DIR")
   local log rc=0
   log="$(mktemp)"
   if [ -f "$EXROOT/$e/build.sh" ]; then

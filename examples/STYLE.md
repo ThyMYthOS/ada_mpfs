@@ -31,7 +31,7 @@ parameters of the build (`--console`, `--console-init`, `--memory`, `--role`, `-
 | `MPFS_DEFSYMS_<main>` | the same for the main `<main>` that has an `IMAGE_<main>=` line in `example.conf` |
 | `MPFS_PLACEMENT` | `lim`, `scratchpad` or `envm`: the placement script (`--memory`) |
 
-`example.conf` may say `CONSOLE=` (default: the generator's, the MMUART of the hart), `MEMORY=` (default `lim`), `PARTITION_OPTS=` (options of
+`example.conf` may say `CONSOLE=` (default: the generator's, the MMUART of the hart), `MEMORY=` (default `lim`), `PARTITION_OPTS=` (options of `MSS_XML=` and `MSS_INIT_OPTS=` (`examples/mss_init_spike`: the MSS Configurator XML, a path relative to the repository root or absolute, from which `./x build` makes the table of the MSS set-up into `build/mss-init/<name>/` with `config/gen/mss_init_table.py`, and the options of that emitter; the environment variable of the same name wins; empty: the table of the source tree; the project reads the directory from `MSS_INIT_TABLE_DIR`).
 the generator, for example `--itim-length 0x2000 --dtim-length 0x2000`) and one `IMAGE_<main>=` line per main that
 needs options of its own (`--console mmuart1`). The project's linker switches are `Mpfs_Link.Switches`, or for a main
 `Mpfs_Link.Common & external_as_list ("MPFS_DEFSYMS_<main>", ";")`; no project names a value of the partition.
