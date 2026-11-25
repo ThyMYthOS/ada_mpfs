@@ -137,7 +137,9 @@ if [ -z "$serial" ] && [ -z "$location" ]; then
   fi
 fi
 echo "start_openocd: FlashPro model $model ($how), $about" >&2
-set -- -c "telnet_port $port" "$@"
+gdbport=$(lab_get OCD_GDB_PORT)
+case $gdbport in ''|*[!0-9]*) echo "start_openocd: OCD_GDB_PORT must be a number, got '$gdbport'" >&2; exit 2 ;; esac
+set -- -c "telnet_port $port" -c "gdb_port $gdbport" "$@"
 if [ -n "$serial" ]; then set -- -c "$serial_cmd $serial" "$@"; fi
 if [ -n "$location" ]; then set -- -c "adapter usb location $location" "$@"; fi
 if [ -n "$tck" ]; then   # after the interface file (adapter speed 6000), so it wins; before the target file, which runs init

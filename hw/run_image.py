@@ -110,6 +110,21 @@ def build_trap_recorder(tc, tmp):
         return f.read()
 
 
+def load_bin(o, tmp, ocd_path, name, addr, data):
+    """Write DATA to a file in TMP and have OpenOCD load it at ADDR (as a raw binary)."""
+    path = os.path.join(tmp, name)
+    with open(path, "wb") as f:
+        f.write(data)
+    lab.check_load(o.cmd(f"load_image {ocd_path(path)} 0x{addr:x} bin"), path)
+    print(f"loaded {len(data):#x} bytes at {addr:#x}")
+
+
+def load_segments(o, tmp, ocd_path, segs):
+    """Load the segments of an image in whole 64-byte lines (line_runs); shared with hw/debug.py."""
+    for n, (paddr, data) in enumerate(line_runs(segs)):
+        load_bin(o, tmp, ocd_path, f"seg{n}.bin", paddr, data)
+
+
 def check_expect(regex, data, port):
     """(matched, description) of REGEX against the text the ports printed."""
     texts = {i: serialview.raw_text(d) for i, d in data.items() if port is None or i == port}
@@ -154,13 +169,6 @@ def main(argv=None):
     tmp, ocd_path = lab.ocd_tempdir(lab_conf)
     trap_bin = build_trap_recorder(tc, tmp)
 
-    def load(o, name, addr, data):
-        path = os.path.join(tmp, name)
-        with open(path, "wb") as f:
-            f.write(data)
-        lab.check_load(o.cmd(f"load_image {ocd_path(path)} 0x{addr:x} bin"), path)
-        print(f"loaded {len(data):#x} bytes at {addr:#x}")
-
     o = OCD(int(lab_conf["OCD_PORT"]), lab_conf["OCD_HOST"])
     eps = lab.uart_endpoints(lab_conf, range(int(lab_conf["UART_COUNT"])))
     view = serialview.make_view(a.view, a.color, {i: str(ep) for i, ep in eps.items()})
@@ -180,9 +188,8 @@ def main(argv=None):
         hart_state.clear_plic(o.cmd)
         for i in range(8):
             o.cmd(f"mwd 0x{REC + 8 * i:x} 0")
-        load(o, "trap.bin", 0x08100000, trap_bin)
-        for n, (paddr, data) in enumerate(line_runs(segs)):
-            load(o, f"seg{n}.bin", paddr, data)
+        load_bin(o, tmp, ocd_path, "trap.bin", 0x08100000, trap_bin)
+        load_segments(o, tmp, ocd_path, segs)
         o.cmd("reg mcause 0; reg mepc 0; reg mtval 0; reg mtvec 0x08100000")
         o.cmd(f"reg pc 0x{entry:x}")
         print(f"hart {a.hart}: entry {entry:#x}, running {a.secs}s")

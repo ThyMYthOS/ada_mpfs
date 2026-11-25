@@ -14,6 +14,7 @@
 #   reset        reset the board to its power-on state through OpenOCD
 #   initialize   do what the first-stage boot software does to the MSS (clocks, PLL), so that CLINT.MTIME counts
 #   run          build an example (or take an ELF), load it onto a hart, run it and show the serial ports
+#   debug        start the GDB of the toolchain on an example or ELF, connected to the OpenOCD of the board
 #   probe        run a probe program of hw/ on a hart and print its result block
 #   monitor      show what the serial ports print, as it arrives
 #   bootmode     switch the boot mode (0..3) with fpgenprog: PERMANENT, it reprograms the FPGA part
@@ -55,6 +56,13 @@
 #                              (0 = E51, 1-4 = U54; default: the HART of example.conf, hart 0
 #                              for E51, hart 1 for U54), run it, show what the serial ports print as it arrives.
 #                              With --expect the exit status says whether the console matched RE.
+#   ./x hw debug [<ex|file.elf>] [--hart N] [--load] [--port P] [--gdb F] [--dry-run] [--lab F] [-- GDB-ARGS]
+#                              start riscv64-elf-gdb of the toolchain on the example (built first) or ELF, connected to the
+#                              gdb port of the OpenOCD of ./x hw openocd (OCD_HOST, OCD_GDB_PORT of lab.conf; one port for
+#                              all harts, --hart N switches GDB to the thread of hart N; --port names another). Without --load the board
+#                              keeps the image it has (the ELF is for symbols). --load halts the hart, writes the image in
+#                              whole 64-byte lines like run does, sets pc to the entry and checks it with compare-sections.
+#                              Without an example, GDB starts without symbols. OpenOCD is not started by it.
 #   ./x hw probe <probe.S> <hart> [--words N] [--secs S] [--expect RE] [--lab F]
 #                              run a probe of hw/ and print its result block
 #   ./x hw monitor [--secs N] [--port N] [--expect RE] [--view MODE] [--color WHEN] [--lab F]
@@ -118,7 +126,7 @@ verb="${1:-}"; shift || true
 case "$verb" in
   ""|help|-h|--help) usage; exit 0 ;;
   openocd) exec sh "$root/hw/start_openocd.sh" "$@" ;;
-  bootmode|flashpros|run|probe|monitor|reset|initialize|program) ;;
+  bootmode|flashpros|run|debug|probe|monitor|reset|initialize|program) ;;
   *) die "unknown command '$verb' (./x hw help lists them)" ;;
 esac
 
@@ -136,17 +144,24 @@ case "$verb" in
   flashpros) exec "$MPFS_PYTHON" "$root/hw/flashpros.py" "$@" ;;
 esac
 
-# run
-[ $# -ge 1 ] || die "usage: ./x hw run <example|file.elf> [--hart N] [--secs S] [--expect RE] [--uart-clocks|--uart-standin] [--view MODE] [--color WHEN]"
-target="$1"; shift
+# run and debug: <example|file.elf> [--hart N] and the options of the tool; an example is built first
+target=""
+if [ "$verb" = run ]; then
+  [ $# -ge 1 ] || die "usage: ./x hw run <example|file.elf> [--hart N] [--secs S] [--expect RE] [--uart-clocks|--uart-standin] [--view MODE] [--color WHEN]"
+fi
+if [ $# -ge 1 ] && [ "${1#-}" = "$1" ]; then target="$1"; shift; fi
 hart=""; rest=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --hart) [ $# -ge 2 ] || die "--hart needs a value"; hart="$2"; shift 2 ;;
+    --) rest+=("$@"); break ;;
     *) rest+=("$1"); shift ;;
   esac
 done
-if [ -f "$target" ]; then
+elf=""
+if [ -z "$target" ]; then
+  [ -n "$hart" ] || hart=0
+elif [ -f "$target" ]; then
   elf="$target"
   [ -n "$hart" ] || hart=0
 else
@@ -170,5 +185,8 @@ else
   elf="$root/examples/$target/$bindir/$target.elf"
   [ -f "$elf" ] || elf="$(find "$root/examples/$target/$bindir" -maxdepth 1 -name '*.elf' 2>/dev/null | sort | head -n 1)"
   [ -n "$elf" ] || die "building $target produced no $bindir/*.elf"
+fi
+if [ "$verb" = debug ]; then
+  exec "$MPFS_PYTHON" "$root/hw/debug.py" ${elf:+"$elf"} --hart "$hart" "${rest[@]}"
 fi
 exec "$MPFS_PYTHON" "$root/hw/run_image.py" "$elf" "$hart" "${rest[@]}"

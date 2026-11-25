@@ -18,7 +18,7 @@ statement are listed at the end.
 This runs `hw/start_openocd.sh`, which starts the OpenOCD of the directory named by `OPENOCD` in
 `hw/lab.conf`, by default the release pinned in `tools/toolchain.env` (`./x toolchain install openocd`; the
 distribution's OpenOCD lacks the driver for the embedded FlashPro6). The telnet port is `OCD_PORT` of `hw/lab.conf` (4444
-by default), the gdb port 3333. OpenOCD runs as a child of the script.
+by default), the gdb port `OCD_GDB_PORT` (3333 by default; `./x hw debug` connects the toolchain's GDB to it). OpenOCD runs as a child of the script.
 
 Stop it with Ctrl+C in the terminal that runs it. OpenOCD looks at SIGINT only between two passes of its
 event loop, so while it is stuck in a JTAG or abstract-command timeout it ignores Ctrl+C. The script then

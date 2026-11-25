@@ -12,6 +12,8 @@
 #   OCD_HOST      host of the OpenOCD telnet port (the Tcl RPC port is not used: md[bhwd]
 #   OCD_PORT      output does not come back through it). hw/start_openocd.sh starts OpenOCD with OCD_PORT as its
 #                 telnet port (another port for each board when several are connected)
+#   OCD_GDB_PORT  the gdb port of OpenOCD (3333), one for all five harts (GDB sees them as threads); hw/start_openocd.sh
+#                 starts OpenOCD with it and ./x hw debug connects to it. Another port for each board when several are connected
 #   OCD_ROOT      empty if OpenOCD runs on this machine. Else the path of this repository as
 #                 OpenOCD sees it (hw/README.md, "OpenOCD on another machine")
 #   UART_PATTERN  where the serial port of MMUART <n> is; {n} is the number. Either a device
@@ -82,6 +84,7 @@
 OPENOCD=
 OCD_HOST=localhost
 OCD_PORT=4444
+OCD_GDB_PORT=3333
 OCD_ROOT=
 UART_PATTERN=/dev/serial/by-id/usb-Silicon_Labs_CP2108_*-if0{n}-port0
 UART_COUNT=4
