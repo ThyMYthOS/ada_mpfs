@@ -33,13 +33,13 @@ for verb in help list toolchain build clean new qemu mem test metrics analyze st
   case "$help" in *"./x $verb"*) pass "help lists $verb" ;; *) fail "help lists $verb" ;; esac
 done
 
-case "$help" in *"./x hw bootmode|flashpros|openocd|run|probe|monitor|reset"*) pass "help lists hw bootmode" ;; *) fail "help lists hw bootmode" ;; esac
+case "$help" in *"./x hw bootmode|flashpros|openocd|run|debug|probe|monitor|reset"*) pass "help lists hw bootmode" ;; *) fail "help lists hw bootmode" ;; esac
 
 # ./x hw prints a full help (also with help, -h and --help), needs no toolchain for it, lists every command that it dispatches and
 # the settings, and an unknown command is an error that points to it
 hwhelp="$("$X" hw 2>&1)"
 expect_rc "./x hw prints the help and exits 0" 0 "$X" hw
-for c in bootmode flashpros openocd run probe monitor reset initialize program; do
+for c in bootmode flashpros openocd run debug probe monitor reset initialize program; do
   case "$hwhelp" in *"./x hw $c"*) pass "hw help lists $c" ;; *) fail "hw help lists $c" ;; esac
 done
 for a in help -h --help; do

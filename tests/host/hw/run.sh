@@ -1122,6 +1122,43 @@ printf 'OCD_PORT=5555\n' > "$tmp/lab-onlyport.conf"
   || fail "lab.py: a key that the conf does not set takes its default from lab.conf.example"
 
 # --- mss_init.py and initialize.py -----------------------------------------------------
+# --- debug.py -----------------------------------------------------------------------------------------
+# the GDB is a stand-in that writes its arguments into a file; the gdb port is the telnet port of a stand-in OpenOCD, which
+# accepts connections, so that the check "something listens there" passes
+cat > "$tmp/fakegdb" <<EOF2
+#!/bin/sh
+printf '%s\\n' "\$@" > "$tmp/gdb.args"
+EOF2
+chmod +x "$tmp/fakegdb"
+debug () { "$PY" "$HW/debug.py" "$@"; }
+serve dbg
+DL="$tmp/lab-dbg.conf"
+dbgport="$(cat "$tmp/dbg.port")"
+out="$(debug "$tmp/loop.elf" --gdb "$tmp/fakegdb" --lab "$DL" --dry-run 2>&1)"
+case "$out" in "$tmp/fakegdb -q $tmp/loop.elf -ex target remote localhost:3333 -ex thread 1") pass "debug: the command is GDB on the ELF, connected to localhost:3333 (OCD_GDB_PORT), on the thread of the E51" ;; *) fail "debug: the command is GDB on the ELF, connected to localhost:3333, on the thread of the E51 ($out)" ;; esac
+out="$(debug "$tmp/loop.elf" --hart 3 --gdb "$tmp/fakegdb" --lab "$DL" --dry-run 2>&1)"
+case "$out" in *"-ex target remote localhost:3333 -ex thread 4") pass "debug: hart 3 is on the port 3333, as the thread 4 (one port for all harts)" ;; *) fail "debug: hart 3 is on the port 3333, as the thread 4 ($out)" ;; esac
+out="$(debug --port 4000 --gdb "$tmp/fakegdb" --lab "$DL" --dry-run -- -ex "info registers" 2>&1)"
+case "$out" in "$tmp/fakegdb -q -ex target remote localhost:4000 -ex thread 1 -ex info registers") pass "debug: --port wins, no ELF means no symbols, the arguments after -- go to GDB" ;; *) fail "debug: --port wins, no ELF, arguments after -- ($out)" ;; esac
+printf 'OCD_GDB_PORT=3400\n' >> "$DL"
+out="$(debug "$tmp/loop.elf" --hart 1 --gdb "$tmp/fakegdb" --lab "$DL" --dry-run 2>&1)"
+case "$out" in *"-ex target remote localhost:3400 -ex thread 2") pass "debug: OCD_GDB_PORT of lab.conf is the port of every hart" ;; *) fail "debug: OCD_GDB_PORT of lab.conf is the port of every hart ($out)" ;; esac
+expect_rc  "debug: --load without an ELF exits 2" 2 debug --load --gdb "$tmp/fakegdb" --lab "$DL" --port "$dbgport"
+expect_rc  "debug: a hart that does not exist exits 2" 2 debug "$tmp/loop.elf" --hart 5 --gdb "$tmp/fakegdb" --lab "$DL"
+expect_rc  "debug: nothing on the gdb port exits 2" 2 debug "$tmp/loop.elf" --gdb "$tmp/fakegdb" --lab "$DL" --port 1
+expect_out "debug: nothing on the gdb port says that ./x hw openocd starts it" "./x hw openocd starts OpenOCD" debug "$tmp/loop.elf" --gdb "$tmp/fakegdb" --lab "$DL" --port 1
+: > "$tmp/dbg.log"
+expect_rc  "debug: without --load it starts GDB and loads nothing" 0 debug "$tmp/loop.elf" --gdb "$tmp/fakegdb" --lab "$DL" --port "$dbgport"
+if grep -q '^load_image' "$tmp/dbg.log"; then fail "debug: without --load the board keeps its image"; else pass "debug: without --load the board keeps its image"; fi
+grep -q "^target remote localhost:$dbgport$" "$tmp/gdb.args" && ! grep -q '^compare-sections$' "$tmp/gdb.args" && pass "debug: GDB connects and, without --load, does not compare sections" || fail "debug: GDB connects ($(cat "$tmp/gdb.args"))"
+: > "$tmp/dbg.log"; rm -f "$tmp/gdb.args"
+expect_rc  "debug: --load loads the image and starts GDB" 0 debug "$tmp/loop.elf" --load --gdb "$tmp/fakegdb" --lab "$DL" --port "$dbgport"
+grep -q '^targets mpfs.hart0_e51$' "$tmp/dbg.log" && grep -q '^halt$' "$tmp/dbg.log" && pass "debug: --load selects the E51 and halts it" || fail "debug: --load selects the E51 and halts it"
+grep -q '^load_image .* 0x7ffff000 bin$' "$tmp/dbg.log" && pass "debug: --load writes the segment at its address" || fail "debug: --load writes the segment at its address"
+grep -q '^reg pc 0x80000000$' "$tmp/dbg.log" && pass "debug: --load sets pc to the entry point" || fail "debug: --load sets pc to the entry point"
+if grep -q '^resume$' "$tmp/dbg.log"; then fail "debug: --load leaves the hart halted"; else pass "debug: --load leaves the hart halted"; fi
+grep -q '^compare-sections$' "$tmp/gdb.args" && pass "debug: after --load GDB compares the sections" || fail "debug: after --load GDB compares the sections"
+
 # The sequences built from the MSS Configurator XML against the old literal values, and the executor
 out="$("$PY" -I "$ROOT/tests/host/hw/mss_init_test.py" 2>&1)"; rc=$?
 echo "$out" | grep -v '^ok:' | sed 's/^/  mss_init_test: /'
