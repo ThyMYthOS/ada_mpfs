@@ -4,6 +4,7 @@
 --  The rules the checker evaluates.
 
 with Pmp_Check.Eval;
+with Pmp_Check.Mpu;
 with Pmp_Check.Texts;
 
 package body Pmp_Check.Rules
@@ -604,9 +605,58 @@ is
    ---------------------------------------------------------------------------------------------------
    --  The way masks of the L2
 
+   --  The mask of master <Label>, 0 if the input has none.
+   function Mask_Of (S : System; Label : String) return U64 is
+   begin
+      for K in 1 .. S.Mask_Count loop
+         if Named (S.Masks (K).Master, Label) then
+            return S.Masks (K).Mask;
+         end if;
+      end loop;
+      return 0;
+   end Mask_Of;
+
+   --  The data and instruction cache masters of hart <H>.
+   function Data_Master (H : Hart_Id) return String is
+     (case H is
+         when 0 => "E51_DCACHE", when 1 => "U54_1_DCACHE", when 2 => "U54_2_DCACHE", when 3 => "U54_3_DCACHE",
+         when 4 => "U54_4_DCACHE");
+   function Instruction_Master (H : Hart_Id) return String is
+     (case H is
+         when 0 => "E51_ICACHE", when 1 => "U54_1_ICACHE", when 2 => "U54_2_ICACHE", when 3 => "U54_3_ICACHE",
+         when 4 => "U54_4_ICACHE");
+
+   --  The partition that has hart <H>, 0 for none.
+   function Partition_Of (S : System; H : Hart_Id) return Partition_Count is
+   begin
+      for P in 1 .. S.Partition_Count loop
+         if S.Partitions (P).Harts (H) then
+            return P;
+         end if;
+      end loop;
+      return 0;
+   end Partition_Of;
+
+   procedure Append_Ways (T : in out Texts.Text; Ways : U64) is
+      First : Boolean := True;
+   begin
+      Texts.Append (T, "[");
+      for W in 0 .. 15 loop
+         if (Ways and Eval.Pow2 (W)) /= 0 then
+            if not First then
+               Texts.Append (T, ", ");
+            end if;
+            First := False;
+            Texts.Append_Natural (T, W);
+         end if;
+      end loop;
+      Texts.Append (T, "]");
+   end Append_Ways;
+
    procedure Way_Masks (S : System; F : in out List) is
       Ways    : constant := 16;
       Scratch : U64 := 0;
+      Cache   : U64 := 0;
       Msg     : Message_Text;
       Path    : Path_Text;
    begin
@@ -618,20 +668,22 @@ is
          Texts.Append_Hex (Msg, S.Scratchpad_Ways);
          Texts.Append (Msg, " leave no cache way of 16");
          Add (F, E072, S.Prod, "mss_memory_map/cache/WAY_ENABLE", Msg);
-      else
-         --  cache ways 0 .. WAY_ENABLE - NUM_SCRATCH_PAD_WAYS, then the scratchpad ways up to WAY_ENABLE
-         for W in 0 .. Ways - 1 loop
-            if U64 (W) > S.Way_Enable - S.Scratchpad_Ways and then U64 (W) <= S.Way_Enable then
-               Scratch := Scratch + Eval.Pow2 (W);
-            end if;
-            pragma Loop_Invariant (Scratch < Eval.Pow2 (W + 1));
-         end loop;
+         return;      --  the masks are not checked without a split
       end if;
+      --  cache ways 0 .. WAY_ENABLE - NUM_SCRATCH_PAD_WAYS, then the scratchpad ways up to WAY_ENABLE
+      for W in 0 .. Ways - 1 loop
+         if U64 (W) > S.Way_Enable - S.Scratchpad_Ways and then U64 (W) <= S.Way_Enable then
+            Scratch := Scratch + Eval.Pow2 (W);
+         elsif U64 (W) <= S.Way_Enable - S.Scratchpad_Ways then
+            Cache := Cache + Eval.Pow2 (W);
+         end if;
+         pragma Loop_Invariant (Scratch < Eval.Pow2 (W + 1) and then Cache < Eval.Pow2 (W + 1));
+      end loop;
       for K in 1 .. S.Mask_Count loop
+         Texts.Clear (Path);
+         Texts.Append (Path, "mss_memory_map/cache/WAY_MASK_");
+         Append_Name (Path, S.Masks (K).Master);
          if (S.Masks (K).Mask and Scratch) /= 0 then
-            Texts.Clear (Path);
-            Texts.Append (Path, "mss_memory_map/cache/WAY_MASK_");
-            Append_Name (Path, S.Masks (K).Master);
             Texts.Clear (Msg);
             Texts.Append_Hex (Msg, S.Masks (K).Mask);
             Texts.Append (Msg, " includes scratchpad ways (");
@@ -639,6 +691,66 @@ is
             Texts.Append (Msg, ")");
             Add (F, E073, S.Prod, Texts.Image (Path), Msg);
          end if;
+         if (S.Masks (K).Mask and Cache) = 0 then
+            Texts.Clear (Msg);
+            Texts.Append_Hex (Msg, S.Masks (K).Mask);
+            Texts.Append (Msg, " has no cache way");
+            Add (F, E085, S.Prod, Texts.Image (Path), Msg);
+         end if;
+      end loop;
+
+      --  l2.cache_partitioning: the cache ways of each hart it names, and no cache way shared by the harts
+      --  of two partitions
+      if S.Partitioned = [Hart_Id => False] then
+         return;
+      end if;
+      for H in Hart_Id loop
+         if S.Partitioned (H) then
+            for Data in reverse Boolean loop
+               declare
+                  Label : constant String := (if Data then Data_Master (H) else Instruction_Master (H));
+                  Have  : constant U64 := Mask_Of (S, Label) and Cache;
+               begin
+                  if Have /= U64 (S.Partition_Ways (H)) then
+                     Texts.Clear (Path);
+                     Texts.Append (Path, "mss_memory_map/cache/WAY_MASK_");
+                     Texts.Append (Path, Label);
+                     Texts.Clear (Msg);
+                     Texts.Append (Msg, "cache ways ");
+                     Append_Ways (Msg, Have);
+                     Texts.Append (Msg, "; l2.cache_partitioning gives hart ");
+                     Texts.Append (Msg, Digit (Natural (H)));
+                     Texts.Append (Msg, " ");
+                     Append_Ways (Msg, U64 (S.Partition_Ways (H)));
+                     Add (F, E146, S.Prod, Texts.Image (Path), Msg);
+                  end if;
+               end;
+            end loop;
+         end if;
+      end loop;
+      for A in Hart_Id loop
+         for B in Hart_Id loop
+            if A < B and then Partition_Of (S, A) /= 0 and then Partition_Of (S, B) /= 0
+              and then Partition_Of (S, A) /= Partition_Of (S, B)
+            then
+               declare
+                  Shared : constant U64 :=
+                    (Mask_Of (S, Data_Master (A)) or Mask_Of (S, Instruction_Master (A)))
+                    and (Mask_Of (S, Data_Master (B)) or Mask_Of (S, Instruction_Master (B))) and Cache;
+               begin
+                  if Shared /= 0 then
+                     Texts.Clear (Msg);
+                     Texts.Append (Msg, "hart ");
+                     Texts.Append (Msg, Digit (Natural (A)));
+                     Texts.Append (Msg, " and hart ");
+                     Texts.Append (Msg, Digit (Natural (B)));
+                     Texts.Append (Msg, " of different partitions share the cache ways ");
+                     Append_Ways (Msg, Shared);
+                     Add (F, E147, S.Prod, "l2.cache_partitioning", Msg);
+                  end if;
+               end;
+            end if;
+         end loop;
       end loop;
    end Way_Masks;
 
@@ -647,6 +759,7 @@ is
       Msg     : Message_Text;
    begin
       Way_Masks (S, F);
+      Mpu.Check (S, F);
       for H in Hart_Id loop
          Layout (S, H, F);
          if (for some I in Entry_Index => S.Harts (H).Cfg (I) /= 0 or else S.Harts (H).Addr (I) /= 0) then

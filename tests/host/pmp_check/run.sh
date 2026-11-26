@@ -8,15 +8,16 @@
 #   - the checker builds natively (tools/pmp_check/pmp_check.gpr, warnings are errors);
 #   - test_pmp_check.py: the reference systems with their XMLs and with the XML of the PMP demo, as dev and
 #     as prod, with 16 and 8 entries, give the same findings in the generator and in the checker (the same
-#     severity, code and path, so the same verdict); one case per rule the checker evaluates; 1000 random
-#     configurations (seeded: PMP_CHECK_SEED, PMP_CHECK_CASES) in which both agree, prod systems on both
-#     sides of the verdict among them; a malformed check input refused with status 2; the command line.
+#     severity, code and path, so the same verdict); one case per rule the checker evaluates (the PMP, the
+#     MPU, the way masks and the cache partitioning); 1000 random configurations (seeded: PMP_CHECK_SEED,
+#     PMP_CHECK_CASES) in which both agree, prod systems on both sides of the verdict and each rule of the MPU
+#     and the way masks among them; a malformed check input refused with status 2; the command line.
 #
 # The SPARK proof of the checker runs with `./x prove` (tools/prove.list). Needs the native GNAT toolchain
 # and gprbuild (./x toolchain install), the merged SVD (tools/svd.py ensure rebuilds it if it is missing or
 # stale, which needs svdtools), PyYAML and jsonschema. Exits non-zero on any failure.
 #
-# @verifies GEN-015, GEN-016
+# @verifies GEN-015, GEN-016, GEN-019
 
 set -u
 export LC_ALL=C

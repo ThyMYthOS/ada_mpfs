@@ -772,7 +772,8 @@ behind the deny-all.
 
 Like the PMP, the MPU of the DMA masters and the way masks of the L2 are set by the user in the MSS Configurator;
 the XML is their only source. `derive` decodes and checks them (`derive/mpu.py`, `derive/waymask.py`), keeps
-them in the derived system (`Derived.mpu`, `Derived.way_masks`) and prints them (`mpu <master>: N of M entries not OFF`,
+them in the derived system (`Derived.mpu`, `Derived.way_masks`) and in the check input of the
+[independent checker](#independent-checker-of-the-pmp), and prints them (`mpu <master>: N of M entries not OFF`,
 one line per entry, and `way masks:`). It does not make or repair an entry. Both are applied in both security
 profiles; the emitters that write them into the boot table do not exist yet.
 
@@ -822,7 +823,7 @@ every partition, are not compared). The masks of the XMLs of the boards give eve
 
 ## Independent checker of the PMP
 
-`tools/pmp_check` is a second implementation of the checks of the PMP and the way masks, in SPARK and
+`tools/pmp_check` is a second implementation of the checks of the PMP, the MPU and the way masks, in SPARK and
 independent of the generator: it shares no code with `mpfs_gen`, only the data. `derive --check-json` writes
 that data, the input of the checker, and the checker evaluates it on its own:
 
@@ -839,8 +840,12 @@ generated unlocked entries (an index above 15 when the allow list does not fit);
 PMP entries of the target (16, 8 with `--pmp-entries 8`); the partitions with their harts, privilege, monitor
 flag and peripherals at the address `APBBUS_CR` gives; the windows with their kind, memory and owners; the
 memories (which are an ITIM of which hart); the critical blocks (which bus error unit is whose); the page of
-`mtime`; the peripherals of both APB buses at their LO and HI address; `WAY_ENABLE`, `NUM_SCRATCH_PAD_WAYS` and the
-way masks of the XML. Every range is `base` and `length` in bytes. The JSON is canonical (keys sorted, an indent
+`mtime`; the peripherals of both APB buses at their LO and HI address; `WAY_ENABLE`, `NUM_SCRATCH_PAD_WAYS`, the
+way masks of the XML and `l2.cache_partitioning` (`l2.cache_partitioning`: hart, ways); the MPU (`mpu`:
+`MEM_CONFIGS_ENABLED.MPU`, and per master `fic0` to `trace` its owner, a partition or `null`, and the 64-bit value
+of each entry of the XML with its index). Every range is `base` and `length` in bytes. The checker takes the
+entries of each MPU and the bypass of the SCB from the MSS TRM itself, not from the input. `l2.cache_partitioning`
+and `mpu` were added to version 1; a reader that does not know them ignores them. The JSON is canonical (keys sorted, an indent
 of one, a newline at the end, the lists in a fixed order), the same bytes for the same system. `system.json`,
 which the emitters will write, takes these keys over unchanged and adds its own; the checker ignores keys it
 does not know. `--check-json` writes the file for a system that breaks rules too, then reports the rules as
@@ -857,10 +862,14 @@ zone cut the space of a hart into intervals, at most twice their number plus one
 a `u` partition; M for a hart with a locked entry, unless the partition is the monitor) and access (R, W, X) it
 compares what the PMP allows with the target, so no address is left out and the time depends only on the number
 of bounds. It reports each rule with the code and path of the generator: `GEN-E100` to `GEN-E105` on the table
-of the XML, `GEN-E120` to `GEN-E129`, `GEN-E135` and `GEN-E136` against the partitions, and `GEN-E072` and
-`GEN-E073` for the way masks. The severity follows the generator: the PMP rules are notes for a dev system and,
-for prod, warnings for the rules that are warnings above and errors otherwise; the way masks are errors in both
-profiles (they are applied in both). It prints `error: GEN-Exxx PATH: message` (or `warning:`, `note:`) per
+of the XML, `GEN-E120` to `GEN-E129`, `GEN-E135` and `GEN-E136` against the partitions, `GEN-E072`, `GEN-E073`
+and `GEN-E085` for the way masks, `GEN-E146` and `GEN-E147` for `l2.cache_partitioning`. It decodes the MPU of
+each master itself (only NAPOT with address bits 8:0 set, within the 2^38 bytes of the field) and reports
+`GEN-E140` to `GEN-E145` ([MPU and way masks of the XML](#mpu-and-way-masks-of-the-xml)); whether an owned master
+reaches a byte outside the windows of its owner it finds by walking each region from window to window, so no
+address is left out there either. The severity follows the generator: the rules of the PMP, the MPU and the cache
+partitioning are notes for a dev system and, for prod, warnings for the rules that are warnings above and errors
+otherwise; the rules of the way masks themselves are errors in both profiles (they are applied in both). It prints `error: GEN-Exxx PATH: message` (or `warning:`, `note:`) per
 finding and `verdict: accepted` or `verdict: refused (N errors)`; status 0 accepted, 1 refused, 2 a wrong
 argument or input (not JSON of the check input: a missing key, a value out of its range, a hart missing).
 
@@ -870,16 +879,21 @@ locked TOR entry is the `pmpaddr` of the entry before it, which is locked with i
 before a locked one (`GEN-E102`).
 
 Not in the checker: the rules of the AMP context registers themselves (`GEN-E130` to `GEN-E134`), which are rules
-of the consistency of the XML, not of what the PMP lets through; `l2.cache_partitioning` (`GEN-E074`, `GEN-E146`,
-`GEN-E147`); the MPU of the DMA masters (`GEN-E140` to `GEN-E145`) and a cache way for every master (`GEN-E085`),
-which the generator checks and the checker does not yet.
+of the consistency of the XML, not of what the PMP lets through; the ways of `l2.cache_partitioning` against the
+L2 of `system.yaml` (`GEN-E074`), which the check input does not carry.
 
 **The proof.** All of the checker except the reading of the file and the printing (`pmp_check_main.adb`) is
 SPARK, proved free of run-time errors (`./x prove`, `tools/prove.list`). The evaluation carries a functional
 proof: `Next_Bound` gives the end of the interval that starts at an address such that no bound of an entry or a
 zone lies inside it, and `Lemma_Uniform` proves that the evaluation of such an interval (the deciding entry and
 the zone, and with them the rights of each mode and access and the finding) is the same for all its addresses.
+For the MPU, `First_Outside` is proved to return the first byte of a region that no window of the owner holds,
+and to find none exactly when the windows hold every byte of the region; `Table_Of` that only the entries of the
+hardware decode to a region, inside the 2^38 bytes of the field.
 
 **Agreement.** `tests/host/pmp_check` runs every reference system with its XML and with the XML of the PMP demo,
 as dev and as prod, with 16 and 8 entries, a case per rule and 1000 random configurations through both and
-asserts the same findings (severity, code and path), so the same verdict.
+asserts the same findings (severity, code and path), so the same verdict. The random configurations also draw MPU
+entries (every address mode, small and whole-space regions, entries beyond the hardware), owners of DMA masters,
+way masks and cache partitionings, and the suite asserts that each rule of the MPU and the way masks fires in some
+of them.

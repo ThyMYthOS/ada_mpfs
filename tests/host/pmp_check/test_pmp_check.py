@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# @verifies GEN-015, GEN-016
+# @verifies GEN-015, GEN-016, GEN-019
 """tools/pmp_check, the independent checker of the PMP, against the checks of the generator.
 
 Every case derives a system with config/gen/mpfs_gen (without raising, so that a refused system is compared
@@ -9,8 +9,9 @@ too), writes the check input (system_json.py), runs the checker on it and assert
 findings: the same multiset of (severity, code, path) over the codes the checker evaluates (COVERED), and so
 the same verdict. The cases: the reference systems with their XMLs and with the XML of the PMP demo, as dev
 and as prod, with 16 and 8 entries; one case per rule that makes it fire in both; 1000 configurations drawn
-from a seeded generator of random PMP tables, contexts, profiles, monitors and way masks; the reader of the
-check input refusing a malformed one; and the command line `derive --check-json`.
+from a seeded generator of random PMP tables, contexts, profiles, monitors, MPU entries, owners of DMA
+masters, way masks and cache partitionings; the reader of the check input refusing a malformed one; and the
+command line `derive --check-json`.
 
 The checker is the program the suite built (PMP_CHECK, else build/pmp_check/pmp_check). The random draw is
 seeded (PMP_CHECK_SEED, default 1; PMP_CHECK_CASES, default 1000): a failure names its case number and seed
@@ -62,9 +63,11 @@ OFF, TOR, NA4, NAPOT = 0x00, 0x08, 0x10, 0x18
 ALL_ONES = 0x003F_FFFF_FFFF_FFFF
 
 # The rules of the AMP context registers (GEN-E130 to GEN-E134) are rules of the XML's own consistency, not of
-# what the PMP lets through; the checker does not evaluate them, nor GEN-E074 (l2.cache_partitioning).
+# what the PMP lets through; the checker does not evaluate them, nor GEN-E074 (l2.cache_partitioning against
+# the ways of the L2 of system.yaml).
 CONTEXT_CODES = {f"GEN-E13{i}" for i in range(5)}
-COVERED = {"GEN-E072", "GEN-E073"} | set(checks.PMP_CODES) | (set(checks.PROTECTION_CODES) - CONTEXT_CODES)
+COVERED = {"GEN-E072", "GEN-E073", "GEN-E085"} | set(checks.PMP_CODES) | \
+    (set(checks.PROTECTION_CODES) - CONTEXT_CODES) | set(checks.SEPARATION_CODES)
 LINE = re.compile(r"^(error|warning|note): (GEN-E\d{3}) (\S+): ")
 covered: set[str] = set()
 
@@ -102,6 +105,38 @@ def table(config, hart):
     """The 16 entries (cfg, pmpaddr) of <hart> in <config>."""
     harts, _ = pmp.of(config)
     return [(e.cfg, e.addr) for e in harts[hart].entries]
+
+
+def set_mpu(changes, master, index, mode, field):
+    """<changes> with entry <index> of the MPU of <master> set to the mode byte <mode> and the PMP field <field>."""
+    reg = (f"mss_memory_map/mpu_{master}", f"MPU_CFG_PMP{index}")
+    changes[(*reg, "MODE")] = mode
+    changes[(*reg, "PMP")] = field
+    return changes
+
+
+def mpu_off(config, changes=None):
+    """<changes> with every MPU entry of <config> OFF (as the Configurator writes an unused one), more on top."""
+    out = {}
+    for reg in config.registers:
+        if reg.section.startswith("mss_memory_map/mpu_"):
+            out[(reg.section, reg.name, "MODE")] = 0
+            out[(reg.section, reg.name, "PMP")] = 0x1FF
+    out.update(changes or {})
+    return out
+
+
+def with_register(config, section, name, value):
+    """<config> with a register <name> more in <section> (a copy of its first register with <value>)."""
+    first = config.section(section)[0]
+    return dataclasses.replace(config, registers=config.registers + (dataclasses.replace(first, name=name, value=value),))
+
+
+def owning(system, index, *peripherals):
+    """<system> with <peripherals> added to partitions[<index>]."""
+    parts = list(system.partitions)
+    parts[index] = dataclasses.replace(parts[index], peripherals=tuple(sorted(parts[index].peripherals + peripherals)))
+    return dataclasses.replace(system, partitions=tuple(parts))
 
 
 def set_way_mask(changes, master, mask):
@@ -315,6 +350,76 @@ def _():
     assert refused
 
 
+@case("GEN-E085: a way mask without a cache way: none at all, a LIM way only (errors in dev too)")
+def _():
+    path, amp_a = SYSTEMS["amp_a"]
+    icicle = xml_of(amp_a, path)
+    found, refused = expect("GEN-E085", amp_a, edited(icicle, set_way_mask({}, "U54_3_ICACHE", 0)))
+    assert refused and ("error", "GEN-E085", "mss_memory_map/cache/WAY_MASK_U54_3_ICACHE") in found
+    expect("GEN-E085", amp_a, edited(icicle, set_way_mask({}, "DMA", 1 << 13)), name="E085-lim")
+
+
+@case("GEN-E146, GEN-E147: amp_d's cache partitioning against the masks of the Icicle Kit (notes in dev, errors in "
+      "prod); masks that implement it pass")
+def _():
+    path, amp_d = SYSTEMS["amp_d"]
+    icicle = xml_of(amp_d, path)
+    found, _ = expect("GEN-E146", amp_d, icicle, name="amp_d-E146")
+    assert {code for _, code, _ in found} >= {"GEN-E146", "GEN-E147"}
+    found, _ = expect("GEN-E147", as_profile(amp_d, "prod"), icicle, name="amp_d-E147")
+    assert ("error", "GEN-E147", "l2.cache_partitioning") in found
+    changes = {}
+    for hart, mask in ((1, 0x3), (2, 0x3), (3, 0xC), (4, 0xC)):
+        for master in waymask.masters_of(hart):
+            set_way_mask(changes, master, mask)
+    found, _ = agree(amp_d, edited(icicle, changes), name="amp_d-partitioned")
+    assert not {code for _, code, _ in found} & {"GEN-E146", "GEN-E147"}, found
+
+
+@case("GEN-E140 to GEN-E142: TOR and NA4 entries, a NAPOT entry with a clear bit among bits 8:0, an entry beyond "
+      "the hardware (amp_c, prod)")
+def _():
+    expect("GEN-E140", AMP_C, edited(AMP_C_XML, set_mpu(set_mpu({}, "usb", 1, TOR | R, 0x4_0000), "scb", 7, NA4, 0)))
+    expect("GEN-E141", AMP_C, edited(AMP_C_XML, set_mpu({}, "gem1", 2, NAPOT, napot(0x0800_0000, 0x100))))
+    found, refused = expect("GEN-E142", AMP_C, with_register(AMP_C_XML, "mss_memory_map/mpu_trace", "MPU_CFG_PMP2",
+                                                            (NAPOT | R) << 56 | 0x1FF))
+    assert refused and ("error", "GEN-E142", "mss_memory_map/mpu_trace/MPU_CFG_PMP2") in found
+    found, refused = agree(AMP_C, with_register(AMP_C_XML, "mss_memory_map/mpu_trace", "MPU_CFG_PMP2", 0x1FF),
+                           name="E142-unused")
+    assert not refused, found
+
+
+@case("GEN-E143 to GEN-E145: an owned master beyond its owner's windows, a master without an owner, an entry over "
+      "the whole space (amp_c, prod; the SCB not checked)")
+def _():
+    owned = owning(AMP_C, 3, "mac0")                     # app_a owns GEM0
+    data = next(w for w in AMP_C_DERIVED.windows if w.owners == ("app_a",))
+    mine = set_mpu({}, "gem0", 0, NAPOT | R | W, napot(data.origin, data.length))
+    found, _ = agree(owned, edited(AMP_C_XML, mine), name="E143-own")
+    assert not {code for _, code, _ in found} & set(checks.SEPARATION_CODES), found
+    other = next(w for w in AMP_C_DERIVED.windows if w.owners == ("app_b",))
+    found, refused = expect("GEN-E143", owned, edited(AMP_C_XML, set_mpu(mine, "gem0", 5, L | NAPOT | R,
+                                                                         napot(other.origin, 0x1000))))
+    assert refused and ("error", "GEN-E143", "mss_memory_map/mpu_gem0") in found
+    expect("GEN-E144", AMP_C, edited(AMP_C_XML, set_mpu({}, "fic2", 0, NAPOT | W, napot(0x0800_0000, 0x1000))))
+    found, _ = expect("GEN-E145", owned, edited(AMP_C_XML, set_mpu({}, "gem0", 7, NAPOT | R | W | X, (1 << 36) - 1)))
+    assert {code for _, code, _ in found} >= {"GEN-E143", "GEN-E145"}, found
+    found, refused = agree(AMP_C, edited(AMP_C_XML, set_mpu({}, "scb", 0, NAPOT | R | W | X, (1 << 36) - 1)),
+                           name="scb-open")
+    assert not refused, found
+
+
+@case("the open MPUs of the XML of the Icicle Kit in dev and prod, with USB and the crypto processor owned: the same "
+      "notes and errors")
+def _():
+    path, amp_a = SYSTEMS["amp_a"]
+    for profile in ("dev", "prod"):
+        found, _ = agree(as_profile(owning(amp_a, 2, "usb", "athena"), profile), xml_of(amp_a, path),
+                         name=f"open-mpu-{profile}")
+        codes = collections.Counter(code for _, code, _ in found)
+        assert codes["GEN-E145"] == 9 and codes["GEN-E144"] == 7 and codes["GEN-E143"] == 2, codes
+
+
 @case("every code the checker evaluates is reported by both somewhere")
 def _():
     assert covered >= COVERED, sorted(COVERED - covered)
@@ -414,26 +519,93 @@ def random_case(rnd):
             changes.update({(APB, reg, f"HART{h}"): int(h in on) for h in range(5)})
     if rnd.random() < 0.05:
         set_way_mask(changes, rnd.choice(waymask.MASTERS), rnd.randrange(1 << 16))
+    system, config = random_separation(rnd, name, system, config, changes, pool)
     entries = 8 if rnd.random() < 0.2 else 16
-    return system, edited(config, changes), entries
+    return system, config, entries
+
+
+MASTERS = tuple(target.MPU_ENTRIES)
+OWNABLE = ("fic0", "fic1", "fic2", "athena", "mac0", "mac1", "usb", "mmc")
+
+
+def random_mpu_entry(rnd, pool):
+    """A random entry of an MPU: its mode byte and PMP field (NAPOT mostly; a region at a bound of the system, a
+    small one whose bits 8:0 the MPU sets, or all ones)."""
+    mode = rnd.choices((OFF, TOR, NA4, NAPOT), (2, 1, 1, 6))[0]
+    cfg = mode | rnd.randrange(8) | (L if rnd.random() < 0.2 else 0)
+    how = rnd.random()
+    if how < 0.1:
+        return cfg, (1 << 36) - 1
+    at = rnd.choice(pool)
+    size = 1 << rnd.randint(8 if how < 0.2 else 12, 24)
+    return cfg, napot(at & ~(size - 1), size) & ((1 << 36) - 1)
+
+
+def random_separation(rnd, name, system, config, changes, pool):
+    """<system> and <config> with <changes> and, at random: the MPUs closed, entries of a few masters drawn, an
+    entry beyond the hardware, DMA masters given to a partition, the cache partitioning of system.yaml and way
+    masks that follow it or not."""
+    if rnd.random() < 0.4:
+        changes = mpu_off(config, changes)
+    for _ in range(rnd.choice((0, 0, 1, 2, 3))):
+        master = rnd.choice(MASTERS)
+        for _ in range(rnd.randint(1, 3)):
+            set_mpu(changes, master, rnd.randrange(target.MPU_ENTRIES[master]), *random_mpu_entry(rnd, pool))
+    if rnd.random() < 0.3:
+        owner = rnd.randrange(len(system.partitions))
+        taken = {p for part in system.partitions for p in part.peripherals}
+        free = [p for p in OWNABLE if p not in taken]
+        system = owning(system, owner, *rnd.sample(free, rnd.randint(1, 2)))
+    if rnd.random() < 0.25:
+        harts = sorted({h for p in system.partitions for h in p.harts})
+        chosen = rnd.sample(harts, rnd.randint(1, len(harts)))
+        cache = CACHE_WAYS[name]
+        plan = tuple((waymask.HART_KEYS[h], tuple(sorted(rnd.sample(range(cache), rnd.randint(1, cache)))))
+                     for h in sorted(chosen))
+        system = dataclasses.replace(system, l2=dataclasses.replace(system.l2, cache_partitioning=plan))
+        if rnd.random() < 0.6:
+            for key, ways in plan:
+                for master in waymask.masters_of(waymask.HART_KEYS.index(key)):
+                    set_way_mask(changes, master, sum(1 << w for w in ways))
+    config = edited(config, changes)
+    if rnd.random() < 0.03:
+        master = rnd.choice(MASTERS)
+        mode, field = random_mpu_entry(rnd, pool)
+        config = with_register(config, f"mss_memory_map/mpu_{master}",
+                               f"MPU_CFG_PMP{target.MPU_ENTRIES[master] + rnd.randrange(3)}", mode << 56 | field)
+    return system, config
+
+
+# The cache ways of the split of the XML of each base (the ways a mask is checked against).
+CACHE_WAYS = {name: derive.derive(as_profile(s, "dev"), c, SVD, strict=False).l2.xml_ways.cache for name, s, c in BASES}
+
+
+# The rules of the MPU and the way masks that the random draw must make fire (and so compare) somewhere.
+DRAWN = {"GEN-E073", "GEN-E085"} | set(checks.SEPARATION_CODES)
 
 
 @case(f"{CASES} random configurations (seed {SEED}): the same findings and verdict in every one")
 def _():
     rnd = random.Random(SEED)
     tally = collections.Counter()
+    fired = collections.Counter()
     for n in range(CASES):
         system, config, entries = random_case(rnd)
         try:
-            _, refused = agree(system, config, entries, name=f"random-{n}")
+            found, refused = agree(system, config, entries, name=f"random-{n}")
         except AssertionError as err:
             raise AssertionError(f"case {n} of seed {SEED}: {err}") from None
         tally[(system.security_profile, "refused" if refused else "accepted")] += 1
+        fired.update({code for _, code, _ in found})
     print(f"      verdicts: {dict(sorted(tally.items()))}")
+    print(f"      draws in which a rule of the MPU or the way masks fired: "
+          f"{dict(sorted((c, k) for c, k in fired.items() if c in DRAWN))}")
     assert sum(tally.values()) == CASES
     if CASES >= 1000:
         assert tally[("prod", "refused")] > 100 and tally[("dev", "accepted")] > 100, tally
         assert tally[("prod", "accepted")] > 0, "no random prod system passes: the draw tests refusals only"
+        assert all(fired[code] for code in DRAWN), sorted(code for code in DRAWN if not fired[code])
+
 
 
 # --- the reader of the check input --------------------------------------------------------------------------
@@ -469,6 +641,14 @@ def _():
         "a number above 2 ** 64": json.dumps(good).replace('"version": 1', '"version": 18446744073709551616'),
         "an escape in a string": json.dumps(good).replace('"io"', '"i\\u006f"'),
         "nested too deep": "[" * 40 + "]" * 40,
+        "no mpu": changed(lambda d: d.pop("mpu")),
+        "an unknown master": changed(lambda d: d["mpu"]["masters"][0].update(master="pdma")),
+        "a master missing": changed(lambda d: d["mpu"]["masters"].pop()),
+        "a master twice": changed(lambda d: d["mpu"]["masters"].append(d["mpu"]["masters"][0])),
+        "an owner that is no partition": changed(lambda d: d["mpu"]["masters"][4].update(owner="nobody")),
+        "MPU entries out of order": changed(lambda d: d["mpu"]["masters"][0]["entries"].reverse()),
+        "no cache_partitioning": changed(lambda d: d["l2"].pop("cache_partitioning")),
+        "a way 16": changed(lambda d: d["l2"].update(cache_partitioning=[{"hart": 1, "ways": [16]}])),
     }
     for what, text in bad.items():
         run = run_text(text, "bad.json")
@@ -499,6 +679,9 @@ def _():
     assert data["version"] == 1 and data["security_profile"] == "prod" and data["pmp"]["entries"] == 16
     assert [h["hart"] for h in data["pmp"]["harts"]] == [0, 1, 2, 3, 4]
     assert [len(h["generated"]) for h in data["pmp"]["harts"]] == [5, 4, 6, 5, 4]
+    assert [m["master"] for m in data["mpu"]["masters"]] == list(target.MPU_ENTRIES)
+    assert [len(m["entries"]) for m in data["mpu"]["masters"]] == list(target.MPU_ENTRIES.values())
+    assert data["l2"]["cache_partitioning"] == [] and data["mpu"]["enabled"] is True
     assert subprocess.run([str(CHECKER), str(out)], capture_output=True, check=False).returncode == 0
 
     prod = TMP / "amp_a_prod.yaml"

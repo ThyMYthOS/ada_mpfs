@@ -230,3 +230,17 @@ requirements:
       reported with its own error code, enforced for a prod system and a note for a dev system.
     tsf: false
     source: config/README.md
+  - id: GEN-019
+    text: >-
+      The check input of `mpfs_gen derive --check-json` also holds the MPU of each master as the XML sets it
+      (the 64-bit value of every entry, the partition that owns the master), MEM_CONFIGS_ENABLED.MPU and
+      l2.cache_partitioning; and the independent checker (tools/pmp_check) decodes the MPU itself, with the
+      entries of each master and the bypass of the SCB from the MSS TRM, and evaluates the rules of GEN-017
+      and the rules of the way masks of GEN-018 except the ways of l2.cache_partitioning against the L2 of
+      system.yaml, with the code, path and severity the generator gives them. The decoding of the MPU and
+      the search for a byte an owned master reaches outside the windows of its owner are proved free of
+      run-time errors, the search also to find such a byte exactly when there is one. On the reference
+      systems and on 1000 random configurations, MPU entries, owners of DMA masters, way masks and cache
+      partitionings among them, it reports the same findings as the generator.
+    tsf: false
+    source: config/README.md

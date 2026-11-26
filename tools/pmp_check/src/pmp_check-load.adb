@@ -9,6 +9,7 @@ is
    use type Interfaces.Unsigned_64;
    use type Json.Node_Id;
    use type Json.Kind;
+   use type Model.Way_Set;
    use Model;
 
    procedure Read (Doc : Json.Document; Src : String; Root : Json.Node_Id; S : out Model.System;
@@ -435,7 +436,124 @@ is
             Get_U64 (Cur, "mask", S.Masks (S.Mask_Count).Mask);
             Cur := Json.Next_Sibling (Doc, Cur);
          end loop;
+         Need (Obj, "cache_partitioning", Json.J_Array, Arr);
+         Cur := Json.First_Child (Doc, Arr);
+         for Step in 1 .. Json.Max_Nodes loop
+            exit when Cur = 0 or else not Ok;
+            declare
+               Has  : Boolean;
+               H    : Hart_Id;
+               Ways : Json.Node_Id;
+               Way  : Json.Node_Id;
+            begin
+               Get_Hart (Cur, "hart", Has, H, Nullable => False);
+               exit when not Ok or else not Has;
+               if S.Partitioned (H) then
+                  Fail ("a hart twice", "cache_partitioning");
+                  exit;
+               end if;
+               S.Partitioned (H) := True;
+               Need (Cur, "ways", Json.J_Array, Ways);
+               Way := Json.First_Child (Doc, Ways);
+               for Step2 in 1 .. Json.Max_Nodes loop
+                  exit when Way = 0 or else not Ok;
+                  if Json.Kind_Of (Doc, Way) /= Json.J_Number or else Doc.Nodes (Way).Num > 15 then
+                     Fail ("not a way (0 to 15)", "ways");
+                  else
+                     S.Partition_Ways (H) := S.Partition_Ways (H) or 2 ** Natural (Doc.Nodes (Way).Num);
+                  end if;
+                  Way := Json.Next_Sibling (Doc, Way);
+               end loop;
+            end;
+            Cur := Json.Next_Sibling (Doc, Cur);
+         end loop;
       end Get_L2;
+
+      --  The master of the section name <N> (mpu_<name>); Found False for another name.
+      procedure Master_Named (N : Name; M : out Master_Id; Found : out Boolean) is
+      begin
+         M := Master_Id'First;
+         Found := False;
+         for C in Master_Id loop
+            if Named (N, (case C is
+                             when Fic0 => "fic0", when Fic1 => "fic1", when Fic2 => "fic2",
+                             when Crypto => "crypto", when Gem0 => "gem0", when Gem1 => "gem1",
+                             when Usb => "usb", when Mmc => "mmc", when Scb => "scb", when Trace => "trace"))
+            then
+               M := C;
+               Found := True;
+            end if;
+         end loop;
+      end Master_Named;
+
+      procedure Get_Mpu (Obj : Json.Node_Id) is
+         Arr, Cur, Values, Item, Who : Json.Node_Id;
+         Label  : Name;
+         M      : Master_Id;
+         Found  : Boolean;
+      begin
+         Get_Bool (Obj, "enabled", S.Mpu_Enabled);
+         Need (Obj, "masters", Json.J_Array, Arr);
+         Cur := Json.First_Child (Doc, Arr);
+         for Step in 1 .. Json.Max_Nodes loop
+            exit when Cur = 0 or else not Ok;
+            Get_Name (Cur, "master", Label);
+            exit when not Ok;
+            Master_Named (Label, M, Found);
+            if not Found then
+               Fail ("not a master with an MPU", "master");
+               exit;
+            elsif S.Mpus (M).Present then
+               Fail ("a master twice", "mpu.masters");
+               exit;
+            end if;
+            S.Mpus (M).Present := True;
+            Who := Get (Cur, "owner");
+            if Who /= 0 and then Json.Kind_Of (Doc, Who) = Json.J_Null then
+               S.Mpus (M).Has_Owner := False;
+            else
+               Get_Name (Cur, "owner", Label);
+               declare
+                  Index : constant Partition_Count := (if Ok then Partition_Named (Label) else 0);
+               begin
+                  if Ok and then Index = 0 then
+                     Fail ("not a partition", "owner");
+                  elsif Ok then
+                     S.Mpus (M).Has_Owner := True;
+                     S.Mpus (M).Owner := Index;
+                  end if;
+               end;
+            end if;
+            Need (Cur, "entries", Json.J_Array, Values);
+            Item := Json.First_Child (Doc, Values);
+            for Step2 in 1 .. Json.Max_Nodes loop
+               exit when Item = 0 or else not Ok;
+               if S.Mpus (M).Count = Max_Mpu_Entries then
+                  Fail ("more than 64 entries", "entries");
+               else
+                  declare
+                     E     : Mpu_Entry;
+                     Index : Natural;
+                     Prior : constant Mpu_Entry_Count := S.Mpus (M).Count;
+                  begin
+                     Get_Small (Item, "index", 255, Index);
+                     Get_U64 (Item, "value", E.Value);
+                     E.Index := Index;
+                     if Ok and then Prior > 0 and then S.Mpus (M).Entries (Prior).Index >= Index then
+                        Fail ("entries not in index order", "entries");
+                     end if;
+                     S.Mpus (M).Count := Prior + 1;
+                     S.Mpus (M).Entries (Prior + 1) := E;
+                  end;
+               end if;
+               Item := Json.Next_Sibling (Doc, Item);
+            end loop;
+            Cur := Json.Next_Sibling (Doc, Cur);
+         end loop;
+         if Ok and then (for some C in Master_Id => not S.Mpus (C).Present) then
+            Fail ("not every master fic0 to trace", "mpu.masters");
+         end if;
+      end Get_Mpu;
 
       Version : U64;
       Profile : Name;
@@ -478,6 +596,10 @@ is
       Get_Blocks (Buses, "hi", False, S.Hi_Bus, S.Hi_Count);
       Need (Root, "l2", Json.J_Object, Node);
       Get_L2 (Node);
+      Need (Root, "mpu", Json.J_Object, Node);
+      if Ok then
+         Get_Mpu (Node);
+      end if;
    end Read;
 
 end Pmp_Check.Load;

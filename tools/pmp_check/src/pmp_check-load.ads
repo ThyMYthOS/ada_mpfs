@@ -4,10 +4,11 @@
 --  The check input (the JSON of `mpfs_gen derive --check-json`, config/README.md) read into the model:
 --  every key the checker needs must be there with a value of its type and range, the five harts once
 --  each with 16 configuration bytes and 16 pmpaddr values, every range inside the 2 ** 56 bytes a PMP
---  entry can name, every owner of a window a partition. Keys the checker does not need are ignored, so
+--  entry can name, every owner of a window or of a DMA master a partition, every master of an MPU
+--  (fic0 to trace) once with its entries in index order, every way of l2.cache_partitioning 0 to 15. Keys the checker does not need are ignored, so
 --  that a larger document (the system.json to come) can carry the same keys.
 --
---  @req GEN-015
+--  @req GEN-015, GEN-019
 
 with Pmp_Check.Json;
 with Pmp_Check.Model;

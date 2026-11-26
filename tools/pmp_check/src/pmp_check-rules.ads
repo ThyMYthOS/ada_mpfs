@@ -34,11 +34,18 @@
 --    GEN-E129  a generated entry beyond the entries of the target
 --    GEN-E135  U or M mode reaches the bus window of the other context
 --    GEN-E136  U mode reaches a peer zone through a locked entry
---  The way masks of the L2 (path mss_memory_map/cache/...):
---    GEN-E072  WAY_ENABLE and NUM_SCRATCH_PAD_WAYS leave no cache way (or WAY_ENABLE above 15)
+--  The way masks of the L2 (path mss_memory_map/cache/...), against the split of the XML:
+--    GEN-E072  WAY_ENABLE and NUM_SCRATCH_PAD_WAYS leave no cache way (or WAY_ENABLE above 15); the
+--              masks are then not checked
 --    GEN-E073  a way mask includes a scratchpad way
+--    GEN-E085  a way mask has no cache way
+--  l2.cache_partitioning of system.yaml, where given:
+--    GEN-E146  the cache ways of the data or instruction mask of a hart it names are not its ways
+--    GEN-E147  two harts of different partitions share a cache way in their masks (path
+--              l2.cache_partitioning)
+--  The MPU of the DMA masters: Pmp_Check.Mpu (GEN-E140 to GEN-E145).
 --
---  @req GEN-015
+--  @req GEN-015, GEN-019
 
 with Pmp_Check.Findings;
 with Pmp_Check.Model;
