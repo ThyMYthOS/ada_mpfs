@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# @verifies GEN-006, GEN-007, GEN-008, GEN-009
+# @verifies GEN-006, GEN-007, GEN-008, GEN-009, GEN-018
 """config/gen/mpfs_gen/derive: the derived systems of the four reference systems with the reference XMLs, the
 clocks recomputed from the MSS PLL, the L2, the placement, CPU_To_Hart, the PLIC, the peripheral bits, and a
 negative case for every code of the derivations. Needs the merged SVD (tools/svd.py ensure). amp_a, amp_b and
@@ -200,7 +200,7 @@ def _():
         assert (l2.lim_length, l2.scratchpad_length) == (512 * 1024, 512 * 1024), board
     d = derive.derive(system("amp_d"), ICICLE, SVD)
     assert d.l2.override and (d.l2.ways.cache, d.l2.ways.lim) == (4, 12) and d.l2.reason
-    assert d.l2.partitioning == (("u54_1", (0, 1)), ("u54_2", (0, 1)), ("u54_3", (2, 3)), ("u54_4", (2, 3)))
+    assert d.way_masks.partitioning == (("u54_1", (0, 1)), ("u54_2", (0, 1)), ("u54_3", (2, 3)), ("u54_4", (2, 3)))
     for name in ("amp_a", "amp_b"):
         l2 = derive.derive(system(name), ICICLE, SVD).l2
         assert l2.override and (l2.ways.cache, l2.ways.lim, l2.ways.scratchpad) == (1, 15, 0), name
@@ -370,11 +370,22 @@ def _():
              "1000000 Hz")
 
 
-@case("GEN-E072 to GEN-E074: the L2 rules")
+def way_mask(master, mask):
+    """The changes that set WAY_MASK_<master> to <mask>."""
+    return {(CACHE, f"WAY_MASK_{master}", f"WAY_MASK_{i}"): mask >> i & 1 for i in range(16)}
+
+
+@case("GEN-E072 to GEN-E074 and GEN-E085: the L2 rules, errors in dev too")
 def _():
     one = text(ONE)
     rejected(["GEN-E072"], one, edited(ICICLE, {(CACHE, "WAY_ENABLE", "WAY_ENABLE"): 3}), "WAY_ENABLE 3")
     rejected(["GEN-E073"], one, edited(ICICLE, {(CACHE, "WAY_MASK_DMA", "WAY_MASK_8"): 1}), "WAY_MASK_DMA")
+    # no way at all; only a LIM way (12): neither is a cache way (0 to 7 in the XML of the Icicle Kit)
+    rejected(["GEN-E085"], one, edited(ICICLE, way_mask("U54_2_ICACHE", 0)), "WAY_MASK_U54_2_ICACHE",
+             "none of the cache ways 0 to 7")
+    rejected(["GEN-E085"], one, edited(ICICLE, way_mask("AXI4_PORT_3", 1 << 12)), "0x1000")
+    # a scratchpad way and nothing else: both rules
+    rejected(["GEN-E073", "GEN-E085"], one, edited(ICICLE, way_mask("DMA", 1 << 9)), "WAY_MASK_DMA")
     amp_d = system("amp_d")
     wrong = dataclasses.replace(amp_d, l2=dataclasses.replace(amp_d.l2, cache_partitioning=(("u54_1", (3, 4)),)))
     rejected(["GEN-E074"], wrong, ICICLE, "[4]")

@@ -5,21 +5,23 @@
 --  generator reports for the same rule), where (the same path as the generator's), the severity and
 --  a message.
 --
---  Severity: a rule of the way masks is an error in both profiles (they are applied in both). A rule
---  of the PMP is a note for a dev system (its image sets no PMP register); for a prod system it is a
---  warning if the rule is one of Warnings, else an error. Any error refuses the system.
+--  Severity: a rule of the way masks themselves (GEN-E072, GEN-E073, GEN-E085) is an error in both
+--  profiles (they are applied in both). A rule of the PMP, the MPU or the cache partitioning
+--  (Profile_Code) is a note for a dev system (only findings for information there); for a prod system
+--  it is a warning if the rule is one of Warnings, else an error. Any error refuses the system.
 --
---  @req GEN-015
+--  @req GEN-015, GEN-019
 
 with Pmp_Check.Texts;
 
 package Pmp_Check.Findings
   with SPARK_Mode
 is
-   type Rule_Code is (E072, E073, E100, E101, E102, E103, E104, E105, E120, E121, E122, E123, E124, E125,
-                 E126, E127, E128, E129, E135, E136);
+   type Rule_Code is (E072, E073, E085, E100, E101, E102, E103, E104, E105, E120, E121, E122, E123, E124,
+                      E125, E126, E127, E128, E129, E135, E136, E140, E141, E142, E143, E144, E145, E146,
+                      E147);
 
-   subtype Pmp_Code is Rule_Code range E100 .. E136;
+   subtype Profile_Code is Rule_Code range E100 .. E147;
 
    Warnings : constant array (Rule_Code) of Boolean :=
      [E104 | E123 | E127 | E128 | E135 | E136 => True, others => False];
@@ -27,7 +29,7 @@ is
    type Severity is (Error, Warning, Note);
 
    function Severity_Of (C : Rule_Code; Prod : Boolean) return Severity is
-     (if C not in Pmp_Code then Error elsif not Prod then Note elsif Warnings (C) then Warning else Error);
+     (if C not in Profile_Code then Error elsif not Prod then Note elsif Warnings (C) then Warning else Error);
 
    Path_Capacity    : constant := 96;
    Message_Capacity : constant := 1024;

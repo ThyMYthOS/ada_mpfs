@@ -1,11 +1,11 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# @req GEN-016
+# @req GEN-016, GEN-019
 """The input of the independent checker of the PMP (tools/pmp_check): the sections of system.json that it reads.
 
 The checker shares no logic with the generator, only data: what the partitions own and where (the target), and
-the PMP entries and way masks as they will be set. This module writes exactly that, from a derived system and
+the PMP entries, the MPU entries and the way masks as they will be set. This module writes exactly that, from a derived system and
 its MSS Configurator XML, as canonical JSON (keys sorted, an indent of one, a newline at the end; lists in a
 fixed order: the harts by number, the partitions, windows and memories in the order of the derivation, the
 critical blocks by address). system.json, which the emitters will write, takes these keys over unchanged and
@@ -26,12 +26,21 @@ adds its own; the checker ignores keys it does not know.
   critical            the critical blocks: name, block of the SVD, base, length, hart (of a bus error unit)
   mtime               the page of mtime: base, length
   buses               lo, hi: the peripherals of both APB buses at their LO and at their HI address
-  l2                  way_enable, scratchpad_ways (WAY_ENABLE, NUM_SCRATCH_PAD_WAYS of the XML) and
-                      way_masks (master, mask)
+  l2                  way_enable, scratchpad_ways (WAY_ENABLE, NUM_SCRATCH_PAD_WAYS of the XML),
+                      way_masks (master, mask) and cache_partitioning of system.yaml (hart, ways; empty when
+                      it is not given)
+  mpu                 enabled: MEM_CONFIGS_ENABLED.MPU (it gates nothing); masters: per master of the XML (fic0,
+                      fic1, fic2, crypto, gem0, gem1, usb, mmc, scb, trace) its owner (the partition, null for
+                      none) and the 64-bit values of its entries as they are (index, value), those beyond the
+                      entries of the hardware included
 
 Every range is base and length in bytes. The values are those of the XML and of the derivation, with nothing
 classified for the checker beyond what the generator decides as data: which memory is an ITIM, which block is
-critical and which bus error unit belongs to which hart.
+critical, which bus error unit belongs to which hart and which partition owns a DMA master. The checker knows
+the entries of each MPU and that the SCB bypasses its MPU from the MSS TRM itself, not from this input.
+
+The keys l2.cache_partitioning and mpu were added to version 1: a reader of version 1 that does not know them
+ignores them.
 """
 import json
 from typing import Any
@@ -44,6 +53,7 @@ from .derive import Derived
 from .derive import contexts as contexts_
 from .derive import l2 as l2_
 from .derive import protection as protection_
+from .derive import waymask as waymask_
 from .derive.placement import itim_name
 from .model import MssConfiguration
 
@@ -62,8 +72,8 @@ def check_input(d: Derived, config: MssConfiguration, blocks: dict[str, svdread.
     """The check input of the derived system <d> of the XML <config>; <blocks> are the blocks of the SVD (for the
     bus windows). <d> needs its protection (every derivation has it)."""
     pr = d.protection
-    if pr is None:
-        raise ValueError("a derived system without its protection")
+    if pr is None or d.mpu is None or d.way_masks is None:
+        raise ValueError("a derived system without its protection, MPU or way masks")
     harts, _ = pmp_.of(config)
     beus = {protection_.beu_name(h): h for h in range(target.NUMBER_OF_HARTS)}
     enabled = config.register(pmp_.APB_SPLIT, "MEM_CONFIGS_ENABLED").field("PMP").value
@@ -91,7 +101,13 @@ def check_input(d: Derived, config: MssConfiguration, blocks: dict[str, svdread.
         "buses": {bus.lower(): [_block(b) for b in contexts_.bus_blocks(blocks, bus)] for bus in ("LO", "HI")},
         "l2": {"way_enable": config.value(l2_.CACHE, "WAY_ENABLE"),
                "scratchpad_ways": config.value(l2_.CACHE, "NUM_SCRATCH_PAD_WAYS"),
-               "way_masks": [{"master": master, "mask": mask} for master, mask in d.l2.way_masks]},
+               "way_masks": [{"master": master, "mask": mask} for master, mask in d.way_masks.masks],
+               "cache_partitioning": [{"hart": waymask_.HART_KEYS.index(key), "ways": list(ways)}
+                                      for key, ways in d.way_masks.partitioning]},
+        "mpu": {"enabled": d.mpu.enabled,
+                "masters": [{"master": m.master, "owner": m.owner,
+                             "entries": [{"index": e.index, "value": e.value} for e in m.table]}
+                            for m in d.mpu.masters]},
     }
 
 

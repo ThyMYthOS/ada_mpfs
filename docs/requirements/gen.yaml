@@ -75,8 +75,8 @@ requirements:
       The L2 of a system is the split of the XML (cache ways 0 to WAY_ENABLE - NUM_SCRATCH_PAD_WAYS,
       the scratchpad the upper NUM_SCRATCH_PAD_WAYS of the enabled ways, LIM the ways above
       WAY_ENABLE), or the override l2.ways of system.yaml laid out the same way; the XML has at least
-      one cache way and at most 16 ways, no way mask of the XML includes a scratchpad way, and the ways
-      of l2.cache_partitioning are cache ways. Every violated rule is reported with its own error code.
+      one cache way and at most 16 ways, which is reported with its own error code otherwise. The way
+      masks are GEN-018.
     tsf: false
     source: config/README.md
   - id: GEN-008
@@ -200,5 +200,47 @@ requirements:
       the windows with their owners, the memories, the critical blocks, the page of mtime, the
       peripherals of both APB buses and the way masks; as canonical JSON, byte for byte the same for the
       same system, whose keys the system.json of the emitters keeps.
+    tsf: false
+    source: config/README.md
+  - id: GEN-017
+    text: >-
+      The generator takes the MPU of each DMA master from the MSS Configurator XML (mss_memory_map/mpu_fic0
+      to mpu_trace, whatever MEM_CONFIGS_ENABLED.MPU says) and does not choose it; it decodes every entry
+      after MSS TRM DS60001702S §3.4 (bits 35:0 address bits 37:2 with bits 8:0 hardwired to 1, bits 63:56
+      lock, address mode and X, W, R; only off and NAPOT, TOR and NA4 taken as off), keeps the entries of
+      each master after TRM Table 3-40 in the derived system for both security profiles, takes the partition
+      that owns the block of a master in system.yaml (fic0 to fic2, athena, mac0, mac1, usb, mmc) as its
+      owner, and reports with its own error code: an entry with the address mode TOR or NA4, a NAPOT entry
+      with a clear bit among address bits 8:0, an entry in use beyond the entries of its master, an owned
+      master that reaches a byte outside the windows of its owner, a master without an owner that reaches
+      anything, and entries over the whole address space; the SCB, which bypasses its MPU, only for the
+      first three. For a prod system every such finding stops the derivation; for a dev system it is a
+      note.
+    tsf: false
+    source: config/README.md
+  - id: GEN-018
+    text: >-
+      The generator takes the way mask of each master of the L2 (the DMA, the AXI4 slave ports 0 to 3, the
+      data and instruction caches of the E51 and of the U54 harts) from the MSS Configurator XML, keeps them in
+      the derived system for both security profiles and, against the split of the XML, refuses in both
+      profiles a mask that includes a scratchpad way and a mask without a cache way, and a way of
+      l2.cache_partitioning that is not a cache way, each with its own error code. Where system.yaml gives
+      l2.cache_partitioning, the cache ways of the data and instruction mask of each hart it names must be
+      its ways, and the masks of harts of different partitions must share no cache way; each violation is
+      reported with its own error code, enforced for a prod system and a note for a dev system.
+    tsf: false
+    source: config/README.md
+  - id: GEN-019
+    text: >-
+      The check input of `mpfs_gen derive --check-json` also holds the MPU of each master as the XML sets it
+      (the 64-bit value of every entry, the partition that owns the master), MEM_CONFIGS_ENABLED.MPU and
+      l2.cache_partitioning; and the independent checker (tools/pmp_check) decodes the MPU itself, with the
+      entries of each master and the bypass of the SCB from the MSS TRM, and evaluates the rules of GEN-017
+      and the rules of the way masks of GEN-018 except the ways of l2.cache_partitioning against the L2 of
+      system.yaml, with the code, path and severity the generator gives them. The decoding of the MPU and
+      the search for a byte an owned master reaches outside the windows of its owner are proved free of
+      run-time errors, the search also to find such a byte exactly when there is one. On the reference
+      systems and on 1000 random configurations, MPU entries, owners of DMA masters, way masks and cache
+      partitionings among them, it reports the same findings as the generator.
     tsf: false
     source: config/README.md

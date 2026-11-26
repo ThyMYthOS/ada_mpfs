@@ -4,9 +4,11 @@
 --  The input of the checker as it is read from the check input of the generator: the target (the
 --  partitions with their harts, windows and peripherals, the memories of the harts, the critical
 --  blocks, the page of mtime, the bus windows of the AMP contexts) and the PMP of each hart (the
---  entries of the MSS Configurator XML and the generated unlocked ones), and the way masks of the L2.
+--  entries of the MSS Configurator XML and the generated unlocked ones), the MPU of each DMA master
+--  (the entries of the XML and the partition that owns the master), the way masks of the L2 and the
+--  cache ways l2.cache_partitioning of system.yaml gives each hart.
 --
---  @req GEN-015
+--  @req GEN-015, GEN-019
 
 package Pmp_Check.Model
   with SPARK_Mode
@@ -126,6 +128,39 @@ is
    subtype Master_Count is Natural range 0 .. Max_Masters;
    type Way_Mask_Array is array (1 .. Max_Masters) of Way_Mask;
 
+   --  The DMA masters with an MPU (MSS TRM DS60001702S §3.4), by the names of their sections in the XML
+   --  (mpu_fic0 .. mpu_trace).
+   type Master_Id is (Fic0, Fic1, Fic2, Crypto, Gem0, Gem1, Usb, Mmc, Scb, Trace);
+
+   --  The entries of the MPU of each master, MSS TRM Table 3-40.
+   Mpu_Entries : constant array (Master_Id) of Positive :=
+     [Fic0 | Fic1 => 16, Fic2 => 8, Crypto => 4, Gem0 | Gem1 => 8, Usb | Mmc => 4, Scb => 8, Trace => 2];
+
+   --  "Only the SCB can bypass the MPU protection" (MSS TRM §3.4).
+   Mpu_Bypass : constant array (Master_Id) of Boolean := [Scb => True, others => False];
+
+   --  An entry of the XML: its index (those beyond the entries of the master included) and value.
+   type Mpu_Entry is record
+      Index : Natural range 0 .. 255 := 0;
+      Value : U64 := 0;
+   end record;
+   Max_Mpu_Entries : constant := 64;
+   subtype Mpu_Entry_Count is Natural range 0 .. Max_Mpu_Entries;
+   type Mpu_Entry_Array is array (1 .. Max_Mpu_Entries) of Mpu_Entry;
+
+   type Master_Mpu is record
+      Present   : Boolean := False;
+      Has_Owner : Boolean := False;
+      Owner     : Partition_Index := 1;
+      Entries   : Mpu_Entry_Array;              --  in index order
+      Count     : Mpu_Entry_Count := 0;
+   end record;
+   type Master_Array is array (Master_Id) of Master_Mpu;
+
+   --  The ways 0 to 15 as a mask (bit n: way n).
+   type Way_Set is mod 2 ** 16;
+   type Way_Set_Array is array (Hart_Id) of Way_Set;
+
    type System is record
       Prod             : Boolean := True;      --  security_profile prod
       Pmp_Enabled      : Boolean := False;     --  MEM_CONFIGS_ENABLED.PMP
@@ -148,6 +183,10 @@ is
       Scratchpad_Ways  : U64 := 0;
       Masks            : Way_Mask_Array;
       Mask_Count       : Master_Count := 0;
+      Partitioned      : Hart_Set := [others => False];   --  the harts of l2.cache_partitioning
+      Partition_Ways   : Way_Set_Array := [others => 0];
+      Mpu_Enabled      : Boolean := False;                --  MEM_CONFIGS_ENABLED.MPU (gates nothing)
+      Mpus             : Master_Array;
    end record;
 
    type Context is (None, A, B);

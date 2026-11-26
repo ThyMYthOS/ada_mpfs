@@ -240,7 +240,7 @@ starting with a letter, at most 32 characters.
 | `security_profile` | `dev` or `prod` | `dev` | |
 | `l2.ways` | `cache` 1 to 16, `lim` 0 to 15, `scratchpad` 0 to 15, adding up to 16 | as the XML configures it | an override of the L2 of the XML; needs `l2.reason` |
 | `l2.reason` | text, 1 to 500 characters | | why the L2 differs from the XML |
-| `l2.cache_partitioning` | `e51`, `u54_1` to `u54_4`: a list of ways 0 to 15 | the way masks of the XML | the cache ways that each hart may allocate into |
+| `l2.cache_partitioning` | `e51`, `u54_1` to `u54_4`: a list of ways 0 to 15 | none | the cache ways that each hart may allocate into; checked against the way masks of the XML, which it does not change ([MPU and way masks of the XML](#mpu-and-way-masks-of-the-xml)) |
 | `partitions` | list of 1 to 5 partitions (below) | required | |
 | `ipc[]` | `name`, `between` (two partitions), `size`, `doorbell` (boolean) | none; `doorbell` false | a channel between two partitions |
 | `boot.sources` | list of `envm`, `fram`, `ymodem`, each once | no `boot` section | where the boot loader looks for the images, in this order |
@@ -262,7 +262,7 @@ A partition:
 | `stacks.interrupt` | size | by profile: 8192, 8192, 12912 | the interrupt stack of each hart |
 | `stacks.secondary` | size | by profile: 16384, 8192, 16384 | the secondary stack of the environment task |
 | `console` | `mmuart0` to `mmuart4`, `none`, `ram_fifo` | the MMUART of the lowest hart (hart n: MMUARTn) | |
-| `peripherals` | list of names, each once | none | the peripherals that the partition owns, instance names of the SVD in lower case |
+| `peripherals` | list of names, each once | none | the peripherals that the partition owns, instance names of the SVD in lower case; the owner of `fic0` to `fic2`, `athena`, `mac0`, `mac1`, `usb` or `mmc` owns the DMA master of that block and its MPU ([MPU and way masks of the XML](#mpu-and-way-masks-of-the-xml)) |
 | `interrupts` | list of PLIC source names, or `local:<name>` for a hart-local interrupt, each once | none | the interrupts that the partition handles |
 | `watchdog` | `instance` (`wdog0` to `wdog4`), `timeout_ms` (from 1) | none | the watchdog that the partition services |
 
@@ -282,7 +282,8 @@ failure of the validator to the code of its keyword; a size that is not a size i
 keyword), `GEN-E020` to `GEN-E035` the rules across fields, `GEN-E040` to `GEN-E052` the rules of the [MSS
 Configurator XML](#mss-configurator-xml), `GEN-E060` to `GEN-E099` the rules of the [derived
 system](#derived-system), `GEN-E100` to `GEN-E119` the rules of the [PMP of the XML](#pmp-of-the-xml), `GEN-E120`
-on the [PMP and the AMP contexts against the partitions](#pmp-and-amp-contexts-against-the-partitions). A rule
+to `GEN-E139` the [PMP and the AMP contexts against the partitions](#pmp-and-amp-contexts-against-the-partitions),
+`GEN-E140` on the [MPU and the cache partitioning](#mpu-and-way-masks-of-the-xml). A rule
 that ends in "(a warning)" is reported without stopping the derivation.
 The table is `CODES` in `gen/mpfs_gen/checks.py`, and a test compares the two.
 `tests/host/system_yaml/fixtures/broken` has a description for each code of `system.yaml`,
@@ -359,6 +360,7 @@ derivations.
 | `GEN-E082` | a PLIC source is handled by two partitions |
 | `GEN-E083` | a peripheral is neither a block of SUBBLK_CLOCK_CR nor a watchdog of the SVD |
 | `GEN-E084` | a partition owns a peripheral that CONFIGURED_PERIPHERALS of the XML leaves out |
+| `GEN-E085` | a way mask of the XML has no cache way |
 | `GEN-E100` | a PMP entry of the XML has W set and R clear (a reserved combination) |
 | `GEN-E101` | a PMP configuration byte of the XML sets the reserved bits 5 and 6 |
 | `GEN-E102` | a locked PMP entry comes after an unlocked entry in use |
@@ -382,6 +384,14 @@ derivations.
 | `GEN-E134` | the harts of a partition are not all in the same AMP context |
 | `GEN-E135` | a PMP window of a partition in one AMP context covers the bus window of the other (a warning) |
 | `GEN-E136` | a locked PMP entry of the XML grants U mode of a partition a window or peripheral of a partition of the same AMP context (a warning) |
+| `GEN-E140` | an MPU entry of the XML has the address mode TOR or NA4, which the MPU takes as off |
+| `GEN-E141` | an MPU entry of the XML in NAPOT mode has a clear bit among address bits 8:0, which the MPU hardwires to 1 (a region of at least 4 KiB) |
+| `GEN-E142` | an MPU entry of the XML in use is beyond the entries of its master |
+| `GEN-E143` | the MPU of a master that a partition owns grants access outside the windows of its owner |
+| `GEN-E144` | the MPU of a master that no partition owns grants access |
+| `GEN-E145` | an MPU entry of the XML grants access over the whole address space |
+| `GEN-E146` | the cache ways of a hart in the way masks of the XML are not those of l2.cache_partitioning |
+| `GEN-E147` | harts of different partitions share a cache way in the way masks of the XML while l2.cache_partitioning is given |
 
 Several rules are also checks of the package `MPFS_Partition` (a mask that mixes E51 and U54, a stack size,
 `ram_fifo`, the L2 ways, the ITIM): the reader refuses a description early, and the package still refuses
@@ -552,8 +562,8 @@ can share them out differently (only the DDR memory depends on the board). As Mi
 `NUM_SCRATCH_PAD_WAYS`, the scratchpad the upper `NUM_SCRATCH_PAD_WAYS` of the enabled ways (the code, not the
 comment of the header), the LIM the ways above `WAY_ENABLE`. The reference XMLs have `WAY_ENABLE` 11 and 4
 scratchpad ways: 8 ways of cache, 4 of scratchpad (ways 8 to 11), 4 of LIM. The XML must leave at least one
-cache way (`GEN-E072`) and keep the scratchpad ways out of its way masks (`GEN-E073`). `l2.ways` overrides the
-split and is laid out the same way; the ways of `l2.cache_partitioning` must be cache ways (`GEN-E074`).
+cache way (`GEN-E072`). `l2.ways` overrides the split and is laid out the same way. The way masks are checked in
+`derive/waymask.py` ([MPU and way masks of the XML](#mpu-and-way-masks-of-the-xml)).
 
 **Windows** (`derive/placement.py`). Each partition has one window for its code and data per memory (`envm`,
 `lim`, `scratchpad`), and `fast_text` a window in the ITIM of each of its harts. A channel lies in the memory
@@ -674,9 +684,9 @@ XML's own PMP sections (`GEN-E100` to `GEN-E105`) included, is enforced, and an 
 not set the PMP registers: the derived system marks the PMP as not applied (`Protection.applied` False, the line
 `pmp: not applied (security_profile dev)`), so that the emitters write no PMP entries into the boot table and
 the partition data. Everything else of the XML is applied in both profiles: the MPU (a DMA master has no access
-until its MPU regions exist, MSS TRM DS60001702S §3.4; its checks, still to come, will be notes in dev and errors
-in prod like those of the PMP), the way masks and the L2 split, `APBBUS_CR` and the addresses of the
-peripherals, the clocks and the IO multiplexing.
+until its MPU regions exist, MSS TRM DS60001702S §3.4; its checks are notes in dev and errors in prod like those
+of the PMP, [MPU and way masks of the XML](#mpu-and-way-masks-of-the-xml)), the way masks and the L2 split,
+`APBBUS_CR` and the addresses of the peripherals, the clocks and the IO multiplexing.
 
 **Addresses.** A peripheral of both APB buses (MSS TRM DS60001702S Table 3-49: MMUART0 to 4, WDOG0 to 4, SPI,
 I2C, CAN, MAC (GEM), GPIO0 to 2, RTC, timer, H2F interrupts; the blocks `<NAME>_LO` and `<NAME>_HI` of the SVD)
@@ -758,9 +768,62 @@ is refused (`GEN-E120`, `GEN-E125`, `GEN-E126`; with the warnings `GEN-E123` and
 the bus window of each context and the CLINT to all modes, so the allow list of each hart is its window alone,
 behind the deny-all.
 
+## MPU and way masks of the XML
+
+Like the PMP, the MPU of the DMA masters and the way masks of the L2 are set by the user in the MSS Configurator;
+the XML is their only source. `derive` decodes and checks them (`derive/mpu.py`, `derive/waymask.py`), keeps
+them in the derived system (`Derived.mpu`, `Derived.way_masks`) and in the check input of the
+[independent checker](#independent-checker-of-the-pmp), and prints them (`mpu <master>: N of M entries not OFF`,
+one line per entry, and `way masks:`). It does not make or repair an entry. Both are applied in both security
+profiles; the emitters that write them into the boot table do not exist yet.
+
+**The MPU.** The XML has a section per master, `mss_memory_map/mpu_fic0` to `mpu_trace`, with a register
+`MPU_CFG_PMP<n>` per entry: the values that Microchip's `mpu_configure()` writes into MPUCFG (`mss_mpu.c`, lines
+176 to 218 at the commit of `tools/mchp_diff/oracle.env`) whatever `MEM_CONFIGS_ENABLED.MPU` says, so the
+generator does not rely on that flag (it is printed, 0 in the XMLs of the boards). MSS TRM DS60001702S §3.4 and
+`mss_mpu.h` (lines 84 to 94) give the layout: bits 35:0 are address bits 37:2, like `pmpaddr`, with bits 8:0
+hardwired to 1 (a region of at least 4 KiB); bits 63:56 are the mode, bit 63 the lock, bits 60:59 the address
+mode, bits 58, 57 and 56 X, W and R. "Only 00 and 11 are supported, TOR and NAT settings are equivalent to off":
+an entry is a NAPOT region or nothing. The entries of each master are those of TRM Table 3-40 (FIC0 and FIC1 16,
+FIC2 8, crypto 4, GEM0 and GEM1 8, USB and MMC 4, SCB 8, trace 2; the SVD has as many). At reset a master has no
+access until its regions exist; only the SCB bypasses its MPU. The order of the entries is not documented to
+matter, so what a master reaches is taken as the union of its NAPOT entries with a right, an upper bound whatever
+priority the hardware gives them.
+
+A master belongs to the partition that owns its block in `peripherals` (`fic0`, `fic1`, `fic2`, `athena` for the
+crypto processor, `mac0` and `mac1` for GEM0 and GEM1, `usb`, `mmc`); the SCB and the trace have no block there
+and no owner. `system.yaml` needs no field of its own for it (schema version 1 is unchanged). The rules:
+an entry with the address mode TOR or NA4, which the MPU takes as off (`GEN-E140`); a NAPOT entry with a clear bit
+among address bits 8:0, whose region is then not the one the XML states (`GEN-E141`); an entry in use beyond the
+entries of its master (`GEN-E142`); an owned master that reaches bytes outside the windows of its owner, its code,
+data, `fast_text` and the channels it is an end of (`GEN-E143`); a master without an owner that reaches anything
+(`GEN-E144`); entries over the whole address space (`GEN-E145`). `GEN-E140` to `GEN-E142` name the register of
+the entry, `GEN-E143` to `GEN-E145` the section of the master and, in the message, its entries. The SCB is
+decoded and checked for `GEN-E140` to `GEN-E142` only. Like the PMP rules, they are errors for a prod system and
+notes for a dev system.
+
+The XMLs of the boards leave every MPU open (`MODE` `0x1F`, all address bits set, on every entry): for the nine
+masters other than the SCB that is `GEN-E144` and `GEN-E145` (`GEN-E143` for a master a partition owns), notes
+for the dev reference systems `amp_a`, `amp_b` and `amp_d` and refusals for a prod system on those XMLs. The XML of
+`amp_c` passes: one NAPOT entry of 4 KiB without a right on GEM0, USB and MMC each, every other entry off, the SCB
+open.
+
+**The way masks.** `mss_memory_map/cache` has a mask per master (the DMA, the AXI4 slave ports 0 to 3, and the
+data and instruction caches of the E51 and the U54 harts), which Microchip's `config_l2_cache()` writes. A mask is
+checked against the split of the XML it comes with: no scratchpad way (`GEN-E073`, Microchip's rule,
+`mss_l2_cache.c` lines 151 to 165), at least one cache way (`GEN-E085`); when the split has no cache way
+(`GEN-E072`) the masks are not checked further. The ways of `l2.cache_partitioning` must be cache ways of the L2
+that the boot loader configures (`GEN-E074`). These are errors in both profiles. `l2.cache_partitioning`, where
+given, is the policy the masks must implement, and it is checked like the PMP (errors for prod, notes for dev):
+the cache ways in the data and instruction mask of each hart it names must be its ways (`GEN-E146`), and harts of
+different partitions must share no cache way in their masks (`GEN-E147`; the DMA and the AXI4 ports, which serve
+every partition, are not compared). The masks of the XMLs of the boards give every master the cache ways 0 to 7
+(`0xFF`; `0xF0FF` in the PMP demo, whose ways 12 to 15 are LIM), so `amp_d`, which partitions them, has
+`GEN-E146` and `GEN-E147` as notes; `amp_c`'s XML gives every master its one cache way.
+
 ## Independent checker of the PMP
 
-`tools/pmp_check` is a second implementation of the checks of the PMP and the way masks, in SPARK and
+`tools/pmp_check` is a second implementation of the checks of the PMP, the MPU and the way masks, in SPARK and
 independent of the generator: it shares no code with `mpfs_gen`, only the data. `derive --check-json` writes
 that data, the input of the checker, and the checker evaluates it on its own:
 
@@ -777,8 +840,12 @@ generated unlocked entries (an index above 15 when the allow list does not fit);
 PMP entries of the target (16, 8 with `--pmp-entries 8`); the partitions with their harts, privilege, monitor
 flag and peripherals at the address `APBBUS_CR` gives; the windows with their kind, memory and owners; the
 memories (which are an ITIM of which hart); the critical blocks (which bus error unit is whose); the page of
-`mtime`; the peripherals of both APB buses at their LO and HI address; `WAY_ENABLE`, `NUM_SCRATCH_PAD_WAYS` and the
-way masks of the XML. Every range is `base` and `length` in bytes. The JSON is canonical (keys sorted, an indent
+`mtime`; the peripherals of both APB buses at their LO and HI address; `WAY_ENABLE`, `NUM_SCRATCH_PAD_WAYS`, the
+way masks of the XML and `l2.cache_partitioning` (`l2.cache_partitioning`: hart, ways); the MPU (`mpu`:
+`MEM_CONFIGS_ENABLED.MPU`, and per master `fic0` to `trace` its owner, a partition or `null`, and the 64-bit value
+of each entry of the XML with its index). Every range is `base` and `length` in bytes. The checker takes the
+entries of each MPU and the bypass of the SCB from the MSS TRM itself, not from the input. `l2.cache_partitioning`
+and `mpu` were added to version 1; a reader that does not know them ignores them. The JSON is canonical (keys sorted, an indent
 of one, a newline at the end, the lists in a fixed order), the same bytes for the same system. `system.json`,
 which the emitters will write, takes these keys over unchanged and adds its own; the checker ignores keys it
 does not know. `--check-json` writes the file for a system that breaks rules too, then reports the rules as
@@ -795,10 +862,14 @@ zone cut the space of a hart into intervals, at most twice their number plus one
 a `u` partition; M for a hart with a locked entry, unless the partition is the monitor) and access (R, W, X) it
 compares what the PMP allows with the target, so no address is left out and the time depends only on the number
 of bounds. It reports each rule with the code and path of the generator: `GEN-E100` to `GEN-E105` on the table
-of the XML, `GEN-E120` to `GEN-E129`, `GEN-E135` and `GEN-E136` against the partitions, and `GEN-E072` and
-`GEN-E073` for the way masks. The severity follows the generator: the PMP rules are notes for a dev system and,
-for prod, warnings for the rules that are warnings above and errors otherwise; the way masks are errors in both
-profiles (they are applied in both). It prints `error: GEN-Exxx PATH: message` (or `warning:`, `note:`) per
+of the XML, `GEN-E120` to `GEN-E129`, `GEN-E135` and `GEN-E136` against the partitions, `GEN-E072`, `GEN-E073`
+and `GEN-E085` for the way masks, `GEN-E146` and `GEN-E147` for `l2.cache_partitioning`. It decodes the MPU of
+each master itself (only NAPOT with address bits 8:0 set, within the 2^38 bytes of the field) and reports
+`GEN-E140` to `GEN-E145` ([MPU and way masks of the XML](#mpu-and-way-masks-of-the-xml)); whether an owned master
+reaches a byte outside the windows of its owner it finds by walking each region from window to window, so no
+address is left out there either. The severity follows the generator: the rules of the PMP, the MPU and the cache
+partitioning are notes for a dev system and, for prod, warnings for the rules that are warnings above and errors
+otherwise; the rules of the way masks themselves are errors in both profiles (they are applied in both). It prints `error: GEN-Exxx PATH: message` (or `warning:`, `note:`) per
 finding and `verdict: accepted` or `verdict: refused (N errors)`; status 0 accepted, 1 refused, 2 a wrong
 argument or input (not JSON of the check input: a missing key, a value out of its range, a hart missing).
 
@@ -808,16 +879,21 @@ locked TOR entry is the `pmpaddr` of the entry before it, which is locked with i
 before a locked one (`GEN-E102`).
 
 Not in the checker: the rules of the AMP context registers themselves (`GEN-E130` to `GEN-E134`), which are rules
-of the consistency of the XML, not of what the PMP lets through; `l2.cache_partitioning` (`GEN-E074`); the MPU of
-the DMA masters, which the generator does not decode yet; a rule that every master keeps a cache way in its way
-mask, which the generator does not have yet either.
+of the consistency of the XML, not of what the PMP lets through; the ways of `l2.cache_partitioning` against the
+L2 of `system.yaml` (`GEN-E074`), which the check input does not carry.
 
 **The proof.** All of the checker except the reading of the file and the printing (`pmp_check_main.adb`) is
 SPARK, proved free of run-time errors (`./x prove`, `tools/prove.list`). The evaluation carries a functional
 proof: `Next_Bound` gives the end of the interval that starts at an address such that no bound of an entry or a
 zone lies inside it, and `Lemma_Uniform` proves that the evaluation of such an interval (the deciding entry and
 the zone, and with them the rights of each mode and access and the finding) is the same for all its addresses.
+For the MPU, `First_Outside` is proved to return the first byte of a region that no window of the owner holds,
+and to find none exactly when the windows hold every byte of the region; `Table_Of` that only the entries of the
+hardware decode to a region, inside the 2^38 bytes of the field.
 
 **Agreement.** `tests/host/pmp_check` runs every reference system with its XML and with the XML of the PMP demo,
 as dev and as prod, with 16 and 8 entries, a case per rule and 1000 random configurations through both and
-asserts the same findings (severity, code and path), so the same verdict.
+asserts the same findings (severity, code and path), so the same verdict. The random configurations also draw MPU
+entries (every address mode, small and whole-space regions, entries beyond the hardware), owners of DMA masters,
+way masks and cache partitionings, and the suite asserts that each rule of the MPU and the way masks fires in some
+of them.

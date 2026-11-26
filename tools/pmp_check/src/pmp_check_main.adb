@@ -1,18 +1,18 @@
 --  SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 --  SPDX-License-Identifier: Apache-2.0
 --
---  pmp_check FILE: the independent check of the PMP and the way masks of a system, from the check
---  input FILE that `python3 config/gen/mpfs_gen derive --check-json FILE system.yaml` writes.
+--  pmp_check FILE: the independent check of the PMP, the MPU and the way masks of a system, from the
+--  check input FILE that `python3 config/gen/mpfs_gen derive --check-json FILE system.yaml` writes.
 --
 --  It prints one line per finding, `error: GEN-Exxx PATH: message` (or warning:, note:), then
 --  `verdict: accepted` or `verdict: refused (N errors)`. Exit status: 0 accepted, 1 refused (an error:
---  for a prod system any rule of the PMP that is not a warning, in both profiles a rule of the way
---  masks), 2 the arguments or the input are wrong.
+--  for a prod system any rule of the PMP, the MPU or the cache partitioning that is not a warning, in
+--  both profiles a rule of the way masks), 2 the arguments or the input are wrong.
 --
 --  This unit reads the file and writes the lines; it is not SPARK (file and console I/O). Everything
 --  it calls is (tools/prove.list).
 --
---  @req GEN-015
+--  @req GEN-015, GEN-019
 
 with Ada.Command_Line;
 with Ada.Directories;
