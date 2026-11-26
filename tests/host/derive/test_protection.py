@@ -173,11 +173,20 @@ def deny_list(sys_, hart):
     return entries_for(ranges)
 
 
+def mpu_off(changes):
+    """<changes> with every MPU entry of the XML of the Icicle Kit OFF (its masters are open), so that the cases
+    of the PMP do not report the MPU (tests/host/derive/test_mpu.py has its rules)."""
+    for reg in ICICLE.registers:
+        if reg.section.startswith("mss_memory_map/mpu_"):
+            changes[(reg.section, reg.name, "MODE")] = 0
+    return changes
+
+
 def good(sys_=None, per_hart=None, more=None):
-    """The XML of the Icicle Kit with the contexts of the demo, MEM_CONFIGS_ENABLED.PMP 1 and the allow list
-    of each hart (per_hart overrides a hart's entries), more changes on top."""
+    """The XML of the Icicle Kit with the contexts of the demo, MEM_CONFIGS_ENABLED.PMP 1, every MPU entry OFF and
+    the allow list of each hart (per_hart overrides a hart's entries), more changes on top."""
     sys_ = sys_ or system()
-    changes = contexts_of()
+    changes = mpu_off(contexts_of())
     changes[(APB, "MEM_CONFIGS_ENABLED", "PMP")] = 1
     with_pmp(changes, 0, [])
     for hart in (1, 2, 3, 4):
@@ -552,7 +561,9 @@ def _():
     assert [len(pmp.in_use(h)) for h in harts] == [0, 11, 11, 7, 7]
     assert all(e.locked for h in harts for e in (h.entry(i) for i in pmp.in_use(h)))
     codes, message = codes_of(sys_, demo)
-    assert codes == ["GEN-E120", "GEN-E125", "GEN-E126"] * 4 + ["GEN-E123", "GEN-E127"] * 4, codes
+    # and its MPUs are open: every master but the SCB, which bypasses its MPU, reaches the whole address space
+    assert codes == ["GEN-E120", "GEN-E125", "GEN-E126"] * 4 + ["GEN-E145", "GEN-E144"] * 9 \
+        + ["GEN-E123", "GEN-E127"] * 4, codes
     assert "hart 1 of 'a' lacks rwx in U mode on its code+data window lim [0x8000000, 0x801ffff]" in message
     assert "U mode of hart 3 ('b') reaches SYSREG [0x20002000, 0x20002fff]" in message
     assert "U mode of hart 4 ('b') reaches L2 controller [0x2010000, 0x2010fff]" in message
@@ -738,6 +749,7 @@ def _():
       "and the codes are in the table of config/README.md")
 def _():
     wanted = checks.PROTECTION_CODES
+    covered.difference_update(checks.SEPARATION_CODES)     # the open MPUs of the PMP demo
     assert covered - checks.PMP_CODES == wanted, sorted((covered - checks.PMP_CODES) ^ wanted)
     assert checks.WARNINGS == {"GEN-E104", "GEN-E123", "GEN-E127", "GEN-E128", "GEN-E135", "GEN-E136"}, \
         checks.WARNINGS

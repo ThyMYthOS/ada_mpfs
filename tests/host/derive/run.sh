@@ -19,11 +19,16 @@
 #     the model; the PMP demo XML with tests/host/derive/fixtures/pmp_demo (contexts pass, its PMP refused for
 #     prod); the reference systems with the reference XMLs refused for prod and derived with notes for dev;
 #     the monitor, whose M mode the checks do not report and whose U mode they check.
+#   - test_mpu.py: the MPU of each DMA master decoded (the entries of MSS TRM Table 3-40, bits 8:0 of the
+#     address hardwired, TOR and NA4 off), the open MPUs of the XMLs of the boards and the closed ones of
+#     amp_c's, the security profiles (notes in dev, errors in prod), the owner of a master by its peripheral,
+#     l2.cache_partitioning against the way masks (amp_d), and a negative case for every code of the MPU and
+#     the cache partitioning (GEN-E140 on).
 #
 # Needs the merged SVD (tools/svd.py ensure rebuilds it if it is missing or stale, which needs svdtools),
 # PyYAML and jsonschema, no toolchain. Exits non-zero on any failure.
 #
-# @verifies GEN-006, GEN-007, GEN-008, GEN-009, GEN-011, GEN-012
+# @verifies GEN-006, GEN-007, GEN-008, GEN-009, GEN-011, GEN-012, GEN-017, GEN-018
 
 set -u
 export LC_ALL=C
@@ -34,7 +39,7 @@ fails=0
 . "$ROOT/tools/mpfs-env.sh"
 mpfs_find_python
 
-for t in test_derive.py test_protection.py; do
+for t in test_derive.py test_protection.py test_mpu.py; do
   echo "-- $t"
   "$MPFS_PYTHON" -I "$HERE/$t" || { echo "FAIL: $t" >&2; fails=$((fails + 1)); }
 done

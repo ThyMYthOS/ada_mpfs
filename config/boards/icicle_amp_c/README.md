@@ -21,6 +21,11 @@ What it sets (`python3 config/gen/mpfs_gen pmp config/boards/icicle_amp_c/amp_c_
   MMUART3 and 4 (`PMP_INITIATOR_U54_<n>_CONTEXT_<A|B>_EN`, `PMP_MMUART<n>_CONTEXT_<A|B>_EN`); every other
   peripheral key in neither context. `APBBUS_CR` is `0x18`: MMUART3 and 4 on the HI bus. WDOG3 and 4 have no
   context key and stay on the LO bus.
+- MPU (`MPU_CFG_PMP<MASTER>_MODE<n>`, `MPU_CFG_PMP_<MASTER>_PMP<n>`): GEM0, USB and eMMC have entry 0 NAPOT
+  without a right (`MODE` `0x18`, one region of 4 KiB each), every other entry of the masters is off but the
+  SCB's: the SCB, which bypasses its MPU, keeps the Configurator's open entries
+  (`MODE` `0x1F`, all address bits set). No master reaches anything, so `amp_c` passes the checks of the MPU
+  (`config/README.md`, "MPU and way masks of the XML"). The way mask of every master is way 0, the one cache way.
 
 ## The locked tables
 

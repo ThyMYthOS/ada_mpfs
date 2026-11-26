@@ -53,7 +53,7 @@
           "maxLength": 500
         },
         "cache_partitioning": {
-          "description": "The cache ways (0 to 15) that each hart may allocate into. Default: the way masks of the XML.",
+          "description": "The cache ways (0 to 15) that each hart may allocate into: a policy that the way masks of the XML must implement, checked against them, not applied. Default: none.",
           "type": "object",
           "additionalProperties": false,
           "properties": {
@@ -236,7 +236,7 @@
           "enum": ["mmuart0", "mmuart1", "mmuart2", "mmuart3", "mmuart4", "none", "ram_fifo"]
         },
         "peripherals": {
-          "description": "The peripherals that the partition owns: instance names of the SVD in lower case. Default: none.",
+          "description": "The peripherals that the partition owns: instance names of the SVD in lower case. The owner of fic0 to fic2, athena, mac0, mac1, usb or mmc owns the DMA master of that block and its MPU. Default: none.",
           "type": "array",
           "uniqueItems": true,
           "items": {"$ref": "#/$defs/name"}

@@ -85,6 +85,17 @@ PMP_ENTRIES = 16
 QEMU_PMP_ENTRIES = 8
 PMPADDR_BITS = (54, 36, 36, 36, 36)
 
+# The MPU of each DMA master (MSS TRM DS60001702S §3.4): the entries of each master after Table 3-40, by the
+# name of its section in the XML (mpu_<name>); the SVD has as many PMPCFG_<MASTER>_<n> registers in MPUCFG. The
+# PMP field of an entry holds address bits 37:2 (bits 35:0 of the register); its bits 8:0 are hardwired to 1,
+# so a NAPOT region has at least 4 KiB. Only the SCB bypasses the MPU ("Only the SCB can bypass the MPU
+# protection"); every other master has no access until its regions exist.
+MPU_ENTRIES = {"fic0": 16, "fic1": 16, "fic2": 8, "crypto": 4, "gem0": 8, "gem1": 8, "usb": 4, "mmc": 4,
+               "scb": 8, "trace": 2}
+MPU_ADDR_BITS = 36
+MPU_HARDWIRED = 0x1FF
+MPU_BYPASS = ("scb",)
+
 # The checks of the PMP take a block of registers in whole pages of 4 KiB: the APB peripherals of the SVD
 # start at multiples of it, and a U partition reads mtime through the page that holds it.
 PAGE = 0x1000

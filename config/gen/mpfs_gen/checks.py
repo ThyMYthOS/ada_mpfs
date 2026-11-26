@@ -11,10 +11,11 @@ are reported by yaml_reader.py from the failures of the validator, the rules acr
 GEN-E035) by semantic() below on a description that the schema accepts, and the rules of the MSS
 Configurator XML (GEN-E040 to GEN-E059, XML_CODES) by xml_reader.py, the rules of the derivations from
 a description and its XML (GEN-E060 to GEN-E099, DERIVE_CODES) by the package derive, the rules of the
-PMP sections of the XML (GEN-E100 to GEN-E119, PMP_CODES) by pmp.py, and the rules of the PMP and the AMP
+PMP sections of the XML (GEN-E100 to GEN-E119, PMP_CODES) by pmp.py, the rules of the PMP and the AMP
 contexts against the partitions (GEN-E120 to GEN-E139, PROTECTION_CODES) by derive/protection.py and
-derive/contexts.py. The codes of WARNINGS report what does not stop the derivation; their rule ends in
-"(a warning)".
+derive/contexts.py, and the rules of the MPU of the XML and of the cache partitioning against the partitions
+(GEN-E140 to GEN-E159, SEPARATION_CODES) by derive/mpu.py and derive/waymask.py. The codes of WARNINGS
+report what does not stop the derivation; their rule ends in "(a warning)".
 """
 from dataclasses import dataclass
 from pathlib import Path
@@ -94,6 +95,7 @@ CODES: dict[str, str] = {
     "GEN-E082": "a PLIC source is handled by two partitions",
     "GEN-E083": "a peripheral is neither a block of SUBBLK_CLOCK_CR nor a watchdog of the SVD",
     "GEN-E084": "a partition owns a peripheral that CONFIGURED_PERIPHERALS of the XML leaves out",
+    "GEN-E085": "a way mask of the XML has no cache way",
     "GEN-E100": "a PMP entry of the XML has W set and R clear (a reserved combination)",
     "GEN-E101": "a PMP configuration byte of the XML sets the reserved bits 5 and 6",
     "GEN-E102": "a locked PMP entry comes after an unlocked entry in use",
@@ -119,6 +121,16 @@ CODES: dict[str, str] = {
     "GEN-E135": "a PMP window of a partition in one AMP context covers the bus window of the other (a warning)",
     "GEN-E136": "a locked PMP entry of the XML grants U mode of a partition a window or peripheral of a partition of "
                 "the same AMP context (a warning)",
+    "GEN-E140": "an MPU entry of the XML has the address mode TOR or NA4, which the MPU takes as off",
+    "GEN-E141": "an MPU entry of the XML in NAPOT mode has a clear bit among address bits 8:0, which the MPU "
+                "hardwires to 1 (a region of at least 4 KiB)",
+    "GEN-E142": "an MPU entry of the XML in use is beyond the entries of its master",
+    "GEN-E143": "the MPU of a master that a partition owns grants access outside the windows of its owner",
+    "GEN-E144": "the MPU of a master that no partition owns grants access",
+    "GEN-E145": "an MPU entry of the XML grants access over the whole address space",
+    "GEN-E146": "the cache ways of a hart in the way masks of the XML are not those of l2.cache_partitioning",
+    "GEN-E147": "harts of different partitions share a cache way in the way masks of the XML while "
+                "l2.cache_partitioning is given",
 }
 
 # The codes of the reader of the MSS Configurator XML (xml_reader.py); the others are those of system.yaml.
@@ -129,6 +141,9 @@ DERIVE_CODES = frozenset(code for code in CODES if "GEN-E060" <= code <= "GEN-E0
 PMP_CODES = frozenset(code for code in CODES if "GEN-E100" <= code <= "GEN-E119")
 # The codes of the PMP and the AMP contexts against the partitions (derive/protection.py, derive/contexts.py).
 PROTECTION_CODES = frozenset(code for code in CODES if "GEN-E120" <= code <= "GEN-E139")
+# The codes of the MPU of the XML and of the cache partitioning against the partitions (derive/mpu.py,
+# derive/waymask.py).
+SEPARATION_CODES = frozenset(code for code in CODES if "GEN-E140" <= code <= "GEN-E159")
 # The codes that report what does not stop the derivation.
 WARNINGS = frozenset(code for code, rule in CODES.items() if rule.endswith("(a warning)"))
 

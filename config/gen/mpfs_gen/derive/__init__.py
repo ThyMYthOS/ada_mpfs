@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Manuel Stahl <thymythos@googlemail.com>
 # SPDX-License-Identifier: Apache-2.0
 #
-# @req GEN-006, GEN-007, GEN-008, GEN-009
+# @req GEN-006, GEN-007, GEN-008, GEN-009, GEN-017, GEN-018
 """The derivations: from a system description and the MSS Configurator XML of its board to the derived
 system, the data that the emitters write out.
 
@@ -13,21 +13,24 @@ system, the data that the emitters write out.
 
   clocks     the clocks, recomputed from the MSS PLL and checked against the limits
   l2         the ways of cache, scratchpad and LIM
+  waymask    the way masks of the XML, checked against the split and l2.cache_partitioning
   placement  the windows of partitions and channels, and the checks of the system map
   plic       the PLIC sources and contexts of each partition
   periph     the release masks of each partition, RAM_SHUTDOWN_CR, the names of the direct GPIO lines
   contexts   the AMP contexts of the XML and the address of each peripheral of a partition (APBBUS_CR)
   protection the PMP of the XML (pmp.py) checked against the partitions and the contexts
+  mpu        the MPU of each DMA master of the XML, checked against the partitions
 
 Every step runs and reports its diagnostics; the steps that need a correct L2 (the placement) run on the
 L2 as far as it could be derived. A diagnostic whose code checks.WARNINGS has is a warning: it is kept in
 Derived.warnings and does not stop the derivation.
 
-The security profile of system.yaml decides how the checks of the PMP and the AMP contexts count (the codes
-of checks.PMP_CODES and checks.PROTECTION_CODES, the rules of the XML's own PMP sections included; the checks
-of the MPU, still to come, will count the same way). A prod image must pass them: an error stops the
+The security profile of system.yaml decides how the checks of the PMP, the AMP contexts, the MPU and the cache
+partitioning count (the codes of checks.PMP_CODES, checks.PROTECTION_CODES and checks.SEPARATION_CODES, the
+rules of the XML's own PMP and MPU sections included). A prod image must pass them: an error stops the
 derivation. For a dev image they run for information, and every finding, error or warning, is a note in
-Derived.notes, which stops nothing. A dev image does not set the PMP registers (Protection.applied is False,
+Derived.notes, which stops nothing. The rules of the way masks themselves (a scratchpad way, no cache way)
+count in both profiles. A dev image does not set the PMP registers (Protection.applied is False,
 so the emitters write no PMP entries for it). Everything else of the XML is applied in both profiles: the MPU
 (a DMA master has no access until its MPU regions exist, MSS TRM DS60001702S §3.4), the way masks and the
 L2 split, APBBUS_CR and the addresses of the peripherals, the clocks and the IO multiplexing.
@@ -45,10 +48,12 @@ from ..yaml_reader import BOARDS
 from . import clocks as clocks_
 from . import contexts as contexts_
 from . import l2 as l2_
+from . import mpu as mpu_
 from . import periph as periph_
 from . import placement as placement_
 from . import plic as plic_
 from . import protection as protection_
+from . import waymask as waymask_
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,9 +75,11 @@ class DerivedPartition:
 @dataclass(frozen=True, slots=True)
 class Derived:
     """The derived system: the description, the XML (its file and hash), and what is derived from them;
-    <protection> the PMP and contexts checked, <warnings> the rules broken that do not stop the derivation,
-    <notes> the findings of the PMP and the contexts that a dev image does not enforce, <errors> the rules
-    broken that stop it (empty unless derive() ran with strict=False)."""
+    <protection> the PMP and contexts checked, <way_masks> and <mpu> the way masks and the MPU of the XML as
+    the boot loader writes them (in both profiles), <warnings> the rules broken that do not stop the
+    derivation, <notes> the findings of the PMP, the contexts, the MPU and the cache partitioning that a dev
+    image does not enforce, <errors> the rules broken that stop it (empty unless derive() ran with
+    strict=False)."""
     system: System
     xml: str
     xml_sha256: str
@@ -85,6 +92,8 @@ class Derived:
     ram_shutdown_blocks: tuple[str, ...]
     gpio_aliases: tuple[tuple[str, str], ...]
     protection: protection_.Protection | None = None
+    way_masks: waymask_.WayMasks | None = None
+    mpu: mpu_.Mpu | None = None
     warnings: tuple[Diagnostic, ...] = ()
     notes: tuple[Diagnostic, ...] = ()
     errors: tuple[Diagnostic, ...] = ()
@@ -127,6 +136,8 @@ def derive(system: System, config: MssConfiguration, svd: Path, where: str = "",
     found += more
     l2, more = l2_.derive(system, config)
     found += more
+    way_masks, more, policy = waymask_.derive(system, config, l2, l2.xml_valid)
+    found += more
     windows, more = placement_.place(system, l2)
     found += more
     mems = placement_.memories(l2)
@@ -146,6 +157,8 @@ def derive(system: System, config: MssConfiguration, svd: Path, where: str = "",
     checked, more = protection_.check(system, windows, mems, harts_pmp, contexts, placed, blocks, pmp_entries,
                                       applied)
     guarded += more
+    mpu, more = mpu_.derive(system, config, windows)
+    guarded += more + policy
     notes: tuple[Diagnostic, ...] = ()
     if applied:
         found += guarded
@@ -162,4 +175,4 @@ def derive(system: System, config: MssConfiguration, svd: Path, where: str = "",
                   for p, c in zip(system.partitions, placed))
     return Derived(system, config.source, config.sha256, clocks, l2, mems, windows, parts,
                    peripherals.ram_shutdown, peripherals.ram_shutdown_blocks, peripherals.gpio_aliases,
-                   checked, warnings, notes, tuple(errors_))
+                   checked, way_masks, mpu, warnings, notes, tuple(errors_))

@@ -12,10 +12,11 @@
                                                        registers of their core sections
   python3 config/gen/mpfs_gen derive [--check] [--xml XML] [--svd SVD] [--pmp-entries 8|16] FILE...
                                                        derive the systems of descriptions with the XML
-                                                       of each (or XML) and print them; the PMP and the
-                                                       AMP contexts of the XML are checked against the
-                                                       partitions (with 8 entries: whether it runs
-                                                       under QEMU), enforced for prod, notes for dev
+                                                       of each (or XML) and print them; the PMP, the
+                                                       AMP contexts and the MPU of the XML are checked
+                                                       against the partitions (with 8 entries: whether
+                                                       it runs under QEMU), enforced for prod, notes for
+                                                       dev
   python3 config/gen/mpfs_gen derive --check-json OUT [--xml XML] [--svd SVD] [--pmp-entries 8|16] FILE
                                                        also write the input of the independent checker
                                                        of the PMP (tools/pmp_check, system_json.py) to
@@ -27,10 +28,11 @@
 
 `check` prints `FILE: ok` or one line per violated rule, `FILE: GEN-Exxx PATH: message`; so do
 `xml --check` and `derive --check` (a warning, `GEN-Exxx (warning)`, goes to stderr after `FILE: ok`, and
-for a dev image the number of the findings of the PMP and the contexts that are notes). `derive` prints the
-clocks, the L2, the windows and, per partition, CPU_To_Hart, the PLIC sources and contexts, the release
-masks, the AMP context and the address of each peripheral; then APBBUS_CR, the contexts, the PMP occupation
-of each hart (or that a dev image does not apply the PMP), the warnings and the notes. `pmp` prints,
+for a dev image the number of the findings of the PMP, the contexts, the MPU and the cache partitioning that
+are notes). `derive` prints the clocks, the L2 and its way masks, the windows and, per partition,
+CPU_To_Hart, the PLIC sources and contexts, the release masks, the AMP context and the address of each
+peripheral; then APBBUS_CR, the contexts, the PMP occupation of each hart (or that a dev image does not apply
+the PMP), the MPU of each master, the warnings and the notes. `pmp` prints,
 per hart, the PMP CSRs and every entry that is not OFF (mode, byte range, rights, lock). `xml` prints the design, the hash and every register of the core sections
 (`SECTION/NAME = VALUE`, with --fields also each field), the memory elements and the sections that are
 only validated. Without --svd the merged SVD is build/svd/PolarfireSoC.svd, made current first.
@@ -155,6 +157,8 @@ def describe_derived(d: Derived) -> list[str]:
                + (f" (overrides the XML's {xml.cache}, {xml.lim}, {xml.scratchpad}: {l2.reason})" if l2.override
                   else " (as the XML)")
                + f"; WAY_ENABLE {l2.way_enable}")
+    if d.way_masks is not None:
+        out.append("way masks: " + ", ".join(f"{m} {number(v)}" for m, v in d.way_masks.masks))
     for mem in d.memories:
         used = sum(w.length for w in d.windows if w.memory == mem.name)
         if used:
@@ -177,6 +181,7 @@ def describe_derived(d: Derived) -> list[str]:
     out.append(f"RAM_SHUTDOWN_CR {number(d.ram_shutdown)} ({', '.join(d.ram_shutdown_blocks) or 'nothing'})")
     out.append("gpio direct: " + ", ".join(f"{name}={line}" for name, line in d.gpio_aliases))
     out += describe_protection(d)
+    out += describe_mpu(d)
     out += [f"warning: {w}" for w in d.warnings]
     out += [f"note: {n}" for n in d.notes]
     return out
@@ -208,6 +213,23 @@ def describe_protection(d: Derived) -> list[str]:
         for r in h.regions:
             if r.entry is not None:
                 out.append(f"  [{r.first:#x}, {r.last:#x}] entry {r.entry}: U {r.u}, M {r.m}")
+    return out
+
+
+def describe_mpu(d: Derived) -> list[str]:
+    """The lines of the MPU of each master: its owner and every entry that is not OFF (mode, range, rights,
+    lock); a TOR or NA4 entry, which the MPU takes as off, is shown as the XML states it."""
+    if d.mpu is None:
+        return []
+    out = [f"mpu: applied in both profiles; MEM_CONFIGS_ENABLED.MPU {int(d.mpu.enabled)} (gates nothing)"]
+    for m in d.mpu.masters:
+        used = [e for e in m.table if e.mode != "OFF" or e.locked]
+        who = "bypasses its MPU" if m.bypass else f"owner {m.owner!r}" if m.owner else "no owner"
+        out.append(f"mpu {m.master}: {len(used)} of {m.entries} entries not OFF, {who}")
+        for e in used:
+            span = e.region
+            where = f"[{span[0]:#x}, {span[1]:#x}]" if span else "off"
+            out.append(f"  entry {e.index}: {e.mode} {where} {e.rights}{' locked' if e.locked else ''}")
     return out
 
 
@@ -291,7 +313,8 @@ def main(argv: list[str]) -> int:
                     for w in result.warnings:
                         print(f"{path}: {w}", file=sys.stderr)
                     if result.notes:
-                        print(f"{path}: {len(result.notes)} finding(s) of the PMP and the contexts, not enforced "
+                        print(f"{path}: {len(result.notes)} finding(s) of the PMP, the contexts, the MPU and the "
+                              f"cache partitioning, not enforced "
                               f"for security_profile {result.system.security_profile} (derive prints them)",
                               file=sys.stderr)
                 else:

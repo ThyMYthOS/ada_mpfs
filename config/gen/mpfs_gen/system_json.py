@@ -62,8 +62,8 @@ def check_input(d: Derived, config: MssConfiguration, blocks: dict[str, svdread.
     """The check input of the derived system <d> of the XML <config>; <blocks> are the blocks of the SVD (for the
     bus windows). <d> needs its protection (every derivation has it)."""
     pr = d.protection
-    if pr is None:
-        raise ValueError("a derived system without its protection")
+    if pr is None or d.way_masks is None:
+        raise ValueError("a derived system without its protection or way masks")
     harts, _ = pmp_.of(config)
     beus = {protection_.beu_name(h): h for h in range(target.NUMBER_OF_HARTS)}
     enabled = config.register(pmp_.APB_SPLIT, "MEM_CONFIGS_ENABLED").field("PMP").value
@@ -91,7 +91,7 @@ def check_input(d: Derived, config: MssConfiguration, blocks: dict[str, svdread.
         "buses": {bus.lower(): [_block(b) for b in contexts_.bus_blocks(blocks, bus)] for bus in ("LO", "HI")},
         "l2": {"way_enable": config.value(l2_.CACHE, "WAY_ENABLE"),
                "scratchpad_ways": config.value(l2_.CACHE, "NUM_SCRATCH_PAD_WAYS"),
-               "way_masks": [{"master": master, "mask": mask} for master, mask in d.l2.way_masks]},
+               "way_masks": [{"master": master, "mask": mask} for master, mask in d.way_masks.masks]},
     }
 
 

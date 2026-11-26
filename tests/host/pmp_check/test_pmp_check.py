@@ -35,7 +35,7 @@ sys.path[:0] = [str(HERE.parent / "gen_ada"), str(ROOT / "config" / "gen"), str(
 from gen_ada import svdread
 from harness import case, finish
 from mpfs_gen import checks, derive, pmp, system_json, target, xml_reader, yaml_reader
-from mpfs_gen.derive import contexts, l2, plic
+from mpfs_gen.derive import contexts, plic, waymask
 
 # The SVD is read for the PLIC sources by every derivation; read once here, so that 1000 derivations are quick.
 plic.plic_sources = functools.cache(plic.plic_sources)
@@ -413,7 +413,7 @@ def random_case(rnd):
         for reg, on in (("CONTEXT_A_HART_EN", a), ("CONTEXT_B_HART_EN", b)):
             changes.update({(APB, reg, f"HART{h}"): int(h in on) for h in range(5)})
     if rnd.random() < 0.05:
-        set_way_mask(changes, rnd.choice(l2.MASTERS), rnd.randrange(1 << 16))
+        set_way_mask(changes, rnd.choice(waymask.MASTERS), rnd.randrange(1 << 16))
     entries = 8 if rnd.random() < 0.2 else 16
     return system, edited(config, changes), entries
 
